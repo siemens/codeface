@@ -193,7 +193,7 @@ class gitVCS (VCS):
         cmd = 'git --git-dir={0} log --no-merges -M -C'.format(self.repo).split()
         cmd.append('--pretty=format:%ct %H')
         cmd.append('--date=local') # Essentially irrelevant
-        cmd.append(self.rev_start revrange)
+        cmd.append(revrange)
         if (dirspec != ""):
             cmd.append(dirspec)
 

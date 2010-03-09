@@ -9,8 +9,10 @@ matplotlib.use("pdf")
 import matplotlib.pyplot as plt
 import os.path
 from pylab import *
+from subprocess import *
 import kerninfo
 import shelve
+import re
 
 def _abort(msg):
     print(msg + "\n")
@@ -242,11 +244,16 @@ def doAnalysis(vcs, basedir, revrange=None):
     writeToFile(res, "/home/wolfgang/raw.dat")
     duration = getSeriesDuration(res)
 
+    # Emergency stop: If the cycle is less than 200 commits long,
+    # there are no meaningful results to be expected.
+    if len(res) < 200:
+        print("!!! Not enough commits in list, skipping analysis")
+        return
+
     print("Creating cumulative series")
     res = createCumulativeSeries(vcs, "__main__", revrange)
     writeToFile(res, "/home/wolfgang/cum.dat")
 
-    print("Obtained a list with {0} commits".format(len(res)))
 
 
     # TODO: How is it possible to exchange the data directly between python
@@ -399,7 +406,7 @@ def doAnalysis(vcs, basedir, revrange=None):
 # distributions.
 
 
-def doSubrangeAnalysis(vcs, parts, basepath, revrange=None, subsys="__main__"):
+def doSubrangeAnalysis(vcs, basepath, revrange=None, subsys="__main__"):
     """Perform a subrange analysis of the given revision range.
 
     Split the given range into a number of parts covering
@@ -412,34 +419,30 @@ def doSubrangeAnalysis(vcs, parts, basepath, revrange=None, subsys="__main__"):
     revrange -- Revision range.
     subsys -- Specific subsystem to consider (the whole project
               is analysed if subsys==None)."""
-    if revrange==None:
-        list = vcs.extractCommitData(subsys)
-    else:
-        list = vcs.extractCommitDataRange(revrange, subsys)
+
+    # Get the list of tags (TODO: Move this to the VCS object.
+    # I just don't want to recreate the DB right now)
+
+    cmd = 'git --git-dir={0} tag'.format(vcs.repo).split()
+
+    print("About to call {0}".format(cmd))
+    try:
+        p2 = Popen(cmd, stdout=PIPE)
+        clist = p2.communicate()[0].splitlines()
+    except OSError:
+        _abort("Internal error: Could not spawn git")
         
-    sublist = []
-        
-    startdate = int(list[0].cdate)
-    enddate = int(list[-1].cdate)
-    interval = (enddate-startdate)/parts
+    regexp = "^" + revrange[1] + "-rc"
 
-    sublist.append(list[0])
-    next_date = int(startdate + interval)
+    sublist = [revrange[0]]
 
-    # Yes, we could to this more clever. No, it would not pay off.
-    curr_pos = 0
-    for i in range(0, parts - 1):
-        for j in range(curr_pos, len(list)):
-            if int(list[j].cdate) >= next_date:
-                sublist.append(list[j])
-                next_date = next_date + interval
-                curr_pos = j
-                break # Contine with the next i iteration
+    for entry in clist:
+        if re.match(regexp, entry):
+            sublist.append(entry)
 
-    sublist.append(list[-1])
-    
-    if len(sublist) != parts + 1:
-        _abort("Internal error: Subranges don't fulfill parts specification")
+    sublist.append(revrange[1])
+
+    print("Sublist: {0}".format(", ".join(sublist)))
 
     for i in range(1, len(sublist)):
         path = os.path.join(basepath, "cycle{0}".format(i-1))
@@ -448,17 +451,14 @@ def doSubrangeAnalysis(vcs, parts, basepath, revrange=None, subsys="__main__"):
             os.mkdir(path)
            
         print("Analysing development sub-cycle {0} ({1}..{2})".
-              format(i-1, sublist[i-1].id, sublist[i].id))
-        doAnalysis(vcs, path, revrange=[sublist[i-1].id, sublist[i].id])
+              format(i-1, sublist[i-1], sublist[i]))
+        doAnalysis(vcs, path, revrange=[sublist[i-1], sublist[i]])
    
 #######################################################################
 ############################  Dispatcher  #############################
 #######################################################################
 
-def doRevisionAnalysis(vcs, revs, basepath, subrangeAnalysis=False, subparts=5):
-    print("Unshelving the data")
-    initialiseR()
-    
+def doRevisionAnalysis(vcs, revs, basepath, subrangeAnalysis=False):
     for i in range(1, len(revs)):
         path = os.path.join(basepath, revs[i])
         
@@ -469,20 +469,48 @@ def doRevisionAnalysis(vcs, revs, basepath, subrangeAnalysis=False, subparts=5):
         doAnalysis(vcs, path, revrange=[revs[i-1], revs[i]])
 
         if subrangeAnalysis:
-            doSubrangeAnalysis(vcs, subparts, path, [revs[i-1], revs[i]])
+            doSubrangeAnalysis(vcs, path, revrange=[revs[i-1], revs[i]])
 
 # Let it rip!
-#git = shelve.open("/home/wolfgang/linux-small")["git"]
-git = shelve.open("/home/wolfgang/linux-14-33")["git"]
+########################################################
+###git = shelve.open("/home/wolfgang/linux-small")["git"]
+#git = shelve.open("/home/wolfgang/linux-14-33")["git"]
+#print("Revision range of shelved object: {0}..{1}".
+#      format(git.rev_start, git.rev_end))
+#initialiseR()
+#
+#revs = ["v2.6.{0}".format(i) for i in range(14,33) ]
+#doRevisionAnalysis(git, revs, "/tmp/graphs", subrangeAnalysis=True)
+############################################################
+
+
+########################################################
+#git = shelve.open("/home/wolfgang/git-full")["git"]
+#print("Revision range of shelved object: {0}..{1}".
+#      format(git.rev_start, git.rev_end))
+#initialiseR()
+#
+#revs = ["v1.{0}.0".format(i) for i in range(0,7) ]
+#doRevisionAnalysis(git, revs, "/tmp/gitgraphs", subrangeAnalysis=True)
+#########################################################
+
+
+#######################################################
+git = shelve.open("/home/wolfgang/perl-full")["git"]
+print("Revision range of shelved object: {0}..{1}".
+      format(git.rev_start, git.rev_end))
 initialiseR()
 
-revs = ["v2.6.{0}".format(i) for i in range(20,31) ]
-doRevisionAnalysis(git, revs, "/tmp/graphs", subrangeAnalysis=True, subparts=5)
+revs = ["perl-5.8.{0}".format(i) for i in range(1,10) ]
+doRevisionAnalysis(git, revs, "/tmp/perlgraphs", subrangeAnalysis=False)
+#######################################################
 
+
+############################################################
 #revs = ["v2.6.{0}".format(i) for i in range(24,26) ]
-#doRevisionAnalysis(git, revs, "/tmp/graphs", subrangeAnalysis=True, subparts=5)
+#doRevisionAnalysis(git, revs, "/tmp/graphs", subrangeAnalysis=True)
 
 #doRevisionAnalysis(git, ["v2.6.24", "v2.6.25"], "/tmp/graphs")
-#doSubrangeAnalysis(git, 5, "/tmp/graphs/cycletest", 
+#doSubrangeAnalysis(git, "/tmp/graphs/v2.6.25", 
 #                   revrange=["v2.6.24", "v2.6.25"])
 
