@@ -19,6 +19,7 @@
 # represented by two parameters.
 
 from subprocess import *
+from progressbar import *
 import commit
 import re
 import sys
@@ -67,7 +68,19 @@ class VCS:
         self.repo = None
 
         # For each subsystem, contains a time-ordered list of all commits
+        # (i.e., _commit_list_dict["block"] is a list[] of ids)
         self._commit_list_dict = None
+
+        # The raw commit hashes (no commit.Commit objects) per subsystem,
+        # structure as above.
+        self._commit_id_list_dict = None
+
+        # When _rc_ranges is set to something like [[A,B], [C,D]],
+        # then the commits A..B and C..D are taken to be in release ranges.
+        # All the low-level commit hashes are then stored in _release_id_list
+        self._rc_id_list = None
+        self._rc_ranges = None
+        
         # Contains all commits indexed by commit id
         self._commit_dict = None
 
@@ -83,6 +96,10 @@ class VCS:
     def setSubsysDescription(self, subsys_description):
         # See kerninfo.py for some examples of the format
         self.subsys_description = subsys_description
+
+    def setRCRanges(self, rc_ranges):
+        self._rc_ranges = rc_ranges
+        self._rc_id_list = []
 
     def extractCommitData(self, subsys="__main__"):
         """Analyse the repository and cache the results.
@@ -113,6 +130,7 @@ class gitVCS (VCS):
         # Some analysis patterns that are required to analyse the
         # output of git
         self.logPattern = re.compile(r'^(.*?) (.*)$')
+        self.authorPattern = re.compile(r'^Author: (.*)$')
         self.signedOffPattern = re.compile(r'^(.*?): (.*)$')
         self.diffStatPattern = re.compile(r'(.*?) files changed, (.*?) '
                                           'insertions\(\+\), (.*?) '
@@ -142,19 +160,38 @@ class gitVCS (VCS):
 
         # .. and proceed with the subsystems. We "recycle" the already
         # created commit instances by placing them on subsystem specific
-        # lists
+        # lists. 
         for subsys in self.subsys_description.keys():
             clist = self._getCommitIDsLL(self.subsys_description[subsys])
+
+            # Based on this information, prepare a list of commit.Commit
+            # objects
             self._commit_list_dict[subsys] = \
                 [self._commit_dict[self._Logstring2ID(logstring)]
                  for logstring in reversed(clist)]
+            
+            # For the subsystems, we also prepare lists of "raw" IDs
+            # that are required for the subsystem identification
+            # pass (NOTE: There are some optimisation opportunities here)
+            self._commit_id_list_dict[subsys] = \
+                [self._Logstring2ID(logstring)
+                 for logstring in reversed(clist)]
 
+        # Finally, we also create commit ID lists for ranges of
+        # interest (currently, only to decide wether a commit is in
+        # a feature freeze phase or not)
+        if self._rc_ranges != None:
+            for range in self._rc_ranges:
+                clist = self._getCommitIDsLL("", range[0], range[1])
+                self._rc_id_list.extend([self._Logstring2ID(logstring)
+                                          for logstring in clist])
+            
     def _getCommitIDsLL(self, dir_list, rev_start=None, rev_end=None):
         """Low-level routine to extract the commit list from the VCS.
 
         Must be implemented specifically for every VCS, and must
         return a list of strings that can be parsed with 
-        _parseLogString() for a specific revision range (rev_start..rev_end)
+        _Logstring2ID() for a specific revision range (rev_start..rev_end)
         in the subsystem described by the directory list dir_list."""
 
         if rev_start == None and rev_end != None:
@@ -172,12 +209,6 @@ class gitVCS (VCS):
         else:
             if self.rev_end:
                 revrange += self.rev_end
-            
-
-        if dir_list:
-            dirspec = "-- {0}".format(" ".join(dir_list))
-        else:
-            dirspec = ""
 
         # TODO: Check the effect that -M and -C (to detect copies and
         # renames) have on the output. Is there anything we need
@@ -194,10 +225,12 @@ class gitVCS (VCS):
         cmd.append('--pretty=format:%ct %H')
         cmd.append('--date=local') # Essentially irrelevant
         cmd.append(revrange)
-        if (dirspec != ""):
-            cmd.append(dirspec)
+        if (len(dir_list) > 0):
+            cmd.append("--")
+            for dir in dir_list:
+                cmd.append(dir)
 
-        print("About to call {0}".format(cmd))
+        print("About to call {0}".format(" " .join(cmd)))
         try:
             p2 = Popen(cmd, stdout=PIPE)
             clist = p2.communicate()[0].splitlines()
@@ -220,7 +253,7 @@ class gitVCS (VCS):
         """Prepare the list of all commits for the complete project.
 
         The results are stored in a sequential list of all commits
-        in _commit_list_dist["__main__"] as well as in a dictionary
+        in _commit_list_dict["__main__"] as well as in a dictionary
         (_commit_dict) that is indexed by commit id.
         """
         # If we have already computed the list, we need not
@@ -229,6 +262,7 @@ class gitVCS (VCS):
             return
 
         self._commit_list_dict = {}
+        self._commit_id_list_dict = {}
         self._commit_dict = {}
         clist = self._getCommitIDsLL("")
 
@@ -272,7 +306,12 @@ class gitVCS (VCS):
     def _analyseDiffStat(self, msg, cmt):
         """Analyse the results of diff show with respect to the diffstat."""
         msg = msg.splitlines()
-        match = self.diffStatPattern.search(msg[-1])
+        try: 
+            match = self.diffStatPattern.search(msg[-1])
+        except IndexError: 
+            print("Blubb?!")
+            print(msg)
+            raise ParseError("Empty commit?", cmt.id)
 
         if not(match):
             raise ParseError(msg[-1], cmt.id)
@@ -304,7 +343,7 @@ class gitVCS (VCS):
         #  2 files changed, 10 insertions(+), 1 deletions(-)
         ######
         # We get a list representation of the commit that was split
-        # by line breaks, so restore the original state first and the
+        # by line breaks, so restore the original state first and then
         # do a decomposition into parts 
         
         parts = msg.split("\n\n")
@@ -316,11 +355,24 @@ class gitVCS (VCS):
                 break
             elif i == len(parts)-1:
                 # TODO: This should be made an exception, and we
-                # should exit gracefully
+                # should exit gracefully. On some occasions, this
+                # error is triggered although the commit in question
+                # (e.g., 9d32c30542f9ec) can be parsed
+                # fine when viewed within a different range...?!
+                # Perhaps this is also a pypy issue. For the commit
+                # mentioned before, the problem was only detected with
+                # pypy, not with cpython. 
                 _abort("Cannot find metadata start in commit message!")
         
         commit_index = i
         descr_index = i+1
+
+        # Determine the author
+        for line in parts[commit_index].split("\n"):
+            match = self.authorPattern.search(line)
+            if (match):
+                author = match.group(1)
+                cmt.author = author
 
         signed_off_part = parts[descr_index].split("\n    \n    ")[-1]
         # Ensure that there are actually signed-offs in the signed-off
@@ -345,7 +397,7 @@ class gitVCS (VCS):
         else:
             descr_message = parts[descr_index]
 
-        # Normalise the c
+        # Normalise the commit message
         final_message = ""
         for line in descr_message.split("\n"):
             line = re.sub("^    ", "", line)
@@ -357,7 +409,7 @@ class gitVCS (VCS):
     def _analyseSignedOffs(self, msg, cmt):
         """Analyse the Signed-off-part of a commit message."""
         
-        cmt.signed_offs = {}
+        tag_names_list = cmt.getTagNames()
         for entry in msg.split("\n"):
             entry = re.sub("^    ", "", entry)
             match = self.signedOffPattern.search(entry)
@@ -369,10 +421,10 @@ class gitVCS (VCS):
                 # Greg's and Jonathans analysis to avoid multiple
                 # associations per person
                 
-                if key in cmt.signed_offs.keys():
-                    cmt.signed_offs[key].append(value)
+                if key in tag_names_list.keys():
+                    tag_names_list[key].append(value)
                 else:
-                    cmt.signed_offs[key] = [value]
+                    tag_names_list[key] = [value]
             else:
                 print("Warning: Could not parse Signed-off like line:")
                 print('{0}'.format(entry))
@@ -424,12 +476,47 @@ class gitVCS (VCS):
         # __main__, the subsystem information follows automatically 
         # from this.
         count = 0
+        widgets = ['Pass 1/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
+        pbar = ProgressBar(widgets=widgets,
+                           maxval=len(self._commit_list_dict["__main__"])).start()
+
         for cmt in self._commit_list_dict["__main__"]:
             count += 1
-            print("Processing commit {0}/{1} ({2})".
-                  format(count, len(self._commit_list_dict["__main__"]), 
-                         cmt.id))
+            if count % 20 == 0:
+                pbar.update(count)
 
+#            print("Processing commit {0}/{1} ({2})".
+#                  format(count, len(self._commit_list_dict["__main__"]), 
+#                         cmt.id))
+
+            # First, determine which subsystems are touched by the commit
+            cmt_subsystems = cmt.getSubsystemsTouched()
+            touched_subsys = False
+
+            for subsys in self.subsys_description.keys():
+                if cmt.id in self._commit_id_list_dict[subsys]:
+                    cmt_subsystems[subsys] = 1
+                    touched_subsys = True
+                else:
+                    cmt_subsystems[subsys] = 0
+
+            # Commit is not associated with a specific subsystem, so
+            # file it under "general"
+            if touched_subsys == False:
+                cmt_subsystems["general"] = 1
+            else:
+                cmt_subsystems["general"] = 0
+
+            cmt.setSubsystemsTouched(cmt_subsystems)
+
+            # Second, check if the commit is within the release cycle
+            if self._rc_id_list != None:
+                if cmt.id in self._rc_id_list:
+                    cmt.setInRC(True)
+                else:
+                    cmt.setInRC(False)
+
+            # Third, analyse the diff content
             # TODO: Using a list of entries in diff_info is suboptimal.
             # This should be replaced with a hash indexed by parameter
             # combination
@@ -439,6 +526,7 @@ class gitVCS (VCS):
                            "{1} {2} {3}".format(self.repo, difftype, 
                                                 whitespace, cmt.id)).split()
                     try:
+#                        print("About to call " + " ".join(cmd))
                         p2 = Popen(cmd, stdout=PIPE)
                         msg = p2.communicate()[0]
                         self._analyseDiffStat(msg, cmt)
@@ -474,13 +562,9 @@ class gitVCS (VCS):
 ############################ Test cases #########################
 if __name__ == "__main__":
     git = gitVCS()
-    git.setRepository("/media/disk/git-repos/linux-2.6/.git")
-    git.setRevisionRange("v2.6.14", "v2.6.15")
+    git.setRepository("/Users/wolfgang/git-repos/linux/.git")
+    git.setRevisionRange("22242681cff52bfb7cb~1", "22242681cff52bfb7cb")
     clist = git.extractCommitData("__main__")
-
-    print("Obtained {0} commits".format(len(clist["__main__"])))
-    for cmt in clist["__main__"][0:10]:
-        print("Commit {0}: {1}, {2}".format(cmt.id, cmt.cdate, cmt.diff_info))
 
     print("Shelfing the git object")
     import shelve
@@ -488,12 +572,17 @@ if __name__ == "__main__":
     d["git"] = git
     d.close()
 
+    print("Obtained {0} commits".format(len(clist)))
+    for cmt in clist[0:10]:
+        print("Commit {0}: {1}, {2}".format(cmt.id, cmt.cdate, cmt.diff_info))
+    quit()
+
     print("Same in blue after unshelfing:")
     k = shelve.open("/tmp/git-shelf")
     git2 = k["git"]
     k.close()
 
     clist2 = git2.extractCommitData()
-    print("Obtained {0} commits".format(len(clist2["__main__"])))
-    for cmt in clist2["__main__"][0:10]:
+    print("Obtained {0} commits".format(len(clist2)))
+    for cmt in clist2[0:10]:
         print("Commit {0}: {1}, {2}".format(cmt.id, cmt.cdate, cmt.diff_info))

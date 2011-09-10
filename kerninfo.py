@@ -19,7 +19,7 @@ subsysDescrLinux = {
     "headers" : ["include"],
     "arch" : ["arch"], 
     "security" : ["crypto", "security"], 
-    "contrib" : None, # External contributions to Linux remain external 
+#    "contrib" : ["DOESNOTEXIST"], # External contributions to Linux remain external 
     "scripts" : ["scripts"], 
     "fs" : ["fs"], 
     "virt" : ["virt"], 

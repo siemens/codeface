@@ -4,6 +4,17 @@
 # desirable: This way, we can change the definition of the analysis
 # functions, but still re-use serialised objects.
 
+tag_types = [ "Signed-off-by", "Acked-by", "CC", "Reviewed-by",
+             "Reported-by", "Tested-by" ]
+
+def flatten(lst):
+    for elem in lst:
+        if type(elem) in (tuple, list):
+            for i in flatten(elem):
+                yield i
+            else:
+                yield elem
+
 def _commit_size_ub(add, deleted):
     """
     Compute the upper bound on the commit size,
@@ -115,23 +126,39 @@ def createSeries(vcs, subsys="__main__", revrange=None):
     return res
 
 def getSignoffCount(cmt):
-    """Obtain the number of people that signed a commit off."""
-    if cmt.signed_offs and "Signed-off-by" in cmt.signed_offs.keys():
-        signoffs = len(cmt.signed_offs["Signed-off-by"])
+    """Get the number of people who signed a commit off."""
+    tag_names_list = cmt.getTagNames()
+    if "Signed-off-by" in tag_names_list.keys():
+        signoffs = len(tag_names_list["Signed-off-by"])
     else:
         signoffs = 0
 
     return signoffs
 
+def getInvolvedPersons(cmt, categories):
+    """Determine the names of persons involved with a commit. categories
+    is a list with entries like Signed-off-by, Acked-by, etc. """
+    signoffs = []
+
+    if (not(type(categories) == list)):
+        categories = [categories]
+    
+    tag_names_list = cmt.getTagNames()
+    for key in categories:
+        if key in tag_names_list.keys():
+            signoffs.extend(tag_names_list[key])
+
+    return signoffs
+
+
 def getSignoffEtcCount(cmt):
     """Similar to getSignoffCount(), but also counts CCed, Acked-by, etc."""
     signoffs = 0
 
-    if cmt.signed_offs:
-        for key in [ "Signed-off-by", "Acked-by", "CC", "Reviewed-by",
-                     "Reported-by", "Tested-by"]:
-            if key in cmt.signed_offs.keys():
-                signoffs += len(cmt.signed_offs[key])
+    tag_names_list = cmt.getTagNames()
+    for key in tag_types:
+        if key in tag_names_list.keys():
+            signoffs += len(tag_names_list[key])
 
     return signoffs
 

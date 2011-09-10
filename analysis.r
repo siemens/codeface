@@ -1,16 +1,130 @@
-# ALWAYS keep in mind that arrays in R are 1-based!!!
+# ALWAYS keep in mind that arrays in R are effing 1-based!!!
 
 # Some useful functions to do time series analysis in R
 # for the commit structure analysis
 # NOTE: Libraries can be installed using 
 # install.packages("package_name", dependencies = TRUE)
-
+# (A similar mechanism is available for python: 
+# sudo easy_install rpy2)
 library("zoo")
 library("xts")
 library("tseriesChaos")
+library("numDeriv")
+library("wavelets")
+library("wavethresh")
+library("fractal")
 tstamp_to_date <- function(z) as.POSIXct(as.integer(z), origin="1970-01-01")
 # TODO: Is there a way to load this directly as an xts series?
-series = as.xts(read.zoo(file="/home/wolfgang/main.dat", FUN=tstamp_to_date))
+series = as.xts(read.zoo(file="/home/wolfgang/linux-24-25.dat", FUN=tstamp_to_date))
+
+######## TASK: Read a commit time series, perform daily smoothing,
+# and plot the graph and the 10-day mean value
+# (based on the blog post in http://dirk.eddelbuettel.com/blog/computers/R/)
+MEANDAYS <- 10
+raw <- read.zoo(file="/Users/wolfgang/papers/csd/dat/linux-20-30.dat", FUN=tstamp_to_date)
+raw <- raw[,1]
+cumulative <- cumsum(raw)
+
+daily <- aggregate(raw, as.Date(index(raw)), sum)
+# (note: as.Date(...) will only keep the year, month and day, but
+# truncate the rest of the timestamp)
+series <- rollmean(daily, MEANDAYS, align="center")
+
+plot(daily[,1], col='darkgrey', type='h', lwd=1,
+     ylab="Commit measure (raw and averaged)",
+     xlab="Time", main="Activity diagram for kernel 2.6.20-30")
+lines(series, lwd=2, col="red")
+# (note: we could also use rollmedian)
+
+# Very nice:
+recurr(series, m=3,d=5)
+##################################################################
+
+# We can influence the range of date selection by truncating certain
+# parts of the date representation (use a series 7,6,5,4 for the significant
+# digits to generate series with less detail):
+daily <- aggregate(raw, function(x) {tstamp_to_date(signif(as.integer(x),6))}, sum)
+# Maybe the autocorrelation of the signal dependent on the 
+# trucation cut-off is a good way to find the right cut-off.
+# TODO: Most likely, using a simple cut-off truncation makes the 
+# region in which the irrelevant details disappear, but the relevant 
+# ones are too small itself too little. We should use a more 
+# precisely directible way of rounding (e.g., floor(x/50)*50) to round
+# up to 50.
+
+# x is the time, N the value to align to
+align_ts <- function(x,N) { tstamp_to_date(floor(as.integer(x)/N)*N)}
+daily <- aggregate(raw, function(x) { align_ts(x, 300000 )}, sum)
+# NOTE: This also makes it easier to determine the periodic time intervals!
+# As a window for the STL decomposition, just choose the average time between
+# releases.
+
+# Both methods generate a proper basis for time series, but may still
+# contain NAs, depending on the choice of truncation width. If not,
+# then arima etc.  calculations work:
+
+fit <- arima(as.ts(daily), c(1,1,0))
+tsdiag(fit)
+
+plot(daily)
+plot(rollmean(daily, 50, align="center"))
+plot(cumsum(rollmean(daily, 50, align="center")))
+
+# Especially the latter is a nice check to see how much smooting
+# goes on in the mean value calculation.
+
+# We can convert a (slightly irregular) time series to a regular
+# one where the missing values are replaced by 0 (which is the proper
+# thing to do in this case):
+tseries = as.ts(daily)
+tseries[is.na(tseries)] <- 0
+
+# NOTE NOTE NOTE: The following gives a recurrence diagram with
+# properly formatted time axes: Use the align_ts aggregation,
+# convert to a time series with as.ts, replace NAs with 0,
+# use recurr on the resulting object!
+
+# raw is the time series, N is the alignment factor
+generate_regular_ts <- function(raw, N) {
+  daily <- aggregate(raw, function(x) { align_ts(x, N) }, sum)
+  tseries <- as.ts(daily)
+  # TODO: Strangely enough, the time propery of the index is lost,
+  # and we retain only the numeric values. tstamp_to_date(index(series))
+  # is, however, still correct
+  tseries[is.na(tseries)] <- 0
+
+  return(tseries)
+}
+
+
+### Round a date to some desired accuracy with POSIXt.round
+# Unfortunately, the R way of doing things seems to consist of
+# permanent unclassing, method changing and various other things,
+# the following does not work:
+
+rd <- function(x) { POSIXt.round(x, unit="hours") }
+sapply(index(raw), rd)
+
+# Although it works when called on individual instances:
+rd(index(raw)[1])
+
+# We can (once more) to the conversion from number to date, then
+# we can also sapply the function (which then takes ages to complete).
+# Strangely enough, the output type also changes and does not remain
+# the same as the type fed into the function. GREAT! Simple tasks
+# are made really hard by R.
+rf <- function(x) { round(tstamp_to_date(x), unit="hours")}
+sapply(index(raw), rf)
+
+# Things seem to work better with lapply -- at least we get the proper
+# object type on output. But then encapsulated in a very strange
+# array of arrays or something. WTF?
+lapply(index(raw), rf)
+################################################################
+
+# Task: Multiple plots on one canvas (at least for line elements).
+# 1.) Use plot for the main plot
+# 2.) Use lines to add more elements
 
 # Set up a multiplot with (row, col) 
 par(mfcol=c(3,2))
@@ -154,8 +268,8 @@ tsdiag(fit1) # This time, it seems to give more reasonable results than
 
 # TODO: How is it possible to "query" the smoothed irregular time
 # series as regular intervals to obtain a regular time series?
-Or is as.ts just sufficient beccause the number of points won't
-increase so fast?
+# Or is as.ts just sufficient beccause the number of points won't
+# increase so fast?
 
 # How to generate PDF plots (see r-cookbook.com)
 pdfname<-paste("myfilename",".pdf",sep="")
@@ -224,7 +338,88 @@ ts(data=coredata(ts_reduced), start=tstart, deltat=tdiff)
 ##################################################################
 
 
-#### PDF plotting in R
+#### Task: PDF plotting in R
 pdf(file="/tmp/test.pdf")
 plot(whatever)
 dev.off()
+
+
+### Task: Wavelet analysis
+wvl <- dwt(coredata(tseries))
+plot.dwt(wvl)
+
+# Using the wavethresh library:
+plot(wd(tseries))
+# NOTE: Since many signals do not seem to be stationary (cf. the respective
+# tests), using wavelets instead of a simpler Fourier decomposition seems
+# to make quite a bit of sense
+
+# Using the dplR library (produces the typical wavelet 2d figure):
+# (with rescaled time index, index(tseries) as 2nd argument would work
+# as well)
+wavelet.plot(coredata(tseries), seq(1,length(tseries)), p2=8)
+
+##################################################################
+
+### Task: Fractal/Chaotic analysis
+# Find the optimal time lag for reconstructing the embedding space:
+timeLag(tseries, method="mutual", plot.data=TRUE)
+# (see the help page for further methods)
+# NOTE: There are many other methods in the fractals package that
+# could prove fairly useful for our purposes, including determinism(),
+# embedSeries(), 
+# NOTE: For objects obtained with the fractal package methods, typically
+# two plots are available: The standard one with plot(), and a more detailled
+# one with eda.plot()
+
+# Determine determinism of the series
+- Use plot(spaceTime(tseries)) to find the first peak, which estimates
+  olag
+- tseries.det <- determinism(tseries, olag=N)
+- plot(tseries.det), print(tseries.det), eda.plot(tseries.det)
+
+# Compute the Poincare map:
+z <- poincareMap(tseries, extrema="all") (extrema could also be "min" or "max")
+z <- embedSeries(z$amplitude, tlag=1, dimension=2)
+plot(z, pch=1, cex=1)
+
+##################################################################
+
+
+
+### Task: Basic fourier analysis (it's as easy as this, folks)
+signal.and.spectrum(tseries, "Linux 2.6.20-30")
+spectrum(tseries, spans=N)
+# The spectrum of an AR model fitted to the data is computed by
+spec.ar(tseries, order=100)
+# (if order is left unspecified, it is chosen automatically, but this
+# is often not satisfactory). Equivalent:
+spectrum(tseries, method="ar", order=100)
+
+# This is the same as plot.pgram():
+spectrum(tseries, method="pgram", spans=5)
+##################################################################
+
+
+### Task: Check stationarity of time series
+# (using the Priestly-Subba-Rao test)
+res <- stationarity(signalSeries(as.vector(tseries)), center=FALSE)
+summary(res)
+plot(res)
+# TODO: How are the results to be interpreted?
+
+
+### Task: Compute numeric derivative
+# Convert the array into a (formal) function by very simple means
+# and apply the numDeriv methods:
+f_repr <- function(x,v) { idx <- floor(x*(length(v)-1) + 1); return(v[idx]) }
+interCum <- function (x) { f_repr(x, cumulative) }
+plot(interCum, 0, 1)
+# ... but unfortunately, this does not with num numDeriv...
+# Should be fairly easy with numpy.diff(), though.
+
+
+
+### TODO: Functions/packages to look at ####
+- detrend (removes a linear or whatever trend from a time series?)
+- bootspecdens: Check if two spectra are equal
