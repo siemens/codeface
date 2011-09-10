@@ -19,7 +19,7 @@
 # Perform a full analysis:
 # 1.) Call ./cluster.py with the appropriate revision settings
 # 2.) ./persons.r /Users/wolfgang/papers/csd/cluster/res/<rev>/
-# 3.) for i in `seq 0 16`; do
+# 3.) for i in `seq 0 `ls group_*.dot | wc | awk '{print $1-1;}'``; do
 #   cat group_$i.dot | ./conv.py > g$i.dot;
 #   neato -Tpdf g$i.dot> g$i.pdf;
 # done
@@ -39,9 +39,8 @@ if(length(arguments$args) != 1) {
     datadir <- arguments$args
 }
 
-#datadir <- "/Users/wolfgang/papers/csd/cluster/res/33/"
+#datadir <- "/Users/wolfgang/papers/csd/cluster/res/32/"
 outdir <- datadir
-
 
 # Given an eMail address like "Name N. Surname <name.surname@domain.com>",
 # extract the person name without the electronic address
@@ -49,8 +48,8 @@ name.of.email <- function(str) {
   return(str_sub(str, 1, str_locate(str, "<")[1]-2))
 }
 
-# NOTE: We rely that the ids are already sorted numerically. To make
-# this sure, a check could do no harm
+# NOTE: We rely that the ids are already sorted numerically. To ensure
+# this is really the case, a check could do no harm
 ID.to.name <- function(.iddb, .id) {
   return(.iddb[which(.iddb$ID==.id),]$Name)
 }
@@ -80,25 +79,32 @@ tags.given <- function(.id, .tags) {
   return(sum(.tags[,.id]))
 }
 
+compute.pagerank <- function(.tags) {
+  g <- graph.adjacency(.tags, mode="directed")
+  ranks <- page.rank(g, directed=TRUE)
+
+  return(ranks)
+}
+
 # Determine the N most important developers (as per the
-# PageRank measure)
-# NOTE: This works very well and should be applied to multiple
+# PageRank measure). This returns a list ordered by pagerank.
+# The raw pagerank data as given by compute.pagerank return
+# the ranks ordered by ID.
+# NOTE: This works fairly well and should be applied to multiple
 # kernel releases, and systematically compared with old results.
 # NOTE: This takes a few minutes to be computed for all developers
-influential.developers <- function(N, .tags, .iddb) {
-  g <- graph.adjacency(.tags, mode="directed")
-  ranks <- page.rank(g)
+influential.developers <- function(N, .ranks, .tags, .iddb) {
   if (is.na(N)) {
-    N <- length(ranks$vector)
+    N <- length(.ranks$vector)
   }
   
-#  idlst = which(ranks$vector >= sort(ranks$vector, decreasing=T)[N])
-  idlst = seq(1,length(ranks$vector))[order(ranks$vector, decreasing=TRUE)[1:N]]
+  idx = order(.ranks$vector, decreasing=TRUE)
+  idlst = seq(1,length(.ranks$vector))[idx[1:N]]
 
   res = data.frame(name=IDs.to.names(.iddb, idlst), ID=idlst,
     TagsGiven=sapply(idlst, function(.id) { tags.given(.id, .tags)}),
     TagsReceived=sapply(idlst, function(.id) { tags.received(.id, .tags)}),
-    rank = ranks$vector[order(ranks$vector, decreasing=TRUE)[1:N]])
+    rank = .ranks$vector[idx[1:N]])
 
   return(res)
 }
@@ -118,13 +124,10 @@ pr.in.group <- function(N, .comm, .pr) {
   return(.pr[.pr$ID %in% which(.comm$membership==N),][c("name", "ID", "rank")])
 }
 
-#print("Page rank of persons in a group")
-#print(pr.in.group(19, g.spin.community, pr.for.all))
-
 # Check how the page ranks are distributed within the groups
-construct.pr.info <- function(.comm, N=length(unique(.comm$membership))) {
+construct.pr.info <- function(.comm, .pr, N=length(unique(.comm$membership))) {
   for (i in 0:(N-1)) {
-    grp.pranks <- log(pr.in.group(i, .comm, pr.for.all)$rank)
+    grp.pranks <- log(pr.in.group(i, .comm, .pr)$rank)
     
     if (i == 0) {
       res <- data.frame(group=i, max = max(grp.pranks), min=min(grp.pranks),
@@ -141,7 +144,7 @@ construct.pr.info <- function(.comm, N=length(unique(.comm$membership))) {
 }
 
 # TODO: Dunno if that tells us something. Most likely not.
-#densityplot(~pranks|group, data=construct.pr.info(g.spin.community),
+#densityplot(~pranks|group, data=construct.pr.info(g.spin.community, pr.for.all),
 #            plot.points="rug")
 
 # NOTE: When raw IDs are used as labels, they are zero-based, not
@@ -155,16 +158,25 @@ plot.group <- function(N, .tags, .iddb, .comm) {
   plot(g, vertex.label=IDs.to.names(.iddb, s))
 }
 
-save.group <- function(N, .tags, .iddb, .comm, .filename=NULL) {
+save.group <- function(N, .tags, .iddb, .comm, .prank, .filename=NULL) {
   s <- which(.comm$membership==N)
   g <- graph.adjacency(.tags[s,s], mode="directed")
   # as.character is important. The igraph C export routines bark
   # otherwise (not sure what the actual issue is)
   # NOTE: V(g)$name as label index does NOT work because the name attribute
   # is _not_ stable.
-  V(g)$label <- as.character(IDs.to.names(.iddb, s)) 
-  # TODO: Determine fontsize and label shape by page rank and/or number
-  # of in- and outlinks
+  V(g)$label <- as.character(IDs.to.names(.iddb, s))
+  V(g)$prank <- .prank$vector[s]
+  
+  # We also use the page rank to specify the font size of the vertex
+  V(g)$fontsize <- scale.data(.prank$vector, 15, 50)[s]
+  
+  # The amount of changes lines of visualised by node's background colour:
+  # The darker, the more changes.
+  V(g)$fillcolor <- paste("grey",
+                    as.character(as.integer(100-scale.data(log(ids.connected$total+1),0,50)[s])),
+                    sep="")
+  V(g)$style="filled"
   
   if (!is.null(.filename)) {
     write.graph(g, .filename, format="dot")
@@ -173,14 +185,25 @@ save.group <- function(N, .tags, .iddb, .comm, .filename=NULL) {
   return(g)
 }
 
-save.groups <- function(.tags, .iddb, .comm, .basedir) {
+save.groups <- function(.tags, .iddb, .comm, .prank, .basedir) {
   N <- length(unique(.comm$membership))
   for (i in 0:(N-1)) {
     filename <- paste(.basedir, "/group_", i, ".dot", sep="")
     print(filename)
-    save.group(i, .tags, .iddb, .comm, filename)
+    save.group(i, .tags, .iddb, .comm, .prank, filename)
   }
 }
+
+get.rank.by.field <- function(.iddb, .field, N=dim(.iddb)[1]) {
+  res <- .iddb[c("ID", "Name", .field)]
+  res <- res[order(res[c(.field)], decreasing=T),]
+  s <- sum(res[,3])
+  res <- cbind(res, data.frame(percent=res[,3]/s))
+  res <- cbind(res, data.frame(norm=scale.data(res[,3], 0, 1)))
+
+  return(res[1:N,])
+}
+
 
 ################## Process the data #################
 tags <- read.table(file=paste(outdir, "/tags.txt", sep=""),
@@ -196,28 +219,20 @@ colnames(ids) <- c("ID", "Name", "eMail", "added", "deleted", "total", "numcommi
 ids$ID <- ids$ID + 1
 
 # Compute the traditional list of developer influence by counting how
-# large their commit contributions were (easily computed for number
-# of files touched, code added, etc.)
-added <- ids[c("Name", "total")]
-added <- added[order(added$total, decreasing=T),]
-added[1:20,]
-added <- cbind(added, data.frame(total.norm = added$total/max(added$total)))
-
-numcommits <- ids[c("Name", "numcommits")]
-numcommits <- numcommits[order(numcommits$numcommits, decreasing=T),]
-numcommits[1:20,]
-numcommits <- cbind(numcommits,
-                    data.frame(numcommits.norm =
-                               numcommits$numcommits/max(numcommits$numcommits)))
+# large their commit contributions were, which is fairly easy to compute
+get.rank.by.field(ids.connected, "total", 20)
+get.rank.by.field(ids.connected, "numcommits", 20)
 
 # Isolated graph members are outliers for the Linux kernel. Eliminate
 # them to create a connected graph (NOTE: This must not be done for
-# projects where direct clustering can happen)
+# projects where proper direct clustering can happen)
 g <- graph.adjacency(tags, mode="directed")
 g.clust <- clusters(g)
 idx <- which(g.clust$membership==0) # All connected developers are in group 0
 tags.connected <- tags[idx,idx]
-ids.connected <- data.frame(Name=ids[idx,]$Name, ID=seq(1:length(idx)))
+#ids.connected <- data.frame(Name=ids[idx,]$Name, ID=seq(1:length(idx)))
+ids.connected <- ids[idx,]
+ids.connected$ID=seq(1:length(idx))
 ids.connected$Name <- as.character(ids.connected$Name)
 g.connected <- graph.adjacency(tags.connected, mode="directed")
 V(g.connected)$label <- as.character(ids.connected$Name)
@@ -231,17 +246,16 @@ V(g.connected)$label <- as.character(ids.connected$Name)
 #ids[which(substr(ids$Name, 0, 14) == "Linus Torvalds"),]$ID
 
 # Compute the page ranking for all developers in the database
-pr.for.all <- influential.developers(NA, tags.connected, ids.connected)
-pr.for.all$name <- as.character(pr.for.all$name)
+pr.for.all <- compute.pagerank(tags.connected)
+devs.by.pr <- influential.developers(NA, pr.for.all, tags.connected, ids.connected)
+devs.by.pr$name <- as.character(devs.by.pr$name)
 
 print("The 20 most influential developers for the range under consideration")
 # (same results are in pr.for.all[1:20,])
-print(influential.developers(20, tags.connected, ids.connected))[c("name", "TagsGiven", "TagsReceived")]
-ids.connected$Name <- as.character(ids.connected$Name)
-print(influential.developers(20, tags, ids))[c("name", "TagsGiven", "TagsReceived")]
+devs.by.pr[1:20,][c("name", "TagsGiven", "TagsReceived")]
 
 # Consistency check (names and tags should be identical, IDs can differ)
-influential.developers(20, tags.connected, ids.connected) == influential.developers(20, tags, ids)
+#influential.developers(20, tags.connected, ids.connected) == influential.developers(20, tags, ids)
 
 # TODO: Compute the subgraph with the most influential developers,
 # and plot it.
@@ -254,6 +268,7 @@ influential.developers(20, tags.connected, ids.connected) == influential.develop
 # TODO: Try the various community detection algorithms from igraph
 # TODO: Can we convert the directed graph into an undirected graph
 # with weights to model the interaction strength between developers?
+# Likely, the best thing is to compute the adjacency matrix with "add"
 # Some of the algorithms only work with undirected graphs.
 # See http://igraph.wikidot.com/community-detection-in-r
 # TODO: Especially try the clique percolation algorithm, since it
@@ -270,19 +285,20 @@ influential.developers(20, tags.connected, ids.connected) == influential.develop
 set.seed(42)
 g.spin.community <- spinglass.community(g.connected)
 
-# NOTE: In general, the groups seem to cluster around one or
-# two developers who have received a substantial amount of 
-# attention.
+# TODO: Investigate the results of inner.links and outer.links (maybe compute
+# averages and min/max for all elements of a given community to see how
+# well "closed" the communities are)
+
 # NOTE: The group labels may change between different invocations
 # of the community detection algorithms. Set a fixed random seed
 # before the detection to prevent this.
 # For 2.6.36 (with seed 42), 9 is KVM
 #plot.group(9, tags.connected, ids.connected, g.spin.community)
-#g.sub <- save.group(19, tags.connected, ids.connected, g.spin.community,
-#                    "/tmp/test.dot")
+g.sub <- save.group(9, tags.connected, ids.connected, g.spin.community, pr.for.all,
+                    "/tmp/test.dot")
 
 # See conv.py how to post-process graphs and generate pdfs 
-save.groups(tags.connected, ids.connected, g.spin.community, outdir)
+save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all, outdir)
 
 quit()
 
@@ -307,7 +323,7 @@ max(betweenness(g))
 # of multiple edges could be done with
 # g <- graph.adjaceny(tags, mode="directed", weighted=TRUE)
 # but takes quite a long time (and is also not suitable for most
-# community detection algorithms)
+o# community detection algorithms)
 
 ranks <- page.rank(g)
 # Map the page rank values to [0,100]
