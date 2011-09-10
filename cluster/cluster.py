@@ -4,28 +4,25 @@
 # (statistical operations will be carried out by R)
 # WM 5. Aug 2011
 
-from VCS import gitVCS
-import shelve
-import csv
 import os
+import csv
+import shelve
+import pickle
 import os.path
-#from commit_analysis import createCumulativeSeries, createSeries
 import kerninfo
 from progressbar import *
+from VCS import gitVCS
 from PersonInfo import PersonInfo
 from commit_analysis import *
-import pickle
-import re           # TODO: This and the next can go once idManager is used
-from email.utils import parseaddr
+from idManager import idManager
 
 def _abort(msg):
     print(msg + "\n")
     sys.exit(-1)
 
-# TODO: Generating the release candidate ranges should be automated
-def createDB(filename, revrange, subsys_descr, rcranges=None):
+def createDB(filename, git_repo, revrange, subsys_descr, rcranges=None):
     git = gitVCS();
-    git.setRepository("/Users/wolfgang/git-repos/linux/.git")
+    git.setRepository(git_repo)
     git.setRevisionRange(revrange[0], revrange[1])
     git.setSubsysDescription(subsys_descr)
     if rcranges != None:
@@ -51,70 +48,6 @@ def readDB(filename):
     pkl_file.close()
 
     return(git)
-
-# TODO: Fold this mechanism into a class
-ID = 0
-fixup_emailPattern = re.compile(r'([^<]+)\s+<([^>]+)>')
-commaNamePattern = re.compile(r'([^,\s]+),\s+(.+)')
-def getPersonID(addr, person_ids, persons, subsys_names):
-    """Create a unique ID from a contributor
-
-    Multiple identities are detected using heuristics. We do not use
-    an explicit database because the method is supposed to be applicable for
-    a wide range of projects.
-    """
-    # TODO: Locking should be done properly, read up the python docs
-    # to see what's available. Essentially, only one thread at a
-    # time should be able to assign IDs
-
-    global ID
-#    lock = threading.Lock()
-
-    (name, email) = parseaddr(addr)
-    # The eMail parser cannot handle Surname, Name <email@domain.tld> properly.
-    # Provide a fixup hack for this case
-    if (name == "" and email.count("@") == 0):
-        m = re.search(fixup_emailPattern, addr)
-        if m:
-            name = m.group(1)
-            email = m.group(2)
-            m2 = re.search(commaNamePattern, name)
-            if m2:
-                name = "{0} {1}".format(m2.group(2), m2.group(1))
-
-        else:
-            # In this case, no eMail address was specified.
-            name = addr
-            email = "could.not@be.resolved.tld"
-    
-    email = email.lower()
-
-    if name != "":
-        name_known = person_ids.has_key(name)
-    else:
-        name_known = False
-
-    if email != "":
-        email_known = person_ids.has_key(email)
-    else:
-        print("WARNING: Developer {0} has no email address?!".format(name))
-        email_known = False
-
-    if not(name_known) and not(email_known):
-        person_ids[name] = ID
-        person_ids[email] = ID
-        persons[ID] = PersonInfo(subsys_names, ID, "{0} <{1}>".format(name, email))
-        ID += 1
-    elif name_known and not(email_known):
-        # Person with multiple eMail addresses (we assume that the name of
-        # each developer is unique. Resolving the general case would require extra
-        # information)
-        person_ids[email] = person_ids[name]
-    elif  email_known and not(name_known):
-        # Different orthographic variants if the name
-        person_ids[name] = person_ids[email]
-
-    return person_ids[name]
 
 def computeSubsysAuthorSimilarity(cmt_subsys, author):
     """ Compute a similarity measure between commit and commit author
@@ -163,15 +96,11 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
     
     return sim
 
-def createStatisticalData(cmtlist, person_ids, persons, subsys_names):
+def createStatisticalData(cmtlist, id_mgr):
     """Generate a person connection data structure from a list of commits
 
     cmtlist is the list of commits.
-    person_ids is a (passed in) hash table that is sucessively filled with
-            mappings from an author/email address
-    persons is also passed in, and is filled with mappings from IDs to
-            PersonInfo instances
-    subsys_names is a list with the names of all subsystems.
+    id_mgr is an instance of idManager to handle person IDs and PersonInfo instances
     """
     
     # To obtain the full collaboration information, we need to have
@@ -200,8 +129,8 @@ def createStatisticalData(cmtlist, person_ids, persons, subsys_names):
             pbar.update(i)
             
         # Second, infer in which way people are involved in the commit
-        ID = getPersonID(cmt.getAuthorName(), person_ids, persons, subsys_names)
-        pi = persons[ID]
+        ID = id_mgr.getPersonID(cmt.getAuthorName())
+        pi = id_mgr.getPI(ID)
         cmt.setAuthorPI(pi)
 
         # Also note on a per-author basis which subsystems were touched
@@ -214,8 +143,8 @@ def createStatisticalData(cmtlist, person_ids, persons, subsys_names):
         for tag in tag_types:
             tag_pi_list[tag] = []
             for name in getInvolvedPersons(cmt, [tag]):
-                relID = getPersonID(name, person_ids, persons, subsys_names)
-                tag_pi_list[tag].append(persons[relID])
+                relID = id_mgr.getPersonID(name)
+                tag_pi_list[tag].append(id_mgr.getPI(relID))
                 
                 # Authors typically sign-off their patches,
                 # so don't count this as a relation.
@@ -224,13 +153,13 @@ def createStatisticalData(cmtlist, person_ids, persons, subsys_names):
                     pi.addReceiveTagRelation(tag, relID)
 
                     # relID did a sign-off etc. to author
-                    persons[relID].addPerformTagRelation(tag, ID, cmt)
+                    id_mgr.getPI(relID).addPerformTagRelation(tag, ID, cmt)
 
         cmt.setTagPIs(tag_pi_list)
 
     # Now that all information on tags is available, compute the normalised
     # statistics. While at it, also compute the per-author commit summaries.
-    for (key, person) in persons.iteritems():
+    for (key, person) in id_mgr.getPersons().iteritems():
         person.computeTagStats()
         person.computeCommitStats()
 
@@ -269,7 +198,7 @@ def createStatisticalData(cmtlist, person_ids, persons, subsys_names):
 
     return None
 
-def emitStatisticalData(cmtlist, person_ids, persons, subsys_names, outdir):
+def emitStatisticalData(cmtlist, id_mgr, outdir):
     """Save the available information for further statistical processing.
 
     Several files are created in outdir:
@@ -286,7 +215,7 @@ def emitStatisticalData(cmtlist, person_ids, persons, subsys_names, outdir):
 
     # Construct the header...
     header = "ID	ChangedFiles	AddedLines	DeletedLines	DiffSize	CmtMsgLines	CmtMsgBytes	NumSignedOffs	NumTags	"
-    header += "\t".join(subsys_names + ["general"])
+    header += "\t".join(id_mgr.getSubsysNames() + ["general"])
     header += "\tTotalSubsys"
     header += "\tSubsys"
     header += "\tinRC"
@@ -310,7 +239,7 @@ def emitStatisticalData(cmtlist, person_ids, persons, subsys_names, outdir):
 
         subsys_touched = cmt.getSubsystemsTouched()
         subsys_count = 0
-        for subsys in subsys_names + ["general"]:
+        for subsys in id_mgr.getSubsysNames() + ["general"]:
             outstr += "\t{0}".format(subsys_touched[subsys])
             subsys_count += subsys_touched[subsys]
             if subsys_touched[subsys] == 1:
@@ -343,16 +272,13 @@ def emitStatisticalData(cmtlist, person_ids, persons, subsys_names, outdir):
                            delimiter='\t',
                            quotechar='\\', quoting=csv.QUOTE_MINIMAL)
     
-    # TODO: Split the developer name into name and email address so that
-    # R does not need to repeat parsing the info. When no name is available,
-    # PersonInfo should just substitute the eMail address for the name
-    for id in sorted(persons.keys()):
-        pi = persons[id]
+    for id in sorted(id_mgr.getPersons().keys()):
+        pi = id_mgr.getPI(id)
         cmt_stat = pi.getCommitStats()
         added = cmt_stat["added"]
         deleted = cmt_stat["deleted"]
         numcommits = cmt_stat["numcommits"]
-        id_writer.writerow([id, pi.getName(), added, deleted, added + deleted,
+        id_writer.writerow([id, pi.getName(), pi.getEmail(), added, deleted, added + deleted,
                              numcommits])
     
     ##############
@@ -364,10 +290,10 @@ def emitStatisticalData(cmtlist, person_ids, persons, subsys_names, outdir):
     # off to utilise this fact for more efficient storage.
 
     out = open(os.path.join(outdir, "tags.txt"), 'wb')
-    idlist = sorted(persons.keys())
+    idlist = sorted(id_mgr.getPersons().keys())
     # Header
     out.write("# " +
-              "\t".join([str(persons[elem].getName()) for elem in idlist]) +
+              "\t".join([str(id_mgr.getPI(elem).getName()) for elem in idlist]) +
               "\n")
     
     # Matrix. The sum of all elements in row N describes how many
@@ -375,7 +301,7 @@ def emitStatisticalData(cmtlist, person_ids, persons, subsys_names, outdir):
     # tags were given by id N to other developers.
     for id_receiver in idlist:
         out.write("\t".join(
-            [str(persons[id_receiver].getTagsReceivedByID(id_sender))
+            [str(id_mgr.getPI(id_receiver).getTagsReceivedByID(id_sender))
                for id_sender in idlist]) + "\n")
 
     out.close()
@@ -388,11 +314,11 @@ def emitStatisticalData(cmtlist, person_ids, persons, subsys_names, outdir):
 # Main part
 ###########################################################################
 
-def performAnalysis(dbfilename, revrange, subsys_descr, create_db, outdir, rcranges=None):
+def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db, outdir, rcranges=None):
     if create_db == True:
         print("Creating data base for {0}..{1}").format(revrange[0],
                                                         revrange[1])
-        createDB(dbfilename, revrange, subsys_descr, rcranges)
+        createDB(dbfilename, git_repo, revrange, subsys_descr, rcranges)
         
         
     print("Reading from data base...")
@@ -401,18 +327,18 @@ def performAnalysis(dbfilename, revrange, subsys_descr, create_db, outdir, rcran
 
     # Determine in which ways the authors are connected with each other,
     # plus some more statistical information
-    person_ids = {} # NOTE: May only be accessed via getPersonID
-    persons = {}
-    createStatisticalData(cmtlist, person_ids, persons,
-                          kerninfo.subsysDescrLinux.keys())
-
+#    person_ids = {} # NOTE: May only be accessed via getPersonID
+#    persons = {}
+    id_mgr = idManager()
+    id_mgr.setSubsysNames(kerninfo.subsysDescrLinux.keys())
+    createStatisticalData(cmtlist, id_mgr)
+                          
     # Save the results in text files that can be further processed with
     # statistical software, that is, GNU R
-    emitStatisticalData(cmtlist, person_ids, persons,
-                        kerninfo.subsysDescrLinux.keys(), outdir)
+    emitStatisticalData(cmtlist, id_mgr, outdir)
     
 ##################################################################
-def doKernelAnalysis(rev, outbase, create_db):
+def doKernelAnalysis(rev, outbase, git_repo, create_db):
     from_rev = "v2.6.{0}".format(rev)
     to_rev = "v2.6.{0}".format(rev+1)
     rc_start = "{0}-rc1".format(to_rev)
@@ -427,23 +353,25 @@ def doKernelAnalysis(rev, outbase, create_db):
             exit(-1)
 
     filename = os.path.join(outbase, "linux-{0}-{1}".format(rev,rev+1))
-    performAnalysis(filename, [from_rev, to_rev], kerninfo.subsysDescrLinux,
+    performAnalysis(filename, git_repo, [from_rev, to_rev], kerninfo.subsysDescrLinux,
                     create_db, outdir, [[rc_start, to_rev]])
 
+##################################################################################
 
+git_repo = "/Users/wolfgang/git-repos/linux/.git"
 outbase = "/Users/wolfgang/papers/csd/cluster/res/"
-#rev = 34
-#doKernelAnalysis(34, outbase, False)
-#exit(0)
+rev = 33
+doKernelAnalysis(rev, outbase, git_repo, False)
+exit(0)
 
 for rev in range(30,33):
     ID = 0
-    doKernelAnalysis(rev, outbase, True)
+    doKernelAnalysis(rev, outbase, git_repo, True)
 
 exit(0)
 
 
-########################### Some tests/examples ################
+########################### Some (outdated) examples ################
 # Which roles did a person fulfill?
 for person in persons.keys()[1:10]:
     tag_stats = persons[person].getTagStats()
