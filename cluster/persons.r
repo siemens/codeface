@@ -19,10 +19,12 @@
 # Perform a full analysis:
 # 1.) Call ./cluster.py with the appropriate revision settings
 # 2.) ./persons.r /Users/wolfgang/papers/csd/cluster/res/<rev>/
-# 3.) for i in `seq 0 `ls group_*.dot | wc | awk '{print $1-1;}'``; do
-#   cat group_$i.dot | ./conv.py > g$i.dot;
-#   neato -Tpdf g$i.dot> g$i.pdf;
-# done
+# 3.) for file in `ls prefix*.dot`; do
+#        basefile=`basename $file .dot`;
+#        echo "Processing $file";
+#        cat $file | ../../conv.py > /tmp/tmp.dot;
+#        neato -Tpdf /tmp/tmp.dot > ${basefile}.pdf;
+#     done
 library(igraph)
 library(stringr)
 library(lattice)
@@ -170,13 +172,16 @@ save.group <- function(N, .tags, .iddb, .comm, .prank, .filename=NULL) {
   
   # We also use the page rank to specify the font size of the vertex
   V(g)$fontsize <- scale.data(.prank$vector, 15, 50)[s]
-  
+
   # The amount of changes lines of visualised by node's background colour:
   # The darker, the more changes.
-  V(g)$fillcolor <- paste("grey",
-                    as.character(as.integer(100-scale.data(log(ids.connected$total+1),0,50)[s])),
-                    sep="")
+  fc <- as.character(as.integer(100-scale.data(log(ids.connected$total+1),0,50)[s]))
+  V(g)$fillcolor <- paste("grey", fc, sep="")
   V(g)$style="filled"
+
+  # And one more bit: The width of the bounding box changes from black to red
+  # with the number of commits
+  V(g)$penwidth <- as.character(scale.data(log(ids.connected$numcommits+1),1,5)[s])
   
   if (!is.null(.filename)) {
     write.graph(g, .filename, format="dot")
@@ -185,10 +190,11 @@ save.group <- function(N, .tags, .iddb, .comm, .prank, .filename=NULL) {
   return(g)
 }
 
-save.groups <- function(.tags, .iddb, .comm, .prank, .basedir) {
-  N <- length(unique(.comm$membership))
-  for (i in 0:(N-1)) {
-    filename <- paste(.basedir, "/group_", i, ".dot", sep="")
+save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which) {
+#  N <- length(unique(.comm$membership))
+#  for (i in 0:(N-1)) {
+  for (i in .which) {
+    filename <- paste(.basedir, "/", .prefix, "group_", i, ".dot", sep="")
     print(filename)
     save.group(i, .tags, .iddb, .comm, .prank, filename)
   }
@@ -220,6 +226,9 @@ ids$ID <- ids$ID + 1
 
 # Compute the traditional list of developer influence by counting how
 # large their commit contributions were, which is fairly easy to compute
+# NOTE: The amount of code changes differs from the lwn.net analysis -- we
+# generally attribute more core to the developers. A few values were cross-checked,
+# but I could not find anythin bogous in our calculations.
 get.rank.by.field(ids.connected, "total", 20)
 get.rank.by.field(ids.connected, "numcommits", 20)
 
@@ -284,10 +293,22 @@ devs.by.pr[1:20,][c("name", "TagsGiven", "TagsReceived")]
 # what we want...
 set.seed(42)
 g.spin.community <- spinglass.community(g.connected)
+g.walktrap.community <- walktrap.community(g.connected)
 
 # TODO: Investigate the results of inner.links and outer.links (maybe compute
 # averages and min/max for all elements of a given community to see how
 # well "closed" the communities are)
+# TODO: Together with a subsystem distribution of the authors, this should be
+# a good basis for a nice ggplot graph.
+compute.community.links <- function(g, .comm, N) {
+  # TODO: Continue writing here. Compute averages for inner.link and outer.link
+  # over all vertices of community N
+  idx <- which(.comm$membership==N)
+  function(i) {
+    subspin <- spinglass.community(g.connected, vertex=V(g)[idx[i]])
+    return(c(subspin$inner.links, subspin$outer.links))
+  }
+}
 
 # NOTE: The group labels may change between different invocations
 # of the community detection algorithms. Set a fixed random seed
@@ -297,8 +318,27 @@ g.spin.community <- spinglass.community(g.connected)
 g.sub <- save.group(9, tags.connected, ids.connected, g.spin.community, pr.for.all,
                     "/tmp/test.dot")
 
-# See conv.py how to post-process graphs and generate pdfs 
-save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all, outdir)
+# TODO: Only consider communities with more than 10 members, and make the selection
+# independent of the community algorithm (as for walktrap)
+# See conv.py how to post-process graphs and generate pdfs
+
+# Select communities with more than .min members
+select.communities <- function(.comm, .min) {
+  N <- length(unique(.comm$membership))
+  num.members <- sapply(0:(N-1),
+                        function(x) { return(length(which(.comm$membership==x))) })
+
+  elems <- which(num.members > .min)-1 # Community labels are zero-based
+
+  return(elems)
+}
+
+elems <- select.communities(g.spin.community, 10)
+save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all, outdir, "sg_", elems)
+
+# The walktrap algorithm requires a little more postprocessing
+elems <- select.communities(g.walktrap.community, 10)
+save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all, outdir, "wt_", elems)
 
 quit()
 
