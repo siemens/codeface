@@ -41,8 +41,13 @@ if(length(arguments$args) != 1) {
     datadir <- arguments$args
 }
 
-#datadir <- "/Users/wolfgang/papers/csd/cluster/res/32/"
+datadir <- "/Users/wolfgang/papers/csd/cluster/res/32/"
 outdir <- datadir
+
+#######################################################################
+status <- function(str) {
+  cat(paste("\n", str, sep=""))
+}
 
 # Given an eMail address like "Name N. Surname <name.surname@domain.com>",
 # extract the person name without the electronic address
@@ -191,11 +196,9 @@ save.group <- function(N, .tags, .iddb, .comm, .prank, .filename=NULL) {
 }
 
 save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which) {
-#  N <- length(unique(.comm$membership))
-#  for (i in 0:(N-1)) {
   for (i in .which) {
     filename <- paste(.basedir, "/", .prefix, "group_", i, ".dot", sep="")
-    print(filename)
+    status(paste("Saving", filename))
     save.group(i, .tags, .iddb, .comm, .prank, filename)
   }
 }
@@ -210,11 +213,26 @@ get.rank.by.field <- function(.iddb, .field, N=dim(.iddb)[1]) {
   return(res[1:N,])
 }
 
+# Select communities with more than .min members
+select.communities <- function(.comm, .min) {
+ N <- length(unique(.comm$membership))
+ num.members <- sapply(0:(N-1),
+                       function(x) { return(length(which(.comm$membership==x))) })
+
+ elems <- which(num.members > .min)-1 # Community labels are zero-based
+
+ return(elems)
+}
+
 
 ################## Process the data #################
+status("Reading files")
 tags <- read.table(file=paste(outdir, "/tags.txt", sep=""),
                    sep="\t", header=FALSE)
 colnames(tags) <- rownames(tags)
+# TODO: Likely, this matrix should be transposed -- see the
+# comment before the page rank calculation. tags.received and
+# tags.given must then be changed, too
 
 ids <- read.csv(file=paste(outdir, "/ids.txt", sep=""),
                 sep="\t", header=FALSE)
@@ -224,17 +242,10 @@ colnames(ids) <- c("ID", "Name", "eMail", "added", "deleted", "total", "numcommi
 # things by adapting the IDs...
 ids$ID <- ids$ID + 1
 
-# Compute the traditional list of developer influence by counting how
-# large their commit contributions were, which is fairly easy to compute
-# NOTE: The amount of code changes differs from the lwn.net analysis -- we
-# generally attribute more core to the developers. A few values were cross-checked,
-# but I could not find anythin bogous in our calculations.
-get.rank.by.field(ids.connected, "total", 20)
-get.rank.by.field(ids.connected, "numcommits", 20)
-
 # Isolated graph members are outliers for the Linux kernel. Eliminate
 # them to create a connected graph (NOTE: This must not be done for
 # projects where proper direct clustering can happen)
+status("Computing adjacency matrices")
 g <- graph.adjacency(tags, mode="directed")
 g.clust <- clusters(g)
 idx <- which(g.clust$membership==0) # All connected developers are in group 0
@@ -246,16 +257,29 @@ ids.connected$Name <- as.character(ids.connected$Name)
 g.connected <- graph.adjacency(tags.connected, mode="directed")
 V(g.connected)$label <- as.character(ids.connected$Name)
 
-# TODO: ranks$value should be one, but is 0.83 for some
-# reason. This seems to be a documentation bug, though:
-# https://bugs.launchpad.net/igraph/+bug/526106
-#ranks$value 
+# Compute the traditional list of developer influence by counting how
+# large their commit contributions were, which is fairly easy to compute
+# NOTE: The amount of code changes differs from the lwn.net analysis -- we
+# generally attribute more core to the developers. A few values were
+# cross-checked,  but I could not find anythin bogous in our calculations.
+status("Computing classical statistics")
+get.rank.by.field(ids.connected, "total", 20)
+get.rank.by.field(ids.connected, "numcommits", 20)
 
 # Some id conversion magic tests
 #ids[which(substr(ids$Name, 0, 14) == "Linus Torvalds"),]$ID
 
 # Compute the page ranking for all developers in the database
+# TODO TODO TODO: Also compute the page rank with the transposed matrix.
+# Does this put more emphasis on signing off patches (instead of tagging them?)
+# When the transposed matrix is used, damping should be set to 0
+# (it does not make any sense in this case)
+# TODO: Compare the transposed and non-transposed case.
+status("Computing page rank")
 pr.for.all <- compute.pagerank(tags.connected)
+# NOTE: pr.for.all$value should be one, but is 0.83 for some
+# reason. This seems to be a documentation bug, though:
+# https://bugs.launchpad.net/igraph/+bug/526106
 devs.by.pr <- influential.developers(NA, pr.for.all, tags.connected, ids.connected)
 devs.by.pr$name <- as.character(devs.by.pr$name)
 
@@ -291,8 +315,12 @@ devs.by.pr[1:20,][c("name", "TagsGiven", "TagsReceived")]
 # different kernel releases.
 # TODO: The direction of the edges is neglected, which is not exactly
 # what we want...
+status("Inferring communities with spin glasses")
 set.seed(42)
 g.spin.community <- spinglass.community(g.connected)
+
+status("Inferring communities with random walks")
+set.seed(42)
 g.walktrap.community <- walktrap.community(g.connected)
 
 # TODO: Investigate the results of inner.links and outer.links (maybe compute
@@ -315,30 +343,23 @@ compute.community.links <- function(g, .comm, N) {
 # before the detection to prevent this.
 # For 2.6.36 (with seed 42), 9 is KVM
 #plot.group(9, tags.connected, ids.connected, g.spin.community)
-g.sub <- save.group(9, tags.connected, ids.connected, g.spin.community, pr.for.all,
-                    "/tmp/test.dot")
+#g.sub <- save.group(9, tags.connected, ids.connected, g.spin.community,
+#                    pr.for.all, "/tmp/test.dot")
 
-# TODO: Only consider communities with more than 10 members, and make the selection
-# independent of the community algorithm (as for walktrap)
-# See conv.py how to post-process graphs and generate pdfs
-
-# Select communities with more than .min members
-select.communities <- function(.comm, .min) {
-  N <- length(unique(.comm$membership))
-  num.members <- sapply(0:(N-1),
-                        function(x) { return(length(which(.comm$membership==x))) })
-
-  elems <- which(num.members > .min)-1 # Community labels are zero-based
-
-  return(elems)
-}
-
+status("Writing community graphs for spin glasses")
 elems <- select.communities(g.spin.community, 10)
 save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all, outdir, "sg_", elems)
 
+status("Writing community graphs for random walks")
 # The walktrap algorithm requires a little more postprocessing
 elems <- select.communities(g.walktrap.community, 10)
 save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all, outdir, "wt_", elems)
+
+# TODO: Plot the complete graph, and mark the communities of the developers
+# by colour (we naturally need to restrict the number of communities in this
+# presentation to the largest ones. A "continuous colour" encoding will not make
+# much sense).
+# TODO: Also try out 
 
 quit()
 
@@ -369,3 +390,62 @@ ranks <- page.rank(g)
 # Map the page rank values to [0,100]
 ranks.norm <-  ranks
 ranks.norm$vector <- scale.data(ranks.norm$vector, 0, 100)
+
+# Clique percolation. Stolen from http://igraph.wikidot.com/community-detection-in-r
+# Does not work on our graph. Maybe it works in an undirected version
+clique.community <- function(graph, k) {
+   clq <- cliques(graph, min=k, max=k)
+   edges <- c()
+   for (i in seq_along(clq)) {
+     for (j in seq_along(clq)) {
+       if ( length(unique(c(clq[[i]], clq[[j]]))) == k+1 ) {
+         edges <- c(edges, c(i,j)-1)
+       }
+     }
+   }
+   clq.graph <- simplify(graph(edges))
+   V(clq.graph)$name <- seq_len(vcount(clq.graph))
+   comps <- decompose.graph(clq.graph)
+
+   lapply(comps, function(x) {
+     unique(unlist(clq[ V(x)$name ]))
+   })
+}
+
+test <-  clique.community(g.connected, 5)
+
+
+largeScaleCommunity <- function(g,mode="all"){
+  V(g)$group <- as.character(V(g))
+  thisOrder <- sample(vcount(g),vcount(g))-1
+  t <- 0
+  done <- FALSE
+  while(!done){
+    t <- t+1
+    cat("\rtick:",t)
+    done <- TRUE ## change to FALSE whenever a node changes groups              
+    for(i in thisOrder){
+      ## get the neighbor group frequencies:                                    
+      groupFreq <- table(V(g)[nei(i,mode=mode)]$group)
+      ## pick one of the most frequent:                                         
+      newGroup <- sample(names(groupFreq) [groupFreq==max(groupFreq)],1)
+      if(done){done <- newGroup==V(g)[i]$group}
+      V(g)[i]$group <- newGroup
+    }
+  }
+  ## now fix any distinct groups with same labels:                              
+  for(i in unique(V(g)$group)){
+    ## only bother for connected groups                                         
+    if(!is.connected(subgraph(g,V(g)[group==i]))){
+      theseNodes <- V(g)[group==i]
+      theseClusters <- clusters(subgraph(g,theseNodes))
+      ## iterate through the clusters and append their names                    
+      for(j in unique(theseClusters$membership)){
+        V(g)[theseNodes[theseClusters$membership==j]]$group <- paste(i,j,sep=".")
+      }
+    }
+  }
+  return(g)
+}
+
+test <- largeScaleCommunity(g.connected)
