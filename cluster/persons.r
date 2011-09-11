@@ -22,13 +22,13 @@
 # 3.) for file in `ls prefix*.dot`; do
 #        basefile=`basename $file .dot`;
 #        echo "Processing $file";
-#        cat $file | ../../conv.py > /tmp/tmp.dot;
-#        neato -Tpdf /tmp/tmp.dot > ${basefile}.pdf;
+#        cat $file | ../../conv.py | neato (or sfp, or sfdp) -Tpdf > ${basefile}.pdf;
 #     done
+# 4.) Use gen_images.sh to create all PDFs with dot
 library(igraph)
 library(stringr)
 library(lattice)
-library(optparse)
+suppressPackageStartupMessages(library(optparse))
 
 parser <- OptionParser(usage = "%prog datadir")
 arguments <- parse_args(parser, positional_arguments = TRUE)
@@ -41,12 +41,13 @@ if(length(arguments$args) != 1) {
     datadir <- arguments$args
 }
 
-datadir <- "/Users/wolfgang/papers/csd/cluster/res/32/"
+#datadir <- "/Users/wolfgang/papers/csd/cluster/res/32/"
 outdir <- datadir
 
 #######################################################################
 status <- function(str) {
-  cat(paste("\n", str, sep=""))
+  cat(paste("\r", rep(" ", 80), sep=""))
+  cat(paste("\r", str, sep=""))
 }
 
 # Given an eMail address like "Name N. Surname <name.surname@domain.com>",
@@ -78,28 +79,41 @@ scale.data <- function(dat, .min=0, .max=1) {
   return(dat)
 }
 
+# These two function return the absolute number of tags received and given.
+# If two persons exchange tags multiple times, this is counted repeatedly
 tags.received <- function(.id, .tags) {
-  return(sum(.tags[.id,]))
-}
-
-tags.given <- function(.id, .tags) {
   return(sum(.tags[,.id]))
 }
 
-compute.pagerank <- function(.tags) {
-  g <- graph.adjacency(.tags, mode="directed")
-  ranks <- page.rank(g, directed=TRUE)
+tags.given <- function(.id, .tags) {
+  return(sum(.tags[.id,]))
+}
+
+# These functions, in turn, compute from/to how many _different_ developers
+# a tag was given to/received from
+tags.received.norep <- function(.id, .tags) {
+  return(length(which(.tags[,.id]>0)))
+}
+
+tags.given.norep <- function(.id, .tags) {
+  return(length(which(.tags[.id,]>0)))
+}
+
+compute.pagerank <- function(.tags, .damping=0.85, transpose=FALSE) {
+  if (transpose) {
+    g <- graph.adjacency(t(.tags), mode="directed")
+  } else {
+    g <- graph.adjacency(.tags, mode="directed")
+  }
+  ranks <- page.rank(g, directed=TRUE, damping=.damping)
 
   return(ranks)
 }
 
 # Determine the N most important developers (as per the
 # PageRank measure). This returns a list ordered by pagerank.
-# The raw pagerank data as given by compute.pagerank return
-# the ranks ordered by ID.
-# NOTE: This works fairly well and should be applied to multiple
-# kernel releases, and systematically compared with old results.
-# NOTE: This takes a few minutes to be computed for all developers
+# (Note that the raw pagerank data aa given by compute.pagerank()
+# give the ranks ordered by ID)
 influential.developers <- function(N, .ranks, .tags, .iddb) {
   if (is.na(N)) {
     N <- length(.ranks$vector)
@@ -108,9 +122,11 @@ influential.developers <- function(N, .ranks, .tags, .iddb) {
   idx = order(.ranks$vector, decreasing=TRUE)
   idlst = seq(1,length(.ranks$vector))[idx[1:N]]
 
-  res = data.frame(name=IDs.to.names(.iddb, idlst), ID=idlst,
+  res = data.frame(name=as.character(IDs.to.names(.iddb, idlst)), ID=idlst,
     TagsGiven=sapply(idlst, function(.id) { tags.given(.id, .tags)}),
     TagsReceived=sapply(idlst, function(.id) { tags.received(.id, .tags)}),
+    TagsGivenNoRep=sapply(idlst, function(.id) { tags.given.norep(.id, .tags)}),
+    TagsReceiveNoRep=sapply(idlst, function(.id) { tags.received.norep(.id, .tags)}),
     rank = .ranks$vector[idx[1:N]])
 
   return(res)
@@ -165,28 +181,27 @@ plot.group <- function(N, .tags, .iddb, .comm) {
   plot(g, vertex.label=IDs.to.names(.iddb, s))
 }
 
-save.group <- function(N, .tags, .iddb, .comm, .prank, .filename=NULL) {
-  s <- which(.comm$membership==N)
-  g <- graph.adjacency(.tags[s,s], mode="directed")
+save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL) {
+  g <- graph.adjacency(.tags[idx,idx], mode="directed")
   # as.character is important. The igraph C export routines bark
   # otherwise (not sure what the actual issue is)
   # NOTE: V(g)$name as label index does NOT work because the name attribute
   # is _not_ stable.
-  V(g)$label <- as.character(IDs.to.names(.iddb, s))
-  V(g)$prank <- .prank$vector[s]
+  V(g)$label <- as.character(IDs.to.names(.iddb, idx))
+  V(g)$prank <- .prank$vector[idx]
   
   # We also use the page rank to specify the font size of the vertex
-  V(g)$fontsize <- scale.data(.prank$vector, 15, 50)[s]
+  V(g)$fontsize <- scale.data(.prank$vector, 15, 50)[idx]
 
   # The amount of changes lines of visualised by node's background colour:
   # The darker, the more changes.
-  fc <- as.character(as.integer(100-scale.data(log(ids.connected$total+1),0,50)[s]))
+  fc <- as.character(as.integer(100-scale.data(log(ids.connected$total+1),0,50)[idx]))
   V(g)$fillcolor <- paste("grey", fc, sep="")
   V(g)$style="filled"
 
   # And one more bit: The width of the bounding box changes from black to red
   # with the number of commits
-  V(g)$penwidth <- as.character(scale.data(log(ids.connected$numcommits+1),1,5)[s])
+  V(g)$penwidth <- as.character(scale.data(log(ids.connected$numcommits+1),1,5)[idx])
   
   if (!is.null(.filename)) {
     write.graph(g, .filename, format="dot")
@@ -199,7 +214,8 @@ save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which) 
   for (i in .which) {
     filename <- paste(.basedir, "/", .prefix, "group_", i, ".dot", sep="")
     status(paste("Saving", filename))
-    save.group(i, .tags, .iddb, .comm, .prank, filename)
+    idx <- as.vector(which(.comm$membership==i))
+    save.group(.tags, .iddb, idx, .prank, filename)
   }
 }
 
@@ -224,15 +240,48 @@ select.communities <- function(.comm, .min) {
  return(elems)
 }
 
+int.to.hex <- function(n, fill=2) {
+  loc <- n
+  class(loc) <- "hexmode"
+  loc <- as.character(loc)
+  if (nchar(loc) != fill) {
+    loc <- paste(rep("0", fill - nchar(loc)), loc, sep="") 
+  }
+  return(as.character(loc))
+}
+
+col.to.hex <- function(prefix="0x", r,g,b) {
+  return (paste(prefix, int.to.hex(r), int.to.hex(g), int.to.hex(b), sep=""))
+}
+
+save.all <- function(.tags, .iddb, .prank, .comm, .filename=NULL) {
+  g.all <- save.group(.tags, .iddb, .iddb$ID, .prank, .filename=NULL)
+  V(g.all)$label <- .iddb$ID
+  V(g.all)$pencolor <- V(g.all)$fillcolor
+  
+  elems <- select.communities(.comm, 10) # Communities with at least 10 members
+  red <- as.integer(scale.data(0:(length(elems)+1), 0, 255))
+#  grey <- as.integer(scale.data(0:(length(elems)+1), 0, 99))
+  for (i in elems) {
+    idx <- as.vector(which(.comm$membership==i))
+    V(g.all)[idx]$fillcolor <- col.to.hex("#", red[i+1], 0, 0)
+  }
+
+  if (!is.null(.filename)) {
+    write.graph(g.all, .filename, format="dot")
+  }
+
+  return(g.all)
+}
 
 ################## Process the data #################
 status("Reading files")
 tags <- read.table(file=paste(outdir, "/tags.txt", sep=""),
                    sep="\t", header=FALSE)
 colnames(tags) <- rownames(tags)
-# TODO: Likely, this matrix should be transposed -- see the
-# comment before the page rank calculation. tags.received and
-# tags.given must then be changed, too
+# The tags file format uses a different convention for edge direction
+# than GNU R, so we need to transpose the matrix
+tags <- t(tags)
 
 ids <- read.csv(file=paste(outdir, "/ids.txt", sep=""),
                 sep="\t", header=FALSE)
@@ -263,58 +312,58 @@ V(g.connected)$label <- as.character(ids.connected$Name)
 # generally attribute more core to the developers. A few values were
 # cross-checked,  but I could not find anythin bogous in our calculations.
 status("Computing classical statistics")
-get.rank.by.field(ids.connected, "total", 20)
-get.rank.by.field(ids.connected, "numcommits", 20)
+rank.by.total <- get.rank.by.field(ids.connected, "total", 20)
+rank.by.numcommits  <- get.rank.by.field(ids.connected, "numcommits", 20)
+
+write.table(rank.by.total, file=paste(outdir, "/top20.total.txt", sep=""), sep="\t",
+            quote=FALSE)
+write.table(rank.by.numcommits, file=paste(outdir, "/top20.numcommits.txt", sep=""), sep="\t",
+            quote=FALSE)
 
 # Some id conversion magic tests
 #ids[which(substr(ids$Name, 0, 14) == "Linus Torvalds"),]$ID
 
 # Compute the page ranking for all developers in the database
-# TODO TODO TODO: Also compute the page rank with the transposed matrix.
-# Does this put more emphasis on signing off patches (instead of tagging them?)
-# When the transposed matrix is used, damping should be set to 0
-# (it does not make any sense in this case)
-# TODO: Compare the transposed and non-transposed case.
 status("Computing page rank")
-pr.for.all <- compute.pagerank(tags.connected)
+# This puts the focus on tagging other persons
+pr.for.all <- compute.pagerank(tags.connected, transpose=TRUE)
+# ... and this on being tagged. 
+pr.for.all.tr <- compute.pagerank(tags.connected, .damping=0.3)
+
 # NOTE: pr.for.all$value should be one, but is 0.83 for some
 # reason. This seems to be a documentation bug, though:
 # https://bugs.launchpad.net/igraph/+bug/526106
-devs.by.pr <- influential.developers(NA, pr.for.all, tags.connected, ids.connected)
-devs.by.pr$name <- as.character(devs.by.pr$name)
+devs.by.pr <- influential.developers(NA, pr.for.all, tags.connected,
+                                     ids.connected)
 
-print("The 20 most influential developers for the range under consideration")
-# (same results are in pr.for.all[1:20,])
-devs.by.pr[1:20,][c("name", "TagsGiven", "TagsReceived")]
+devs.by.pr.tr <- influential.developers(NA, pr.for.all.tr, tags.connected,
+                                        ids.connected)
+
+#print("Top 20 page, rank (focus on giving tags)")
+write.table(devs.by.pr[1:20,], file=paste(outdir, "/top20.pr.txt", sep=""), sep="\t",
+            quote=FALSE)
+
+#print("Top 20 page rank (focus on being tagged)")
+write.table(devs.by.pr.tr[1:20,], file=paste(outdir, "/top20.pr.tr.txt", sep=""), sep="\t",
+            quote=FALSE)
+
 
 # Consistency check (names and tags should be identical, IDs can differ)
 #influential.developers(20, tags.connected, ids.connected) == influential.developers(20, tags, ids)
-
-# TODO: Compute the subgraph with the most influential developers,
-# and plot it.
 
 # NOTE: This one is very cpu time intensive. Did not finish after several
 # hours. TODO: Is there any progress indicator, or until up to what size
 # does it work?
 #gBlocks <- cohesive.blocks(g)
 
-# TODO: Try the various community detection algorithms from igraph
-# TODO: Can we convert the directed graph into an undirected graph
-# with weights to model the interaction strength between developers?
-# Likely, the best thing is to compute the adjacency matrix with "add"
+# NOTE: When an undirected matrix is required, then
+# likely, the best thing is to compute the adjacency matrix with "add"
 # Some of the algorithms only work with undirected graphs.
 # See http://igraph.wikidot.com/community-detection-in-r
-# TODO: Especially try the clique percolation algorithm, since it
-# allows for overlapping clusters. Then find out which developers
-# are in multiple communities.
-#fastgreedy.community(g) # Only for undirected graphs
 
 ######### Communities derived with the spinglass algorithm #################
-# TODO: Evaluate the results
 # TODO: Also investigate how stable the communities are across
 # different kernel releases.
-# TODO: The direction of the edges is neglected, which is not exactly
-# what we want...
 status("Inferring communities with spin glasses")
 set.seed(42)
 g.spin.community <- spinglass.community(g.connected)
@@ -347,20 +396,22 @@ compute.community.links <- function(g, .comm, N) {
 #                    pr.for.all, "/tmp/test.dot")
 
 status("Writing community graphs for spin glasses")
-elems <- select.communities(g.spin.community, 10)
-save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all, outdir, "sg_", elems)
+elems <- select.communities(g.spin.community, 10) # Only communities with more than 10 members
+save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all, outdir, "sg_reg_", elems)
+save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all.tr, outdir, "sg_tr_", elems)
 
 status("Writing community graphs for random walks")
 # The walktrap algorithm requires a little more postprocessing
-elems <- select.communities(g.walktrap.community, 10)
-save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all, outdir, "wt_", elems)
+elems <- select.communities(g.walktrap.community, 10) # Only communities with more than 10 members
+save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all, outdir, "wt_reg_", elems)
+save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all.tr, outdir, "wt_tr_", elems)
 
-# TODO: Plot the complete graph, and mark the communities of the developers
-# by colour (we naturally need to restrict the number of communities in this
-# presentation to the largest ones. A "continuous colour" encoding will not make
-# much sense).
-# TODO: Also try out 
+# TODO: Do this for all pageranks and all community detection algorithms
+status("Writing the all-developers graph")
+g.all <- save.all(tags.connected, ids.connected, pr.for.all, g.spin.community,
+                  paste(outdir, "/all.dot", sep=""))
 
+print("")
 quit()
 
 
@@ -414,7 +465,8 @@ clique.community <- function(graph, k) {
 
 test <-  clique.community(g.connected, 5)
 
-
+# Was not particularly useful on some test graphs (essentially, the graph
+# is split into two halves, with some very small pieces in addition))
 largeScaleCommunity <- function(g,mode="all"){
   V(g)$group <- as.character(V(g))
   thisOrder <- sample(vcount(g),vcount(g))-1
