@@ -6,6 +6,8 @@
 
 tag_types = [ "Signed-off-by", "Acked-by", "CC", "Reviewed-by",
              "Reported-by", "Tested-by" ]
+active_tag_types = [ "Signed-off-by", "Acked-by", "Reviewed-by",
+                    "Tested-by" ]
 
 def flatten(lst):
     for elem in lst:

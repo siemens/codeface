@@ -417,10 +417,6 @@ class gitVCS (VCS):
                 key = match.group(1).replace(" ", "").replace(":", "")
                 value = match.group(2)
 
-                # TODO: We could use the eMail data base from
-                # Greg's and Jonathans analysis to avoid multiple
-                # associations per person
-                
                 if key in tag_names_list.keys():
                     tag_names_list[key].append(value)
                 else:

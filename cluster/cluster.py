@@ -133,7 +133,6 @@ def createStatisticalData(cmtlist, id_mgr):
         pi = id_mgr.getPI(ID)
         cmt.setAuthorPI(pi)
 
-        # Also note on a per-author basis which subsystems were touched
         pi.addCommit(cmt)
 
         # Remember which subsystems the person touched in the role as an author
@@ -301,7 +300,7 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
     # tags were given by id N to other developers.
     for id_receiver in idlist:
         out.write("\t".join(
-            [str(id_mgr.getPI(id_receiver).getTagsReceivedByID(id_sender))
+            [str(id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(id_sender))
                for id_sender in idlist]) + "\n")
 
     out.close()
@@ -360,11 +359,11 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db):
 
 git_repo = "/Users/wolfgang/git-repos/linux/.git"
 outbase = "/Users/wolfgang/papers/csd/cluster/res/"
-rev = 33
+rev = 32
 doKernelAnalysis(rev, outbase, git_repo, False)
 exit(0)
 
-for rev in range(30,33):
+for rev in range(33,39):
     ID = 0
     doKernelAnalysis(rev, outbase, git_repo, True)
 

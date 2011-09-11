@@ -1,4 +1,4 @@
-from commit_analysis import tag_types
+from commit_analysis import tag_types, active_tag_types
 
 class PersonInfo:
     """ Information about a commiter, and his relation to other commiters"""
@@ -53,7 +53,11 @@ class PersonInfo:
 
         # Count how many tags (independent of tag category) have been
         # received form a specific ID.
-        self.tags_received_by_id = {}
+        self.all_tags_received_by_id = {}
+
+        # Count how many active tags (without "passive" categories like CC)
+        # have beenreceived form a specific ID.
+        self.active_tags_received_by_id = {}
 
     def setID(self, ID):
         self.ID = ID
@@ -78,11 +82,17 @@ class PersonInfo:
     def addCommit(self, cmt):
         self.commit_list.append(cmt)
 
-    def getTagsReceivedByID(self, ID):
-        if ID in self.tags_received_by_id.keys():
-            return self.tags_received_by_id[ID]
+    def _getTagsReceivedByID(self, tag_hash, ID):
+        if ID in tag_hash.keys():
+            return tag_hash[ID]
         else:
             return 0
+
+    def getActiveTagsReceivedByID(self, ID):
+        return self._getTagsReceivedByID(self.active_tags_received_by_id, ID)
+
+    def getAllTagsReceivedByID(self, ID):
+        return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)
 
     def addTagRelation(self, tag, ID, assoc):
         """State that the person has received or given a tag from/to ID.
@@ -131,6 +141,14 @@ class PersonInfo:
     def getSubsysFraction(self):
         return self.subsys_fraction
 
+    # Helper for computeTagStats, see below
+    def _sum_associations(self, tag, rcv_by_id_hash):
+        for ID in self.associations[tag]:
+            if ID in rcv_by_id_hash:
+                rcv_by_id_hash[ID] += self.associations[tag][ID]
+            else:
+                rcv_by_id_hash[ID] = self.associations[tag][ID]
+
     def computeTagStats(self):
         """Compute statistics inferred from the tag information.
 
@@ -171,16 +189,18 @@ class PersonInfo:
             for subsys in self.subsys_names + ["general"]:
                 self.subsys_fraction[subsys] /= float(total_tags)
         else:
+            # An author is supposed to sign-off at least his own commits
             print("{0} did not tag on any subsystem?!".format(self.getName()))
 
         # Summarise the tags given _to_ (i.e, received by) the developer
         # from a specific ID
-        for tag in self.associations:
-            for ID in self.associations[tag]:
-                if ID in self.tags_received_by_id.keys():
-                    self.tags_received_by_id[ID] += self.associations[tag][ID]
-                else:
-                    self.tags_received_by_id[ID] = self.associations[tag][ID]
+        for tag in self.associations.keys():
+            self._sum_associations(tag, self.all_tags_received_by_id)
+
+        # Active tags do not include things like CC, which can
+        # be issued without the second party's consent
+        for tag in active_tag_types:
+            self._sum_associations(tag, self.active_tags_received_by_id)
 
         # TODO: Add any other calculations that are of interest here
             
