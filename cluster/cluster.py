@@ -10,6 +10,7 @@ import shelve
 import pickle
 import os.path
 import kerninfo
+import argparse
 from progressbar import *
 from VCS import gitVCS
 from PersonInfo import PersonInfo
@@ -203,7 +204,8 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
     Several files are created in outdir:
     - Information about the commits proper (commits.txt)
     - Names/ID associations (ids.txt). This file also contains
-      the per-author total of added/deleted/modified lines
+      the per-author total of added/deleted/modified lines etc.
+    - Per-Author information on relative per-subsys work distribution (id_subsys.txt)
     - Connection between the developers derived from commit tags (tags.txt)"""
 
     # Save information about the commits
@@ -264,13 +266,37 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
         # similarity_between_author_and_signers
         # predominantly add, remove, or modify code (3-level factor)
     out.close()
+    ##############
+
+    # Export per-author subsystem information (could be included in ids.txt, but since
+    # the information is basically orthogonal, we use two files.)
+    out = open(os.path.join(outdir, "id_subsys.txt"), 'wb')
+
+    header = "ID\t"
+    header += "\t".join(id_mgr.getSubsysNames() + ["general"])
+    print >>out, header
+
+    for id in sorted(id_mgr.getPersons().keys()):
+        outstr = "{0}\t".format(id)
+        pi = id_mgr.getPI(id)
+        subsys_fraction = pi.getSubsysFraction()
+
+        for subsys in id_mgr.getSubsysNames() + ["general"]:
+            outstr += "\t{0}".format(subsys_fraction[subsys])
+
+        print >>out, outstr
+
+    out.close()
 
     ##############
     # Save id/name associations together with the per-author summary statistics
     id_writer = csv.writer(open(os.path.join(outdir, "ids.txt"), 'wb'),
                            delimiter='\t',
                            quotechar='\\', quoting=csv.QUOTE_MINIMAL)
-    
+    # Header
+    id_writer.writerow(["ID", "Name", "eMail", "added", "deleted", "total", "numcommits"])
+
+    # Content
     for id in sorted(id_mgr.getPersons().keys()):
         pi = id_mgr.getPI(id)
         cmt_stat = pi.getCommitStats()
@@ -357,17 +383,33 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db):
 
 ##################################################################################
 
-git_repo = "/Users/wolfgang/git-repos/linux/.git"
-outbase = "/Users/wolfgang/papers/csd/cluster/res/"
-rev = 32
-doKernelAnalysis(rev, outbase, git_repo, False)
+parser = argparse.ArgumentParser()
+parser.add_argument('repo')
+parser.add_argument('outdir')
+parser.add_argument('rev')
+parser.add_argument('--create_db', action='store_true')
+args = parser.parse_args()
+
+git_repo = args.repo
+outbase = args.outdir
+try:
+    rev = int(args.rev)
+except ValueError:
+    print "Cannot parse revision!"
+    exit(-1)
+
+doKernelAnalysis(rev, outbase, git_repo, args.create_db)
 exit(0)
 
-for rev in range(33,39):
-    ID = 0
-    doKernelAnalysis(rev, outbase, git_repo, True)
+#git_repo = "/Users/wolfgang/git-repos/linux/.git"
+#outbase = "/Users/wolfgang/papers/csd/cluster/res/"
+#rev = 32
+#doKernelAnalysis(rev, outbase, git_repo, False)
+#exit(0)
 
-exit(0)
+#for rev in range(30,39):
+#    doKernelAnalysis(rev, outbase, git_repo, True)
+#exit(0)
 
 
 ########################### Some (outdated) examples ################
@@ -380,8 +422,6 @@ for person in persons.keys()[1:10]:
         stats_str += "({0}, {1}) ".format(tag, count)
     print("   {0}".format(stats_str))
 
-# TODO: Associate the commits done as author with a person. This way,
-# we can easily reproduce the lwn statistics.
 
 # Which subsystems was the person involved in as author?
 for person in persons.keys()[1:10]:
