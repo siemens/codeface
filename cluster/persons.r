@@ -27,7 +27,9 @@
 # 4.) Use gen_images.sh to create all PDFs with dot
 library(igraph)
 library(stringr)
-library(lattice)
+library(xtable)
+suppressPackageStartupMessages(library(reshape))
+suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(optparse))
 
 parser <- OptionParser(usage = "%prog datadir")
@@ -46,7 +48,7 @@ outdir <- datadir
 
 #######################################################################
 status <- function(str) {
-  cat(paste("\r", rep(" ", 80), sep=""))
+  cat(paste("\r", paste(rep(" ", 75), collapse=''), sep=""))
   cat(paste("\r", str, sep=""))
 }
 
@@ -181,7 +183,7 @@ plot.group <- function(N, .tags, .iddb, .comm) {
   plot(g, vertex.label=IDs.to.names(.iddb, s))
 }
 
-save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL) {
+save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
   g <- graph.adjacency(.tags[idx,idx], mode="directed")
   # as.character is important. The igraph C export routines bark
   # otherwise (not sure what the actual issue is)
@@ -202,6 +204,11 @@ save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL) {
   # And one more bit: The width of the bounding box changes from black to red
   # with the number of commits
   V(g)$penwidth <- as.character(scale.data(log(ids.connected$numcommits+1),1,5)[idx])
+
+  if(!is.na(label)) {
+    g$label <- label
+    g$fontsize <- 30
+  }
   
   if (!is.null(.filename)) {
     write.graph(g, .filename, format="dot")
@@ -210,12 +217,16 @@ save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL) {
   return(g)
 }
 
-save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which) {
+save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which, label=NA) {
+  baselabel <- label
   for (i in .which) {
-    filename <- paste(.basedir, "/", .prefix, "group_", i, ".dot", sep="")
+    filename <- paste(.basedir, "/", .prefix, "group_", three.digit(i), ".dot", sep="")
     status(paste("Saving", filename))
     idx <- as.vector(which(.comm$membership==i))
-    save.group(.tags, .iddb, idx, .prank, filename)
+    if (!is.na(baselabel)) {
+      label <- paste(baselabel, i, sep=" ")
+    }
+    save.group(.tags, .iddb, idx, .prank, filename, label)
   }
 }
 
@@ -223,19 +234,30 @@ get.rank.by.field <- function(.iddb, .field, N=dim(.iddb)[1]) {
   res <- .iddb[c("ID", "Name", .field)]
   res <- res[order(res[c(.field)], decreasing=T),]
   s <- sum(res[,3])
-  res <- cbind(res, data.frame(percent=res[,3]/s))
+  res <- cbind(res, data.frame(percent=res[,3]/s*100))
   res <- cbind(res, data.frame(norm=scale.data(res[,3], 0, 1)))
 
   return(res[1:N,])
 }
 
 # Select communities with more than .min members
-select.communities <- function(.comm, .min) {
+select.communities.more <- function(.comm, .min) {
  N <- length(unique(.comm$membership))
  num.members <- sapply(0:(N-1),
                        function(x) { return(length(which(.comm$membership==x))) })
 
  elems <- which(num.members > .min)-1 # Community labels are zero-based
+
+ return(elems)
+}
+
+# Select communities with less or equal than .max members
+select.communities.less.equal <- function(.comm, .max) {
+ N <- length(unique(.comm$membership))
+ num.members <- sapply(0:(N-1),
+                       function(x) { return(length(which(.comm$membership==x))) })
+
+ elems <- which(num.members <= .max)-1 # Community labels are zero-based
 
  return(elems)
 }
@@ -250,16 +272,26 @@ int.to.hex <- function(n, fill=2) {
   return(as.character(loc))
 }
 
+three.digit <- function(n) {
+  loc <- as.character(n)
+
+  if (nchar(loc) != 3) {
+    loc <- paste(paste(rep("0", 3-nchar(loc)), collapse=''), loc, sep="")
+  }
+
+  return(loc)
+}
+
 col.to.hex <- function(prefix="0x", r,g,b) {
   return (paste(prefix, int.to.hex(r), int.to.hex(g), int.to.hex(b), sep=""))
 }
 
-save.all <- function(.tags, .iddb, .prank, .comm, .filename=NULL) {
+save.all <- function(.tags, .iddb, .prank, .comm, .filename=NULL, label=NA) {
   g.all <- save.group(.tags, .iddb, .iddb$ID, .prank, .filename=NULL)
   V(g.all)$label <- .iddb$ID
   V(g.all)$pencolor <- V(g.all)$fillcolor
   
-  elems <- select.communities(.comm, 10) # Communities with at least 10 members
+  elems <- select.communities.more(.comm, 10) # Communities with at least 11 members
   red <- as.integer(scale.data(0:(length(elems)+1), 0, 255))
 #  grey <- as.integer(scale.data(0:(length(elems)+1), 0, 99))
   for (i in elems) {
@@ -267,11 +299,69 @@ save.all <- function(.tags, .iddb, .prank, .comm, .filename=NULL) {
     V(g.all)[idx]$fillcolor <- col.to.hex("#", red[i+1], 0, 0)
   }
 
+  if (!is.na(label)) {
+    g$label = label
+  }
+
   if (!is.null(.filename)) {
     write.graph(g.all, .filename, format="dot")
   }
 
   return(g.all)
+}
+# Summarise in which subsystems the authors of a given community are active
+comm.subsys <- function(.comm, .id.subsys, N) {
+  idx <- which(.comm$membership==N)
+  suppressMessages(molten <- melt(.id.subsys[idx,2:dim(.id.subsys)[2]]))
+  colnames(molten) <- c("Subsystem", "Fraction")
+  
+  return(data.frame(Community=N, molten))
+}
+
+# This function allows to do a sanity check for the plot
+#N <- 3
+#summary(id.subsys.connected[which(g.spin.community$membership==N), 2:dim(id.subsys.connected)[2]])
+plot.comm.subsys <- function(.comm, .id.subsys, filename, .alg,
+                             elems=0:(length(unique(.comm$membership))-1), .height=8, .width=14) {
+  comb <- vector("list", length(elems))
+  for (i in 1:length(elems)) {
+    comb[[i]] <- comm.subsys(.comm, .id.subsys, elems[i])
+  }
+
+  comb <- do.call(rbind, comb)
+  
+  ggsave(filename, 
+         ggplot(comb, aes(Subsystem, Fraction)) + geom_boxplot(outlier.colour="blue",
+                                                               outlier.size=1.5, alpha=0.5) +
+         facet_wrap(~Community) + geom_jitter(size=1, alpha=0.5) +
+         opts(axis.text.x=theme_text(angle=-90, hjust=0),
+              title=paste("Subsystem distribution for community clusters (algorithm: ", .alg,
+                ")", sep="")),
+         height=.height, width=.width)
+}
+
+txt.comm.subsys <- function(.comm, .id.subsys, i) {
+  idx <- which(.comm$membership==i)
+
+#  return(summary(.id.subsys[idx,2:dim(.id.subsys)[2]]))
+  res <- apply(.id.subsys[idx,2:dim(.id.subsys)[2]], 2, fivenum)
+  rownames(res) <- c("lw", "lh", "med", "uh", "uw")
+  return(res)
+}
+
+save.cluster.stats <- function(.comm, .id.subsys, .elems, .outdir, .basename) {
+  for (i in .elems) {
+    print(xtable(txt.comm.subsys(.comm, .id.subsys, i)), format="latex",
+          floating=FALSE, file=paste(.outdir, "/", .basename, three.digit(i), ".tex", sep=""))
+  }
+}
+
+rotate.label <- function(x) {
+  return(paste("\\rotatebox{60}{", x, "}", sep=""))
+}
+
+rotate.label.30 <- function(x) {
+  return(paste("\\rotatebox{30}{", x, "}", sep=""))
 }
 
 ################## Process the data #################
@@ -284,12 +374,14 @@ colnames(tags) <- rownames(tags)
 tags <- t(tags)
 
 ids <- read.csv(file=paste(outdir, "/ids.txt", sep=""),
-                sep="\t", header=FALSE)
-colnames(ids) <- c("ID", "Name", "eMail", "added", "deleted", "total", "numcommits")
-#ids$Name <- sapply(ids$Name, name.of.email)
+                sep="\t", header=TRUE)
 # IDs are zero-based, but everything in R is 1-based, so simplify
 # things by adapting the IDs...
 ids$ID <- ids$ID + 1
+
+id.subsys <- read.csv(file=paste(outdir, "/id_subsys.txt", sep=""),
+                sep="\t", header=TRUE)
+id.subsys$ID <- id.subsys$ID + 1
 
 # Isolated graph members are outliers for the Linux kernel. Eliminate
 # them to create a connected graph (NOTE: This must not be done for
@@ -303,6 +395,10 @@ tags.connected <- tags[idx,idx]
 ids.connected <- ids[idx,]
 ids.connected$ID=seq(1:length(idx))
 ids.connected$Name <- as.character(ids.connected$Name)
+
+id.subsys.connected <- id.subsys[idx,]
+id.subsys.connected$ID=seq(1:length(idx))
+
 g.connected <- graph.adjacency(tags.connected, mode="directed")
 V(g.connected)$label <- as.character(ids.connected$Name)
 
@@ -317,8 +413,14 @@ rank.by.numcommits  <- get.rank.by.field(ids.connected, "numcommits", 20)
 
 write.table(rank.by.total, file=paste(outdir, "/top20.total.txt", sep=""), sep="\t",
             quote=FALSE)
+print(xtable(rank.by.total), format="latex", floating=FALSE,
+      file=paste(outdir, "/top20.total.tex", sep=""), sanitize.colnames.function=rotate.label)
+
 write.table(rank.by.numcommits, file=paste(outdir, "/top20.numcommits.txt", sep=""), sep="\t",
             quote=FALSE)
+print(xtable(rank.by.numcommits), format="latex", floating=FALSE,
+      file=paste(outdir, "/top20.numcommits.tex", sep=""), sanitize.colnames.function=rotate.label)
+
 
 # Some id conversion magic tests
 #ids[which(substr(ids$Name, 0, 14) == "Linus Torvalds"),]$ID
@@ -342,10 +444,14 @@ devs.by.pr.tr <- influential.developers(NA, pr.for.all.tr, tags.connected,
 #print("Top 20 page, rank (focus on giving tags)")
 write.table(devs.by.pr[1:20,], file=paste(outdir, "/top20.pr.txt", sep=""), sep="\t",
             quote=FALSE)
+print(xtable(devs.by.pr[1:20,]), format="latex", floating=FALSE,
+      file=paste(outdir, "/top20.pr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
 
 #print("Top 20 page rank (focus on being tagged)")
 write.table(devs.by.pr.tr[1:20,], file=paste(outdir, "/top20.pr.tr.txt", sep=""), sep="\t",
             quote=FALSE)
+print(xtable(devs.by.pr.tr[1:20,]), format="latex", floating=FALSE,
+      file=paste(outdir, "/top20.pr.tr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
 
 
 # Consistency check (names and tags should be identical, IDs can differ)
@@ -362,6 +468,9 @@ write.table(devs.by.pr.tr[1:20,], file=paste(outdir, "/top20.pr.tr.txt", sep="")
 # See http://igraph.wikidot.com/community-detection-in-r
 
 ######### Communities derived with the spinglass algorithm #################
+# NOTE: The group labels may change between different invocations
+# of the community detection algorithms. Setting a fixed random seed
+# before the detection prevents this.
 # TODO: Also investigate how stable the communities are across
 # different kernel releases.
 status("Inferring communities with spin glasses")
@@ -387,29 +496,57 @@ compute.community.links <- function(g, .comm, N) {
   }
 }
 
-# NOTE: The group labels may change between different invocations
-# of the community detection algorithms. Set a fixed random seed
-# before the detection to prevent this.
-# For 2.6.36 (with seed 42), 9 is KVM
-#plot.group(9, tags.connected, ids.connected, g.spin.community)
-#g.sub <- save.group(9, tags.connected, ids.connected, g.spin.community,
-#                    pr.for.all, "/tmp/test.dot")
 
-status("Writing community graphs for spin glasses")
-elems <- select.communities(g.spin.community, 10) # Only communities with more than 10 members
-save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all, outdir, "sg_reg_", elems)
-save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all.tr, outdir, "sg_tr_", elems)
+# TODO: Also make a pass for communities with _less_ than 10 members to see possibly
+status("Writing community graph sources for spin glasses")
+elems.sg.more <- select.communities.more(g.spin.community, 10)
+save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all, outdir,
+            "sg_reg_", elems.sg.more, label="Spin Glass Community")
+save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all.tr, outdir,
+            "sg_tr_", elems.sg.more, label="Spin Glass Community")
 
-status("Writing community graphs for random walks")
-# The walktrap algorithm requires a little more postprocessing
-elems <- select.communities(g.walktrap.community, 10) # Only communities with more than 10 members
-save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all, outdir, "wt_reg_", elems)
-save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all.tr, outdir, "wt_tr_", elems)
+status("Writing community graph sources for random walks")
+elems.wt.more <- select.communities.more(g.walktrap.community, 10)
+elems.wt.less <- select.communities.less.equal(g.walktrap.community, 10)
+save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all, outdir,
+            "wt_reg_big_", elems.wt.more, label="(big) Random Walk Community")
+save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
+            "wt_tr_big_", elems.wt.more, label="(big) Random Walk Community")
+save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all, outdir,
+            "wt_reg_small_", elems.wt.less, label="(small) Random Walk Community")
+save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
+            "wt_tr_small_", elems.wt.less, label="(small) Random Walk Community")
 
-# TODO: Do this for all pageranks and all community detection algorithms
-status("Writing the all-developers graph")
+status("Writing the all-developers graph sources")
+# NOTE: The all-in-one graphs get a different suffix (ldot for "large dot") so that we can easily
+# skip them when batch-processing graphviz images -- they take a long while to compute
 g.all <- save.all(tags.connected, ids.connected, pr.for.all, g.spin.community,
-                  paste(outdir, "/all.dot", sep=""))
+                  paste(outdir, "/sg_reg_all.ldot", sep=""),
+                  label="Spin glass, regular page rank")
+g.all <- save.all(tags.connected, ids.connected, pr.for.all.tr, g.spin.community,
+                  paste(outdir, "/sg_tr_all.ldot", sep=""),
+                  label="Spin glass, transposed page rank")
+g.all <- save.all(tags.connected, ids.connected, pr.for.all, g.walktrap.community,
+                  paste(outdir, "/wt_reg_all.ldot", sep=""),
+                  label="Random walk, regular page rank")
+g.all <- save.all(tags.connected, ids.connected, pr.for.all.tr, g.walktrap.community,
+                  paste(outdir, "/wt_tr_all.ldot", sep=""),
+                  label="Random walk, transposed page rank")
+
+status("Plotting per-cluster subsystem distribution")
+plot.comm.subsys(g.spin.community, id.subsys.connected, paste(outdir, "/sg_comm_subsys.pdf", sep=""),
+                 "spin glass")
+# Since walktrap produces smaller, but more communities, we devide the plot into two parts
+plot.comm.subsys(g.walktrap.community, id.subsys.connected,
+                 paste(outdir, "/wt_comm_subsys_big.pdf", sep=""), "random walk", elems=elems.wt.more)
+plot.comm.subsys(g.walktrap.community, id.subsys.connected,
+                 paste(outdir, "/wt_comm_subsys_small.pdf", sep=""), "random walk",
+                 elems=elems.wt.less)
+
+status("Saving raw per-cluster statistical summaries")
+save.cluster.stats(g.spin.community, id.subsys.connected, elems.sg.more, outdir, "sg_cluster_")
+save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.more, outdir, "wt_cluster_")
+save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.less, outdir, "wt_cluster_")
 
 print("")
 quit()
@@ -418,15 +555,6 @@ quit()
 
 
 #################### Some experiments ##############
-######### Communities derived with the walktrap method
-g.walktrap.community <- walktrap.community(g.connected)
-# Virtualisation?
-plot.group(11, tags.connected, ids.connected, g.walktrap.community)
-# SCSI?
-plot.group(13, tags.connected, ids.connected, g.walktrap.community)
-
-
-##########
 # Somce other generic graph measures. TODO: See if/how we can use them
 max(closeness(g))
 max(betweenness(g))
