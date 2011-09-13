@@ -1,9 +1,10 @@
 #! /usr/bin/env python
 # Convert the dot output of igraph into something suitable for neato
 # Use, for instance, like
-# for i in `seq 0 16`; do
-#   cat group_$i.dot | ./conv.py > g$i.dot;
-#   neato -Tpdf g$i.dot> g$i.pdf;
+# for file in `ls prefix*.dot`; do
+#    basefile=`basename $file .dot`;
+#    echo "Processing $file";
+#    cat $file | ../../conv.py | sfdp -Tpdf > ${basefile}.pdf;
 # done
 import sys
 import re
@@ -16,6 +17,7 @@ lines = [line.strip("\n") for line in sys.stdin]
 # Modify the header (copyright line + digraph)
 lines[0] = "digraph {"
 lines[1] = "node[fontsize=30, shape=\"box\"];"
+#lines[1] = "node[fontsize=30];"
 
 lines[len(lines)-1] = "" # Skip closing brace
 
@@ -34,6 +36,6 @@ for line in lines:
 for ((a, b), count) in edges.iteritems():
     print("{0} -> {1} [weight={2} penwidth={3}];".format(a,b,count, math.sqrt(float(count))))
 
-print "overlap=false;"
+print "overlap=prism;"
 print "splines=true;"
 print "}"
