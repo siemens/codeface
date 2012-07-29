@@ -195,13 +195,13 @@ save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
   # We also use the page rank to specify the font size of the vertex
   V(g)$fontsize <- scale.data(.prank$vector, 15, 50)[idx]
 
-  # The amount of changes lines of visualised by node's background colour:
+  # The amount of changed lines is visualised by the nodes background colour:
   # The darker, the more changes.
   fc <- as.character(as.integer(100-scale.data(log(ids.connected$total+1),0,50)[idx]))
   V(g)$fillcolor <- paste("grey", fc, sep="")
   V(g)$style="filled"
 
-  # And one more bit: The width of the bounding box changes from black to red
+  # And one more bit: The width of the bounding box changes from thin to thick
   # with the number of commits
   V(g)$penwidth <- as.character(scale.data(log(ids.connected$numcommits+1),1,5)[idx])
 
