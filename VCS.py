@@ -574,7 +574,7 @@ class gitVCS (VCS):
 ############################ Test cases #########################
 if __name__ == "__main__":
     git = gitVCS()
-    git.setRepository("/Users/wolfgang/git-repos/linux/.git")
+    git.setRepository("/Users/Mitchell/git/linux-2.6/.git")
     git.setRevisionRange("22242681cff52bfb7cb~1", "22242681cff52bfb7cb")
     clist = git.extractCommitData("__main__")
 
