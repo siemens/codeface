@@ -19,21 +19,27 @@ class FileCommit:
         #dictionary with keys=lineNumbers value=commitHash, stores 
         #the line number and corresponding commit hash for every 
         #line of the file, 
-        self.commitRelationship = {}
+        self.fileSnapShots = {}
         
         #stores the line numbers that correspond to mainCommitID
         #we restrict our analysis of the surrounding commits
         #to some small region around the main commits contributions
         self.lineNumsMainCmt = []
         
-        
+    #Getter/Setters    
+    
+    def getFileSnapShots(self):
+        return self.fileSnapShots
         
     def setCommitList(self, cmtList):
         self.commitList = cmtList
         
     def getCommitList(self):
         return self.commitList
+   
+   
+    #Methods
     
-    def addCommitRelationship(self, key, dict):
-        self.commitRelationship[key] = dict
+    def addFileSnapShot(self, key, dict):
+        self.fileSnapShots[key] = dict
     

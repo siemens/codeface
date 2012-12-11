@@ -37,6 +37,7 @@
 from subprocess import *
 from progressbar import *
 import commit
+import fileCommit
 import re
 import sys
 
@@ -99,9 +100,27 @@ class VCS:
         
         # Contains all commits indexed by commit id
         self._commit_dict = None
-
+        
+        #Dictionary with key = filename and value = list of all commits
+        #for that file 
+        self._fileCommit_dict = None
+        
+        #file names to include in analysis(non-taged based)
+        self._fileNames = None
+        
+        
         self.subsys_description = {}
-
+    
+    
+    def getFileCommitDict(self):
+        return self._fileCommit_dict
+        
+    def setFileNames(self, fileNames):
+        self._fileNames = fileNames
+        
+    def getFileNames(self):
+        return self._fileNames
+            
     def setRepository(self, repo):
         self.repo = repo
 
@@ -232,7 +251,7 @@ class gitVCS (VCS):
         # First, get the output for the complete revision
         # range (TODO: cache this)
         # NOTE: %H prints the hash value of the commit, %ct denotes
-        # the commiter date (it's important to use commiter and not
+        # the comitter date (it's important to use comitter and not
         # author date; this guarantees monotonically increasing time
         # sequences)
         # Passing a simple formatted string and using getoutput() to
@@ -264,6 +283,63 @@ class gitVCS (VCS):
         # and extract the desired subrange
         return clist
 
+    def _getFileCommitInfo(self, fname, rev_start=None, rev_end=None):
+        '''extracts a list of commits on a specific file for the specified 
+        revision range'''
+        #TODO: add revision range option (currently does nothing)
+        
+        if rev_start == None and rev_end != None:
+            _abort("Internal error: Bogous range!")
+
+        revrange = ""
+        if rev_start:
+            revrange += "{0}..".format(rev_start)
+        else:
+            if self.rev_start:
+                revrange += "{0}..".format(self.rev_start)
+
+        if rev_end:
+            revrange += rev_end
+        else:
+            if self.rev_end:
+                revrange += self.rev_end
+        
+        #build git command
+        cmd = 'git --git-dir={0} log --no-merges -M -C'.format(self.repo).split()
+        cmd.append('--pretty=format:%ct<< >>%H<< >>%aN <%aE><< >>%cN <%cE>')
+        cmd.append('--date=local') # Essentially irrelevant
+        cmd.append("--")
+        cmd.append(fname)
+        
+                
+        #submit query command        
+        clist = self._gitQuery(cmd)
+        
+        # Remember the comment about monotonically increasing time sequences
+        # above? True in principle, but unfortunately, a very small number
+        # of commits can violate this for various reasons. Since these
+        # outliers screw up the cumulative graph, we have to add an
+        # extra sorting pass.
+        clist.sort(reverse=True)
+
+        # Then, obtain the first and last commit in the desired range
+        # and extract the desired subrange
+        return clist
+            
+            
+    def _gitQuery(self, cmd):
+        '''low level routine to submit a git command and return the 
+        output'''
+        
+        print("About to call {0}".format(" " .join(cmd)))
+        try:
+            p2 = Popen(cmd, stdout=PIPE)
+            output = p2.communicate()[0].splitlines()
+        except OSError:
+            _abort("Internal error: Could not spawn git")
+            
+        return output
+        
 
     def _prepareGlobalCommitList(self):
         """Prepare the list of all commits for the complete project.
@@ -317,6 +393,29 @@ class gitVCS (VCS):
         cmt.cdate = match.group(1)
         cmt.id = match.group(2)
 
+        return cmt
+
+    def _FileLogString2Commit(self, str):
+        '''Similar to Logstring2Commit, Create an instance of commit.Commit 
+        from a given log string. Adds extra data compared to Logstring2Commit
+        function'''
+        
+        spltStr = str.split("<< >>")
+        expectedLen = 4 #commit hash, commit data, author name, committer name
+        
+        if len(spltStr) != expectedLen:
+            # TODO: Throw an exception
+            print("Internal error: Could not parse log string!")
+            sys.exit(-1)
+        
+        
+        cmt = commit.Commit()
+        
+        cmt.cdate     = spltStr[0] #date of commit
+        cmt.id        = spltStr[1] #commit hash
+        cmt.author    = spltStr[2] #name and email of author
+        cmt.committer = spltStr[3] #name and email of committer 
+    
         return cmt
 
     def _analyseDiffStat(self, msg, cmt):
@@ -571,9 +670,152 @@ class gitVCS (VCS):
 
         return self._commit_list_dict[subsys]
 
+
+    def _getBlameMsg(self, fileName, commitHash):
+        '''provided with a file name and commit hash the function returns 
+        the blame message'''
+        
+        #build command string 
+        cmd = 'git --git-dir={0} blame'.format(self.repo).split()
+        cmd.append("-p") #format for machine consumption
+        cmd.append("-w") #ignore whitespace changes
+        cmd.append("--")
+        cmd.append(fileName)
+        cmd.append(commitHash)
+    
+        
+        #query git repository 
+        blameMsg = self._gitQuery(cmd)
+        
+        return blameMsg
+        
+
+    def _parseBlameMsg(self, msg):
+        '''input a blame msg and the commitID under examination the 
+        output contains code line numbers and corresponding commitID'''
+        
+        #variable declarations
+        commitLineDict = {} #dictionary, key is line number, value is commit ID 
+        commitHashLen = 40 #number of characters for a commit hash (ID)
+        
+        while msg:
+            
+            line = msg.pop(0).split(" ")
+            
+            if(len(line[0]) == commitHashLen):
+                
+               lineNum = line[2]
+               commitHash = line[0] 
+               commitLineDict[lineNum] = commitHash
+               msg.pop(0) #here we could get the line of code if needed
+             
+            
+        return commitLineDict
+   
+    def extractFileCommitData(self):
+       '''high level function to extract all commits for a given file 
+       and builds a fileCommit object to store relavent data'''
+       
+       #First we query the git repository for all commits to a particular 
+       #file, FileCmtList is a list of commit hashes
+       self._prepareFileCommitList(self._fileNames)
+       
+          
+       
+    def _prepareFileCommitList(self, fnameList):
+        
+        #variable initialization 
+        self._fileCommit_dict = {}
+        self._commit_dict = {}
+        
+        for fname in fnameList:
+            
+            #create fileCommit object, one per filename to be 
+            #stored in _fileCommit_dict
+            fileCmts = fileCommit.FileCommit()
+            
+            #query git to get all comitters to a particular file
+            #includes commit hash, author and committer data and time
+            logMsg = self._getFileCommitInfo(fname)
+            
+            #store the commit hash to the fileCommitList
+            cmtList = map(self._FileLogString2Commit, logMsg)
+            
+            #store commit hash in fileCommit object
+            fileCmts.setCommitList([cmt.id for cmt in cmtList])
+            
+            
+            #store the commit object to the committerDB, the justification 
+            #for splitting this way is to avoid redundant commit info 
+            #since a commit can touch many files, we use the commit 
+            #hash to reference the commit data (author, date etc)
+            for cmt in cmtList:
+                self._commit_dict[cmt.id] = cmt
+                
+                
+            #get git blame information for each commit in each file 
+            for cmt in cmtList:
+            
+                #query git reppository for blame message
+                blameMsg = self._getBlameMsg(fname, cmt.id)
+       
+                #parse the blame message, this extracts the line number 
+                #and corresponding commit hash, returns a dictionary 
+                #Key = line number, value = commit hash
+                #basically a snapshot of what the file looked like 
+                #at the time of the commit
+                fileLayout_dict = self._parseBlameMsg(blameMsg)
+                
+                #store the dictionary to the fileCommit Object
+                fileCmts.addFileSnapShot(cmt.id, fileLayout_dict)
+                
+            
+            #store fileCommit object to dictionary
+            self._fileCommit_dict[fname] = fileCmts
+                
+                
+################### Testing Functions ###########################
+
+    def _testNonTagSNA(self):
+        
+        git.setRepository("/Users/Mitchell/git/Test_repo/.git")
+        self._fileNames = ["Test_py/src/main.py"]
+        #fist get all the commits for the range you want
+        #build commit objects 
+        #clist = self._getCommitIDsFile("Test_py/src/main.py")
+        
+        self.extractFileCommitData()
+        
+        #create a list of commit objects for each commit in the file
+        fcmtobj = fileCommit.FileCommit()
+        
+        FileCmtList = map(self._Logstring2Commit, self._getFileCommitInfo(fname))
+        fcmtobj.setCommitList(FileCmtList)
+        #call git blame for each commit object (this unique possibley for every commit) 
+        a = fcmtobj.getCommitList()
+        for cmt in fcmtobj.getCommitList():
+            blameMsg = git._getBlameMsg(fname, cmt.id)
+            
+            
+            commitLineDict = self._parseBlameMsg(blameMsg, cmt.id)
+            
+            fcmtobj.addCommitRelationship(cmt.id, commitLineDict)
+    
+        
+        #computer correltion 
+        commitLineDict = self._parseBlameMsg(blameMsg)
+        
+
+
 ############################ Test cases #########################
 if __name__ == "__main__":
+    
+    #test nontagSNA
     git = gitVCS()
+    git.setRepository("/Users/Mitchell/git/Test_repo/.git")
+    git._testNonTagSNA()
+    
+    
     git.setRepository("/Users/Mitchell/git/linux-2.6/.git")
     git.setRevisionRange("22242681cff52bfb7cb~1", "22242681cff52bfb7cb")
     clist = git.extractCommitData("__main__")

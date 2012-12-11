@@ -24,9 +24,11 @@ class Commit:
         # time stamp (commiter time) of the commit
         self.id = None
         self.cdate = None
-        self.author = None      # Author name
-        self.author_pi  = None  # PersonInfo instance
-
+        self.author = None       # Author name
+        self.author_pi  = None   # PersonInfo instance
+        self.committer = None    # Committer name
+        self.committer_pi = None #PersonalInfo for Committer
+        
         # Contains a tuple (added, deleted, changed)
         # for each diff type.
         self.diff_info = [] 
@@ -94,6 +96,15 @@ class Commit:
 
     def setAuthorPI(self, author_pi):
         self.author_pi = author_pi
+    
+    def getCommitterName(self):
+        return self.committer
+    
+    def getCommitterPI(self):
+        return self.committer_pi
+    
+    def setCommiterPI(self, commit_pi):
+        self.committer_pi = commit_pi
 
     def getInRC(self):
         return self.inRC
