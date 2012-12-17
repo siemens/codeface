@@ -1,1 +1,0 @@
-../kerninfo.py

@@ -25,9 +25,9 @@ class Commit:
         self.id = None
         self.cdate = None
         self.author = None       # Author name
-        self.author_pi  = None   # PersonInfo instance
+        self.author_pi  = None   # PersonInfo instance for author
         self.committer = None    # Committer name
-        self.committer_pi = None #PersonalInfo for Committer
+        self.committer_pi = None # PersonInfo instance for committer
         
         # Contains a tuple (added, deleted, changed)
         # for each diff type.
@@ -103,8 +103,8 @@ class Commit:
     def getCommitterPI(self):
         return self.committer_pi
     
-    def setCommiterPI(self, commit_pi):
-        self.committer_pi = commit_pi
+    def setCommitterPI(self, committer_pi):
+        self.committer_pi = committer_pi
 
     def getInRC(self):
         return self.inRC

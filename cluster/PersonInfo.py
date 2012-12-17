@@ -24,7 +24,17 @@ class PersonInfo:
         self.name = name
         self.email = email
         self.subsys_names = subsys_names
-
+        
+        #links FROM other developers (could be committers or authors) 
+        self.inLinks = {}
+        self.inLinksAvg = {}
+        #links TO other developers (could be committers or authors)
+        self.outLinks = {}
+        
+        #average of collaboration metric for a single Id
+        self.inLinksAvg = {}
+        self.outLinksAvg = {}
+        
         # Store from which developers the person received a tag
         self.associations = {}
         for tag in tag_types:
@@ -75,6 +85,7 @@ class PersonInfo:
         # have beenreceived form a specific ID.
         self.active_tags_received_by_id = {}
 
+
     def setID(self, ID):
         self.ID = ID
     def getID(self):
@@ -103,9 +114,60 @@ class PersonInfo:
             return tag_hash[ID]
         else:
             return 0
-
+        
+    def addInLink(self, Id, value): 
+        '''
+        a link from some else towards this person
+        '''
+        self.addLink(Id, self.inLinks, value)
+        
+        
+    def addOutLink(self, Id, value):
+        '''
+        a link from this person to someone else        
+        '''
+        self.addLink(Id, self.outLinks, value)
+    
+        
+    def linkProcessing(self):
+        '''
+        This function should be call after all collaboration metrics have 
+        been calculated. Performs basics statistics calculations that require 
+        the entire collaboration data present. 
+        '''
+        
+        #average over links 
+        for Id in self.inLinks.keys():
+            self.inLinksAvg[Id]  = sum( self.inLinks[Id] )   / len( self.inLinks[Id] )  * 1.0
+            
+        for Id in self.outLinks.keys():
+            self.outLinksAvg[Id] = sum( self.outLinks[Id] )  / len( self.outLinks[Id] )  * 1.0
+        
+        
+    def addLink(self, ID, links, value):
+        '''
+        the direction of the link is made by calling this 
+        with addInLink or addOutLink. the Value parameter 
+        indicates the strength of the relationship.
+        '''
+        
+        if(ID in links):
+            links[ID].append(value)
+        else:
+            links[ID] = [value] 
+        
     def getActiveTagsReceivedByID(self, ID):
         return self._getTagsReceivedByID(self.active_tags_received_by_id, ID)
+
+    def getAvgInLink(self, ID):
+        
+        if ID in self.inLinksAvg:
+            
+            return self.inLinksAvg[ID]
+        
+        else:
+            return 0
+       
 
     def getAllTagsReceivedByID(self, ID):
         return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)
