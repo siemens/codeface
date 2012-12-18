@@ -164,6 +164,7 @@ class gitVCS (VCS):
         VCS.__init__(self) # Python OOP braindamage
         # Some analysis patterns that are required to analyse the
         # output of git
+        self.cmtHashPattern = re.compile(r'^\w{40}$') 
         self.logPattern = re.compile(r'^(.*?) (.*)$')
         self.authorPattern = re.compile(r'^Author: (.*)$')
         self.signedOffPattern = re.compile(r'^(.*?): (.*)$')
@@ -700,12 +701,14 @@ class gitVCS (VCS):
         commitLineDict = {} #dictionary, key is line number, value is commit ID 
         commitHashLen = 40 #number of characters for a commit hash (ID)
         
+        
         while msg:
             
             line = msg.pop(0).split(" ")
             
-            if(len(line[0]) == commitHashLen):
-                
+            #the lines we want to match start with a commit hash
+            if(self.cmtHashPattern.match( line[0] ) ):
+               
                lineNum = line[2]
                commitHash = line[0] 
                commitLineDict[lineNum] = commitHash
@@ -797,10 +800,7 @@ class gitVCS (VCS):
             #get entire commit history on file
             self._commit_dict.update( {cmt.id: cmt for cmt in self.getFileCommits(fname) if not(self._commit_dict.has_key(cmt.id))} )
             
-            
-            
-            pass   
-                
+        
             #end for fnameList 
              
             
@@ -823,7 +823,31 @@ class gitVCS (VCS):
             
         return cmtList    
             
+    def config4LinuxKernelAnalysis(self, directories=None):
+        '''
+        use this to configue what files should be included in the 
+        file based analysis (ie. non-tag based method). This will 
+        query git for the file names and build the list automatically. 
+        -- Input --
+        directories - a list of paths to limit the search for filenames  
+        '''
         
+
+        #build git query 
+        cmd = 'git --git-dir={0} ls-tree --name-only --full-tree -r'.format(self.repo).split()
+        cmd.append('Head')
+        if directories:
+            cmd.append(directories)
+        
+        #query git 
+        output = self._gitQuery(cmd)
+        
+        #filter results to only get implementation files (ie *.c) 
+        fileNames = [fileName for fileName in output if fileName.endswith(".c")]
+        
+        self.setFileNames(fileNames)
+        
+       
         
 ################### Testing Functions ###########################
 
