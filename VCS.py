@@ -308,6 +308,8 @@ class gitVCS (VCS):
         cmd = 'git --git-dir={0} log --no-merges -M -C'.format(self.repo).split()
         cmd.append('--pretty=format:%ct<< >>%H<< >>%aN <%aE><< >>%cN <%cE>')
         cmd.append('--date=local') # Essentially irrelevant
+        if rev_start and rev_end:
+            cmd.append(revrange)
         cmd.append("--")
         cmd.append(fname)
         
@@ -716,9 +718,13 @@ class gitVCS (VCS):
        '''high level function to extract all commits for a given file 
        and builds a fileCommit object to store relavent data'''
        
-       #First we query the git repository for all commits to a particular 
-       #file, FileCmtList is a list of commit hashes
-       self._prepareFileCommitList(self._fileNames)
+       if self._fileCommit_dict:
+           print("using cached data...")
+           return
+       
+       #query the git repository for all commits to a particular 
+       #set of files, FileCmtList is a list of commit hashes
+       self._prepareFileCommitList(self._fileNames) 
        
           
        
@@ -734,14 +740,12 @@ class gitVCS (VCS):
             #stored in _fileCommit_dict
             fileCmts = fileCommit.FileCommit()
             
-            #query git to get all comitters to a particular file
-            #includes commit hash, author and committer data and time
-            logMsg = self._getFileCommitInfo(fname)
+            #get commit objects for the given file and revision range
+            cmtList  = self.getFileCommits(fname, self.rev_start, self.rev_end)
             
-            #store the commit hash to the fileCommitList
-            cmtList = map(self._FileLogString2Commit, logMsg)
-            
-            #store commit hash in fileCommit object
+            #store commit hash in fileCommit object, store only the hash 
+            #and then reference the commit db, this prevents the duplication 
+            #of information since a commit can touch many files
             fileCmts.setCommitList([cmt.id for cmt in cmtList])
             
             
@@ -765,15 +769,62 @@ class gitVCS (VCS):
                 #basically a snapshot of what the file looked like 
                 #at the time of the commit
                 fileLayout_dict = self._parseBlameMsg(blameMsg)
+                 
                 
                 #store the dictionary to the fileCommit Object
                 fileCmts.addFileSnapShot(cmt.id, fileLayout_dict)
                 
-            
+        
+            #end for cmtList
+        
             #store fileCommit object to dictionary
             self._fileCommit_dict[fname] = fileCmts
+            
+            #-------------------------------
+            #capture the remaining commits 
+            #-------------------------------
+            '''
+             if the analysis of the git blame messages is focused 
+             only on a temporal region (ie. not entire history) it 
+             can be the case that commits not found during the git 
+             log query (due to revision range) are present in the 
+             git blame messages. We must query git again to get the 
+             remaining commits otherwise we cannot reference them during 
+             the blame message anaysis.
+             '''
+            #TODO: figure out a way to get the missing commits without 
+            #      having to parse all commit messages
+            #get entire commit history on file
+            self._commit_dict.update( {cmt.id: cmt for cmt in self.getFileCommits(fname) if not(self._commit_dict.has_key(cmt.id))} )
+            
+            
+            
+            pass   
                 
+            #end for fnameList 
+             
+            
+                    
                 
+    def getFileCommits(self, fname, rev_start=None, rev_end=None):
+        '''
+        returns a list of commit objects from the commits on a given 
+        file and revision range. If no revision range is provided 
+        the whole history is captured
+        '''
+         
+        #query git to get all committers to a particular file
+        #includes commit hash, author and committer data and time
+        logMsg = self._getFileCommitInfo(fname, rev_start, rev_end)
+            
+        #store the commit hash to the fileCommitList
+        cmtList = map(self._FileLogString2Commit, logMsg)
+            
+            
+        return cmtList    
+            
+        
+        
 ################### Testing Functions ###########################
 
     def _testNonTagSNA(self):
