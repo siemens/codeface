@@ -235,10 +235,10 @@ largeScaleCommunity <- function(g,mode="all"){
 # Select communities with more than .min members
 select.communities.more <- function(.comm, .min) {
 	N <- length(unique(.comm$membership))
-	num.members <- sapply(0:(N-1),
+	num.members <- sapply(1:(N),
 			function(x) { return(length(which(.comm$membership==x))) })
 	
-	elems <- which(num.members > .min)-1 # Community labels are zero-based
+	elems <- which(num.members > .min)
 	
 	return(elems)
 }
@@ -246,11 +246,11 @@ select.communities.more <- function(.comm, .min) {
 # Select communities with less or equal than .max members
 select.communities.less.equal <- function(.comm, .max) {
 	N <- length(unique(.comm$membership))
-	num.members <- sapply(0:(N-1),
+	num.members <- sapply(1:(N),
 			function(x) { return(length(which(.comm$membership==x))) })
 	
-	elems <- which(num.members <= .max)-1 # Community labels are zero-based
-	
+	elems <- which(num.members <= .max)
+
 	return(elems)
 }
 
@@ -270,7 +270,7 @@ comm.subsys <- function(.comm, .id.subsys, N) {
 #N <- 3
 #summary(id.subsys.connected[which(g.spin.community$membership==N), 2:dim(id.subsys.connected)[2]])
 plot.comm.subsys <- function(.comm, .id.subsys, filename, .alg,
-		elems=0:(length(unique(.comm$membership))-1), .height=8, .width=14) {
+		elems=1:(length(unique(.comm$membership))), .height=8, .width=14) {
 	comb <- vector("list", length(elems))
 	for (i in 1:length(elems)) {
 		comb[[i]] <- comm.subsys(.comm, .id.subsys, elems[i])
@@ -437,7 +437,7 @@ construct.pr.info <- function(.comm, .pr, N=length(unique(.comm$membership))) {
 
 save.cluster.stats <- function(.comm, .id.subsys, .elems, .outdir, .basename) {
 	for (i in .elems) {
-		print(xtable(txt.comm.subsys(.comm, .id.subsys, i)), format="latex",
+		print(xtable(txt.comm.subsys(.comm, .id.subsys, i)), type="latex",
 				floating=FALSE, file=paste(.outdir, "/", .basename, three.digit(i), ".tex", sep=""))
 	}
 }
@@ -449,14 +449,14 @@ save.all <- function(.tags, .iddb, .prank, .comm, .filename=NULL, label=NA) {
 	
 	elems <- select.communities.more(.comm, 10) # Communities with at least 11 members
 	red <- as.integer(scale.data(0:(length(elems)+1), 0, 255))
-#  grey <- as.integer(scale.data(0:(length(elems)+1), 0, 99))
+##  grey <- as.integer(scale.data(0:(length(elems)+1), 0, 99))
 	for (i in elems) {
 		idx <- as.vector(which(.comm$membership==i))
 		V(g.all)[idx]$fillcolor <- col.to.hex("#", red[i+1], 0, 0)
 	}
 	
 	if (!is.na(label)) {
-		g$label = label
+		g.all$label = label
 	}
 	
 	if (!is.null(.filename)) {
@@ -528,13 +528,13 @@ writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
 	write.table(devs.by.pr[1:20,], file=paste(outdir, "/top20.pr.txt", sep=""), sep="\t",
 			quote=FALSE)
 	print("here 1")
-	print(xtable(devs.by.pr[1:20,]), format="latex", floating=FALSE,
+	print(xtable(devs.by.pr[1:20,]), type="latex", floating=FALSE,
 			file=paste(outdir, "/top20.pr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
 	print("here 2")
 	#print("Top 20 page rank (focus on being tagged)")
 	write.table(devs.by.pr.tr[1:20,], file=paste(outdir, "/top20.pr.tr.txt", sep=""), sep="\t",
 			quote=FALSE)
-	print(xtable(devs.by.pr.tr[1:20,]), format="latex", floating=FALSE,
+	print(xtable(devs.by.pr.tr[1:20,]), type="latex", floating=FALSE,
 			file=paste(outdir, "/top20.pr.tr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
 	
 }
@@ -595,13 +595,12 @@ performTagAnalysis <- function(outdir){
 	
 	write.table(rank.by.total, file=paste(outdir, "/top20.total.txt", sep=""), sep="\t",
 			quote=FALSE)
-	print(rank.by.total)
-	print(xtable(rank.by.total), format="latex", floating=FALSE,
+	print(xtable(rank.by.total), type="latex", floating=FALSE,
 			file=paste(outdir, "/top20.total.tex", sep=""), sanitize.colnames.function=rotate.label)
 	
 	write.table(rank.by.numcommits, file=paste(outdir, "/top20.numcommits.txt", sep=""), sep="\t",
 			quote=FALSE)
-	print(xtable(rank.by.numcommits), format="latex", floating=FALSE,
+	print(xtable(rank.by.numcommits), type="latex", floating=FALSE,
 			file=paste(outdir, "/top20.numcommits.tex", sep=""), sanitize.colnames.function=rotate.label)
 	
 	
@@ -627,13 +626,13 @@ performTagAnalysis <- function(outdir){
 #print("Top 20 page, rank (focus on giving tags)")
 	write.table(devs.by.pr[1:20,], file=paste(outdir, "/top20.pr.txt", sep=""), sep="\t",
 			quote=FALSE)
-	print(xtable(devs.by.pr[1:20,]), format="latex", floating=FALSE,
+	print(xtable(devs.by.pr[1:20,]), type="latex", floating=FALSE,
 			file=paste(outdir, "/top20.pr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
 	
 #print("Top 20 page rank (focus on being tagged)")
 	write.table(devs.by.pr.tr[1:20,], file=paste(outdir, "/top20.pr.tr.txt", sep=""), sep="\t",
 			quote=FALSE)
-	print(xtable(devs.by.pr.tr[1:20,]), format="latex", floating=FALSE,
+	print(xtable(devs.by.pr.tr[1:20,]), type="latex", floating=FALSE,
 			file=paste(outdir, "/top20.pr.tr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
 	
 	
@@ -690,9 +689,10 @@ performTagAnalysis <- function(outdir){
 	status("Writing the all-developers graph sources")
 # NOTE: The all-in-one graphs get a different suffix (ldot for "large dot") so that we can easily
 # skip them when batch-processing graphviz images -- they take a long while to compute
-	g.all <- save.all(tags.connected, ids.connected, pr.for.all, g.spin.community,
-			paste(outdir, "/sg_reg_all.ldot", sep=""),
-			label="Spin glass, regular page rank")
+	#g.all <- save.all(tags.connected, ids.connected, pr.for.all, g.spin.community,
+			#save.all(tags.connected, ids.connected, pr.for.all, g.spin.community,
+			#paste(outdir, "/sg_reg_all.ldot", sep=""),
+			#label="Spin glass, regular page rank")
 	g.all <- save.all(tags.connected, ids.connected, pr.for.all.tr, g.spin.community,
 			paste(outdir, "/sg_tr_all.ldot", sep=""),
 			label="Spin glass, transposed page rank")
@@ -718,7 +718,7 @@ performTagAnalysis <- function(outdir){
 	save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.more, outdir, "wt_cluster_")
 	save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.less, outdir, "wt_cluster_")
 	
-	print("")
+	print("finished person.r")
 	
 }
 
@@ -827,9 +827,9 @@ performGraphAnalysis <- function(adjMatrix, ids, outDir){
 	status("Writing the all-developers graph sources")
 	# NOTE: The all-in-one graphs get a different suffix (ldot for "large dot") so that we can easily
 	# skip them when batch-processing graphviz images -- they take a long while to compute
-	g.all <- save.all(adjMatrix.connected, ids.connected, pr.for.all, g.spin.community,
-			paste(outdir, "/sg_reg_all.ldot", sep=""),
-			label="Spin glass, regular page rank")
+	#g.all <- save.all(adjMatrix.connected, ids.connected, pr.for.all, g.spin.community,
+	#		paste(outdir, "/sg_reg_all.ldot", sep=""),
+	#		label="Spin glass, regular page rank")
 	g.all <- save.all(adjMatrix.connected, ids.connected, pr.for.all.tr, g.spin.community,
 			paste(outdir, "/sg_tr_all.ldot", sep=""),
 			label="Spin glass, transposed page rank")
