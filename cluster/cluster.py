@@ -41,12 +41,14 @@ def _abort(msg):
     print(msg + "\n")
     sys.exit(-1)
 
-def createFileCmtDB(filename, git_repo, fileNames):
+def createFileCmtDB(filename, git_repo, revrange):
     
     git = gitVCS()
     git.setRepository(git_repo)
-    #git.setRevisionRange(revrange[0], revrange[1])
-    git.setFileNames(fileNames)
+    #git.config4LinuxKernelAnalysis("kernel")
+    git.config4LinuxKernelAnalysis()
+    git.setRevisionRange(revrange[0], revrange[1])
+    
     
     git.extractFileCommitData()
     
@@ -159,7 +161,7 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr):
     #lines of interest 
     modFileState = linesOfInterest(fileState, snapShotCmt.id, maxDist)
     
-    if modFileState: #if file is empt end analysis 
+    if modFileState: #if file is empty end analysis 
         
         #now find the code blocks, a block is a section of code by one author
         #use the commit hash to identify the committer or author info as needed 
@@ -186,17 +188,17 @@ def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist):
     codeBlks - a collection of codeBlock objects
     personId - a unique identifier of an individual who contributed 
                to at least one code block in codeBlks 
-    - Output - 
-    relStrength - relationship strength, a dictionary with
-                  keys = person identifier and value = a number
-                  indicating how strongly a person is connected 
-                  to the person with id = personId 
+    id_mgr   - manager for people and information relevant to them
+                the collaboration metric is stored in this object
+    maxDist  - maximum separation of code for consideration, beyond 
+               this distance the code block is ignored in the 
+               calculation
     '''
     #variable declarations 
-    relStrength  = {} # key = unique person id, value = link strength to personId  
+    relStrength  = {} # key = unique person id, value = Edge strength to personId  
     personIdBlks = [] # blocks that were contributed by personId
     contribIdSet = [] # a set of all ids that contributed to codeBlks
-    person       = id_mgr.getPI(personId) #all links are outwards from this person 
+    person       = id_mgr.getPI(personId) #all Edges are outwards from this person 
     
     #get all blocks contributed by personId
     personIdBlks = [blk for blk in codeBlks if blk.id == personId]
@@ -207,23 +209,28 @@ def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist):
     #calculate relationship between personId and all other contributors 
     for Id in contribIdSet:
         
+        #do not compute collaboration with oneself 
+        if Id == personId:
+            continue
+        
+
         #get all blocks by contributor Id
         IdBlocks = [blk for blk in codeBlks if blk.id == Id]
         
         #compute relationship strength for ALL combinations of blocks  
-        allCombStrengths  = [computeLinkStrength(blk1, blk2, maxDist) for blk1 in IdBlocks for blk2 in personIdBlks]
+        allCombStrengths  = [computeEdgeStrength(blk1, blk2, maxDist) for blk1 in IdBlocks for blk2 in personIdBlks]
         
         #average the strengths 
         avgStrength = sum(allCombStrengths) / len(allCombStrengths) * 1.0
         
         #store result 
-        inLinkPerson = id_mgr.getPI(Id)
-        person.addOutLink(   Id   , avgStrength)
-        inLinkPerson.addInLink(personId, avgStrength)
+        inEdgePerson = id_mgr.getPI(Id)
+        person.addOutEdge(   Id   , avgStrength)
+        inEdgePerson.addInEdge(personId, avgStrength)
     
     
     
-def computeLinkStrength(blk1, blk2, maxDist):
+def computeEdgeStrength(blk1, blk2, maxDist):
     '''
     Calculates a value that indicates how strongly the two 
     code blocks are related based on proximity
@@ -232,7 +239,7 @@ def computeLinkStrength(blk1, blk2, maxDist):
     maxDist: the maximum distance two blocks 
              may be separated
     - Output - 
-    linkStrength: a floating point number representing how related
+    EdgeStrength: a floating point number representing how related
                   the two code blocks are
     '''   
     
@@ -241,13 +248,13 @@ def computeLinkStrength(blk1, blk2, maxDist):
     dist = blockDist(blk1, blk2)
     
     if dist < maxDist:
-        linkStrength = 0.5 + (math.cos( (math.pi * dist) / maxDist ) / 2.0)
+        edgeStrength = 0.5 + (math.cos( (math.pi * dist) / maxDist ) / 2.0)
     
     else:
-        linkStrength = 0
+        edgeStrength = 0
     
     
-    return linkStrength 
+    return edgeStrength 
    
 def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
     '''
@@ -297,7 +304,7 @@ def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
     #together, penalize not forming a new cluster based on 
     #distance between farthest apart blocks
     #take advantage of the fact that the blks are sorted, we don't 
-    #have to compare all blocks to eachother 
+    #have to compare all blocks to each other (n choose 2)
     #=========================================================
     #initialize variables
     blkClusters = [] #a collection of clusters
@@ -472,8 +479,6 @@ def findCodeBlocks(fileState, cmtList, author=False):
     #---------------------
     #variable definitions
     #--------------------- 
-    numberIdx   = 0 
-    commitIdIdx = 1
     personLine  = {} #key = line number, value = unique id of person responsible
     
     
@@ -481,15 +486,13 @@ def findCodeBlocks(fileState, cmtList, author=False):
     #find out who is responsible (unique ID) for each line 
     #of code for the file snapshot 
     #------------------------------------------------------
-    for line in fileState.items():
-       
-       #code line number 
-       lineNum = line[numberIdx]
-       #commit hash
-       cmtId = line[commitIdIdx]
+    for (lineNum, cmtId) in fileState.items():
        
        #get personID
        if author: #use author identity 
+           if not(cmtList.has_key(cmtId)):
+               continue
+               
            personID = cmtList[str(cmtId)].getAuthorPI().getID()
        else: #use committer identity
            personID = cmtList[str(cmtId)].getCommitterPI().getID()
@@ -793,7 +796,7 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
     return None
 
     
-def createPersonData(cmtList):
+def createPersonDB(cmtList):
     
     id_mgr = idManager()
     
@@ -831,7 +834,7 @@ def writeData(cmtList, id_mgr,  outdir):
     write data to file to be further processed by statistics software
     
     Several files are created in outdir:
-    - Names/ID links (ids.txt)
+    - Names/ID Edges (ids.txt)
     - Connection between the developers derived from commits (not tags)
     '''
    
@@ -868,55 +871,65 @@ def writeData(cmtList, id_mgr,  outdir):
     # tags were given by id N to other developers.
     for id_receiver in idlist:
         out.write("\t".join(
-            [str(id_mgr.getPI(id_receiver).getAvgInLink(id_sender))
+            [str(id_mgr.getPI(id_receiver).getAvgInEdge(id_sender))
                for id_sender in idlist]) + "\n")
 
     out.close()
 
     return None
     
-def processCollaborationStructure(id_mgr):
+def processPersonData(id_mgr):
     '''
     processing of data in the id_mgr that requires all data 
     to be present.
     '''
-    #compute basic statistic information on the links between 
+    #compute basic statistic information on the Edges between 
     #contributors
     #TODO: maybe this can be moved into id manager 
-    [id_mgr.getPI(Id).linkProcessing() for Id in id_mgr.getPersons().keys()]    
+    #[id_mgr.getPI(Id).EdgeProcessing() for Id in id_mgr.getPersons().keys()] 
+    
+    #compute the per-author commit summaries.
+    for (key, person) in id_mgr.getPersons().iteritems():
+       # person.computeCommitStats()
+        person.edgeProcessing()
     
 ###########################################################################
 # Main part
 ###########################################################################
-def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, fileNames):
+def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange):
     
     if create_db == True:
-        createFileCmtDB(outDir, repoDir, fileNames)
+        createFileCmtDB(dbfilename, git_repo, revRange)
         
     print("Reading from data base...")
-    git = readDB(outDir)
+    git = readDB(dbfilename)
     
     #TODO: change to include a call to create the commit_dict
     cmtList = git._commit_dict
     
     #get personal info from commit data
     id_mgr = idManager()
-    id_mgr = createPersonData(cmtList)
+    id_mgr = createPersonDB(cmtList)
     
-    
-    #build connections for file 
+    #----------------------------------------
+    #build connections between contributors
+    #----------------------------------------
     fileCommitList = git.getFileCommitDict()
-    
+
     #calculate the collaboration metrics for all contributors
     buildCollaborationStructure(fileCommitList, cmtList, id_mgr)
     
+    #-------------------------------------------------------------
     #perform processing on collaboration data, all collaboration 
     #data is required to be present for this to work correctly 
-    processCollaborationStructure(id_mgr)
+    #-------------------------------------------------------------
+    processPersonData(id_mgr)
     
+    #-------------------------------------------------------------------
     # Save the results in text files that can be further processed with
     # statistical software, that is, GNU R
-    writeData(cmtList, id_mgr, "/Users/Mitchell/Siemens/Data/TestDB/")
+    #-------------------------------------------------------------------
+    writeData(cmtList, id_mgr, outDir)
     
     
 def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db, outdir, rcranges=None):
@@ -943,7 +956,7 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db, out
     emitStatisticalData(cmtlist, id_mgr, outdir)
     
 ##################################################################
-def doKernelAnalysis(rev, outbase, git_repo, create_db):
+def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag):
     from_rev = "v2.6.{0}".format(rev)
     to_rev = "v2.6.{0}".format(rev+1)
     rc_start = "{0}-rc1".format(to_rev)
@@ -958,39 +971,37 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db):
             exit(-1)
 
     filename = os.path.join(outbase, "linux-{0}-{1}".format(rev,rev+1))
-    performAnalysis(filename, git_repo, [from_rev, to_rev], kerninfo.subsysDescrLinux,
-                    create_db, outdir, [[rc_start, to_rev]])
+    
+    #Perform appropriate analysis
+    if nonTag:
+          
+        print("performing nonTag based analysis")
+        performNonTagAnalysis(filename, git_repo, create_db, outdir, [from_rev, to_rev])
+    
+    else:
+        
+        print("performing Tag based analysis")
+        performAnalysis(filename, git_repo, [from_rev, to_rev], kerninfo.subsysDescrLinux,
+                        create_db, outdir, [[rc_start, to_rev]])
 
 ##################################
 #         TESTING CODE
 ##################################
 def testFileCommit():
     
-    outDir = "/Users/Mitchell/Siemens/Data/TestDB/testFile"
+    dbfilename = "/Users/Mitchell/Siemens/Data/TestDB/testFile"
     
     repoDir = "/Users/Mitchell/git/linux-2.6/.git"
-    fileNames = ["drivers/net/loopback.c"]
+    #fileNames = ["drivers/net/loopback.c"]
+    
+    outDir = "/Users/Mitchell/Siemens/Data/TestDB"
+    
+    revRange = ["v2.6.12", "v2.6.13"]
+    
     
     #createFileCmtDB(outDir, repoDir, fileNames)
-    performNonTagAnalysis(outDir, repoDir, False, outDir, fileNames)
+    performNonTagAnalysis(dbfilename, repoDir, False, outDir, revRange)
     
-    git = readDB(outDir)
-    cmtList = git._commit_dict
-    
-    #get personal info from commit data
-    id_mgr = createPersonData(cmtList)
-    
-    
-    #build connections for file 
-    filecommitList = git.getFileCommitDict()
-    fileCommit = filecommitList.values()[0]
-    snapShots = fileCommit.getFileSnapShots()
-    singleSnapShot = snapShots.items()[7]
-    
-    
-    computeSnapshotCollaboration(singleSnapShot, cmtList, id_mgr)
-    
-
 
 
 ##################################
@@ -999,14 +1010,14 @@ def testFileCommit():
 
 if __name__ == "__main__":
     
-    testFileCommit()
-    
+    #testFileCommit()
     
     parser = argparse.ArgumentParser()
     parser.add_argument('repo')
     parser.add_argument('outdir')
     parser.add_argument('rev')
     parser.add_argument('--create_db', action='store_true')
+    parser.add_argument('--nonTag', action='store_true') #default to tag based
     args = parser.parse_args()
     
     git_repo = args.repo
@@ -1017,7 +1028,7 @@ if __name__ == "__main__":
         print "Cannot parse revision!"
         exit(-1)
     
-    doKernelAnalysis(rev, outbase, git_repo, args.create_db)
+    doKernelAnalysis(rev, outbase, git_repo, args.create_db, args.nonTag)
     exit(0)
 
 #git_repo = "/Users/wolfgang/git-repos/linux/.git"
