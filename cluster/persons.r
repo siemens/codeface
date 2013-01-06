@@ -761,6 +761,7 @@ performGraphAnalysis <- function(adjMatrix, ids, outDir){
 	#========================
 	#  Page rank analysis 
 	#========================
+	
 	# Compute the page ranking for all developers in the database
 	status("Computing page rank")
 	# This puts the focus on tagging other persons
@@ -781,10 +782,12 @@ performGraphAnalysis <- function(adjMatrix, ids, outDir){
 	#-----------
 	writePageRankData(outDir, devs.by.pr, devs.by.pr.tr)
 	
+	
+	
 	#=======================
 	# Find Communities 
 	#=======================
-	
+
 	#--------------------
 	#spin-glass 
 	#--------------------
@@ -823,7 +826,6 @@ performGraphAnalysis <- function(adjMatrix, ids, outDir){
 	#------------------
 	# Write other data 
 	#-----------------
-	
 	status("Writing the all-developers graph sources")
 	# NOTE: The all-in-one graphs get a different suffix (ldot for "large dot") so that we can easily
 	# skip them when batch-processing graphviz images -- they take a long while to compute
@@ -871,7 +873,7 @@ performNonTagAnalysis <- function(outDir){
 	
 	colnames(adjMatrix) <- rownames(adjMatrix)
 	
-	# The tags file format uses a different convention for edge direction
+	# The adjacency file format uses a different convention for edge direction
 	# than GNU R, so we need to transpose the matrix
 	adjMatrix <- t(adjMatrix)
 	
@@ -922,25 +924,40 @@ experiment <- function(g, g.connected){
 #     					 Executed Statements  
 #########################################################################
 
+#----------------------------
 #parse commandline arguments
-#parser <- OptionParser(usage = "%prog datadir")
-#arguments <- parse_args(parser, positional_arguments = TRUE)
-#
-#if(length(arguments$args) != 1) {
-#	cat("Please specify data directory\n\n")
-#	print_help(parser)
-#	stop()
-#} else {
-#	datadir <- arguments$args
-#}
+#----------------------------
+parser <- OptionParser(usage = "%prog datadir")
+arguments <- parse_args(parser, positional_arguments = TRUE)
 
-#datadir <- "/Users/wolfgang/papers/csd/cluster/res/32/"
-#outdir <- datadir
+if(length(arguments$args) != 2) {
+	
+	cat("Please specify data directory\n\n")
+	print_help(parser)
+	stop()
+	
+} else {
+	
+	datadir <- arguments$args[1]
+	type    <- arguments$args[2]
+	
+}
 
-#call appropriate analysis functions 
-#outdir <- "/Users/Mitchell/Siemens/Data/TestDB"
-outdir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res/12"
-
-
-performTagAnalysis(outdir)
-#performNonTagAnalysis(outdir)
+#------------------------------
+# Perform Appropriate Analysis 
+#------------------------------
+if (type == "tag") {
+	
+	print("Performing Tag Based Graph Analysis")
+	performTagAnalysis(outdir)
+	
+} else if (type == "nonTag") {
+	
+	print("Performing nonTag Based Graph Analysis")
+	performNonTagAnalysis(outdir)
+	
+} else{
+	
+	print("incorrect command line arguments for persons.r")
+	
+}
