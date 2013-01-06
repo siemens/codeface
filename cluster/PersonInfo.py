@@ -25,15 +25,16 @@ class PersonInfo:
         self.email = email
         self.subsys_names = subsys_names
         
-        #links FROM other developers (could be committers or authors) 
-        self.inLinks = {}
-        self.inLinksAvg = {}
-        #links TO other developers (could be committers or authors)
-        self.outLinks = {}
+        #Edges FROM other developers (could be committers or authors) 
+        self.inEdges = {}
+        
+        #Edges TO other developers (could be committers or authors)
+        self.outEdges = {}
         
         #average of collaboration metric for a single Id
-        self.inLinksAvg = {}
-        self.outLinksAvg = {}
+        #key = person ID, value = average edge weight
+        self.inEdgesAvg = {}
+        self.outEdgesAvg = {}
         
         # Store from which developers the person received a tag
         self.associations = {}
@@ -115,59 +116,67 @@ class PersonInfo:
         else:
             return 0
         
-    def addInLink(self, Id, value): 
+    def addInEdge(self, Id, value): 
         '''
-        a link from some else towards this person
+        a Edge from some else towards this person
         '''
-        self.addLink(Id, self.inLinks, value)
+        self.addEdge(Id, self.inEdges, value)
         
         
-    def addOutLink(self, Id, value):
+    def addOutEdge(self, Id, value):
         '''
-        a link from this person to someone else        
+        a Edge from this person to someone else        
         '''
-        self.addLink(Id, self.outLinks, value)
+        self.addEdge(Id, self.outEdges, value)
     
         
-    def linkProcessing(self):
+    def edgeProcessing(self):
         '''
         This function should be call after all collaboration metrics have 
         been calculated. Performs basics statistics calculations that require 
-        the entire collaboration data present. 
+        the entire collaboration network data present. 
         '''
         
-        #average over links 
-        for Id in self.inLinks.keys():
-            self.inLinksAvg[Id]  = sum( self.inLinks[Id] )   / len( self.inLinks[Id] )  * 1.0
+        #average over Edges 
+        for Id in self.inEdges.keys():
+            self.inEdgesAvg[Id]  = sum( self.inEdges[Id] )   / len( self.inEdges[Id] )  * 1.0
             
-        for Id in self.outLinks.keys():
-            self.outLinksAvg[Id] = sum( self.outLinks[Id] )  / len( self.outLinks[Id] )  * 1.0
+        for Id in self.outEdges.keys():
+            self.outEdgesAvg[Id] = sum( self.outEdges[Id] )  / len( self.outEdges[Id] )  * 1.0
         
         
-    def addLink(self, ID, links, value):
+    def addEdge(self, ID, edges, value):
         '''
-        the direction of the link is made by calling this 
-        with addInLink or addOutLink. the Value parameter 
-        indicates the strength of the relationship.
+        the direction of the Edge is made by calling this 
+        with addInEdge or addOutEdge. the Value parameter 
+        indicates the weight of the relationship.
         '''
         
-        if(ID in links):
-            links[ID].append(value)
+        if(ID in edges):
+            edges[ID].append(value)
         else:
-            links[ID] = [value] 
+            edges[ID] = [value] 
         
     def getActiveTagsReceivedByID(self, ID):
         return self._getTagsReceivedByID(self.active_tags_received_by_id, ID)
 
-    def getAvgInLink(self, ID):
+    def getAvgInEdge(self, ID):
         
-        if ID in self.inLinksAvg:
+        if ID in self.inEdgesAvg:
             
-            return self.inLinksAvg[ID]
+            return self.inEdgesAvg[ID]
         
         else:
             return 0
        
+    def getAvgOutEdge(self, ID):
+        
+        if ID in self.outEdgesAvg:
+            
+            return self.outEdgesAvg[ID]
+        
+        else:
+            return 0
 
     def getAllTagsReceivedByID(self, ID):
         return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)
