@@ -868,7 +868,7 @@ performNonTagAnalysis <- function(outDir){
 	# Read Data
 	#-----------------
 	status("Reading files")
-	adjMatrix <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
+	adjMatrix <- read.table(file=paste(outDir, "/adjacencyMatrix.txt", sep=""),
 			sep="\t", header=FALSE)
 	
 	colnames(adjMatrix) <- rownames(adjMatrix)
@@ -877,7 +877,7 @@ performNonTagAnalysis <- function(outDir){
 	# than GNU R, so we need to transpose the matrix
 	adjMatrix <- t(adjMatrix)
 	
-	ids <- read.csv(file=paste(outdir, "/ids.txt", sep=""),
+	ids <- read.csv(file=paste(outDir, "/ids.txt", sep=""),
 			sep="\t", header=TRUE)
 	
 	# IDs are zero-based, but everything in R is 1-based, so simplify
@@ -938,7 +938,7 @@ if(length(arguments$args) != 2) {
 	
 } else {
 	
-	datadir <- arguments$args[1]
+	dataDir <- arguments$args[1]
 	type    <- arguments$args[2]
 	
 }
@@ -949,12 +949,12 @@ if(length(arguments$args) != 2) {
 if (type == "tag") {
 	
 	print("Performing Tag Based Graph Analysis")
-	performTagAnalysis(outdir)
+	performTagAnalysis(dataDir)
 	
 } else if (type == "nonTag") {
 	
 	print("Performing nonTag Based Graph Analysis")
-	performNonTagAnalysis(outdir)
+	performNonTagAnalysis(dataDir)
 	
 } else{
 	
