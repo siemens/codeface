@@ -284,35 +284,33 @@ class gitVCS (VCS):
         # and extract the desired subrange
         return clist
 
-    def _getFileCommitInfo(self, fname, rev_start=None, rev_end=None):
+    def _getFileCommitInfo(self, fname=None, rev_start=None, rev_end=None):
         '''extracts a list of commits on a specific file for the specified 
         revision range'''
-        #TODO: add revision range option (currently does nothing)
+       
+        revrange = ""        
         
         if rev_start == None and rev_end != None:
-            _abort("Internal error: Bogous range!")
-
-        revrange = ""
-        if rev_start:
-            revrange += "{0}..".format(rev_start)
+            revrange += reg_end
         else:
-            if self.rev_start:
-                revrange += "{0}..".format(self.rev_start)
-
-        if rev_end:
-            revrange += rev_end
-        else:
-            if self.rev_end:
-                revrange += self.rev_end
+            if rev_start:
+                revrange += "{0}..".format(rev_start)
+    
+            if rev_end:
+                revrange += rev_end
+        
         
         #build git command
-        cmd = 'git --git-dir={0} log --no-merges -M -C'.format(self.repo).split()
-        cmd.append('--pretty=format:%ct<< >>%H<< >>%aN <%aE><< >>%cN <%cE>')
+        #we must take merge commits, otherwise when we cross-reference with 
+        #git blame some commits will be missing
+        cmd = 'git --git-dir={0} log -M -C'.format(self.repo).split()
+        cmd.append('--pretty=format:\"%ct<< >>%H<< >>%aN <%aE><< >>%cN <%cE>\"')
         cmd.append('--date=local') # Essentially irrelevant
         if rev_start and rev_end:
             cmd.append(revrange)
-        cmd.append("--")
-        cmd.append(fname)
+        if fname:
+            cmd.append("--")
+            cmd.append(fname)
         
                 
         #submit query command        
@@ -699,7 +697,6 @@ class gitVCS (VCS):
         
         #variable declarations
         commitLineDict = {} #dictionary, key is line number, value is commit ID 
-        commitHashLen = 40 #number of characters for a commit hash (ID)
         
         
         while msg:
@@ -709,10 +706,15 @@ class gitVCS (VCS):
             #the lines we want to match start with a commit hash
             if(self.cmtHashPattern.match( line[0] ) ):
                
-               lineNum = line[2]
-               commitHash = line[0] 
+               lineNum    = line[2] 
+               commitHash = line[0]
+               
                commitLineDict[lineNum] = commitHash
-               msg.pop(0) #here we could get the line of code if needed
+               
+               #here we could get the line of code if needed, 
+               #for now it would be a waste to do anything 
+               #with it so just toss it away
+               msg.pop(0) 
              
             
         return commitLineDict
@@ -752,6 +754,7 @@ class gitVCS (VCS):
             fileCmts.setCommitList([cmt.id for cmt in cmtList])
             
             
+            
             #store the commit object to the committerDB, the justification 
             #for splitting this way is to avoid redundant commit info 
             #since a commit can touch many files, we use the commit 
@@ -783,30 +786,28 @@ class gitVCS (VCS):
             #store fileCommit object to dictionary
             self._fileCommit_dict[fname] = fileCmts
             
-            #-------------------------------
-            #capture the remaining commits 
-            #-------------------------------
-            '''
-             if the analysis of the git blame messages is focused 
-             only on a temporal region (ie. not entire history) it 
-             can be the case that commits not found during the git 
-             log query (due to revision range) are present in the 
-             git blame messages. We must query git again to get the 
-             remaining commits otherwise we cannot reference them during 
-             the blame message anaysis.
-             '''
-            #TODO: figure out a way to get the missing commits without 
-            #      having to parse all commit messages
-            #get entire commit history on file
-            self._commit_dict.update( {cmt.id: cmt for cmt in self.getFileCommits(fname) if not(self._commit_dict.has_key(cmt.id))} )
-            
-        
+           
             #end for fnameList 
              
-            
-                    
+        #-------------------------------
+        #capture the remaining commits 
+        #-------------------------------
+        '''
+         if the analysis of the git blame messages is focused 
+         only on a temporal region (ie. not entire history) it 
+         can be the case that commits not found during the git 
+         log query (due to revision range) are present in the 
+         git blame messages. We must query git again to get the 
+         remaining commits otherwise we cannot reference them during 
+         the blame message anaysis.
+         '''
+        #TODO: figure out a way to get the missing commits without 
+        #      having to parse all commit messages
+        #get entire commit history on file
+        self._commit_dict.update( {cmt.id: cmt for cmt in self.getFileCommits() if not(self._commit_dict.has_key(cmt.id))} )
                 
-    def getFileCommits(self, fname, rev_start=None, rev_end=None):
+                
+    def getFileCommits(self, fname=None, rev_start=None, rev_end=None):
         '''
         returns a list of commit objects from the commits on a given 
         file and revision range. If no revision range is provided 
