@@ -377,6 +377,7 @@ save.groups.NonTag <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .
 	baselabel <- label
 	for (i in .which) {
 		filename <- paste(.basedir, "/", .prefix, "group_", three.digit(i), ".dot", sep="")
+		print(filename)
 		status(paste("Saving", filename))
 		idx <- as.vector(which(.comm$membership==i))
 		if (!is.na(baselabel)) {
@@ -524,13 +525,12 @@ influential.developers <- function(N, .ranks, .tags, .iddb) {
 }
 
 writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
+	
 	#print("Top 20 page, rank (focus on giving tags)")
 	write.table(devs.by.pr[1:20,], file=paste(outdir, "/top20.pr.txt", sep=""), sep="\t",
 			quote=FALSE)
-	print("here 1")
 	print(xtable(devs.by.pr[1:20,]), type="latex", floating=FALSE,
 			file=paste(outdir, "/top20.pr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
-	print("here 2")
 	#print("Top 20 page rank (focus on being tagged)")
 	write.table(devs.by.pr.tr[1:20,], file=paste(outdir, "/top20.pr.tr.txt", sep=""), sep="\t",
 			quote=FALSE)
@@ -724,7 +724,7 @@ performTagAnalysis <- function(outdir){
 
 
 
-performGraphAnalysis <- function(adjMatrix, ids, outDir){
+performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	
 	#====================================
 	#     Find Connected Subgraphs
@@ -780,7 +780,7 @@ performGraphAnalysis <- function(adjMatrix, ids, outDir){
 	#-----------
 	#save data 
 	#-----------
-	writePageRankData(outDir, devs.by.pr, devs.by.pr.tr)
+	writePageRankData(outdir, devs.by.pr, devs.by.pr.tr)
 	
 	
 	
@@ -829,9 +829,9 @@ performGraphAnalysis <- function(adjMatrix, ids, outDir){
 	status("Writing the all-developers graph sources")
 	# NOTE: The all-in-one graphs get a different suffix (ldot for "large dot") so that we can easily
 	# skip them when batch-processing graphviz images -- they take a long while to compute
-	#g.all <- save.all(adjMatrix.connected, ids.connected, pr.for.all, g.spin.community,
-	#		paste(outdir, "/sg_reg_all.ldot", sep=""),
-	#		label="Spin glass, regular page rank")
+	g.all <- save.all(adjMatrix.connected, ids.connected, pr.for.all, g.spin.community,
+			paste(outdir, "/sg_reg_all.ldot", sep=""),
+			label="Spin glass, regular page rank")
 	g.all <- save.all(adjMatrix.connected, ids.connected, pr.for.all.tr, g.spin.community,
 			paste(outdir, "/sg_tr_all.ldot", sep=""),
 			label="Spin glass, transposed page rank")
@@ -862,13 +862,13 @@ performGraphAnalysis <- function(adjMatrix, ids, outDir){
 }
 
 
-performNonTagAnalysis <- function(outDir){
+performNonTagAnalysis <- function(outdir){
 	
 	#-----------------
 	# Read Data
 	#-----------------
 	status("Reading files")
-	adjMatrix <- read.table(file=paste(outDir, "/adjacencyMatrix.txt", sep=""),
+	adjMatrix <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
 			sep="\t", header=FALSE)
 	
 	colnames(adjMatrix) <- rownames(adjMatrix)
@@ -877,7 +877,7 @@ performNonTagAnalysis <- function(outDir){
 	# than GNU R, so we need to transpose the matrix
 	adjMatrix <- t(adjMatrix)
 	
-	ids <- read.csv(file=paste(outDir, "/ids.txt", sep=""),
+	ids <- read.csv(file=paste(outdir, "/ids.txt", sep=""),
 			sep="\t", header=TRUE)
 	
 	# IDs are zero-based, but everything in R is 1-based, so simplify
@@ -918,6 +918,19 @@ experiment <- function(g, g.connected){
 	
 	test <- largeScaleCommunity(g.connected)
 }
+
+#########################################################################
+#     					 Testing Section  
+#########################################################################
+nonTagTest <- function(){
+	
+	datadir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res/30"
+	performNonTagAnalysis(dataDir)
+	
+}
+
+
+
 
 
 #########################################################################
