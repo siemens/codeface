@@ -22,8 +22,8 @@ library(MASS) # for rlm
 library(cluster)
 library(mclust)
 
-dat <- read.table("/tmp/commits.txt", header=TRUE, sep="\t")
-dat <- dat[c,("ChangedFiles", "DiffSize", "CmtMsgBytes", "CmtMsgLines",
+dat <- read.table("/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res/12/commits.txt", header=TRUE, sep="\t")
+dat <- dat[c("ChangedFiles", "DiffSize", "CmtMsgBytes", "CmtMsgLines",
               "NumSignedOffs", "NumTags", "TotalSubsys", "inRC", "Subsys",
               "AuthorSubsysSimilarity", "AuthorTaggersSimilarity",
               "TaggersSubsysSimilarity")]
