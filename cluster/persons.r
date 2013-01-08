@@ -306,13 +306,14 @@ plot.group <- function(N, .tags, .iddb, .comm) {
 }
 
 save.group.NonTag <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
-	g <- graph.adjacency(.tags[idx,idx], mode="directed")
+	g <- graph.adjacency(.tags[idx,idx], mode="directed", weighted=TRUE)
 	# as.character is important. The igraph C export routines bark
 	# otherwise (not sure what the actual issue is)
 	# NOTE: V(g)$name as label index does NOT work because the name attribute
 	# is _not_ stable.
 	V(g)$label <- as.character(IDs.to.names(.iddb, idx))
-	V(g)$prank <- .prank$vector[idx]
+	#scientific notation will screw up the later parsing
+	V(g)$prank <- format(.prank$vector[idx], scientific=FALSE)
 	
 	# We also use the page rank to specify the font size of the vertex
 	V(g)$fontsize <- scale.data(.prank$vector, 15, 50)[idx]
@@ -488,11 +489,11 @@ compute.community.links <- function(g, .comm, N) {
 #========================================================================
 #     						Page Rank 
 #========================================================================
-compute.pagerank <- function(.tags, .damping=0.85, transpose=FALSE) {
+compute.pagerank <- function(.tags, .damping=0.85, transpose=FALSE, weights=FALSE) {
 	if (transpose) {
-		g <- graph.adjacency(t(.tags), mode="directed")
+		g <- graph.adjacency(t(.tags), mode="directed", weighted=weights)
 	} else {
-		g <- graph.adjacency(.tags, mode="directed")
+		g <- graph.adjacency(.tags, mode="directed", weighted=weights)
 	}
 	ranks <- page.rank(g, directed=TRUE, damping=.damping)
 	
@@ -571,7 +572,10 @@ performTagAnalysis <- function(outdir){
 	status("Computing adjacency matrices")
 	g <- graph.adjacency(tags, mode="directed")
 	g.clust <- clusters(g)
-	idx <- which(g.clust$membership==1) # All connected developers are in group 0
+	#find the index of the largest connected cluster 
+	largestClustMembership = which(g.clust$csize == max(g.clust$csize))
+	#get all indecies of connected developers for the largest cluster
+	idx <- which(g.clust$membership==largestClustMembership) 
 	tags.connected <- tags[idx,idx]
 #ids.connected <- data.frame(Name=ids[idx,]$Name, ID=seq(1:length(idx)))
 	ids.connected <- ids[idx,]
@@ -735,16 +739,13 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	# projects where proper direct clustering can happen)
 	status("Computing adjacency matrices")
 	
-	#round matrix, for some reason when calling graph.adjacency on 
-	#the adjMatrix with weighted=TRUE the call fails
-	adjMatrix <- ceiling(adjMatrix)
-	
 	g <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
 	g.clust <- clusters(g)
 	
-	#TODO: check on this membership == 1 thing I think its trying to get 
-	# the largest connected component 
-	idx <- which(g.clust$membership==2) # All connected developers are in group 0
+	#find the index of the largest connected cluster 
+	largestClustMembership = which(g.clust$csize == max(g.clust$csize))
+	#get all indecies of connected developers for the largest cluster
+	idx <- which(g.clust$membership==largestClustMembership) 
 	adjMatrix.connected <- adjMatrix[idx,idx]
 	
 	
@@ -765,9 +766,9 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	# Compute the page ranking for all developers in the database
 	status("Computing page rank")
 	# This puts the focus on tagging other persons
-	pr.for.all <- compute.pagerank(adjMatrix.connected, transpose=TRUE)
+	pr.for.all <- compute.pagerank(adjMatrix.connected, transpose=TRUE, weights=TRUE)
 	# ... and this on being tagged. 
-	pr.for.all.tr <- compute.pagerank(adjMatrix.connected, .damping=0.3)
+	pr.for.all.tr <- compute.pagerank(adjMatrix.connected, .damping=0.3, weights=TRUE)
 	
 	# NOTE: pr.for.all$value should be one, but is 0.83 for some
 	# reason. This seems to be a documentation bug, though:
@@ -793,7 +794,7 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	#--------------------
 	status("Inferring communities with spin glasses")
 	set.seed(42)
-	g.spin.community <- spinglass.community(g.connected, weights=NA)
+	g.spin.community <- spinglass.community(g.connected)
 	
 	status("Writing community graph sources for spin glasses")
 	elems.sg.more <- select.communities.more(g.spin.community, 10)
@@ -842,20 +843,20 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 			paste(outdir, "/wt_tr_all.ldot", sep=""),
 			label="Random walk, transposed page rank")
 	
-	status("Plotting per-cluster subsystem distribution")
-	plot.comm.subsys(g.spin.community, id.subsys.connected, paste(outdir, "/sg_comm_subsys.pdf", sep=""),
-			"spin glass")
-	# Since walktrap produces smaller, but more communities, we devide the plot into two parts
-	plot.comm.subsys(g.walktrap.community, id.subsys.connected,
-			paste(outdir, "/wt_comm_subsys_big.pdf", sep=""), "random walk", elems=elems.wt.more)
-	plot.comm.subsys(g.walktrap.community, id.subsys.connected,
-			paste(outdir, "/wt_comm_subsys_small.pdf", sep=""), "random walk",
-			elems=elems.wt.less)
-	
-	status("Saving raw per-cluster statistical summaries")
-	save.cluster.stats(g.spin.community, id.subsys.connected, elems.sg.more, outdir, "sg_cluster_")
-	save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.more, outdir, "wt_cluster_")
-	save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.less, outdir, "wt_cluster_")
+#	status("Plotting per-cluster subsystem distribution")
+#	plot.comm.subsys(g.spin.community, id.subsys.connected, paste(outdir, "/sg_comm_subsys.pdf", sep=""),
+#			"spin glass")
+#	# Since walktrap produces smaller, but more communities, we devide the plot into two parts
+#	plot.comm.subsys(g.walktrap.community, id.subsys.connected,
+#			paste(outdir, "/wt_comm_subsys_big.pdf", sep=""), "random walk", elems=elems.wt.more)
+#	plot.comm.subsys(g.walktrap.community, id.subsys.connected,
+#			paste(outdir, "/wt_comm_subsys_small.pdf", sep=""), "random walk",
+#			elems=elems.wt.less)
+#	
+#	status("Saving raw per-cluster statistical summaries")
+#	save.cluster.stats(g.spin.community, id.subsys.connected, elems.sg.more, outdir, "sg_cluster_")
+#	save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.more, outdir, "wt_cluster_")
+#	save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.less, outdir, "wt_cluster_")
 	
 	print("")
 	
@@ -924,7 +925,7 @@ experiment <- function(g, g.connected){
 #########################################################################
 nonTagTest <- function(){
 	
-	datadir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res/30"
+	dataDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res/30"
 	performNonTagAnalysis(dataDir)
 	
 }
@@ -936,6 +937,7 @@ nonTagTest <- function(){
 #########################################################################
 #     					 Executed Statements  
 #########################################################################
+nonTagTest()
 
 #----------------------------
 #parse commandline arguments
