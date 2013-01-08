@@ -8,13 +8,13 @@ REPORT=/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/create_report.pl
 
 for i in "$@"; do
     echo "Processing ${i}"
-    ${CLUSTER} /Users/Mitchell/git/linux-2.6/.git ${BASEDIR}/res/ ${i} --create_db --nonTag
-    ${PERSONS} ${BASEDIR}/res/${i} nonTag
+    #${CLUSTER} /Users/Mitchell/git/linux-2.6/.git ${BASEDIR}/res/ ${i} --nonTag
+    #${PERSONS} ${BASEDIR}/res/${i} nonTag
     (cd ${BASEDIR}/res/$i;
 	for file in `ls sg*.dot wt*.dot`; do 
 	    basefile=`basename $file .dot`; 
 	    echo "Processing $file"; 
-	    cat $file | ${CONV} | sfdp -Tpdf > ${basefile}.pdf; 
+	    cat $file | ${CONV} | sfdp -Tpdf -Gcharset=latin1 > ${basefile}.pdf; 
 	done)
 
 

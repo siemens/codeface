@@ -14,7 +14,7 @@ for i in "$@"; do
 	for file in `ls sg*.dot wt*.dot`; do 
 	    basefile=`basename $file .dot`; 
 	    echo "Processing $file"; 
-	    cat $file | ${CONV} | sfdp -Tpdf > ${basefile}.pdf; 
+	    cat $file | ${CONV} | sfdp -Tpdf -Gcharset=latin1 > ${basefile}.pdf; 
 	done)
 
 
