@@ -250,8 +250,32 @@ select.communities.less.equal <- function(.comm, .max) {
 			function(x) { return(length(which(.comm$membership==x))) })
 	
 	elems <- which(num.members <= .max)
-
+	
 	return(elems)
+}
+
+#select communities with size between a certain range inclusive
+select.communitiy.size.range <- function(.comm, bound1, bound2) {
+	
+	#determine which bound is the upper which is the lower
+	if (bound1 <= bound2){
+		lowBound = bound1
+		upBound   = bound2
+	}
+	else{
+		lowBound = bound2
+		upBound  = bound1
+	}
+	
+	#locate elements that suit the appropriate range
+	N <- length(unique(.comm$membership))
+	num.members <- sapply(1:(N),
+			function(x) { return(length(which(.comm$membership==x))) })
+	
+	elems <- which(num.members <= upBound & num.members >= lowBound)
+	
+	return(elems)
+		
 }
 
 
@@ -326,7 +350,8 @@ save.group.NonTag <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=N
 	
 	# And one more bit: The width of the bounding box changes from thin to thick
 	# with the number of commits
-	V(g)$penwidth <- as.character(scale.data(log(.iddb$numcommits+1),1,5)[idx])
+	V(g)$penwidth <- as.character(2[idx])
+	#V(g)$penwidth <- as.character(scale.data(log(.iddb$numcommits+1),1,5)[idx])
 	
 	if(!is.na(label)) {
 		g$label <- label
@@ -384,6 +409,7 @@ save.groups.NonTag <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .
 		if (!is.na(baselabel)) {
 			label <- paste(baselabel, i, sep=" ")
 		}
+		
 		save.group.NonTag(.tags, .iddb, idx, .prank, filename, label)
 	}
 }
@@ -444,6 +470,30 @@ save.cluster.stats <- function(.comm, .id.subsys, .elems, .outdir, .basename) {
 	}
 }
 
+save.all.NonTag <- function(.tags, .iddb, .prank, .comm, .filename=NULL, label=NA) {
+	g.all <- save.group.NonTag(.tags, .iddb, .iddb$ID, .prank, .filename=NULL)
+	V(g.all)$label <- .iddb$ID
+	V(g.all)$pencolor <- V(g.all)$fillcolor
+	
+	elems <- select.communities.more(.comm, 10) # Communities with at least 11 members
+	red <- as.integer(scale.data(0:(length(elems)+1), 0, 255))
+	##  grey <- as.integer(scale.data(0:(length(elems)+1), 0, 99))
+	for (i in elems) {
+		idx <- as.vector(which(.comm$membership==i))
+		V(g.all)[idx]$fillcolor <- col.to.hex("#", red[i+1], 0, 0)
+	}
+	
+	if (!is.na(label)) {
+		g.all$label = label
+	}
+	
+	if (!is.null(.filename)) {
+		write.graph(g.all, .filename, format="dot")
+	}
+	
+	return(g.all)
+}
+
 save.all <- function(.tags, .iddb, .prank, .comm, .filename=NULL, label=NA) {
 	g.all <- save.group(.tags, .iddb, .iddb$ID, .prank, .filename=NULL)
 	V(g.all)$label <- .iddb$ID
@@ -489,7 +539,7 @@ compute.community.links <- function(g, .comm, N) {
 #========================================================================
 #     						Page Rank 
 #========================================================================
-compute.pagerank <- function(.tags, .damping=0.85, transpose=FALSE, weights=FALSE) {
+compute.pagerank <- function(.tags, .damping=0.85, transpose=FALSE, weights=NULL) {
 	if (transpose) {
 		g <- graph.adjacency(t(.tags), mode="directed", weighted=weights)
 	} else {
@@ -693,10 +743,9 @@ performTagAnalysis <- function(outdir){
 	status("Writing the all-developers graph sources")
 # NOTE: The all-in-one graphs get a different suffix (ldot for "large dot") so that we can easily
 # skip them when batch-processing graphviz images -- they take a long while to compute
-	#g.all <- save.all(tags.connected, ids.connected, pr.for.all, g.spin.community,
-			#save.all(tags.connected, ids.connected, pr.for.all, g.spin.community,
-			#paste(outdir, "/sg_reg_all.ldot", sep=""),
-			#label="Spin glass, regular page rank")
+	g.all <- save.all(tags.connected, ids.connected, pr.for.all, g.spin.community,
+			paste(outdir, "/sg_reg_all.ldot", sep=""),
+			label="Spin glass, regular page rank")
 	g.all <- save.all(tags.connected, ids.connected, pr.for.all.tr, g.spin.community,
 			paste(outdir, "/sg_tr_all.ldot", sep=""),
 			label="Spin glass, transposed page rank")
@@ -812,11 +861,14 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	
 	status("Writing community graph sources for random walks")
 	elems.wt.more <- select.communities.more(g.walktrap.community, 10)
-	elems.wt.less <- select.communities.less.equal(g.walktrap.community, 10)
+	#when selecting elements lower than some value we must take care to no select 
+	#communities with size 1 as the graph.adjacency function fail with the weights attribute true
+	elems.wt.less <- select.communitiy.size.range(g.walktrap.community, 2, 10) #communities of size 2-10)
 	save.groups.NonTag(adjMatrix.connected, ids.connected, g.walktrap.community, pr.for.all, outdir,
 			"wt_reg_big_", elems.wt.more, label="(big) Random Walk Community")
 	save.groups.NonTag(adjMatrix.connected, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
 			"wt_tr_big_", elems.wt.more, label="(big) Random Walk Community")
+	
 	save.groups.NonTag(adjMatrix.connected, ids.connected, g.walktrap.community, pr.for.all, outdir,
 			"wt_reg_small_", elems.wt.less, label="(small) Random Walk Community")
 	save.groups.NonTag(adjMatrix.connected, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
@@ -828,18 +880,19 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	# Write other data 
 	#-----------------
 	status("Writing the all-developers graph sources")
+	
 	# NOTE: The all-in-one graphs get a different suffix (ldot for "large dot") so that we can easily
 	# skip them when batch-processing graphviz images -- they take a long while to compute
-	g.all <- save.all(adjMatrix.connected, ids.connected, pr.for.all, g.spin.community,
+	g.all <- save.all.NonTag(adjMatrix.connected, ids.connected, pr.for.all, g.spin.community,
 			paste(outdir, "/sg_reg_all.ldot", sep=""),
 			label="Spin glass, regular page rank")
-	g.all <- save.all(adjMatrix.connected, ids.connected, pr.for.all.tr, g.spin.community,
+	g.all <- save.all.NonTag(adjMatrix.connected, ids.connected, pr.for.all.tr, g.spin.community,
 			paste(outdir, "/sg_tr_all.ldot", sep=""),
 			label="Spin glass, transposed page rank")
-	g.all <- save.all(adjMatrix.connected, ids.connected, pr.for.all, g.walktrap.community,
+	g.all <- save.all.NonTag(adjMatrix.connected, ids.connected, pr.for.all, g.walktrap.community,
 			paste(outdir, "/wt_reg_all.ldot", sep=""),
 			label="Random walk, regular page rank")
-	g.all <- save.all(adjMatrix.connected, ids.connected, pr.for.all.tr, g.walktrap.community,
+	g.all <- save.all.NonTag(adjMatrix.connected, ids.connected, pr.for.all.tr, g.walktrap.community,
 			paste(outdir, "/wt_tr_all.ldot", sep=""),
 			label="Random walk, transposed page rank")
 	
@@ -925,11 +978,16 @@ experiment <- function(g, g.connected){
 #########################################################################
 nonTagTest <- function(){
 	
-	dataDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res/30"
+	dataDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_NonTag/30"
 	performNonTagAnalysis(dataDir)
 	
 }
-
+TagTest <- function(){
+	
+	dataDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_Tag/30"
+	performTagAnalysis(dataDir)
+	
+}
 
 
 
@@ -937,8 +995,6 @@ nonTagTest <- function(){
 #########################################################################
 #     					 Executed Statements  
 #########################################################################
-nonTagTest()
-
 #----------------------------
 #parse commandline arguments
 #----------------------------
