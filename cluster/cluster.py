@@ -154,7 +154,7 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr):
     #------------------------
     snapShotCmt = cmtList[ fileSnapShot[0] ] #commit object marking the point in time when the file snapshot was taken
     fileState   = fileSnapShot[1] #the state of the file when the SnapShotCmt was committed
-    maxDist = 50
+    maxDist = 25
     
     #find code lines of interest, these are the lines that are localized 
     #around the snapShotCmt, modify the fileState to include only the 
@@ -171,8 +171,7 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr):
         #belong together in one group or cluster
         clusters = simpleCluster(codeBlks, snapShotCmt, maxDist, True)
         
-        #calculate the collaboration coefficient for each code block (average or nearest neighbor method or maybe some weighted averaging)
-        #within a single cluster     
+        #calculate the collaboration coefficient for each code block
         [computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
     
         
@@ -255,7 +254,10 @@ def computeEdgeStrength(blk1, blk2, maxDist):
     
     
     return edgeStrength 
-   
+ 
+#TODO: check if this clusters are formed around the author or the commit hash
+#it should be around the commit hash to avoid considering previously written 
+#code by the author who made the commit of interest   
 def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
     '''
     Group the code blocks into clusters, this an 
@@ -960,6 +962,17 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag):
     from_rev = "v2.6.{0}".format(rev)
     to_rev = "v2.6.{0}".format(rev+1)
     rc_start = "{0}-rc1".format(to_rev)
+    
+    #--------------
+    #folder setup 
+    #--------------
+    if not os.path.exists(outbase):
+        try:
+            os.mkdir(outbase)
+        except os.error as e:
+            print("Could not create output dir {0}: {1}".format(outdir, e.strerror))
+            exit(-1)    
+
 
     outdir = os.path.join(outbase, str(rev))
 
@@ -970,19 +983,22 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag):
             print("Could not create output dir {0}: {1}".format(outdir, e.strerror))
             exit(-1)
 
-    filename = os.path.join(outbase, "linux-{0}-{1}".format(rev,rev+1))
-    
+    #----------------------------
     #Perform appropriate analysis
+    #----------------------------
     if nonTag:
-          
+        
+        filename = os.path.join(outbase, "linux-{0}-{1}-nonTag".format(rev,rev+1))
         print("performing nonTag based analysis")
         performNonTagAnalysis(filename, git_repo, create_db, outdir, [from_rev, to_rev])
     
     else:
         
+        filename = os.path.join(outbase, "linux-{0}-{1}-Tag".format(rev,rev+1))
         print("performing Tag based analysis")
         performAnalysis(filename, git_repo, [from_rev, to_rev], kerninfo.subsysDescrLinux,
                         create_db, outdir, [[rc_start, to_rev]])
+
 
 ##################################
 #         TESTING CODE
