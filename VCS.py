@@ -284,6 +284,21 @@ class gitVCS (VCS):
         # and extract the desired subrange
         return clist
 
+
+    def _getSingleCommitInfo(self, cmtHash):
+        #produces the git log output for a single commit hash
+        
+        #build git command
+        cmd = 'git --git-dir={0} log'.format(self.repo).split()
+        cmd.append(cmtHash)
+        cmd.append("-1")
+        cmd.append('--pretty=format:\"%ct<< >>%H<< >>%aN <%aE><< >>%cN <%cE>\"')
+        
+        #submit query to git 
+        logMsg = self._gitQuery(cmd)
+        
+        return logMsg
+
     def _getFileCommitInfo(self, fname=None, rev_start=None, rev_end=None):
         '''extracts a list of commits on a specific file for the specified 
         revision range'''
@@ -396,7 +411,7 @@ class gitVCS (VCS):
 
         return cmt
 
-    def _FileLogString2Commit(self, str):
+    def _LogString2CommitExtra(self, str):
         '''Similar to Logstring2Commit, Create an instance of commit.Commit 
         from a given log string. Adds extra data compared to Logstring2Commit
         function'''
@@ -738,6 +753,7 @@ class gitVCS (VCS):
         #variable initialization 
         self._fileCommit_dict = {}
         self._commit_dict = {}
+        blameMsgCmtIds = set() #stores all commit Ids seen from blame messages
         
         for fname in fnameList:
             
@@ -753,8 +769,6 @@ class gitVCS (VCS):
             #of information since a commit can touch many files
             fileCmts.setCommitList([cmt.id for cmt in cmtList])
             
-            
-            
             #store the commit object to the committerDB, the justification 
             #for splitting this way is to avoid redundant commit info 
             #since a commit can touch many files, we use the commit 
@@ -762,7 +776,7 @@ class gitVCS (VCS):
             for cmt in cmtList:
                 self._commit_dict[cmt.id] = cmt
                 
-                
+                  
             #get git blame information for each commit in each file 
             for cmt in cmtList:
             
@@ -780,6 +794,9 @@ class gitVCS (VCS):
                 #store the dictionary to the fileCommit Object
                 fileCmts.addFileSnapShot(cmt.id, fileLayout_dict)
                 
+                #save cmtIDs from blame message for the step below
+                # explained in "capture the remaining commits"
+                blameMsgCmtIds.update( fileLayout_dict.values() )
         
             #end for cmtList
         
@@ -787,8 +804,9 @@ class gitVCS (VCS):
             self._fileCommit_dict[fname] = fileCmts
             
            
-            #end for fnameList 
-             
+        #end for fnameList 
+        
+        
         #-------------------------------
         #capture the remaining commits 
         #-------------------------------
@@ -801,11 +819,36 @@ class gitVCS (VCS):
          remaining commits otherwise we cannot reference them during 
          the blame message anaysis.
          '''
+         
+        #find all commits that are missing from the commit dictionary
+        #recall that fileCommit_dict stores all the commit ids for a 
+        #file to reference commit objects in the commit_dict
+        missingCmtIds = blameMsgCmtIds - set(self._commit_dict)
+        
+        #retrieve missing commit information and add it to the commit_dict
+        self._commit_dict.update( { cmtId:self.cmtHash2CmtObj(cmtId) for cmtId in missingCmtIds} )    
+            
         #TODO: figure out a way to get the missing commits without 
         #      having to parse all commit messages
         #get entire commit history on file
-        self._commit_dict.update( {cmt.id: cmt for cmt in self.getFileCommits() if not(self._commit_dict.has_key(cmt.id))} )
+        #self._commit_dict.update( {cmt.id: cmt for cmt in self.getFileCommits() if not(self._commit_dict.has_key(cmt.id))} )
                 
+    
+    def cmtHash2CmtObj(self, cmtHash):
+        '''
+        input: cmtHash
+        output: a commit object with additional commit information added
+        such as author, committer and date
+        '''
+        
+        #query git for log information on this particular cmtHash 
+        logMsg = self._getSingleCommitInfo(cmtHash)
+        
+        #create commit object from the log message 
+        cmtObj = self._LogString2CommitExtra(logMsg[0])
+        
+        
+        return cmtObj
                 
     def getFileCommits(self, fname=None, rev_start=None, rev_end=None):
         '''
@@ -819,7 +862,7 @@ class gitVCS (VCS):
         logMsg = self._getFileCommitInfo(fname, rev_start, rev_end)
             
         #store the commit hash to the fileCommitList
-        cmtList = map(self._FileLogString2Commit, logMsg)
+        cmtList = map(self._LogString2CommitExtra, logMsg)
             
             
         return cmtList    
