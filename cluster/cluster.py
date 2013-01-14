@@ -255,9 +255,7 @@ def computeEdgeStrength(blk1, blk2, maxDist):
     
     return edgeStrength 
  
-#TODO: check if this clusters are formed around the author or the commit hash
-#it should be around the commit hash to avoid considering previously written 
-#code by the author who made the commit of interest   
+
 def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
     '''
     Group the code blocks into clusters, this an 
@@ -873,7 +871,7 @@ def writeData(cmtList, id_mgr,  outdir):
     # tags were given by id N to other developers.
     for id_receiver in idlist:
         out.write("\t".join(
-            [str(id_mgr.getPI(id_receiver).getAvgInEdge(id_sender))
+            [str(id_mgr.getPI(id_receiver).getSumInEdge(id_sender))
                for id_sender in idlist]) + "\n")
 
     out.close()
@@ -1005,7 +1003,7 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag):
 ##################################
 def testFileCommit():
     
-    dbfilename = "/Users/Mitchell/Siemens/Data/TestDB/testFile"
+    dbfilename = "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_NonTag/linux-30-31-nonTag"
     
     repoDir = "/Users/Mitchell/git/linux-2.6/.git"
     #fileNames = ["drivers/net/loopback.c"]
@@ -1025,8 +1023,6 @@ def testFileCommit():
 ##################################
 
 if __name__ == "__main__":
-    
-    #testFileCommit()
     
     parser = argparse.ArgumentParser()
     parser.add_argument('repo')

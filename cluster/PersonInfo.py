@@ -160,6 +160,22 @@ class PersonInfo:
     def getActiveTagsReceivedByID(self, ID):
         return self._getTagsReceivedByID(self.active_tags_received_by_id, ID)
 
+    def getSumInEdge(self, ID):
+        
+        if ID in self.inEdges:
+            #sum over all calculated edge weights for this person
+            return sum(self.inEdges[ID])
+        else:
+            return 0
+
+    def getSumOutEdge(self, ID):
+        
+        if ID in self.outEdges:
+            #sum over all calculated edge weights for this person
+            return sum(self.outEdges[ID])
+        else:
+            return 0
+        
     def getAvgInEdge(self, ID):
         
         if ID in self.inEdgesAvg:
