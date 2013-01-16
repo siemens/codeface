@@ -782,6 +782,9 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	#====================================
 	#     Find Connected Subgraphs
 	#====================================
+	#scale edge weights to integer values 
+	adjMatrix <- round( scale.data(adjMatrix, .min=0, .max=1000) )
+	
 	
 	# Isolated graph members are outliers for the Linux kernel. Eliminate
 	# them to create a connected graph (NOTE: This must not be done for
