@@ -80,6 +80,7 @@ class VCS:
     def __init__(self):
         # "None" represents HEAD for end and the inital
         # commit for start
+        self.rev_date = None;
         self.rev_start = None;
         self.rev_end = None;
         self.repo = None
@@ -415,7 +416,7 @@ class gitVCS (VCS):
         '''Similar to Logstring2Commit, Create an instance of commit.Commit 
         from a given log string. Adds extra data compared to Logstring2Commit
         function'''
-        
+        str = str.replace("\"", "")
         spltStr = str.split("<< >>")
         expectedLen = 4 #commit hash, commit data, author name, committer name
         
@@ -805,6 +806,10 @@ class gitVCS (VCS):
             
            
         #end for fnameList 
+        
+        #find the date of earliest commit made for this revision
+        #Check if time zones influence this or its already normalized
+        self.rev_date = min( [cmt.getCdate() for cmt in self._commit_dict.values()] )
         
         
         #-------------------------------
