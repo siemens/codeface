@@ -64,6 +64,12 @@ class Commit:
 
     # The following methods replace hard-coded constants
     # with reasonable names
+    def getCdate(self):
+        return self.cdate
+    
+    def setCdate(self,cdate):
+        self.cdate = cdate
+        
     def getAddedLines(self, difftype):
         return self.diff_info[difftype][1]
 
