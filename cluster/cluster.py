@@ -165,19 +165,26 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None):
     if startDate:
         modFileState = removePriorCommits(modFileState, cmtList, startDate)
     
+    #remove commits made by the person of interest which do not correspond to 
+    #commit of interest
+    #modFileState = remove
     
-    if modFileState: #if file is empty end analysis 
+    #collaboration is meaningless without more than one line 
+    #of code
+    if len(modFileState) > 1:
         
         #now find the code blocks, a block is a section of code by one author
         #use the commit hash to identify the committer or author info as needed 
         codeBlks = findCodeBlocks(modFileState, cmtList, True)
         
-        #next cluster the blocks, using the distance measure to figure out what blocks
-        #belong together in one group or cluster
-        clusters = simpleCluster(codeBlks, snapShotCmt, maxDist, True)
+        #if codeBlks 
+        if codeBlks:
+            #next cluster the blocks, using the distance measure to figure out what blocks
+            #belong together in one group or cluster
+            clusters = simpleCluster(codeBlks, snapShotCmt, maxDist, True)
         
-        #calculate the collaboration coefficient for each code block
-        [computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
+            #calculate the collaboration coefficient for each code block
+            [computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
     
         
    
@@ -294,6 +301,7 @@ def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
     indx = 0
     blksOfInterest = []
     otherBlks = []
+   
     for blk in codeBlks:
         
         if blk.id == personId:
@@ -541,9 +549,6 @@ def findCodeBlocks(fileState, cmtList, author=False):
     #find contiguous lines 
     #------------------------
     lineNums = sorted( map( int, fileState.keys() ) ) #TODO: check if sorting is actually necessary (in most cases I presume not)  
-    
-    if(len(lineNums) > 1):
-        return 0
     
     blkStart = lineNums[0]
     blkEnd   = lineNums[0]
