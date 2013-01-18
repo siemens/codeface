@@ -135,7 +135,7 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
     
     return sim
 
-def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr):
+def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None):
     '''Generates the collaboration data from a file snapshot at a particular
     point in time'''
     
@@ -160,6 +160,11 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr):
     #around the snapShotCmt, modify the fileState to include only the 
     #lines of interest 
     modFileState = linesOfInterest(fileState, snapShotCmt.id, maxDist)
+    
+    #remove commits that occur prior to the specified startDate
+    if startDate:
+        modFileState = removePriorCommits(modFileState, cmtList, startDate)
+    
     
     if modFileState: #if file is empty end analysis 
         
@@ -399,8 +404,36 @@ def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
     
     return blkClusters
     
+def removePriorCommits(fileState, clist, startDate):
+    '''
+    removes commits that occured prior to a startDate
     
-   
+    - Input - 
+    fileState: dictionary, key = code line number and value =
+                commit hash for that line
+    clist:     list of all commit objects, referenced by commit hash
+    startDate: all commits older than this date are removed
+    
+    - Output - 
+    modFileState: a modified fileState with all lines commited prior to 
+                  the startDate removed
+    '''
+    
+    #variable declarations 
+    modFileState = {}
+    
+    for (lineNum, cmtId) in fileState.items():
+        
+        #get commit object containing commit date
+        cmtObj = clist[cmtId]
+        
+        if( cmtObj.getCdate() >= startDate ):
+            modFileState[lineNum] = cmtId
+        
+        #else forget about commit
+        
+    return modFileState
+        
 def linesOfInterest(fileState, snapShotCommit, maxDist):
     '''
     Finds the regions of interest for analyzing the file. 
@@ -418,6 +451,7 @@ def linesOfInterest(fileState, snapShotCommit, maxDist):
     '''
     #variable declarations 
     fileMaxLine = len(fileState)
+    modFileState = {} 
     
     #take a pass over the fileState to identify where the snapShotCommit 
     #made contributions to the fileState
@@ -430,7 +464,6 @@ def linesOfInterest(fileState, snapShotCommit, maxDist):
             snapShotCmtLines.append(key)
     
     #build modFileState by selecting only lines of interest
-    modFileState = {} 
     for line in snapShotCmtLines:
         #calculate region of interest
         #TODO: little inefficient since there will possibly be some overlap between ranges
@@ -442,10 +475,17 @@ def linesOfInterest(fileState, snapShotCommit, maxDist):
             upperBound = fileMaxLine
         if(lowerBound < 1):
             lowerBound = 1
-            
+        
+        #save lines of interest    
         for i in range(lowerBound, upperBound + 1):
-            modFileState[str(i)] = fileState[str(i)] 
-   
+            key = str(i)
+            
+            if key in fileState:
+                modFileState[key] = fileState[key] 
+    
+    #end for line
+    
+    
     return modFileState
 
 
@@ -490,9 +530,6 @@ def findCodeBlocks(fileState, cmtList, author=False):
        
        #get personID
        if author: #use author identity 
-           if not(cmtList.has_key(cmtId)):
-               continue
-               
            personID = cmtList[str(cmtId)].getAuthorPI().getID()
        else: #use committer identity
            personID = cmtList[str(cmtId)].getCommitterPI().getID()
@@ -505,7 +542,7 @@ def findCodeBlocks(fileState, cmtList, author=False):
     #------------------------
     lineNums = sorted( map( int, fileState.keys() ) ) #TODO: check if sorting is actually necessary (in most cases I presume not)  
     
-    if(len(lineNums) == 0):
+    if(len(lineNums) > 1):
         return 0
     
     blkStart = lineNums[0]
@@ -553,7 +590,8 @@ def findCodeBlocks(fileState, cmtList, author=False):
                blkEnd    = blkStart       
        
     #take care of boundary case
-    #save final block span for prior contributor
+    #save final block span for prior contribution
+    print(lineNums)
     codeBlocks.append(codeBlock.codeBlock(blkStart, blkEnd, nextID))
         
     return codeBlocks
@@ -816,7 +854,7 @@ def createPersonDB(cmtList):
 
     return id_mgr
 
-def buildCollaborationStructure(fileCommitList, cmtList, id_mgr):
+def buildCollaborationStructure(fileCommitList, cmtList, id_mgr, startDate=None):
     '''
     Constructs the collaboration connections between all contributors of 
     a system. Collaboration is quantified by a single metric indicating the 
@@ -826,7 +864,7 @@ def buildCollaborationStructure(fileCommitList, cmtList, id_mgr):
     
     for fileCommit in fileCommitList.values():
         
-        [computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr) for fileSnapShot in fileCommit.getFileSnapShots().items()]
+        [computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate) for fileSnapShot in fileCommit.getFileSnapShots().items()]
             
         
 def writeData(cmtList, id_mgr,  outdir):
@@ -896,7 +934,7 @@ def processPersonData(id_mgr):
 ###########################################################################
 # Main part
 ###########################################################################
-def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange):
+def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange, limitHistory=False):
     
     if create_db == True:
         createFileCmtDB(dbfilename, git_repo, revRange)
@@ -904,8 +942,13 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange):
     print("Reading from data base...")
     git = readDB(dbfilename)
     
-    #TODO: change to include a call to create the commit_dict
-    cmtList = git._commit_dict
+    #store releavent VCS object attributes
+    cmtList = git.getCommitDict()
+    if limitHistory:
+        startDate = git.getRevStartDate()
+    else:
+        startDate = None
+    
     
     #get personal info from commit data
     id_mgr = idManager()
@@ -915,10 +958,10 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange):
     #build connections between contributors
     #----------------------------------------
     fileCommitList = git.getFileCommitDict()
-
+   
     #calculate the collaboration metrics for all contributors
-    buildCollaborationStructure(fileCommitList, cmtList, id_mgr)
-    
+    buildCollaborationStructure(fileCommitList, cmtList, id_mgr, startDate)
+        
     #-------------------------------------------------------------
     #perform processing on collaboration data, all collaboration 
     #data is required to be present for this to work correctly 
@@ -956,7 +999,7 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db, out
     emitStatisticalData(cmtlist, id_mgr, outdir)
     
 ##################################################################
-def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag):
+def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag, limitHistory=False):
     from_rev = "v2.6.{0}".format(rev)
     to_rev = "v2.6.{0}".format(rev+1)
     rc_start = "{0}-rc1".format(to_rev)
@@ -988,7 +1031,7 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag):
         
         filename = os.path.join(outbase, "linux-{0}-{1}-nonTag".format(rev,rev+1))
         print("performing nonTag based analysis")
-        performNonTagAnalysis(filename, git_repo, create_db, outdir, [from_rev, to_rev])
+        performNonTagAnalysis(filename, git_repo, create_db, outdir, [from_rev, to_rev], limitHistory)
     
     else:
         
@@ -1010,11 +1053,11 @@ def testFileCommit():
     
     outDir = "/Users/Mitchell/Siemens/Data/TestDB"
     
-    revRange = ["v2.6.12", "v2.6.13"]
+    revRange = ["v2.6.30", "v2.6.31"]
     
     
     #createFileCmtDB(outDir, repoDir, fileNames)
-    performNonTagAnalysis(dbfilename, repoDir, False, outDir, revRange)
+    performNonTagAnalysis(dbfilename, repoDir, False, outDir, revRange, True)
     
 
 
@@ -1040,7 +1083,9 @@ if __name__ == "__main__":
         print "Cannot parse revision!"
         exit(-1)
     
-    doKernelAnalysis(rev, outbase, git_repo, args.create_db, args.nonTag)
+    limitHistory = True
+    
+    doKernelAnalysis(rev, outbase, git_repo, args.create_db, args.nonTag, limitHistory)
     exit(0)
 
 #git_repo = "/Users/wolfgang/git-repos/linux/.git"
