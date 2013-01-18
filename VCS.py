@@ -80,10 +80,10 @@ class VCS:
     def __init__(self):
         # "None" represents HEAD for end and the inital
         # commit for start
-        self.rev_date = None;
-        self.rev_start = None;
-        self.rev_end = None;
-        self.repo = None
+        self.rev_startDate = None;
+        self.rev_start     = None;
+        self.rev_end       = None;
+        self.repo          = None
 
         # For each subsystem, contains a time-ordered list of all commits
         # (i.e., _commit_list_dict["block"] is a list[] of ids)
@@ -109,9 +109,13 @@ class VCS:
         #file names to include in analysis(non-taged based)
         self._fileNames = None
         
-        
         self.subsys_description = {}
     
+    def getCommitDict(self):
+        return self._commit_dict
+    
+    def getRevStartDate(self):
+        return self.rev_startDate
     
     def getFileCommitDict(self):
         return self._fileCommit_dict
@@ -809,7 +813,7 @@ class gitVCS (VCS):
         
         #find the date of earliest commit made for this revision
         #Check if time zones influence this or its already normalized
-        self.rev_date = min( [cmt.getCdate() for cmt in self._commit_dict.values()] )
+        self.rev_startDate = min( [cmt.getCdate() for cmt in self._commit_dict.values()] )
         
         
         #-------------------------------
