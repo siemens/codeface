@@ -769,45 +769,52 @@ class gitVCS (VCS):
             #get commit objects for the given file and revision range
             cmtList  = self.getFileCommits(fname, self.rev_start, self.rev_end)
             
-            #store commit hash in fileCommit object, store only the hash 
-            #and then reference the commit db, this prevents the duplication 
-            #of information since a commit can touch many files
-            fileCmts.setCommitList([cmt.id for cmt in cmtList])
-            
-            #store the commit object to the committerDB, the justification 
-            #for splitting this way is to avoid redundant commit info 
-            #since a commit can touch many files, we use the commit 
-            #hash to reference the commit data (author, date etc)
-            for cmt in cmtList:
-                self._commit_dict[cmt.id] = cmt
+            #many file may not have any commits made to then during the 
+            #revision of interest, in that case don't store the data
+            if cmtList != 0:
+                #store commit hash in fileCommit object, store only the hash 
+                #and then reference the commit db, this prevents the duplication 
+                #of information since a commit can touch many files
+                fileCmts.setCommitList([cmt.id for cmt in cmtList])
                 
-                  
-            #get git blame information for each commit in each file 
-            for cmt in cmtList:
-            
-                #query git reppository for blame message
-                blameMsg = self._getBlameMsg(fname, cmt.id)
-       
-                #parse the blame message, this extracts the line number 
-                #and corresponding commit hash, returns a dictionary 
-                #Key = line number, value = commit hash
-                #basically a snapshot of what the file looked like 
-                #at the time of the commit
-                fileLayout_dict = self._parseBlameMsg(blameMsg)
-                 
+                #store the commit object to the committerDB, the justification 
+                #for splitting this way is to avoid redundant commit info 
+                #since a commit can touch many files, we use the commit 
+                #hash to reference the commit data (author, date etc)
+                for cmt in cmtList:
+                    self._commit_dict[cmt.id] = cmt
+                    
+                      
+                #get git blame information for each commit in each file 
+                for cmt in cmtList:
                 
-                #store the dictionary to the fileCommit Object
-                fileCmts.addFileSnapShot(cmt.id, fileLayout_dict)
-                
-                #save cmtIDs from blame message for the step below
-                # explained in "capture the remaining commits"
-                blameMsgCmtIds.update( fileLayout_dict.values() )
-        
-            #end for cmtList
-        
-            #store fileCommit object to dictionary
-            self._fileCommit_dict[fname] = fileCmts
+                    #query git reppository for blame message
+                    blameMsg = self._getBlameMsg(fname, cmt.id)
+           
+                    #parse the blame message, this extracts the line number 
+                    #and corresponding commit hash, returns a dictionary 
+                    #Key = line number, value = commit hash
+                    #basically a snapshot of what the file looked like 
+                    #at the time of the commit
+                    fileLayout_dict = self._parseBlameMsg(blameMsg)
+                     
+                    
+                    #store the dictionary to the fileCommit Object
+                    fileCmts.addFileSnapShot(cmt.id, fileLayout_dict)
+                    
+                    #save cmtIDs from blame message for the step below
+                    # explained in "capture the remaining commits"
+                    blameMsgCmtIds.update( fileLayout_dict.values() )
             
+                #end for cmtList
+            
+                #store fileCommit object to dictionary
+                self._fileCommit_dict[fname] = fileCmts
+            
+            #else:
+                #do nothing
+            #end if cmtList
+                
            
         #end for fnameList 
         
