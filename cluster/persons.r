@@ -87,9 +87,18 @@ name.to.ID <- function(.iddb, name) {
 
 # Scale a given data set to the range [min,max]
 scale.data <- function(dat, .min=0, .max=1) {
-	dat <- dat - min(dat)
-	dat <- dat/max(dat)*(.max-.min)
-	dat <- dat + .min
+	
+	datMin <- min(dat)
+	datMax <- max(dat)
+	
+	if (datMin == datMax){
+		print("scale.data error, min=max")
+	}
+	else {
+		dat <- dat - min(dat)
+		dat <- dat/max(dat)*(.max-.min)
+		dat <- dat + .min
+	}
 	return(dat)
 }
 
@@ -144,6 +153,20 @@ col.to.hex <- function(prefix="0x", r,g,b) {
 	return (paste(prefix, int.to.hex(r), int.to.hex(g), int.to.hex(b), sep=""))
 }
 
+largest.connected.subgraph <- function(graph) {
+	#returns the indecies of vertecies that are in the largest connected subgraph
+	
+	
+	#find all connected subgraphs
+	g.clust <- clusters(graph)
+	
+	#get index of the largest connected cluster 
+	largestClustMembership = which(g.clust$csize == max(g.clust$csize))
+	#get all indecies of connected developers for the largest cluster
+	idx <- which(g.clust$membership==largestClustMembership) 
+	
+	return(idx)
+} 
 
 #========================================================================
 #    						Edge Functons
@@ -335,9 +358,13 @@ save.group.NonTag <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=N
 	# otherwise (not sure what the actual issue is)
 	# NOTE: V(g)$name as label index does NOT work because the name attribute
 	# is _not_ stable.
+	
+	#suppress scientific notation while saving results to file
+	options(scipen=999)
+	
 	V(g)$label <- as.character(IDs.to.names(.iddb, idx))
 	#scientific notation will screw up the later parsing
-	V(g)$prank <- format(.prank$vector[idx], scientific=FALSE)
+	V(g)$prank <-.prank$vector[idx]
 	
 	# We also use the page rank to specify the font size of the vertex
 	V(g)$fontsize <- scale.data(.prank$vector, 15, 50)[idx]
@@ -350,8 +377,17 @@ save.group.NonTag <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=N
 	
 	# And one more bit: The width of the bounding box changes from thin to thick
 	# with the number of commits
-	V(g)$penwidth <- as.character(2[idx])
+	#V(g)$penwidth <- as.character(2[idx])
 	#V(g)$penwidth <- as.character(scale.data(log(.iddb$numcommits+1),1,5)[idx])
+
+	#set edge attributes
+	if( length(E(g)) != 0 ){
+		
+		E(g)$penwidth  <- sqrt(E(g)$weight)
+		E(g)$arrowsize <- log(E(g)$penwidth)
+		#for dot language edge weights should be integers
+		E(g)$weight    <-  ceiling(E(g)$weight)
+	}
 	
 	if(!is.na(label)) {
 		g$label <- label
@@ -361,6 +397,9 @@ save.group.NonTag <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=N
 	if (!is.null(.filename)) {
 		write.graph(g, .filename, format="dot")
 	}
+	
+	#restore default handling of floating points
+	options(scipen=0)
 	
 	return(g)
 }
@@ -607,7 +646,7 @@ performTagAnalysis <- function(outdir){
 	
 	ids <- read.csv(file=paste(outdir, "/ids.txt", sep=""),
 			sep="\t", header=TRUE)
-	print(length(ids))
+	
 # IDs are zero-based, but everything in R is 1-based, so simplify
 # things by adapting the IDs...
 	ids$ID <- ids$ID + 1
@@ -783,7 +822,7 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	#     Find Connected Subgraphs
 	#====================================
 	#scale edge weights to integer values 
-	adjMatrix <- round( scale.data(adjMatrix, .min=0, .max=1000) )
+	#adjMatrix <- ceiling(scale.data(adjMatrix, 0, 1000))  
 	
 	
 	# Isolated graph members are outliers for the Linux kernel. Eliminate
@@ -809,8 +848,7 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	g.connected <- graph.adjacency(adjMatrix.connected, mode="directed", weighted=TRUE)
 	V(g.connected)$label <- as.character(ids.connected$Name)
 	
-	
-	
+
 	#========================
 	#  Page rank analysis 
 	#========================
@@ -836,11 +874,20 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	writePageRankData(outdir, devs.by.pr, devs.by.pr.tr)
 	
 	
-	
 	#=======================
 	# Find Communities 
 	#=======================
-
+	#scale the weight in the adjacency matrix for propers visualization
+	#graphviz requires integer edge weights
+	#adjMatrix.connected.scaled = round( scale.data(adjMatrix.connected, 0, 1000) )
+    adjMatrix.connected.scaled <- adjMatrix.connected
+	
+	#--------------------
+	#infomap
+	#--------------------
+	g.infomap.community <- infomap.community(g.connected)
+	
+	
 	#--------------------
 	#spin-glass 
 	#--------------------
@@ -850,9 +897,9 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	
 	status("Writing community graph sources for spin glasses")
 	elems.sg.more <- select.communities.more(g.spin.community, 10)
-	save.groups.NonTag(adjMatrix.connected, ids.connected, g.spin.community, pr.for.all, outdir,
+	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.spin.community, pr.for.all, outdir,
 			"sg_reg_", elems.sg.more, label="Spin Glass Community")
-	save.groups.NonTag(adjMatrix.connected, ids.connected, g.spin.community, pr.for.all.tr, outdir,
+	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.spin.community, pr.for.all.tr, outdir,
 			"sg_tr_", elems.sg.more, label="Spin Glass Community")
 	
 	#--------------------
@@ -867,17 +914,23 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	#when selecting elements lower than some value we must take care to no select 
 	#communities with size 1 as the graph.adjacency function fail with the weights attribute true
 	elems.wt.less <- select.communitiy.size.range(g.walktrap.community, 2, 10) #communities of size 2-10)
-	save.groups.NonTag(adjMatrix.connected, ids.connected, g.walktrap.community, pr.for.all, outdir,
+	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.walktrap.community, pr.for.all, outdir,
 			"wt_reg_big_", elems.wt.more, label="(big) Random Walk Community")
-	save.groups.NonTag(adjMatrix.connected, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
+	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
 			"wt_tr_big_", elems.wt.more, label="(big) Random Walk Community")
 	
-	save.groups.NonTag(adjMatrix.connected, ids.connected, g.walktrap.community, pr.for.all, outdir,
+	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.walktrap.community, pr.for.all, outdir,
 			"wt_reg_small_", elems.wt.less, label="(small) Random Walk Community")
-	save.groups.NonTag(adjMatrix.connected, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
+	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
 			"wt_tr_small_", elems.wt.less, label="(small) Random Walk Community")
 	
-	
+	#--------------------
+	# Community Quality
+	#--------------------
+	sg.quality <- compute.all.community.quality(g.connected, g.spin.community, "modularity")
+	sg.quality.sig <- compute.all.community.quality(g.connected, g.spin.community, "wilcox")
+	wt.quality <- compute.all.community.quality(g.connected, g.walktrap.community, "modularity")
+	wt.quality.sig <- compute.all.community.quality(g.connected, g.walktrap.community, "wilcox")
 	
 	#------------------
 	# Write other data 
@@ -886,16 +939,16 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	
 	# NOTE: The all-in-one graphs get a different suffix (ldot for "large dot") so that we can easily
 	# skip them when batch-processing graphviz images -- they take a long while to compute
-	g.all <- save.all.NonTag(adjMatrix.connected, ids.connected, pr.for.all, g.spin.community,
+	g.all <- save.all.NonTag(adjMatrix.connected.scaled, ids.connected, pr.for.all, g.spin.community,
 			paste(outdir, "/sg_reg_all.ldot", sep=""),
 			label="Spin glass, regular page rank")
-	g.all <- save.all.NonTag(adjMatrix.connected, ids.connected, pr.for.all.tr, g.spin.community,
+	g.all <- save.all.NonTag(adjMatrix.connected.scaled, ids.connected, pr.for.all.tr, g.spin.community,
 			paste(outdir, "/sg_tr_all.ldot", sep=""),
 			label="Spin glass, transposed page rank")
-	g.all <- save.all.NonTag(adjMatrix.connected, ids.connected, pr.for.all, g.walktrap.community,
+	g.all <- save.all.NonTag(adjMatrix.connected.scaled, ids.connected, pr.for.all, g.walktrap.community,
 			paste(outdir, "/wt_reg_all.ldot", sep=""),
 			label="Random walk, regular page rank")
-	g.all <- save.all.NonTag(adjMatrix.connected, ids.connected, pr.for.all.tr, g.walktrap.community,
+	g.all <- save.all.NonTag(adjMatrix.connected.scaled, ids.connected, pr.for.all.tr, g.walktrap.community,
 			paste(outdir, "/wt_tr_all.ldot", sep=""),
 			label="Random walk, transposed page rank")
 	
@@ -951,6 +1004,361 @@ performNonTagAnalysis <- function(outdir){
 	
 }
 
+compute.all.community.quality <- function(graph, community, test){
+	########################################################################
+	#Input:
+	#	- graph, igraph object
+	#   - community, community object that indicates how vertices in graph are
+	#		belonging to a community, must contain csize and membership attributes
+	#       these are standard attributes for community dectection algorithms in 
+	#       igraph
+	#Output:
+	#   - vector indexed by community number indicating the quality of that
+	#		community
+	########################################################################
+	
+	#get number of communities 
+	community.id <- unique(community$membership)
+	members <- sapply(community.id,
+			function(x) { return(list(which(community$membership==x))) })
+	
+	if(test == "modularity"){
+		quality.vec <- sapply(community.id,
+				function(x) {return(community.quality.modularity(graph, members[[x]]))})
+	}
+	else if (test == "wilcox"){
+		quality.vec <- sapply(community.id,
+				function(x) {return(community.quality.wilcox(graph, members[[x]]))})
+	}
+	return(quality.vec)
+}
+
+community.quality.wilcox <- function (graph, community.vertices){
+	
+	#get graph composed solely of vertices belonging to the community
+	subgraph <- induced.subgraph(graph, community.vertices)
+	
+	#measure the degree for intra-community edges
+	intra.degree <- degree(subgraph)
+	
+	#degree of vertices in community
+	community.vertices.degree <- degree(graph, community.vertices) 
+	
+	#measure the degree for inter-community edges 
+	inter.degree <- community.vertices.degree - intra.degree 
+	
+	#significance <- wilcox.test(jitter(intra.degree), jitter(inter.degree))
+	
+	#return(significance$p.value)
+	sig <- (sum(intra.degree) / (sum(inter.degree) + sum(intra.degree)))
+	return(sig)
+}
+
+	
+	
+	
+community.quality.modularity <- function(graph, community.vertices){
+	######################################################################
+	#measure the based on modularity calculation 
+	#quality of the a community indicated by a set of vertices
+	#that belong to the community in comparison to the rest of the graph
+	#Reference: 
+	#"On Modularity Clustering," Knowledge and Data Engineering, 
+	#IEEE Transactions on , vol.20, no.2, pp.172-188, Feb. 2008
+	######################################################################
+	
+	#get graph composed solely of vertices belonging to the community
+	subgraph <- induced.subgraph(graph, community.vertices)
+	
+	#number of edges interal to community
+	community.num.edges = ecount(subgraph)
+	#total number of edge is graph 
+	m = ecount(graph)
+	
+	#measure the degree for intra-community edges
+	intra.degree <- degree(subgraph)
+	
+	#degree of vertices in community
+	community.vertices.degree <- degree(graph, community.vertices) 
+	
+	#measure the degree for inter-community edges 
+	inter.degree <- community.vertices.degree - intra.degree 
+	
+	#calculate final result
+	f.1 <- community.num.edges / m
+	f.2 <- (sum(community.vertices.degree) / (2*m) )^2
+	quality  <- f.1 - f.2
+	
+	
+	return( quality )
+	
+}
+
+test.community.quality <- function() {
+	
+	r.1 <- c(0,1,1,1,1,0,0,0)
+	r.2 <- c(1,0,1,1,0,0,0,0)
+	r.3 <- c(1,1,0,1,0,0,0,1)
+	r.4 <- c(1,1,1,0,0,0,0,0)
+	r.5 <- c(1,0,0,0,0,1,0,0)
+	r.6 <- c(0,0,0,0,1,0,1,0)
+	r.7 <- c(0,0,0,0,0,1,0,1)
+	r.8 <- c(0,0,1,0,0,0,1,0)
+	
+	adj.matrix <- matrix(data = c(r.1,r.2,r.3,r.4,r.5,r.6,r.7,r.8), ncol = 8, nrow = 8)
+	
+	g <- graph.adjacency(adj.matrix)
+
+	quality <- community.quality(g, c(1,2,3,4))
+	browser()
+}
+
+
+#compare the results of the tag and non tag based graphs 
+graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2, outputFileName){
+	
+	#normalize graphs to have edge weight between 0-1
+	nonTagAdjMatrix.weighted <- scale.data(adjMatrix1, 0, 1000)
+	tagAdjMatrix.weighted	 <- scale.data(adjMatrix2, 0, 1000)
+
+	#normalize graphs to have binary edge weight
+	nonTagAdjMatrix <- ceiling( scale.data(adjMatrix1, 0, 1) )
+	tagAdjMatrix    <- ceiling( scale.data(adjMatrix2, 0, 1) )
+
+	#create igraph objects
+	g.nonTag <- graph.adjacency(nonTagAdjMatrix, mode="directed")
+	g.Tag    <- graph.adjacency(tagAdjMatrix   , mode="directed")
+	
+	#get largest connected cluster
+	idx.nonTag.connected <- largest.connected.subgraph(g.nonTag)
+	idx.Tag.connected    <- largest.connected.subgraph(g.Tag   )
+	ids.nonTag.connected <- ids1[idx.nonTag.connected,]
+	ids.Tag.connected    <- ids2[idx.Tag.connected,   ]
+	
+	
+	nonTagAdj.connected <- nonTagAdjMatrix[idx.nonTag.connected, idx.nonTag.connected]
+	TagAdj.connected    <- tagAdjMatrix   [idx.Tag.connected , idx.Tag.connected   ]
+	
+	nonTagAdj.connected.weighted <- nonTagAdjMatrix.weighted[idx.nonTag.connected, idx.nonTag.connected]
+	tagAdj.connected.weighted    <- tagAdjMatrix.weighted   [idx.Tag.connected , idx.Tag.connected   ]
+	
+	g.nonTag.connected <- graph.adjacency(nonTagAdj.connected, mode="directed", weighted=TRUE)
+	g.Tag.connected    <- graph.adjacency(TagAdj.connected,    mode="directed")
+	
+	g.nonTag.connected.weighted <- graph.adjacency(nonTagAdj.connected.weighted, mode="directed", weighted=TRUE)
+	g.Tag.connected.weighted    <- graph.adjacency(tagAdj.connected.weighted,    mode="directed", weighted=TRUE)
+
+	#compute pagerank
+	pr.nonTag <- page.rank(g.nonTag.connected.weighted, damping=0.85, directed=TRUE)
+	pr.Tag    <- page.rank(g.Tag.connected.weighted,    damping=0.85, directed=TRUE)
+	
+	#match up ids between the two adjacency matrices
+	#don't use email address, 1 person with multiple email addresses gets mapped to 
+	#a single name except the arbitration rule for which email is noted doesn't 
+	#provide consistent results betweent the tagged and non-tagged analysis 
+	intersectNames <- intersect(ids.nonTag.connected$Name, ids.Tag.connected$Name)
+	#get index of names from both ids sets
+	idx.nonTag <- match(intersectNames, ids.nonTag.connected$Name)
+	idx.Tag    <- match(intersectNames, ids.Tag.connected$Name   )
+	
+	
+	#Now the ids indecies should be unified between the 
+	#tag and non-tag graphs
+	ids.nonTag.intersect <- ids.nonTag.connected[idx.nonTag,]
+	pr.nonTag.intersect  <- pr.nonTag           [idx.nonTag ]
+	
+	ids.Tag.intersect    <- ids.Tag.connected[idx.Tag, ]
+	pr.Tag.intersect     <- pr.Tag           [idx.Tag  ]
+	
+	if (all( ids.nonTag.intersect$Name == ids.Tag.intersect$Name )) {
+		ids.intersect    <- ids.nonTag.intersect
+		ids.intersect$ID <- seq(1, length(ids.nonTag.intersect$eMail))
+		ids.intersect$pr.NonTag <- pr.nonTag$vector[idx.nonTag]
+		ids.intersect$pr.Tag    <- pr.Tag$vector[idx.Tag]
+	}
+	else {
+		e <- simpleError("id systems don't match!")
+		stop(e)
+	}
+	
+	
+	#build adjacency matrix of interesecting ids
+	nonTagAdj.intersect <- nonTagAdj.connected[idx.nonTag, idx.nonTag]
+	tagAdj.intersect    <- TagAdj.connected   [idx.Tag,    idx.Tag   ]
+	
+	#build igraph graph objects 
+	g.nonTag <- graph.adjacency(nonTagAdj.intersect, mode = "directed", weighted=TRUE)
+	g.Tag    <- graph.adjacency(tagAdj.intersect,    mode = "directed")
+		
+	#sum(get.adjacency(g.nonTag) != get.adjacency(g.Tag))
+	similarity.adjMatrix <- nonTagAdj.intersect * tagAdj.intersect
+	
+	#take the average weights from the two adjacency matrix to assign 
+	#the weight for the graph that agrees between the two 
+   
+	similarity.adjMatrix.weighted <- (nonTagAdj.connected.weighted[idx.nonTag, idx.nonTag] + tagAdj.connected.weighted [idx.Tag, idx.Tag]) / 2
+	
+	#get average weighted agreed upon connections 
+	similiarityAdjMatrix.weighted <- similarity.adjMatrix * similarity.adjMatrix.weighted
+	
+	
+	g.similarity <- graph.adjacency(similarity.adjMatrix.weighted, mode="directed", weighted=TRUE)
+	
+	graphSim <- graph.similarity(g.Tag, g.nonTag)
+	
+	
+	#plot results/save results 
+	pdf(outputFileName)
+	plot(sort(graphSim))
+	plot(graphSim, log(ids.intersect$pr.NonTag))
+	plot(graphSim, log(ids.intersect$pr.Tag))
+	plot(log(ids.intersect$pr.Tag), log(ids.intersect$pr.NonTag))
+	dev.off()
+	
+	
+	performGraphAnalysis(similarity.adjMatrix.weighted, ids.intersect, "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments")
+	
+	
+	#write.graph.2.file("/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments/similarityGraph.dot", g.similarity, ids.intersect, ids.intersect$ID)
+	
+	
+	
+	
+}
+
+runRandCompare <- function(){
+		
+	#setup Directories
+	nonTagDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_NonTag/30"
+	tagDir    <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_Tag/30"
+	
+	#read files for ids and adjacency matrix
+	nonTagAdjMatrix <- read.table(file=paste(nonTagDir, "/adjacencyMatrix.txt", sep=""),
+			sep="\t", header=FALSE)
+	ids.nonTag <- read.csv(file=paste(nonTagDir, "/ids.txt", sep=""),
+			sep="\t", header=TRUE, stringsAsFactors = FALSE)
+	ids.nonTag$ID <- ids.nonTag$ID + 1
+	
+	
+	tagAdjMatrix <- read.table(file=paste(tagDir, "/tags.txt", sep=""),
+			sep="\t", header=FALSE)
+	ids.Tag <- read.csv(file=paste(tagDir, "/ids.txt", sep=""),
+			sep="\t", header=TRUE, stringsAsFactors = FALSE)
+	ids.Tag$ID <- ids.Tag$ID + 1
+	
+	
+	colnames(nonTagAdjMatrix) <- rownames(nonTagAdjMatrix)
+	colnames(tagAdjMatrix)    <- rownames(tagAdjMatrix)
+	
+	
+	# The adjacency file format uses a different convention for edge direction
+	# than GNU R, so we need to transpose the matrix
+	nonTagAdjMatrix <- t(nonTagAdjMatrix)
+	tagAdjMatrix    <- t(tagAdjMatrix)
+	
+	#Randomize Graph
+	#get dimension of the adjacency matrix
+	dimension.nonTag <- ncol(nonTagAdjMatrix)
+	idx <- 1:dimension.nonTag
+	#randomize the indecies
+	idx.rand <- sample(idx, replace=FALSE)
+	#randomize the adjacency matrix 
+	nonTagAdjMatrixRand <- nonTagAdjMatrix[idx.rand, idx.rand]
+
+	#run comparison on randomized adjacency matrix 
+	fileName = '/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments/RandomSimilarityComparison.pdf'
+	graphComparison(nonTagAdjMatrixRand, ids.nonTag, tagAdjMatrix, ids.Tag, fileName)
+	
+	
+}
+
+runGraphCompare.Tag.nonTag <- function(){
+	
+	#setup Directories
+	nonTagDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_NonTag/30"
+	tagDir    <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_Tag/30"
+	
+	#read files for ids and adjacency matrix
+	nonTagAdjMatrix <- read.table(file=paste(nonTagDir, "/adjacencyMatrix.txt", sep=""),
+			sep="\t", header=FALSE)
+	ids.nonTag <- read.csv(file=paste(nonTagDir, "/ids.txt", sep=""),
+			sep="\t", header=TRUE, stringsAsFactors = FALSE)
+	ids.nonTag$ID <- ids.nonTag$ID + 1
+	
+	
+	tagAdjMatrix <- read.table(file=paste(tagDir, "/tags.txt", sep=""),
+			sep="\t", header=FALSE)
+	ids.Tag <- read.csv(file=paste(tagDir, "/ids.txt", sep=""),
+			sep="\t", header=TRUE, stringsAsFactors = FALSE)
+	ids.Tag$ID <- ids.Tag$ID + 1
+	
+	
+	colnames(nonTagAdjMatrix) <- rownames(nonTagAdjMatrix)
+	colnames(tagAdjMatrix)    <- rownames(tagAdjMatrix)
+	
+	
+	# The adjacency file format uses a different convention for edge direction
+	# than GNU R, so we need to transpose the matrix
+	nonTagAdjMatrix <- t(nonTagAdjMatrix)
+	tagAdjMatrix    <- t(tagAdjMatrix)
+	
+	fileName = '/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments/SimilarityComparison.pdf'
+	graphComparison(nonTagAdjMatrix, ids.nonTag, tagAdjMatrix, ids.Tag, fileName)
+	
+}
+
+
+graph.similarity <- function(g1,g2){
+	
+	vertexList1 <- V(g1)
+	vertexList2 <- V(g2)
+	
+	if (!all(vertexList1 == vertexList2)){
+		e <- simpleError("graphs not compatible!" )
+		stop(e)
+	}
+	else{
+		vertexList <- vertexList1
+	}
+	
+	vertSim <- numeric(length(vertexList))
+	for (v in vertexList){
+		vertSim[v] <- vertex.similarity(g1, v, g2, v)
+	}
+	
+	
+	return(vertSim)
+}
+
+
+vertex.similarity <- function(g1, v1, g2, v2){
+	
+	in.v1  <- neighbors(g1, v1, mode="in")
+	out.v1 <- neighbors(g1, v1, mode="out")
+	in.v2  <- neighbors(g2, v2, mode="in")
+	out.v2 <- neighbors(g2, v2, mode="out")
+	
+	totalEdges = length(union(in.v1,in.v2)) + length(union(out.v1,out.v2))
+	matchEdges = length(intersect(in.v1,in.v2)) + length(intersect(out.v1,out.v2))
+	
+	if (totalEdges != 0){
+		similarity = matchEdges / totalEdges 
+		print(similarity)
+	}
+	else{
+		similarity = 0
+	}
+	
+	return(similarity)
+}
+
+
+write.graph.2.file <- function(.filename, g, .iddb, idx){
+	
+	V(g)$label <- as.character(IDs.to.names(.iddb, idx))	
+	
+	write.graph(g, .filename, format="dot")
+}
 
 #########################################################################
 #     					 Experiments 
@@ -998,6 +1406,9 @@ TagTest <- function(){
 #########################################################################
 #     					 Executed Statements  
 #########################################################################
+nonTagTest()
+#test.community.quality()
+
 #----------------------------
 #parse commandline arguments
 #----------------------------
