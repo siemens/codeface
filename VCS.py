@@ -771,7 +771,7 @@ class gitVCS (VCS):
             
             #many file may not have any commits made to then during the 
             #revision of interest, in that case don't store the data
-            if cmtList != 0:
+            if len(cmtList) != 0:
                 #store commit hash in fileCommit object, store only the hash 
                 #and then reference the commit db, this prevents the duplication 
                 #of information since a commit can touch many files
@@ -807,7 +807,7 @@ class gitVCS (VCS):
                     blameMsgCmtIds.update( fileLayout_dict.values() )
             
                 #end for cmtList
-            
+                
                 #store fileCommit object to dictionary
                 self._fileCommit_dict[fname] = fileCmts
             
@@ -848,7 +848,7 @@ class gitVCS (VCS):
         #      having to parse all commit messages
         #get entire commit history on file
         #self._commit_dict.update( {cmt.id: cmt for cmt in self.getFileCommits() if not(self._commit_dict.has_key(cmt.id))} )
-                
+        print(len(self._fileCommit_dict))       
     
     def cmtHash2CmtObj(self, cmtHash):
         '''
