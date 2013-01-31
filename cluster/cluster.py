@@ -35,6 +35,7 @@ from PersonInfo import PersonInfo
 from commit_analysis import *
 from idManager import idManager
 import codeBlock
+import codeLine
 import math
 
 def _abort(msg):
@@ -154,15 +155,15 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None):
     #------------------------
     snapShotCmt = cmtList[ fileSnapShot[0] ] #commit object marking the point in time when the file snapshot was taken
     fileState   = fileSnapShot[1] #the state of the file when the SnapShotCmt was committed
-    maxDist = 25
-    
+    maxDist     = 25
+    author      = True
     #find code lines of interest, these are the lines that are localized 
     #around the snapShotCmt, modify the fileState to include only the 
     #lines of interest 
     modFileState = linesOfInterest(fileState, snapShotCmt.id, maxDist)
     
     #remove commits that occur prior to the specified startDate
-    if startDate:
+    if startDate != None:
         modFileState = removePriorCommits(modFileState, cmtList, startDate)
     
     #remove commits made by the person of interest which do not correspond to 
@@ -175,18 +176,95 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None):
         
         #now find the code blocks, a block is a section of code by one author
         #use the commit hash to identify the committer or author info as needed 
-        codeBlks = findCodeBlocks(modFileState, cmtList, True)
+        codeBlks = findCodeBlocks(modFileState, cmtList, author)
         
-        #if codeBlks 
         if codeBlks:
             #next cluster the blocks, using the distance measure to figure out what blocks
             #belong together in one group or cluster
-            clusters = simpleCluster(codeBlks, snapShotCmt, maxDist, True)
+            clusters = simpleCluster(codeBlks, snapShotCmt, maxDist, author)
         
             #calculate the collaboration coefficient for each code block
-            [computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
+            #[computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
+            
+            
+            [computeCommitCollaboration(cluster, snapShotCmt.id, id_mgr, maxDist, author) for cluster in clusters]
     
+def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist, author=False):
+    '''
+    Computes a value that represents the collaboration strength 
+    between a commit of interest and every other commit that 
+    contributed code in close proximity the commit of interests 
+    contributions. The method computes all possible combinations 
+    of code block relationships then averages. This is very similar
+    to the function "computerPersonsCollaboration" except we consider 
+    the commit hash to identify the contribution instead of the person
+    then later map the commit to a person. The advantages is we can 
+    differentiate between when an author made a contribution. This way 
+    we can identify when an author/committer is collaborating with 
+    oneself. A strong collaboration with oneself would possibly 
+    suggest a special case where other developers don't want to 
+    or cannot contribute. This information may be significant and 
+    we should try and capture it. This information is not possible 
+    to capture with "computePersonsCollaboration" because when we 
+    first map commit hashes to a person we lose the ability to resolve 
+    different (in time) contributions by a person.  
+    - Input - 
+    codeBlks - a collection of codeBlock objects
+    revcmtId - the commit id of the revision we are interested in 
+                measuring the collaboration for
+    id_mgr   - manager for people and information relevant to them
+                the collaboration metric is stored in this object
+    maxDist  - maximum separation of code for consideration, beyond 
+               this distance the code block is ignored in the 
+               calculation
+    author   - if true, then commits authors are considered for collaboration
+                if false then commit committers are considered for collaboration
+    
+    '''
+     #variable declarations 
+    relStrength  = {} # key = unique person id, value = Edge strength to personId  
+    personIdBlks = [] # blocks that were contributed by personId
+    contribIdSet = [] # a set of all ids that contributed to codeBlks
+    
+    
+    #get all blocks contributed by the revision commit we are looking at
+    revCmtBlks = [blk for blk in codeBlks if blk.cmtHash == revCmtId]
+    
+    #get the person responsible for this revision
+    if author:
+        revPerson = id_mgr.getPI( revCmtBlks[0].authorId ) 
+    else:
+        revPerson = id_mgr.getPI( revCmtBlks[0].committerId )
+    
+    #find all other commit ids for older revisions
+    oldCmtIdSet = set( [blk.cmtHash for blk in codeBlks if blk.cmtHash != revCmtId] )
+    
+    #calculate relationship between personId and all other contributors 
+    for oldCmtId in oldCmtIdSet:
         
+        #get all blocks for the oldCmtId
+        oldRevBlks = [blk for blk in codeBlks if blk.cmtHash == oldCmtId]
+        
+        #compute relationship strength for ALL combinations of blocks  
+        allCombStrengths  = [computeEdgeStrength(blk1, blk2, maxDist) for blk1 in oldRevBlks for blk2 in revCmtBlks]
+        
+        #TODO: check if summing is the appropriate operation
+        #sum the strengths 
+        sumStrength = sum(allCombStrengths) #/ len(allCombStrengths) * 1.0
+        
+        #store result
+        if author: 
+            personId = oldRevBlks[0].authorId
+        else:
+            personId = oldRevBlks[0].committerId
+        
+        if personId == revPerson.getID():
+            pass
+        
+        inEdgePerson = id_mgr.getPI(personId)
+        revPerson.addOutEdge  ( personId         , sumStrength)
+        inEdgePerson.addInEdge( revPerson.getID(), sumStrength)
+    
    
 def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist): 
     '''
@@ -289,12 +367,13 @@ def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
     #get the id of the person of interest, that is the one
     #which made the contribution of interest 
     #=========================================================
-    personId = None
-    if author: 
-        personId = snapShotCmt.getAuthorPI().getID()
+    #personId = None
+    #if author: 
+    #    personId = snapShotCmt.getAuthorPI().getID()
     
-    else:  
-        personId = snapShotCmt.getCommitterPI().getID()
+    #else:  
+    #    personId = snapShotCmt.getCommitterPI().getID()
+    cmtId = snapShotCmt.id
     
 
     #find code blocks that correspond to personId
@@ -304,7 +383,7 @@ def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
    
     for blk in codeBlks:
         
-        if blk.id == personId:
+        if blk.cmtHash == cmtId:
             blksOfInterest.append(indx)
             
         else: 
@@ -527,77 +606,88 @@ def findCodeBlocks(fileState, cmtList, author=False):
     #---------------------
     #variable definitions
     #--------------------- 
-    personLine  = {} #key = line number, value = unique id of person responsible
+    codeLines = {} #key = line number, value = codeLine object
     
     
     #-----------------------------------------------------
     #find out who is responsible (unique ID) for each line 
     #of code for the file snapshot 
     #------------------------------------------------------
-    for (lineNum, cmtId) in fileState.items():
+    for (key, cmtId) in fileState.items():
        
-       #get personID
-       if author: #use author identity 
-           personID = cmtList[str(cmtId)].getAuthorPI().getID()
-       else: #use committer identity
-           personID = cmtList[str(cmtId)].getCommitterPI().getID()
-      
+       lineNum = int(key)
+       
+       #get author and committer unique identifier
+       authorId    = cmtList[str(cmtId)].getAuthorPI().getID()
+       committerId = cmtList[str(cmtId)].getCommitterPI().getID()
+       
        #assign the personID to the line number 
-       personLine[str(lineNum)] = personID
-    
+       codeLines[ lineNum ] = codeLine.codeLine(lineNum, cmtId, authorId, committerId)
+       
     #------------------------
     #find contiguous lines 
     #------------------------
-    lineNums = sorted( map( int, fileState.keys() ) ) #TODO: check if sorting is actually necessary (in most cases I presume not)  
+    #TODO: check if sorting is actually necessary (in most cases I presume not) 
+    lineNums = sorted( map( int, fileState.keys() ) )  
     
-    blkStart = lineNums[0]
-    blkEnd   = lineNums[0]
-    currID   = personLine[ str(blkStart) ] #initialize to first ID
+    blkStart   = lineNums[0]
+    blkEnd     = lineNums[0]
     codeBlocks = []
-
     for i in range(len(lineNums) - 1): 
         
-       #get the next and current line number 
+       #get the next and current line information
        nextLineNum = lineNums[i+1] 
        currLineNum = lineNums[i]   
+
+       currCodeLine = codeLines[ currLineNum ]
+       nextCodeLine = codeLines[ nextLineNum ]
        
-       #get next line ID
-       nextID = personLine[ str(nextLineNum) ]
-       
-       #we have to check for contiguous lines now that some lines
-       #have been removed 
+       currCmtId = currCodeLine.get_cmtHash()
+       nextCmtId = nextCodeLine.get_cmtHash()
+           
+       #we have to check for contiguous lines 
        if( nextLineNum != (currLineNum + 1) ): #not contiguous line 
            
            #save code block span for prior contributor   
-           codeBlocks.append(codeBlock.codeBlock(blkStart, blkEnd, currID))
+           codeBlocks.append( codeBlock.codeBlock(blkStart, blkEnd, currCodeLine.authorId, 
+                                                  currCodeLine.committerId, currCodeLine.cmtHash) )
                 
            #reinitialize start and end for next 
            #contributors block
-           currID   = nextID
-           blkStart = nextLineNum
-           blkEnd   = blkStart
+           currCmtId = nextCmtId
+           blkStart  = nextLineNum
+           blkEnd    = blkStart
+    
            
        else: #lines are contiguous
            
-           #check if next line has same contributor
-           if currID == nextID:
+           #check if next line has same commit hash 
+           #we assume that commits contain code that related, so even if the author is the same 
+           #but a different commit then the code is not consider to be accomplishing one 
+           #related task necessarily
+           if currCmtId == nextCmtId:
+               #increment the line count
                blkEnd += 1
+               
                
            else: #different contributor 
                
                #save code block span for prior contributor   
-               codeBlocks.append(codeBlock.codeBlock(blkStart, blkEnd, currID))
+               codeBlocks.append( codeBlock.codeBlock(blkStart, blkEnd, currCodeLine.authorId, 
+                                                  currCodeLine.committerId, currCodeLine.cmtHash) )
+
             
                #reinitialize start and end for next 
                #contributors block
-               currID    = nextID
+               currCmtId = nextCmtId
                blkStart  = nextLineNum
-               blkEnd    = blkStart       
+               blkEnd    = blkStart
+                
        
     #take care of boundary case
     #save final block span for prior contribution
-    print(lineNums)
-    codeBlocks.append(codeBlock.codeBlock(blkStart, blkEnd, nextID))
+    codeBlocks.append( codeBlock.codeBlock(blkStart, blkEnd, nextCodeLine.authorId, 
+                                                  nextCodeLine.committerId, nextCodeLine.cmtHash) )
         
     return codeBlocks
 
@@ -947,7 +1037,8 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange, lim
     print("Reading from data base...")
     git = readDB(dbfilename)
     
-    #store releavent VCS object attributes
+    
+    #store relevant VCS object attributes
     cmtList = git.getCommitDict()
     if limitHistory:
         startDate = git.getRevStartDate()
@@ -1056,7 +1147,7 @@ def testFileCommit():
     repoDir = "/Users/Mitchell/git/linux-2.6/.git"
     #fileNames = ["drivers/net/loopback.c"]
     
-    outDir = "/Users/Mitchell/Siemens/Data/TestDB"
+    outDir = "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_NonTag/30"
     
     revRange = ["v2.6.30", "v2.6.31"]
     
@@ -1064,13 +1155,20 @@ def testFileCommit():
     #createFileCmtDB(outDir, repoDir, fileNames)
     performNonTagAnalysis(dbfilename, repoDir, False, outDir, revRange, True)
     
-
+    
+def loadVCSObjectTest():
+    
+    dbfilename = "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_Tag/linux-30-31-Tag"
+    VCS_object = readDB(dbfilename)
+    
 
 ##################################
 #         Main
 ##################################
 
 if __name__ == "__main__":
+    
+    #testFileCommit()
     
     parser = argparse.ArgumentParser()
     parser.add_argument('repo')
