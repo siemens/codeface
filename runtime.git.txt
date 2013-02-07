@@ -1,0 +1,35 @@
+# Performance for roughly 10000 messages in the git mailing list
+
+date()
+save(file=file.path(data.path, paste("forest_corp", ml, sep=".")), forest.corp)
+forest <- forest.corp[[1]]
+corp <- forest.corp[[2]]
+corp.orig <- forest.corp[[3]]
+tdm <- TermDocumentMatrix(corp, list(stemming = FALSE, stopwords = FALSE))
+save(file=file.path(data.path, paste("tdm", ml, sep=".")), tdm)
+date()
+termfreq <- findFreqTerms(tdm, as.integer(3*sqrt(length(corp))))
+extract.commnet(forest, termfreq,
+                apply.to=c("content"),
+                list=ml,
+                basedir="/home/wolfgang/projects/zk/QuantArch/nntp/repos/")
+extract.commnet(forest, termfreq,
+                apply.to=c("subjects"),
+                list=ml,
+                basedir="/home/wolfgang/projects/zk/QuantArch/nntp/repos/")
+date()
+net.subjects <- gen.net("subjects", termfreq, ml, basedir, 15)
+net.content <- gen.net("content", termfreq, ml, basedir, 30)
+save(file=file.path(data.path, paste("net.subjects", ml, sep=".")), net.subjects)
+save(file=file.path(data.path, paste("net.content", ml, sep=".")), net.content)
+date()
+
+Approx 01:15
+makeforest
+> [1] "Wed May 16 02:03:15 2012"
+tdm
+> > > > > > > [1] "Wed May 16 02:03:40 2012"
+termfreq, extract.commnet
+> > + + + > + + + > [1] "Wed May 16 02:07:18 2012"
+gen.net
+> + + + + + + + + + + > > > > > [1] "Wed May 16 02:07:32 2012"

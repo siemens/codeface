@@ -1,0 +1,8 @@
+Download nntp messages into a local mbox file using the sinntp package (the
+example restricts the download to the last 100 messages):
+
+nntp-pull -S news.gmane.org --reget --limit 100
+gmane.comp.version-control.git
+
+Downloading 10000 messages via the DSL line takes 38:35 min
+(file size: 56254617=54MiB)
