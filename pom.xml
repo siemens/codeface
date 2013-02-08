@@ -45,18 +45,33 @@
 						</lifecycleMappingMetadata>
 					</configuration>
 				</plugin>
+
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>exec-maven-plugin</artifactId>
+					<configuration>
+						<executable>java</executable>
+						<arguments>
+							<argument>-Xms512m</argument>
+							<argument>-Xmx512m</argument>
+							<argument>-classpath</argument>
+							<classpath/>
+							<argument>de.siemens.quantarch.bugs.BugzillaTest</argument>
+						</arguments>
+					</configuration>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 	</build>
 
 	<dependencies>
-	    
+
 		<dependency>
 			<groupId>eu.ralph-schuster</groupId>
 			<artifactId>b4j</artifactId>
 			<version>1.4.0-CUSTOM</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
