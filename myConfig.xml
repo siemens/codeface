@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<bugzilla-session class="b4j.core.session.HttpBugzillaSession">
+	<bugzilla-home>https://bugzilla.kernel.org</bugzilla-home>
+	<proxy-host>proxyfarm.3dns.netz.sbs.de:84</proxy-host>
+	<BugzillaBug class="b4j.core.DefaultIssue"/>
+</bugzilla-session>
