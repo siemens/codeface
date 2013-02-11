@@ -383,10 +383,10 @@ save.group.NonTag <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=N
 	#set edge attributes
 	if( length(E(g)) != 0 ){
 		
-		E(g)$penwidth  <- sqrt(E(g)$weight)
-		E(g)$arrowsize <- log(E(g)$penwidth)
+		E(g)$penwidth  <- 1#sqrt(E(g)$weight)
+		E(g)$arrowsize <- 1#log(E(g)$penwidth)
 		#for dot language edge weights should be integers
-		E(g)$weight    <-  ceiling(E(g)$weight)
+		E(g)$weight    <-  1# ceiling(E(g)$weight)
 	}
 	
 	if(!is.na(label)) {
@@ -573,6 +573,166 @@ compute.community.links <- function(g, .comm, N) {
 	}
 }
 
+#========================================================================
+#     				 Community Significance 
+#========================================================================
+community.quality.modularization <- function(graph, community.vertices, membership.vec){
+	#############################################
+	#based on the idea of modularization
+	#reference: Social network clustering and visualization using hierarchical
+	#			edge bundles (Jia, Garland, Hart)
+	##############################################
+	#get graph composed solely of vertices belonging to the community
+	subgraph <- induced.subgraph(graph, community.vertices)
+	
+	#get all vertices not belonging to the community 
+	not.community.vertices <- setdiff(V(graph), community.vertices)
+	
+	#measure the degree for intra-community edges
+	intra.degree.sum <- sum(degree(subgraph))
+	
+	#get number of vertices within the subgraphs
+	cluster.vcount     <- vcount(subgraph)
+	#not.cluster.vcount <- length(not.community.vertices)
+	
+	#degree of vertices in community
+	community.vertices.degree <- degree(graph, community.vertices) 
+	
+	#degree of vertices external to community
+	community.vertices.degree.sum <- sum( degree(graph, community.vertices) )
+	
+	extern.edges.sum <- community.vertices.degree.sum - intra.degree.sum 	
+	
+	#find membership of other vertices
+	other.clusters <- membership.vec[not.community.vertices]
+	
+	cluster.id <- unique(other.clusters)
+	
+	cluster.size <- sapply(cluster.id,
+			function(x) {return(length(which(x == other.clusters)))})
+	
+	edges.count <- sapply(cluster.id,
+					function(x){return( sum(graph[community.vertices,which(x == membership.vec)]) + sum(graph[which(x == membership.vec),community.vertices]) )})
+	
+	edge.count.div <- edges.count / (2*(cluster.size*cluster.vcount))		
+	#divide by two to get the value of the intra edges, 
+	#degree will count edges twice, once for each node connected 
+	#by the edge
+	intra.edges.sum <- intra.degree.sum / 2  
+	
+	#get number of clusters
+	num.of.clusters <- length(unique(membership.vec))
+	
+	f.1 <- (1/num.of.clusters) * intra.edges.sum / (cluster.vcount)^2
+	f.2 <- (1/( ((num.of.clusters)*(num.of.clusters-1)) / 2)) * (sum(edge.count.div) )
+	
+	return (f.1 - f.2)
+	
+}
+
+
+
+
+community.quality.conductance <- function(graph, community.vertices){
+	#######################################
+	#finds the conductance of a cluster
+	#######################################
+	#get graph composed solely of vertices belonging to the community
+	subgraph <- induced.subgraph(graph, community.vertices)
+	
+	#get all vertices not belonging to the community 
+	not.community.vertices <- setdiff(V(graph), community.vertices)
+	
+	#measure the degree for intra-community edges
+	intra.degree <- degree(subgraph)
+	
+	#degree of vertices in community
+	community.vertices.degree <- degree(graph, community.vertices) 
+
+	#degree of vertices external to community
+	not.community.vertices.degree <- degree(graph, not.community.vertices)
+	
+	#sum all degrees from vertices
+	community.vertices.degree.total     <- sum(community.vertices.degree)
+	intra.degree.total                  <- sum(intra.degree)
+	not.community.vertices.degree.total <- sum(not.community.vertices.degree) 
+	
+	#sum of edges linking vertices where one vertex is in the cluster 
+	#and the second vertex is not in the cluster 
+	#measure the degree for inter-community edges 
+	f.1 <- community.vertices.degree.total - intra.degree.total 	
+	
+	#minium of sum of edges in cluster or rest of graph 
+	#f.2 <- min(community.vertices.degree.total, not.community.vertices.degree.total) / 2
+	f.2 <- intra.degree.total / 2
+	
+	return(f.1/f.2)
+}
+
+community.quality.wilcox <- function (graph, community.vertices){
+	
+	#get graph composed solely of vertices belonging to the community
+	subgraph <- induced.subgraph(graph, community.vertices)
+	
+	#measure the degree for intra-community edges
+	intra.degree <- degree(subgraph)
+	
+	#degree of vertices in community
+	community.vertices.degree <- degree(graph, community.vertices) 
+	
+	#measure the degree for inter-community edges 
+	inter.degree <- community.vertices.degree - intra.degree 
+	
+	#significance <- wilcox.test(jitter(intra.degree), jitter(inter.degree))
+	
+	#return(significance$p.value)
+	sig <- (sum(intra.degree) / (sum(inter.degree) + sum(intra.degree)))
+	return(sig)
+}
+
+
+
+
+community.quality.modularity <- function(graph, community.vertices){
+	######################################################################
+	#measure the based on modularity calculation 
+	#quality of the a community indicated by a set of vertices
+	#that belong to the community in comparison to the rest of the graph
+	#Reference: 
+	#"On Modularity Clustering," Knowledge and Data Engineering, 
+	#IEEE Transactions on , vol.20, no.2, pp.172-188, Feb. 2008
+	######################################################################
+	
+	#get graph composed solely of vertices belonging to the community
+	subgraph <- induced.subgraph(graph, community.vertices)
+	
+	#number of edges interal to community
+	community.num.edges = ecount(subgraph)
+	#total number of edge is graph 
+	m = ecount(graph)
+	
+	#measure the degree for intra-community edges
+	intra.degree <- degree(subgraph)
+	
+	#degree of vertices in community
+	community.vertices.degree <- degree(graph, community.vertices) 
+	
+	#measure the degree for inter-community edges 
+	inter.degree <- community.vertices.degree - intra.degree 
+	
+	#calculate final result
+	f.1 <- community.num.edges / m
+	f.2 <- (sum(community.vertices.degree) / (2*m) )^2
+	quality  <- f.1 - f.2
+	
+	#f.1 <- sum(intra.degree)
+	#f.2 <- (sum(community.vertices.degree) / (2*m))^2
+	#quality <- (f.1 - f.1*f.2) / ((f.1 - f.1*f.2) + sum(inter.degree))
+	
+	return( quality )
+	
+}
+
 
 
 #========================================================================
@@ -757,6 +917,16 @@ performTagAnalysis <- function(outdir){
 	g.walktrap.community <- walktrap.community(g.connected)
 	
 	
+	#--------------------
+	# Community Quality
+	#--------------------
+	
+	sg.quality <- compute.all.community.quality(g.connected, g.spin.community, "modularity") 
+	sg.quality.sig <- compute.all.community.quality(g.connected, g.spin.community, "wilcox")
+	wt.quality <- compute.all.community.quality(g.connected, g.walktrap.community, "modularity")  
+	wt.quality.sig <- compute.all.community.quality(g.connected, g.walktrap.community, "wilcox")
+	browser()
+	
 	
 	
 # TODO: Also make a pass for communities with _less_ than 10 members to see possibly
@@ -885,8 +1055,8 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	#--------------------
 	#infomap
 	#--------------------
-	g.infomap.community <- infomap.community(g.connected)
-	
+	#g.infomap.community <- infomap.community(g.connected)
+	#g.walktrap.community <- infomap.community(g.connected)
 	
 	#--------------------
 	#spin-glass 
@@ -927,11 +1097,14 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	#--------------------
 	# Community Quality
 	#--------------------
-	sg.quality <- compute.all.community.quality(g.connected, g.spin.community, "modularity")
-	sg.quality.sig <- compute.all.community.quality(g.connected, g.spin.community, "wilcox")
-	wt.quality <- compute.all.community.quality(g.connected, g.walktrap.community, "modularity")
-	wt.quality.sig <- compute.all.community.quality(g.connected, g.walktrap.community, "wilcox")
-	
+	browser()
+	sg.quality.modularity  <- compute.all.community.quality(g.connected, g.spin.community, "modularity") 
+	sg.quality.conductance <- compute.all.community.quality(g.connected, g.spin.community, "conductance")
+	sg.quality.modularization <- compute.all.community.quality(g.connected, g.spin.community, "modularization")
+	wt.quality.modularity  <- compute.all.community.quality(g.connected, g.walktrap.community, "modularity")  
+	wt.quality.conductance <- compute.all.community.quality(g.connected, g.walktrap.community, "conductance")
+	wt.quality.modularization <- compute.all.community.quality(g.connected, g.walktrap.community, "modularization")
+	browser()
 	#------------------
 	# Write other data 
 	#-----------------
@@ -1030,88 +1203,18 @@ compute.all.community.quality <- function(graph, community, test){
 		quality.vec <- sapply(community.id,
 				function(x) {return(community.quality.wilcox(graph, members[[x]]))})
 	}
+	else if (test == "conductance"){
+		quality.vec <- sapply(community.id,
+				function(x) {return(community.quality.conductance(graph, members[[x]]))})
+		
+	}
+	else if (test == "modularization"){
+		quality.vec <- sapply(community.id,
+				function(x) {return(community.quality.modularization(graph, members[[x]], community$membership))})
+	}
 	return(quality.vec)
 }
 
-community.quality.wilcox <- function (graph, community.vertices){
-	
-	#get graph composed solely of vertices belonging to the community
-	subgraph <- induced.subgraph(graph, community.vertices)
-	
-	#measure the degree for intra-community edges
-	intra.degree <- degree(subgraph)
-	
-	#degree of vertices in community
-	community.vertices.degree <- degree(graph, community.vertices) 
-	
-	#measure the degree for inter-community edges 
-	inter.degree <- community.vertices.degree - intra.degree 
-	
-	#significance <- wilcox.test(jitter(intra.degree), jitter(inter.degree))
-	
-	#return(significance$p.value)
-	sig <- (sum(intra.degree) / (sum(inter.degree) + sum(intra.degree)))
-	return(sig)
-}
-
-	
-	
-	
-community.quality.modularity <- function(graph, community.vertices){
-	######################################################################
-	#measure the based on modularity calculation 
-	#quality of the a community indicated by a set of vertices
-	#that belong to the community in comparison to the rest of the graph
-	#Reference: 
-	#"On Modularity Clustering," Knowledge and Data Engineering, 
-	#IEEE Transactions on , vol.20, no.2, pp.172-188, Feb. 2008
-	######################################################################
-	
-	#get graph composed solely of vertices belonging to the community
-	subgraph <- induced.subgraph(graph, community.vertices)
-	
-	#number of edges interal to community
-	community.num.edges = ecount(subgraph)
-	#total number of edge is graph 
-	m = ecount(graph)
-	
-	#measure the degree for intra-community edges
-	intra.degree <- degree(subgraph)
-	
-	#degree of vertices in community
-	community.vertices.degree <- degree(graph, community.vertices) 
-	
-	#measure the degree for inter-community edges 
-	inter.degree <- community.vertices.degree - intra.degree 
-	
-	#calculate final result
-	f.1 <- community.num.edges / m
-	f.2 <- (sum(community.vertices.degree) / (2*m) )^2
-	quality  <- f.1 - f.2
-	
-	
-	return( quality )
-	
-}
-
-test.community.quality <- function() {
-	
-	r.1 <- c(0,1,1,1,1,0,0,0)
-	r.2 <- c(1,0,1,1,0,0,0,0)
-	r.3 <- c(1,1,0,1,0,0,0,1)
-	r.4 <- c(1,1,1,0,0,0,0,0)
-	r.5 <- c(1,0,0,0,0,1,0,0)
-	r.6 <- c(0,0,0,0,1,0,1,0)
-	r.7 <- c(0,0,0,0,0,1,0,1)
-	r.8 <- c(0,0,1,0,0,0,1,0)
-	
-	adj.matrix <- matrix(data = c(r.1,r.2,r.3,r.4,r.5,r.6,r.7,r.8), ncol = 8, nrow = 8)
-	
-	g <- graph.adjacency(adj.matrix)
-
-	quality <- community.quality(g, c(1,2,3,4))
-	browser()
-}
 
 
 #compare the results of the tag and non tag based graphs 
@@ -1224,6 +1327,31 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2, outputFileName){
 	
 	
 	
+}
+
+get.community.graph <- function(graph, community, prank, ids){
+	
+	community.idx <- sort(unique(community$membership))
+	influential.people <- sapply(community.idx,
+			function(comm.idx) { which( prank$vector == max(prank$vector[which(community$membership == comm.idx)]))[1] })
+	browser()
+	names <- ids$Name[influential.people]
+	
+	g.contracted <- contract.vertices(graph, membership(community))
+	E(g.contracted)$weight <- 1 
+	g.simplified  <- simplify(g.contracted)
+	V(g.simplified)$label <- names
+	V(g.simplified)$prank <-prank$vector[influential.people]
+	
+	# We also use the page rank to specify the font size of the vertex
+	V(g.simplified)$fontsize <- scale.data(prank$vector, 15, 50)[influential.people]
+	
+	# The amount of changed lines is visualised by the nodes background colour:
+	# The darker, the more changes.
+	#fc <- as.character(as.integer(100-scale.data(log(.iddb$total+1),0,50)[idx]))
+	V(g.simplified)$fillcolor <- paste("grey", 50, sep="")
+	V(g.simplified)$style="filled"
+	write.graph(g.simplified, "/Users/Mitchell/Desktop/community.dot", format="dot")
 }
 
 runRandCompare <- function(){
@@ -1400,15 +1528,65 @@ TagTest <- function(){
 	
 }
 
+test.community.quality <- function() {
+	
+	r.1 <- c(0,1,1,1,1,0,0,0)
+	r.2 <- c(1,0,1,1,0,0,0,0)
+	r.3 <- c(1,1,0,1,0,0,0,1)
+	r.4 <- c(1,1,1,0,0,0,0,0)
+	r.5 <- c(1,0,0,0,0,1,0,0)
+	r.6 <- c(0,0,0,0,1,0,1,0)
+	r.7 <- c(0,0,0,0,0,1,0,1)
+	r.8 <- c(0,0,1,0,0,0,1,0)
+	
+	adj.matrix <- matrix(data = c(r.1,r.2,r.3,r.4,r.5,r.6,r.7,r.8), ncol = 8, nrow = 8)
+	
+	g <- graph.adjacency(adj.matrix)
+	
+	
+	#test that modularity is correct
+	g.spincommunity <- spinglass.community(g)
+	igraph.modularity.result <- modularity(g, g.spincommunity$membership)
+	modularity.result        <- sum(compute.all.community.quality(g, g.spincommunity, "modularity"))
+	if( !(igraph.modularity.result == modularity.result)){
+		print("Error: modularity test failed")
+	}
+	else{
+		print("Success: modularity test passed")
+	}
+	browser()
+}
 
-
+test.community.quality.modularity <- function() {
+	
+	#        1,2,3,4,5,6,7,8
+	r.1 <- c(0,0,1,0,0,0,0,0)
+	r.2 <- c(0,0,1,0,0,0,0,0)
+	r.3 <- c(0,0,0,0,1,0,0,0)
+	r.4 <- c(1,0,0,0,1,0,0,0)
+	r.5 <- c(0,0,0,0,0,0,0,0)
+	r.6 <- c(0,0,0,0,0,0,1,1)
+	r.7 <- c(0,0,0,0,0,0,0,0)
+	r.8 <- c(0,0,0,0,1,0,1,0)
+	
+	adj.matrix <- t(matrix(data = c(r.1,r.2,r.3,r.4,r.5,r.6,r.7,r.8), ncol = 8, nrow = 8))
+	
+	g <- graph.adjacency(adj.matrix)
+	g.clust <- list() 
+	g.clust$membership <- c(1,1,1,2,2,3,3,3)
+	
+	quality <- compute.all.community.quality(g, g.clust, "modularization")
+	
+	browser()
+}
 
 #########################################################################
 #     					 Executed Statements  
 #########################################################################
+#TagTest()
 nonTagTest()
 #test.community.quality()
-
+#test.community.quality.modularity()
 #----------------------------
 #parse commandline arguments
 #----------------------------
