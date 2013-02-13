@@ -135,7 +135,8 @@ class VCS:
 
     def setSubsysDescription(self, subsys_description):
         # See kerninfo.py for some examples of the format
-        self.subsys_description = subsys_description
+        if subsys_description != None:
+            self.subsys_description = subsys_description
 
     def setRCRanges(self, rc_ranges):
         self._rc_ranges = rc_ranges
