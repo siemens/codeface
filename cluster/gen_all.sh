@@ -1,4 +1,4 @@
-#! /usr/bin/env sh
+#! /usr/bin/env bash
 
 BASEDIR=/Users/wolfgang/papers/csd/cluster/
 CLUSTER=/Users/wolfgang/papers/csd/cluster/cluster.py
