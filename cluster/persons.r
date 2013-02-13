@@ -1609,18 +1609,18 @@ if(length(arguments$args) != 2) {
 #------------------------------
 # Perform Appropriate Analysis 
 #------------------------------
-if (type == "tag") {
+if (type == "--tag") {
 	
 	print("Performing Tag Based Graph Analysis")
 	performTagAnalysis(dataDir)
 	
-} else if (type == "nonTag") {
+} else if (type == "--non_tag") {
 	
 	print("Performing nonTag Based Graph Analysis")
 	performNonTagAnalysis(dataDir)
 	
 } else{
-	
-	print("incorrect command line arguments for persons.r")
-	
+
+  print(paste("Please specify either '--tag' or '--non_tag'",
+              "to determine the analysis mode for persons.r", sep="\n"))
 }

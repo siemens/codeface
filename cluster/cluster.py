@@ -1053,7 +1053,7 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange,
     if create_db == True:
         createFileCmtDB(dbfilename, git_repo, revRange)
         
-    print("Reading from data base...")
+    print("Reading from data base {0}...".format(dbfilename))
     git = readDB(dbfilename)
     
     
@@ -1098,7 +1098,7 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
         createDB(dbfilename, git_repo, revrange, subsys_descr, rcranges)
         
         
-    print("Reading from data base...")
+    print("Reading from data base {0}...".format(dbfilename))
     git = readDB(dbfilename)
     cmtlist = git.extractCommitData("__main__")
 
@@ -1205,7 +1205,10 @@ if __name__ == "__main__":
     parser.add_argument('to_rev')
     parser.add_argument('rc_start')
     parser.add_argument('--create_db', action='store_true')
-    parser.add_argument('--nonTag', action='store_true') #default to tag based
+    parser.add_argument('--non_tag', action='store_true') #default to tag based
+    # tagged analysis is the default, the argument is only available
+    # for systematic consistency
+    parser.add_argument('--tag', action='store_true')
     args = parser.parse_args()
     
     limitHistory = True
@@ -1213,7 +1216,7 @@ if __name__ == "__main__":
         args.rc_start = None
 
     doProjectAnalysis(args.project, args.from_rev, args.to_rev, args.rc_start,
-                      args.outdir, args.repo, args.create_db, args.nonTag,
+                      args.outdir, args.repo, args.create_db, args.non_tag,
                       limitHistory)
     exit(0)
 

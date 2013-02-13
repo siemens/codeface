@@ -1,27 +1,43 @@
 #! /usr/bin/env bash
 
-BASEDIR=/Users/wolfgang/papers/csd/cluster/
-CLUSTER=/Users/wolfgang/papers/csd/cluster/cluster.py
-CONV=/Users/wolfgang/papers/csd/cluster/conv.py
-PERSONS=/Users/wolfgang/papers/csd/cluster/persons.r
-REPORT=/Users/wolfgang/papers/csd/cluster/create_report.pl
+#==================
+#   Configure
+#==================
+BASEDIR=/home/wolfgang/projects/swi/prosoda/cluster
+GITDIR=/home/wolfgang/git-repos/
+PROJECT=linux
+#=================================================================
+
+CLUSTER=${BASEDIR}/cluster.py
+CONV=${BASEDIR}/conv.py
+PERSONS=${BASEDIR}/persons.r
+REPORT=${BASEDIR}/create_report.pl
+GITREPO=${GITDIR}/${PROJECT}/.git
+#TAG_OPT="--non_tag"
+TAG_OPT="--tag"
 
 for i in "$@"; do
-    echo "Processing ${i}"
-    ${CLUSTER} /Users/wolfgang/git-repos/linux/.git ${BASEDIR}/res/ ${i}
-    ${PERSONS} ${BASEDIR}res/${i}/
-    (cd ${BASEDIR}/res/$i;
+    VERSION=v2.6.$((i+1))
+    echo "Processing ${VERSION}"
+
+    ${CLUSTER} ${GITREPO} ${PROJECT} ${BASEDIR}/res/${PROJECT}/tag \
+	v2.6.${i} v2.6.$((i+1)) v2.6.$((i+1))-rc1 ${TAG_OPT} --create_db
+
+    ${PERSONS} ${BASEDIR}/res/${PROJECT}/tag/${VERSION} ${TAG_OPT}
+
+    (cd ${BASEDIR}/res/${PROJECT}/tag/${VERSION};
 	for file in `ls sg*.dot wt*.dot`; do 
 	    basefile=`basename $file .dot`; 
 	    echo "Processing $file"; 
-	    cat $file | ${CONV} | sfdp -Tpdf > ${basefile}.pdf; 
+	    cat $file | ${CONV} | sfdp -Tpdf -Gcharset=latin1 > ${basefile}.pdf; 
 	done)
 
-
-    if [[ ! (-d "${BASEDIR}/res/latex") ]]; then
-	echo mkdir ${BASEDIR}/res/latex
+    if [ ! -d "${BASEDIR}/res/${PROJECT}/tag/latex" ]; then
+	   mkdir ${BASEDIR}/res/${PROJECT}/tag/latex
     fi
 
-    ${REPORT} ${BASEDIR}/res/${i} "${i}..$((i+1))" > ${BASEDIR}/res/latex/report_${i}.tex;
-    (cd ${BASEDIR/res/latex} && pdflatex ${BASEDIR}/res/latex/report_${i}.tex)
+    ${REPORT} ${BASEDIR}/res/${PROJECT}/tag/${VERSION} "${i}..$((i+1))" > ${BASEDIR}/res/${PROJECT}/tag/latex/report_${VERSION}.tex;
+    (cd ${BASEDIR}/res/${PROJECT}/tag/latex && \
+	pdflatex -output-directory=${BASEDIR}/res/${PROJECT}/tag/ \
+	${BASEDIR}/res/${PROJECT}/tag/latex/report_${VERSION}.tex)
 done
