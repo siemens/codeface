@@ -21,4 +21,4 @@ cluster/.Rhistory
 cluster/.DS_Store
 cluster/.RData
 *.tar.bz2
-
+cluster/res/
