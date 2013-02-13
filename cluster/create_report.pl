@@ -73,6 +73,29 @@ sub gen_latex_iter($$$;$) {
   return gen_file_table(\@files, $cols, $filespec, $type, $labelfun);
 }
 
+sub print_subsys_info($) {
+    my $basedir = shift;
+    print "\\newpage\\subsection{Subsystem Distribution in Clusters (Spin Glass)}\n";
+    print "\\includegraphics[width=\\linewidth]{$basedir/sg_comm_subsys.pdf}";
+
+    print "\\newpage\\subsection{Subsystem Distribution in Clusters (Random Walk, large)}\n";
+    print "\\includegraphics[width=\\linewidth]{$basedir/wt_comm_subsys_big.pdf}";
+
+    print "\\newpage\\subsection{Subsystem Distribution in Clusters (Random Walk, small)}\n";
+    print "\\includegraphics[width=\\linewidth]{$basedir/wt_comm_subsys_small.pdf}";
+
+    print "\\section{Statistical Summaries}\n";
+    print "\\subsection{Statistical Summaries (Spin Glass Clusters)}\n";
+    print "\\begin{small}\\renewcommand{\\tabcolsep}{2pt}\n";
+    print gen_latex_iter("$basedir/sg_cluster_", 2, "input", sub($) { return("Cluster $_[0]\\\\\n")});
+    print "\\end{small}\n";
+
+    print "\\subsection{Statistical Summaries (Random Walk Clusters)}\n";
+    print "\\begin{small}\\renewcommand{\\tabcolsep}{2pt}\n";
+    print gen_latex_iter("$basedir/wt_cluster_", 2, "input", sub($) { return("Cluster $_[0]\\\\\n")});
+    print "\\end{small}\n";
+}
+
 ########################################################
 if ($#ARGV != 1) {
   print "Usage: create_report.pl <datadir> {cycle}\n";
@@ -118,29 +141,9 @@ Changed lines\\\\
 \\end{small}
 END
 
-print "\\newpage\\subsection{Subsystem Distribution in Clusters (Spin Glass)}\n";
-print "\\includegraphics[width=\\linewidth]{$basedir/sg_comm_subsys.pdf}";
-
-print "\\newpage\\subsection{Subsystem Distribution in Clusters (Random Walk, large)}\n";
-print "\\includegraphics[width=\\linewidth]{$basedir/wt_comm_subsys_big.pdf}";
-
-print "\\newpage\\subsection{Subsystem Distribution in Clusters (Random Walk, small)}\n";
-print "\\includegraphics[width=\\linewidth]{$basedir/wt_comm_subsys_small.pdf}";
-
-
-print "\\section{Statistical Summaries}\n";
-print "\\subsection{Statistical Summaries (Spin Glass Clusters)}\n";
-print "\\begin{small}\\renewcommand{\\tabcolsep}{2pt}\n";
-print gen_latex_iter("$basedir/sg_cluster_", 2, "input", sub($) { return("Cluster $_[0]\\\\\n")});
-print "\\end{small}\n";
-
-print "\\subsection{Statistical Summaries (Random Walk Clusters)}\n";
-print "\\begin{small}\\renewcommand{\\tabcolsep}{2pt}\n";
-print gen_latex_iter("$basedir/wt_cluster_", 2, "input", sub($) { return("Cluster $_[0]\\\\\n")});
-print "\\end{small}\n";
-
-
-
+if (-e "$basedir/sg_comm_subsys.pdf") {
+    print_subsys_info($basedir);
+}
 
 #################################
 print "\\newpage\\section{Community Clusters (spin glass)}\n";
