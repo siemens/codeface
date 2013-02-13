@@ -1126,9 +1126,9 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag,
     #--------------
     if not os.path.exists(outbase):
         try:
-            os.mkdir(outbase)
+            os.makedirs(outbase)
         except os.error as e:
-            print("Could not create output dir {0}: {1}".format(outdir,
+            print("Could not create output dir {0}: {1}".format(outbase,
                                                                 e.strerror))
             exit(-1)    
 
@@ -1137,9 +1137,9 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag,
 
     if not os.path.exists(outdir):
         try:
-            os.mkdir(outdir)
+            os.makedirs(outdir)
         except os.error as e:
-            print("Could not create output dir {0}: {1}".format(outdir,
+            print("Could not create output dir {0}: {1}".format(outbase,
                                                                 e.strerror))
             exit(-1)
 
