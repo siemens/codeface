@@ -913,7 +913,7 @@ class gitVCS (VCS):
 
         #build git query 
         cmd = 'git --git-dir={0} ls-tree --name-only --full-tree -r'.format(self.repo).split()
-        cmd.append('Head')
+        cmd.append('HEAD')
         if directories:
             cmd.append(directories)
         
