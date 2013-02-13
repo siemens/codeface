@@ -353,7 +353,7 @@ class gitVCS (VCS):
         '''low level routine to submit a git command and return the 
         output'''
         
-        print("About to call {0}".format(" " .join(cmd)))
+#        print("About to call {0}".format(" " .join(cmd)))
         try:
             p2 = Popen(cmd, stdout=PIPE)
             output = p2.communicate()[0].splitlines()
@@ -779,8 +779,16 @@ class gitVCS (VCS):
         self._commit_dict = {}
         blameMsgCmtIds = set() #stores all commit Ids seen from blame messages
         
+        count = 0
+        widgets = ['Pass 1/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
+        pbar = ProgressBar(widgets=widgets,
+                           maxval=len(fnameList)).start()
+
         for fname in fnameList:
-            
+            count += 1
+            if count % 20 == 0:
+                pbar.update(count)
+
             #create fileCommit object, one per filename to be 
             #stored in _fileCommit_dict
             fileCmts = fileCommit.FileCommit()
