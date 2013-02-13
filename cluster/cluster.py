@@ -107,7 +107,8 @@ def computeSubsysAuthorSimilarity(cmt_subsys, author):
     if sim == 0:
         print("Zero similarity for {0}".format(author.getName()))
         for (subsys_name, subsys_touched) in cmt_subsys.iteritems():
-            print("    {0}: {1}, {2}".format(subsys_name, subsys_touched, asf[subsys_name]))
+            print("    {0}: {1}, {2}".format(subsys_name, subsys_touched,
+                                             asf[subsys_name]))
 
     return sim
 
@@ -141,13 +142,14 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None):
     point in time'''
     
     '''
-    Detailed description: the fileSnapShot is a representation of how a
-    file looked at the time of a particular commit. The fileSnapshot is a 
-    dictionary with key = a particular commit hash and the value is the how 
-    the file looked at the time of that commit.How the file looked is represented 
-    by a another dictionary with key = a code line number and the value is a commit 
-    hash referencing the commit that contributed that particular line. The commit 
-    hashes are then used to reference the people involved.
+    Detailed description: the fileSnapShot is a representation of how a file
+    looked at the time of a particular commit. The fileSnapshot is a
+    dictionary with key = a particular commit hash and the value is the how
+    the file looked at the time of that commit.How the file looked is
+    represented by a another dictionary with key = a code line number and the
+    value is a commit hash referencing the commit that contributed that
+    particular line. The commit hashes are then used to reference the people
+    involved.
     ''' 
     
     #------------------------
@@ -179,17 +181,19 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None):
         codeBlks = findCodeBlocks(modFileState, cmtList, author)
         
         if codeBlks:
-            #next cluster the blocks, using the distance measure to figure out what blocks
-            #belong together in one group or cluster
+            #next cluster the blocks, using the distance measure to figure out
+            #what blocks belong together in one group or cluster
             clusters = simpleCluster(codeBlks, snapShotCmt, maxDist, author)
         
             #calculate the collaboration coefficient for each code block
             #[computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
             
             
-            [computeCommitCollaboration(cluster, snapShotCmt.id, id_mgr, maxDist, author) for cluster in clusters]
+            [computeCommitCollaboration(cluster, snapShotCmt.id, id_mgr,
+                                        maxDist, author) for cluster in clusters]
     
-def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist, author=False):
+def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist,
+                               author=False):
     '''
     Computes a value that represents the collaboration strength 
     between a commit of interest and every other commit that 
@@ -237,7 +241,8 @@ def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist, author=False
         revPerson = id_mgr.getPI( revCmtBlks[0].committerId )
     
     #find all other commit ids for older revisions
-    oldCmtIdSet = set( [blk.cmtHash for blk in codeBlks if blk.cmtHash != revCmtId] )
+    oldCmtIdSet = set( [blk.cmtHash for blk in codeBlks
+                        if blk.cmtHash != revCmtId] )
     
     #calculate relationship between personId and all other contributors 
     for oldCmtId in oldCmtIdSet:
@@ -246,7 +251,8 @@ def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist, author=False
         oldRevBlks = [blk for blk in codeBlks if blk.cmtHash == oldCmtId]
         
         #compute relationship strength for ALL combinations of blocks  
-        allCombStrengths  = [computeEdgeStrength(blk1, blk2, maxDist) for blk1 in oldRevBlks for blk2 in revCmtBlks]
+        allCombStrengths  = [computeEdgeStrength(blk1, blk2, maxDist)
+                             for blk1 in oldRevBlks for blk2 in revCmtBlks]
         
         #TODO: check if summing is the appropriate operation
         #sum the strengths 
@@ -307,7 +313,8 @@ def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist):
         IdBlocks = [blk for blk in codeBlks if blk.id == Id]
         
         #compute relationship strength for ALL combinations of blocks  
-        allCombStrengths  = [computeEdgeStrength(blk1, blk2, maxDist) for blk1 in IdBlocks for blk2 in personIdBlks]
+        allCombStrengths  = [computeEdgeStrength(blk1, blk2, maxDist)
+                             for blk1 in IdBlocks for blk2 in personIdBlks]
         
         #average the strengths 
         avgStrength = sum(allCombStrengths) / len(allCombStrengths) * 1.0
@@ -469,8 +476,10 @@ def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
             blk = codeBlks[blkIdx]
             
             #calculate distance from cluster
-            currClusterDist = min( blockDist(currClusterStartBlk, blk), blockDist(currClusterEndBlk, blk) )
-            nextClusterDist = min( blockDist(nextClusterStartBlk, blk), blockDist(nextClusterEndBlk, blk) )
+            currClusterDist = min( blockDist(currClusterStartBlk, blk),
+                                   blockDist(currClusterEndBlk, blk) )
+            nextClusterDist = min( blockDist(nextClusterStartBlk, blk),
+                                   blockDist(nextClusterEndBlk, blk) )
         
             if( currClusterDist <= nextClusterDist ): #block falls within this cluster
                 blkClusters[currClusterIdx].append( codeBlks[blkIdx] )
@@ -598,10 +607,10 @@ def blockDist(blk1, blk2):
     
 def findCodeBlocks(fileState, cmtList, author=False):
     '''
-    Finds code blocks for a given file state, a code block is defined by the start
-    and end line numbers for contiguous lines with a single author or committer.
-    If author is set to true then code blocks are found based on author of commit
-    otherwise committer identifier is used. 
+    Finds code blocks for a given file state, a code block is defined by the
+    start and end line numbers for contiguous lines with a single author or
+    committer.  If author is set to true then code blocks are found based on
+    author of commit otherwise committer identifier is used.
     '''
     #---------------------
     #variable definitions
@@ -622,7 +631,8 @@ def findCodeBlocks(fileState, cmtList, author=False):
        committerId = cmtList[str(cmtId)].getCommitterPI().getID()
        
        #assign the personID to the line number 
-       codeLines[ lineNum ] = codeLine.codeLine(lineNum, cmtId, authorId, committerId)
+       codeLines[ lineNum ] = codeLine.codeLine(lineNum, cmtId, authorId,
+                                                committerId)
        
     #------------------------
     #find contiguous lines 
@@ -649,8 +659,10 @@ def findCodeBlocks(fileState, cmtList, author=False):
        if( nextLineNum != (currLineNum + 1) ): #not contiguous line 
            
            #save code block span for prior contributor   
-           codeBlocks.append( codeBlock.codeBlock(blkStart, blkEnd, currCodeLine.authorId, 
-                                                  currCodeLine.committerId, currCodeLine.cmtHash) )
+           codeBlocks.append( codeBlock.codeBlock(blkStart, blkEnd,
+                                                  currCodeLine.authorId, 
+                                                  currCodeLine.committerId,
+                                                  currCodeLine.cmtHash) )
                 
            #reinitialize start and end for next 
            #contributors block
@@ -661,10 +673,10 @@ def findCodeBlocks(fileState, cmtList, author=False):
            
        else: #lines are contiguous
            
-           #check if next line has same commit hash 
-           #we assume that commits contain code that related, so even if the author is the same 
-           #but a different commit then the code is not consider to be accomplishing one 
-           #related task necessarily
+           #check if next line has same commit hash we assume that commits
+           #contain code that related, so even if the author is the same but a
+           #different commit then the code is not consider to be accomplishing
+           #one related task necessarily
            if currCmtId == nextCmtId:
                #increment the line count
                blkEnd += 1
@@ -673,8 +685,10 @@ def findCodeBlocks(fileState, cmtList, author=False):
            else: #different contributor 
                
                #save code block span for prior contributor   
-               codeBlocks.append( codeBlock.codeBlock(blkStart, blkEnd, currCodeLine.authorId, 
-                                                  currCodeLine.committerId, currCodeLine.cmtHash) )
+               codeBlocks.append( codeBlock.codeBlock(blkStart, blkEnd, 
+                                                      currCodeLine.authorId,
+                                                      currCodeLine.committerId,
+                                                      currCodeLine.cmtHash) )
 
             
                #reinitialize start and end for next 
@@ -686,8 +700,10 @@ def findCodeBlocks(fileState, cmtList, author=False):
        
     #take care of boundary case
     #save final block span for prior contribution
-    codeBlocks.append( codeBlock.codeBlock(blkStart, blkEnd, nextCodeLine.authorId, 
-                                                  nextCodeLine.committerId, nextCodeLine.cmtHash) )
+    codeBlocks.append( codeBlock.codeBlock(blkStart, blkEnd, 
+                                           nextCodeLine.authorId, 
+                                           nextCodeLine.committerId,
+                                           nextCodeLine.cmtHash) )
         
     return codeBlocks
 
@@ -863,8 +879,8 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
     out.close()
     ##############
 
-    # Export per-author subsystem information (could be included in ids.txt, but since
-    # the information is basically orthogonal, we use two files.)
+    # Export per-author subsystem information (could be included in ids.txt,
+    # but since the information is basically orthogonal, we use two files.)
     out = open(os.path.join(outdir, "id_subsys.txt"), 'wb')
 
     header = "ID\t"
@@ -889,7 +905,8 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
                            delimiter='\t',
                            quotechar='\\', quoting=csv.QUOTE_MINIMAL)
     # Header
-    id_writer.writerow(["ID", "Name", "eMail", "added", "deleted", "total", "numcommits"])
+    id_writer.writerow(["ID", "Name", "eMail", "added", "deleted", "total",
+                        "numcommits"])
 
     # Content
     for id in sorted(id_mgr.getPersons().keys()):
@@ -898,8 +915,8 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
         added = cmt_stat["added"]
         deleted = cmt_stat["deleted"]
         numcommits = cmt_stat["numcommits"]
-        id_writer.writerow([id, pi.getName(), pi.getEmail(), added, deleted, added + deleted,
-                             numcommits])
+        id_writer.writerow([id, pi.getName(), pi.getEmail(), added, deleted,
+                            added + deleted, numcommits])
     
     ##############
     # Store the adjaceny matrix for developer tagging, i.e., create
@@ -959,7 +976,8 @@ def buildCollaborationStructure(fileCommitList, cmtList, id_mgr, startDate=None)
     
     for fileCommit in fileCommitList.values():
         
-        [computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate) for fileSnapShot in fileCommit.getFileSnapShots().items()]
+        [computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate)
+         for fileSnapShot in fileCommit.getFileSnapShots().items()]
             
         
 def writeData(cmtList, id_mgr,  outdir):
@@ -1029,7 +1047,8 @@ def processPersonData(id_mgr):
 ###########################################################################
 # Main part
 ###########################################################################
-def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange, limitHistory=False):
+def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange,
+                          limitHistory=False):
     
     if create_db == True:
         createFileCmtDB(dbfilename, git_repo, revRange)
@@ -1071,7 +1090,8 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange, lim
     writeData(cmtList, id_mgr, outDir)
     
     
-def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db, outdir, rcranges=None):
+def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
+                    outdir, rcranges=None):
     if create_db == True:
         print("Creating data base for {0}..{1}").format(revrange[0],
                                                         revrange[1])
@@ -1095,7 +1115,8 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db, out
     emitStatisticalData(cmtlist, id_mgr, outdir)
     
 ##################################################################
-def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag, limitHistory=False):
+def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag,
+                     limitHistory=False):
     from_rev = "v2.6.{0}".format(rev)
     to_rev = "v2.6.{0}".format(rev+1)
     rc_start = "{0}-rc1".format(to_rev)
@@ -1107,7 +1128,8 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag, limitHistory=Fal
         try:
             os.mkdir(outbase)
         except os.error as e:
-            print("Could not create output dir {0}: {1}".format(outdir, e.strerror))
+            print("Could not create output dir {0}: {1}".format(outdir,
+                                                                e.strerror))
             exit(-1)    
 
 
@@ -1117,7 +1139,8 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag, limitHistory=Fal
         try:
             os.mkdir(outdir)
         except os.error as e:
-            print("Could not create output dir {0}: {1}".format(outdir, e.strerror))
+            print("Could not create output dir {0}: {1}".format(outdir,
+                                                                e.strerror))
             exit(-1)
 
     #----------------------------
@@ -1127,13 +1150,15 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag, limitHistory=Fal
         
         filename = os.path.join(outbase, "linux-{0}-{1}-nonTag".format(rev,rev+1))
         print("performing nonTag based analysis")
-        performNonTagAnalysis(filename, git_repo, create_db, outdir, [from_rev, to_rev], limitHistory)
+        performNonTagAnalysis(filename, git_repo, create_db, outdir,
+                              [from_rev, to_rev], limitHistory)
     
     else:
         
         filename = os.path.join(outbase, "linux-{0}-{1}-Tag".format(rev,rev+1))
         print("performing Tag based analysis")
-        performAnalysis(filename, git_repo, [from_rev, to_rev], kerninfo.subsysDescrLinux,
+        performAnalysis(filename, git_repo, [from_rev, to_rev],
+                        kerninfo.subsysDescrLinux,
                         create_db, outdir, [[rc_start, to_rev]])
 
 
@@ -1188,7 +1213,8 @@ if __name__ == "__main__":
     
     limitHistory = True
     
-    doKernelAnalysis(rev, outbase, git_repo, args.create_db, args.nonTag, limitHistory)
+    doKernelAnalysis(rev, outbase, git_repo, args.create_db, args.nonTag,
+                     limitHistory)
     exit(0)
 
 #git_repo = "/Users/wolfgang/git-repos/linux/.git"
