@@ -1115,12 +1115,8 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
     emitStatisticalData(cmtlist, id_mgr, outdir)
     
 ##################################################################
-def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag,
-                     limitHistory=False):
-    from_rev = "v2.6.{0}".format(rev)
-    to_rev = "v2.6.{0}".format(rev+1)
-    rc_start = "{0}-rc1".format(to_rev)
-    
+def doProjectAnalysis(project, from_rev, to_rev, rc_start, outbase, git_repo,
+                      create_db, nonTag, limitHistory=False):
     #--------------
     #folder setup 
     #--------------
@@ -1133,7 +1129,7 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag,
             exit(-1)    
 
 
-    outdir = os.path.join(outbase, str(rev))
+    outdir = os.path.join(outbase, to_rev)
 
     if not os.path.exists(outdir):
         try:
@@ -1143,23 +1139,29 @@ def doKernelAnalysis(rev, outbase, git_repo, create_db, nonTag,
                                                                 e.strerror))
             exit(-1)
 
+    if rc_start != None:
+        rc_range = [[rc_start, to_rev]]
+    else:
+        rc_range = None
+
     #----------------------------
     #Perform appropriate analysis
     #----------------------------
     if nonTag:
-        
-        filename = os.path.join(outbase, "linux-{0}-{1}-nonTag".format(rev,rev+1))
+        filename = os.path.join(outbase, "{0}-{1}-{2}-nonTag".
+                                format(project, from_rev, to_rev))
         print("performing nonTag based analysis")
         performNonTagAnalysis(filename, git_repo, create_db, outdir,
                               [from_rev, to_rev], limitHistory)
     
     else:
-        
-        filename = os.path.join(outbase, "linux-{0}-{1}-Tag".format(rev,rev+1))
+        filename = os.path.join(outbase, "{0}-{1}-{2}-Tag".
+                                format(project, from_rev, to_rev))
+
         print("performing Tag based analysis")
         performAnalysis(filename, git_repo, [from_rev, to_rev],
                         kerninfo.subsysDescrLinux,
-                        create_db, outdir, [[rc_start, to_rev]])
+                        create_db, outdir, rc_range)
 
 
 ##################################
@@ -1197,24 +1199,22 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument('repo')
+    parser.add_argument('project')
     parser.add_argument('outdir')
-    parser.add_argument('rev')
+    parser.add_argument('from_rev')
+    parser.add_argument('to_rev')
+    parser.add_argument('rc_start')
     parser.add_argument('--create_db', action='store_true')
     parser.add_argument('--nonTag', action='store_true') #default to tag based
     args = parser.parse_args()
     
-    git_repo = args.repo
-    outbase = args.outdir
-    try:
-        rev = int(args.rev)
-    except ValueError:
-        print "Cannot parse revision!"
-        exit(-1)
-    
     limitHistory = True
-    
-    doKernelAnalysis(rev, outbase, git_repo, args.create_db, args.nonTag,
-                     limitHistory)
+    if args.rc_start == "":
+        args.rc_start = None
+
+    doProjectAnalysis(args.project, args.from_rev, args.to_rev, args.rc_start,
+                      args.outdir, args.repo, args.create_db, args.nonTag,
+                      limitHistory)
     exit(0)
 
 #git_repo = "/Users/wolfgang/git-repos/linux/.git"
