@@ -173,9 +173,9 @@ class gitVCS (VCS):
         self.logPattern = re.compile(r'^(.*?) (.*)$')
         self.authorPattern = re.compile(r'^Author: (.*)$')
         self.signedOffPattern = re.compile(r'^(.*?): (.*)$')
-        self.diffStatPattern = re.compile(r'(.*?) files changed, (.*?) '
-                                          'insertions\(\+\), (.*?) '
-                                          'deletions\(\-\)')
+        self.diffStatFilesPattern = re.compile(r'(\d*?) file(|s) changed')
+        self.diffStatInsertPattern = re.compile(r' (\d*?) insertion')
+        self.diffStatDeletePattern = re.compile(r' (\d*?) deletion')
 
     def getDiffVariations(self):
         # We support diffs formed of 2x2 combinations: 
@@ -442,18 +442,36 @@ class gitVCS (VCS):
     def _analyseDiffStat(self, msg, cmt):
         """Analyse the results of diff show with respect to the diffstat."""
         msg = msg.splitlines()
+        files = 0
+        insertions = 0
+        deletions = 0
+        matched = False
+
         try: 
-            match = self.diffStatPattern.search(msg[-1])
+            match = self.diffStatFilesPattern.search(msg[-1])
+            if (match):
+                files = match.group(1)
+                matched = True
+
+            match = self.diffStatInsertPattern.search(msg[-1])
+            if (match):
+                insertions = match.group(1)
+                matched = True
+
+            match = self.diffStatDeletePattern.search(msg[-1])
+            if (match):
+                deletions = match.group(1)
+                matched = True
+
         except IndexError: 
             print("Blubb?!")
             print(msg)
             raise ParseError("Empty commit?", cmt.id)
 
-        if not(match):
+        if not(matched):
             raise ParseError(msg[-1], cmt.id)
 
-        cmt.diff_info.append((int(match.group(1)), int(match.group(2)), 
-                              int(match.group(3))))
+        cmt.diff_info.append((int(files), int(insertions), int(deletions)))
 
     def _analyseCommitMsg(self, msg, cmt):
         """Analyse the commit message."""
