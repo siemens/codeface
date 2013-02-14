@@ -438,23 +438,10 @@ save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
 	return(g)
 }
 
-save.groups.NonTag <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which, label=NA) {
-	baselabel <- label
-	for (i in .which) {
-		filename <- paste(.basedir, "/", .prefix, "group_", three.digit(i), ".dot", sep="")
-		print(filename)
-		status(paste("Saving", filename))
-		idx <- as.vector(which(.comm$membership==i))
-		if (!is.na(baselabel)) {
-			label <- paste(baselabel, i, sep=" ")
-		}
-		
-		save.group.NonTag(.tags, .iddb, idx, .prank, filename, label)
-	}
-}
-
-
-save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which, label=NA) {
+## save.group.fn is the function responsible for saving a single group.
+## Can either bei save.group or save.group.NonTag
+save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
+                        save.group.fn, label=NA) {
 	baselabel <- label
 	for (i in .which) {
 		filename <- paste(.basedir, "/", .prefix, "group_", three.digit(i), ".dot", sep="")
@@ -463,7 +450,7 @@ save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which, 
 		if (!is.na(baselabel)) {
 			label <- paste(baselabel, i, sep=" ")
 		}
-		save.group(.tags, .iddb, idx, .prank, filename, label)
+		save.group.fn(.tags, .iddb, idx, .prank, filename, label)
 	}
 }
 
