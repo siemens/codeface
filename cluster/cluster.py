@@ -1095,7 +1095,6 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange,
     
     
     #get personal info from commit data
-    id_mgr = idManager()
     id_mgr = createPersonDB(cmtList)
     
     #----------------------------------------
