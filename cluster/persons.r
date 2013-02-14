@@ -317,7 +317,8 @@ comm.subsys <- function(.comm, .id.subsys, N) {
 #N <- 3
 #summary(id.subsys.connected[which(g.spin.community$membership==N), 2:dim(id.subsys.connected)[2]])
 plot.comm.subsys <- function(.comm, .id.subsys, filename, .alg,
-		elems=1:(length(unique(.comm$membership))), .height=8, .width=14) {
+                             elems=1:(length(unique(.comm$membership))),
+                             .height=8, .width=14) {
 	comb <- vector("list", length(elems))
 	for (i in 1:length(elems)) {
 		comb[[i]] <- comm.subsys(.comm, .id.subsys, elems[i])
@@ -445,7 +446,7 @@ save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
 	baselabel <- label
 	for (i in .which) {
 		filename <- paste(.basedir, "/", .prefix, "group_", three.digit(i), ".dot", sep="")
-		status(paste("Saving", filename))
+#		status(paste("Saving", filename))
 		idx <- as.vector(which(.comm$membership==i))
 		if (!is.na(baselabel)) {
 			label <- paste(baselabel, i, sep=" ")
@@ -779,193 +780,52 @@ performTagAnalysis <- function(outdir){
 	id.subsys <- read.csv(file=paste(outdir, "/id_subsys.txt", sep=""),
 			sep="\t", header=TRUE)
 	id.subsys$ID <- id.subsys$ID + 1
-	
-# Isolated graph members are outliers for the Linux kernel. Eliminate
-# them to create a connected graph (NOTE: This must not be done for
-# projects where proper direct clustering can happen)
-	status("Computing adjacency matrices")
-	g <- graph.adjacency(tags, mode="directed")
-	g.clust <- clusters(g)
-	#find the index of the largest connected cluster 
-	largestClustMembership = which(g.clust$csize == max(g.clust$csize))
-	#get all indecies of connected developers for the largest cluster
-	idx <- which(g.clust$membership==largestClustMembership) 
-	tags.connected <- tags[idx,idx]
-#ids.connected <- data.frame(Name=ids[idx,]$Name, ID=seq(1:length(idx)))
-	ids.connected <- ids[idx,]
-	ids.connected$ID=seq(1:length(idx))
-	ids.connected$Name <- as.character(ids.connected$Name)
-	print(length(ids.connected))
-	id.subsys.connected <- id.subsys[idx,]
-	id.subsys.connected$ID=seq(1:length(idx))
-	
-	g.connected <- graph.adjacency(tags.connected, mode="directed")
-	V(g.connected)$label <- as.character(ids.connected$Name)
-	
-# Compute the traditional list of developer influence by counting how
-# large their commit contributions were, which is fairly easy to compute
-# NOTE: The amount of code changes differs from the lwn.net analysis -- we
-# generally attribute more core to the developers. A few values were
-# cross-checked,  but I could not find anythin bogous in our calculations.
-	status("Computing classical statistics")
-	rank.by.total <- get.rank.by.field(ids.connected, "total", 20)
-	rank.by.numcommits  <- get.rank.by.field(ids.connected, "numcommits", 20)
-	
-	write.table(rank.by.total, file=paste(outdir, "/top20.total.txt", sep=""), sep="\t",
-			quote=FALSE)
-	print(xtable(rank.by.total), type="latex", floating=FALSE,
-			file=paste(outdir, "/top20.total.tex", sep=""), sanitize.colnames.function=rotate.label)
-	
-	write.table(rank.by.numcommits, file=paste(outdir, "/top20.numcommits.txt", sep=""), sep="\t",
-			quote=FALSE)
-	print(xtable(rank.by.numcommits), type="latex", floating=FALSE,
-			file=paste(outdir, "/top20.numcommits.tex", sep=""), sanitize.colnames.function=rotate.label)
-	
-	
-# Some id conversion magic tests
-#ids[which(substr(ids$Name, 0, 14) == "Linus Torvalds"),]$ID
-	
-# Compute the page ranking for all developers in the database
-	status("Computing page rank")
-# This puts the focus on tagging other persons
-	pr.for.all <- compute.pagerank(tags.connected, transpose=TRUE)
-# ... and this on being tagged. 
-	pr.for.all.tr <- compute.pagerank(tags.connected, .damping=0.3)
-	
-# NOTE: pr.for.all$value should be one, but is 0.83 for some
-# reason. This seems to be a documentation bug, though:
-# https://bugs.launchpad.net/igraph/+bug/526106
-	devs.by.pr <- influential.developers(NA, pr.for.all, tags.connected,
-			ids.connected)
-	
-	devs.by.pr.tr <- influential.developers(NA, pr.for.all.tr, tags.connected,
-			ids.connected)
-	
-#print("Top 20 page, rank (focus on giving tags)")
-	write.table(devs.by.pr[1:20,], file=paste(outdir, "/top20.pr.txt", sep=""), sep="\t",
-			quote=FALSE)
-	print(xtable(devs.by.pr[1:20,]), type="latex", floating=FALSE,
-			file=paste(outdir, "/top20.pr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
-	
-#print("Top 20 page rank (focus on being tagged)")
-	write.table(devs.by.pr.tr[1:20,], file=paste(outdir, "/top20.pr.tr.txt", sep=""), sep="\t",
-			quote=FALSE)
-	print(xtable(devs.by.pr.tr[1:20,]), type="latex", floating=FALSE,
-			file=paste(outdir, "/top20.pr.tr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
-	
-	
-# Consistency check (names and tags should be identical, IDs can differ)
-#influential.developers(20, tags.connected, ids.connected) == influential.developers(20, tags, ids)
-	
-# NOTE: This one is very cpu time intensive. Did not finish after several
-# hours. TODO: Is there any progress indicator, or until up to what size
-# does it work?
-#gBlocks <- cohesive.blocks(g)
-	
-# NOTE: When an undirected matrix is required, then
-# likely, the best thing is to compute the adjacency matrix with "add"
-# Some of the algorithms only work with undirected graphs.
-# See http://igraph.wikidot.com/community-detection-in-r
-	
-	######### Communities derived with the spinglass algorithm #################
-# NOTE: The group labels may change between different invocations
-# of the community detection algorithms. Setting a fixed random seed
-# before the detection prevents this.
-# TODO: Also investigate how stable the communities are across
-# different kernel releases.
-	status("Inferring communities with spin glasses")
-	set.seed(42)
-	g.spin.community <- spinglass.community(g.connected)
-	
-	status("Inferring communities with random walks")
-	set.seed(42)
-	g.walktrap.community <- walktrap.community(g.connected)
-	
-	
-	#--------------------
-	# Community Quality
-	#--------------------
-	
-	sg.quality <- compute.all.community.quality(g.connected, g.spin.community, "modularity") 
-	sg.quality.sig <- compute.all.community.quality(g.connected, g.spin.community, "wilcox")
-	wt.quality <- compute.all.community.quality(g.connected, g.walktrap.community, "modularity")  
-	wt.quality.sig <- compute.all.community.quality(g.connected, g.walktrap.community, "wilcox")
-	browser()
-	
-	
-	
-# TODO: Also make a pass for communities with _less_ than 10 members to see possibly
-	status("Writing community graph sources for spin glasses")
-	elems.sg.more <- select.communities.more(g.spin.community, 10)
-	save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all, outdir,
-			"sg_reg_", elems.sg.more, label="Spin Glass Community")
-	save.groups(tags.connected, ids.connected, g.spin.community, pr.for.all.tr, outdir,
-			"sg_tr_", elems.sg.more, label="Spin Glass Community")
-	
-	status("Writing community graph sources for random walks")
-	elems.wt.more <- select.communities.more(g.walktrap.community, 10)
-	elems.wt.less <- select.communities.less.equal(g.walktrap.community, 10)
-	save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all, outdir,
-			"wt_reg_big_", elems.wt.more, label="(big) Random Walk Community")
-	save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
-			"wt_tr_big_", elems.wt.more, label="(big) Random Walk Community")
-	save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all, outdir,
-			"wt_reg_small_", elems.wt.less, label="(small) Random Walk Community")
-	save.groups(tags.connected, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
-			"wt_tr_small_", elems.wt.less, label="(small) Random Walk Community")
-	
-	status("Writing the all-developers graph sources")
-# NOTE: The all-in-one graphs get a different suffix (ldot for "large dot") so that we can easily
-# skip them when batch-processing graphviz images -- they take a long while to compute
-	g.all <- save.all(tags.connected, ids.connected, pr.for.all, g.spin.community,
-			paste(outdir, "/sg_reg_all.ldot", sep=""),
-			label="Spin glass, regular page rank")
-	g.all <- save.all(tags.connected, ids.connected, pr.for.all.tr, g.spin.community,
-			paste(outdir, "/sg_tr_all.ldot", sep=""),
-			label="Spin glass, transposed page rank")
-	g.all <- save.all(tags.connected, ids.connected, pr.for.all, g.walktrap.community,
-			paste(outdir, "/wt_reg_all.ldot", sep=""),
-			label="Random walk, regular page rank")
-	g.all <- save.all(tags.connected, ids.connected, pr.for.all.tr, g.walktrap.community,
-			paste(outdir, "/wt_tr_all.ldot", sep=""),
-			label="Random walk, transposed page rank")
-	
-	status("Plotting per-cluster subsystem distribution")
-	plot.comm.subsys(g.spin.community, id.subsys.connected, paste(outdir, "/sg_comm_subsys.pdf", sep=""),
-			"spin glass")
-# Since walktrap produces smaller, but more communities, we devide the plot into two parts
-	plot.comm.subsys(g.walktrap.community, id.subsys.connected,
-			paste(outdir, "/wt_comm_subsys_big.pdf", sep=""), "random walk", elems=elems.wt.more)
-	plot.comm.subsys(g.walktrap.community, id.subsys.connected,
-			paste(outdir, "/wt_comm_subsys_small.pdf", sep=""), "random walk",
-			elems=elems.wt.less)
-	
-	status("Saving raw per-cluster statistical summaries")
-	save.cluster.stats(g.spin.community, id.subsys.connected, elems.sg.more, outdir, "sg_cluster_")
-	save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.more, outdir, "wt_cluster_")
-	save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.less, outdir, "wt_cluster_")
-	
-	print("finished person.r")
-	
+
+        ## If there are only two column names (ID and general), then
+        ## the project is not equipped with an explicit subsystem
+        ## description.
+        if (length(colnames(id.subsys)) == 2) {
+          id.subsys <- NULL
+        }
+        
+	performGraphAnalysis(tags, ids, outdir, FALSE, TRUE, id.subsys)
 }
 
+writeClassicalStatistics <- function(outdir, ids.connected) {
+  rank.by.total <- get.rank.by.field(ids.connected, "total", 20)
+  rank.by.numcommits  <- get.rank.by.field(ids.connected, "numcommits", 20)
 
+  write.table(rank.by.total, file=paste(outdir, "/top20.total.txt", sep=""),
+              sep="\t", quote=FALSE)
+  print(xtable(rank.by.total), type="latex", floating=FALSE,
+        file=paste(outdir, "/top20.total.tex", sep=""),
+        sanitize.colnames.function=rotate.label)
 
-performGraphAnalysis <- function(adjMatrix, ids, outdir){
-	
+  write.table(rank.by.numcommits, file=paste(outdir, "/top20.numcommits.txt",
+                                    sep=""), sep="\t", quote=FALSE)
+  print(xtable(rank.by.numcommits), type="latex", floating=FALSE,
+        file=paste(outdir, "/top20.numcommits.tex", sep=""),
+        sanitize.colnames.function=rotate.label)
+}
+
+performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
+                                 tagged, id.subsys=NULL){
+  
 	#====================================
 	#     Find Connected Subgraphs
 	#====================================
 	#scale edge weights to integer values 
 	#adjMatrix <- ceiling(scale.data(adjMatrix, 0, 1000))  
 	
-	
+        if (.weighted == FALSE) {
+          .weighted = NULL
+        }
 	# Isolated graph members are outliers for the Linux kernel. Eliminate
 	# them to create a connected graph (NOTE: This must not be done for
 	# projects where proper direct clustering can happen)
 	status("Computing adjacency matrices")
 	
-	g <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
+	g <- graph.adjacency(adjMatrix, mode="directed", weighted=.weighted)
 	g.clust <- clusters(g)
 	
 	#find the index of the largest connected cluster 
@@ -979,11 +839,18 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	ids.connected <- ids[idx,]
 	ids.connected$ID=seq(1:length(idx))
 	ids.connected$Name <- as.character(ids.connected$Name)
+
+        if (!is.null(id.subsys)) {
+          id.subsys.connected <- id.subsys[idx,]
+          id.subsys.connected$ID=seq(1:length(idx))
+        }
 	
-	g.connected <- graph.adjacency(adjMatrix.connected, mode="directed", weighted=TRUE)
+	g.connected <- graph.adjacency(adjMatrix.connected, mode="directed",
+                                       weighted=.weighted)
 	V(g.connected)$label <- as.character(ids.connected$Name)
 	
-
+        # TODO: Include computing classical statistics from performTagAnalysis
+        
 	#========================
 	#  Page rank analysis 
 	#========================
@@ -991,23 +858,28 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	# Compute the page ranking for all developers in the database
 	status("Computing page rank")
 	# This puts the focus on tagging other persons
-	pr.for.all <- compute.pagerank(adjMatrix.connected, transpose=TRUE, weights=TRUE)
+	pr.for.all <- compute.pagerank(adjMatrix.connected, transpose=TRUE,
+                                       weights=.weighted)
 	# ... and this on being tagged. 
-	pr.for.all.tr <- compute.pagerank(adjMatrix.connected, .damping=0.3, weights=TRUE)
+	pr.for.all.tr <- compute.pagerank(adjMatrix.connected, .damping=0.3,
+                                          weights=.weighted)
 	
 	# NOTE: pr.for.all$value should be one, but is 0.83 for some
 	# reason. This seems to be a documentation bug, though:
 	# https://bugs.launchpad.net/igraph/+bug/526106
 	devs.by.pr <- influential.developers(NA, pr.for.all, adjMatrix.connected,
-		ids.connected)
+                                             ids.connected)
 
-	devs.by.pr.tr <- influential.developers(NA, pr.for.all.tr, adjMatrix.connected,
-		ids.connected)
+	devs.by.pr.tr <- influential.developers(NA, pr.for.all.tr,
+                                                adjMatrix.connected, ids.connected)
+        
 	#-----------
 	#save data 
 	#-----------
 	writePageRankData(outdir, devs.by.pr, devs.by.pr.tr)
-	
+
+        status("Computing classical statistics")
+        writeClassicalStatistics(outdir, ids.connected)
 	
 	#=======================
 	# Find Communities 
@@ -1015,7 +887,12 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	#scale the weight in the adjacency matrix for propers visualization
 	#graphviz requires integer edge weights
 	#adjMatrix.connected.scaled = round( scale.data(adjMatrix.connected, 0, 1000) )
-    adjMatrix.connected.scaled <- adjMatrix.connected
+        adjMatrix.connected.scaled <- adjMatrix.connected
+        if (tagged) {
+          save.group.fn <- save.group
+        } else {
+          save.group.fn <- save.group.NonTag
+        }
 	
 	#--------------------
 	#infomap
@@ -1032,10 +909,17 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	
 	status("Writing community graph sources for spin glasses")
 	elems.sg.more <- select.communities.more(g.spin.community, 10)
-	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.spin.community, pr.for.all, outdir,
-			"sg_reg_", elems.sg.more, label="Spin Glass Community")
-	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.spin.community, pr.for.all.tr, outdir,
-			"sg_tr_", elems.sg.more, label="Spin Glass Community")
+
+        # TODO: For the non-tagged analysis, use save.groups instead of
+        # save.groups.NonTag (functions are of the same signature)
+        save.groups(adjMatrix.connected.scaled, ids.connected,
+                    g.spin.community, pr.for.all, outdir,
+                    "sg_reg_", elems.sg.more, save.group.fn,
+                    label="Spin Glass Community")
+	save.groups(adjMatrix.connected.scaled, ids.connected,
+                    g.spin.community, pr.for.all.tr, outdir,
+                    "sg_tr_", elems.sg.more, save.group.fn,
+                    label="Spin Glass Community")
 	
 	#--------------------
 	#random walk
@@ -1046,67 +930,84 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir){
 	
 	status("Writing community graph sources for random walks")
 	elems.wt.more <- select.communities.more(g.walktrap.community, 10)
-	#when selecting elements lower than some value we must take care to no select 
-	#communities with size 1 as the graph.adjacency function fail with the weights attribute true
+	#when selecting elements lower than some value we must take care to no
+	#select communities with size 1 as the graph.adjacency function fail
+	#with the weights attribute true
 	elems.wt.less <- select.communitiy.size.range(g.walktrap.community, 2, 10) #communities of size 2-10)
-	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.walktrap.community, pr.for.all, outdir,
-			"wt_reg_big_", elems.wt.more, label="(big) Random Walk Community")
-	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
-			"wt_tr_big_", elems.wt.more, label="(big) Random Walk Community")
+	save.groups(adjMatrix.connected.scaled, ids.connected,
+                    g.walktrap.community, pr.for.all, outdir,
+                    "wt_reg_big_", elems.wt.more, save.group.fn,
+                    label="(big) Random Walk Community")
+	save.groups(adjMatrix.connected.scaled, ids.connected,
+                    g.walktrap.community, pr.for.all.tr, outdir,
+                    "wt_tr_big_", elems.wt.more, save.group.fn,
+                    label="(big) Random Walk Community")
 	
-	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.walktrap.community, pr.for.all, outdir,
-			"wt_reg_small_", elems.wt.less, label="(small) Random Walk Community")
-	save.groups.NonTag(adjMatrix.connected.scaled, ids.connected, g.walktrap.community, pr.for.all.tr, outdir,
-			"wt_tr_small_", elems.wt.less, label="(small) Random Walk Community")
+	save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
+                    pr.for.all, outdir, "wt_reg_small_", elems.wt.less,
+                    save.group.fn, label="(small) Random Walk Community")
+	save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
+                    pr.for.all.tr, outdir, "wt_tr_small_", elems.wt.less,
+                    save.group.fn, label="(small) Random Walk Community")
 	
 	#--------------------
 	# Community Quality
 	#--------------------
-	browser()
+        # TODO: Export the quality data somewhere
 	sg.quality.modularity  <- compute.all.community.quality(g.connected, g.spin.community, "modularity") 
 	sg.quality.conductance <- compute.all.community.quality(g.connected, g.spin.community, "conductance")
 	sg.quality.modularization <- compute.all.community.quality(g.connected, g.spin.community, "modularization")
 	wt.quality.modularity  <- compute.all.community.quality(g.connected, g.walktrap.community, "modularity")  
 	wt.quality.conductance <- compute.all.community.quality(g.connected, g.walktrap.community, "conductance")
 	wt.quality.modularization <- compute.all.community.quality(g.connected, g.walktrap.community, "modularization")
-	browser()
-	#------------------
+
+        #------------------
 	# Write other data 
 	#-----------------
 	status("Writing the all-developers graph sources")
 	
-	# NOTE: The all-in-one graphs get a different suffix (ldot for "large dot") so that we can easily
-	# skip them when batch-processing graphviz images -- they take a long while to compute
-	g.all <- save.all.NonTag(adjMatrix.connected.scaled, ids.connected, pr.for.all, g.spin.community,
-			paste(outdir, "/sg_reg_all.ldot", sep=""),
-			label="Spin glass, regular page rank")
-	g.all <- save.all.NonTag(adjMatrix.connected.scaled, ids.connected, pr.for.all.tr, g.spin.community,
-			paste(outdir, "/sg_tr_all.ldot", sep=""),
-			label="Spin glass, transposed page rank")
-	g.all <- save.all.NonTag(adjMatrix.connected.scaled, ids.connected, pr.for.all, g.walktrap.community,
-			paste(outdir, "/wt_reg_all.ldot", sep=""),
-			label="Random walk, regular page rank")
-	g.all <- save.all.NonTag(adjMatrix.connected.scaled, ids.connected, pr.for.all.tr, g.walktrap.community,
-			paste(outdir, "/wt_tr_all.ldot", sep=""),
-			label="Random walk, transposed page rank")
-	
-#	status("Plotting per-cluster subsystem distribution")
-#	plot.comm.subsys(g.spin.community, id.subsys.connected, paste(outdir, "/sg_comm_subsys.pdf", sep=""),
-#			"spin glass")
-#	# Since walktrap produces smaller, but more communities, we devide the plot into two parts
-#	plot.comm.subsys(g.walktrap.community, id.subsys.connected,
-#			paste(outdir, "/wt_comm_subsys_big.pdf", sep=""), "random walk", elems=elems.wt.more)
-#	plot.comm.subsys(g.walktrap.community, id.subsys.connected,
-#			paste(outdir, "/wt_comm_subsys_small.pdf", sep=""), "random walk",
-#			elems=elems.wt.less)
-#	
-#	status("Saving raw per-cluster statistical summaries")
-#	save.cluster.stats(g.spin.community, id.subsys.connected, elems.sg.more, outdir, "sg_cluster_")
-#	save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.more, outdir, "wt_cluster_")
-#	save.cluster.stats(g.walktrap.community, id.subsys.connected, elems.wt.less, outdir, "wt_cluster_")
-	
-	print("")
-	
+	# NOTE: The all-in-one graphs get a different suffix (ldot for "large
+	# dot") so that we can easily skip them when batch-processing graphviz
+	# images -- they take a long while to compute
+	g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all,
+                          g.spin.community, save.group.fn,
+                          paste(outdir, "/sg_reg_all.ldot", sep=""),
+                          label="Spin glass, regular page rank")
+	g.all <- save.all(adjMatrix.connected.scaled, ids.connected,
+                          pr.for.all.tr, g.spin.community, save.group.fn,
+                          paste(outdir, "/sg_tr_all.ldot", sep=""),
+                          label="Spin glass, transposed page rank")
+	g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all,
+                          g.walktrap.community, save.group.fn,
+                          paste(outdir, "/wt_reg_all.ldot", sep=""),
+                          label="Random walk, regular page rank")
+	g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all.tr,
+                          g.walktrap.community, save.group.fn,
+                          paste(outdir, "/wt_tr_all.ldot", sep=""),
+                          label="Random walk, transposed page rank")
+
+        if (!is.null(id.subsys)) {
+          status("Plotting per-cluster subsystem distribution")
+          plot.comm.subsys(g.spin.community, id.subsys.connected,
+                           paste(outdir, "/sg_comm_subsys.pdf", sep=""),
+                           "spin glass")
+          ## Since walktrap produces smaller, but more communities, we divide the
+          ## plot into two parts
+          plot.comm.subsys(g.walktrap.community, id.subsys.connected,
+                           paste(outdir, "/wt_comm_subsys_big.pdf", sep=""),
+                           "random walk", elems=elems.wt.more)
+          plot.comm.subsys(g.walktrap.community, id.subsys.connected,
+                           paste(outdir, "/wt_comm_subsys_small.pdf", sep=""),
+                           "random walk", elems=elems.wt.less)
+          
+          status("Saving raw per-cluster statistical summaries")
+          save.cluster.stats(g.spin.community, id.subsys.connected, elems.sg.more,
+                             outdir, "sg_cluster_")
+          save.cluster.stats(g.walktrap.community, id.subsys.connected,
+                             elems.wt.more, outdir, "wt_cluster_")
+          save.cluster.stats(g.walktrap.community, id.subsys.connected,
+                             elems.wt.less, outdir, "wt_cluster_")
+        }
 }
 
 
@@ -1137,7 +1038,7 @@ performNonTagAnalysis <- function(outdir){
 	# Graph Analysis
 	#--------------------------
 	
-	performGraphAnalysis(adjMatrix, ids, outdir)
+	performGraphAnalysis(adjMatrix, ids, outdir, TRUE, FALSE)
 	
 	
 }
@@ -1284,7 +1185,7 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2, outputFileName){
 	dev.off()
 	
 	
-	performGraphAnalysis(similarity.adjMatrix.weighted, ids.intersect, "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments")
+	performGraphAnalysis(similarity.adjMatrix.weighted, ids.intersect, "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments", TRUE, FALSE)
 	
 	
 	#write.graph.2.file("/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments/similarityGraph.dot", g.similarity, ids.intersect, ids.intersect$ID)
@@ -1549,7 +1450,7 @@ test.community.quality.modularity <- function() {
 #     					 Executed Statements  
 #########################################################################
 #TagTest()
-nonTagTest()
+#nonTagTest()
 #test.community.quality()
 #test.community.quality.modularity()
 #----------------------------
