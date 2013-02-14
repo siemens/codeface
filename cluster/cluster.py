@@ -1104,10 +1104,9 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
 
     # Determine in which ways the authors are connected with each other,
     # plus some more statistical information
-#    person_ids = {} # NOTE: May only be accessed via getPersonID
-#    persons = {}
     id_mgr = idManager()
-    id_mgr.setSubsysNames(kerninfo.subsysDescrLinux.keys())
+    if subsys_descr != None:
+        id_mgr.setSubsysNames(subsys_descr.keys())
     createStatisticalData(cmtlist, id_mgr)
                           
     # Save the results in text files that can be further processed with
@@ -1150,7 +1149,7 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outbase, git_repo,
     if nonTag:
         filename = os.path.join(outbase, "{0}-{1}-{2}-nonTag".
                                 format(project, from_rev, to_rev))
-        print("performing nonTag based analysis")
+        print("Performing non-tag based analysis")
         performNonTagAnalysis(filename, git_repo, create_db, outdir,
                               [from_rev, to_rev], limitHistory)
     
@@ -1158,9 +1157,10 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outbase, git_repo,
         filename = os.path.join(outbase, "{0}-{1}-{2}-Tag".
                                 format(project, from_rev, to_rev))
 
-        print("performing Tag based analysis")
+        print("Performing tag based analysis")
         performAnalysis(filename, git_repo, [from_rev, to_rev],
-                        kerninfo.subsysDescrLinux,
+#                        kerninfo.subsysDescrLinux,
+                        None,
                         create_db, outdir, rc_range)
 
 
