@@ -496,32 +496,10 @@ save.cluster.stats <- function(.comm, .id.subsys, .elems, .outdir, .basename) {
 	}
 }
 
-save.all.NonTag <- function(.tags, .iddb, .prank, .comm, .filename=NULL, label=NA) {
-	g.all <- save.group.NonTag(.tags, .iddb, .iddb$ID, .prank, .filename=NULL)
-	V(g.all)$label <- .iddb$ID
-	V(g.all)$pencolor <- V(g.all)$fillcolor
-	
-	elems <- select.communities.more(.comm, 10) # Communities with at least 11 members
-	red <- as.integer(scale.data(0:(length(elems)+1), 0, 255))
-	##  grey <- as.integer(scale.data(0:(length(elems)+1), 0, 99))
-	for (i in elems) {
-		idx <- as.vector(which(.comm$membership==i))
-		V(g.all)[idx]$fillcolor <- col.to.hex("#", red[i+1], 0, 0)
-	}
-	
-	if (!is.na(label)) {
-		g.all$label = label
-	}
-	
-	if (!is.null(.filename)) {
-		write.graph(g.all, .filename, format="dot")
-	}
-	
-	return(g.all)
-}
-
-save.all <- function(.tags, .iddb, .prank, .comm, .filename=NULL, label=NA) {
-	g.all <- save.group(.tags, .iddb, .iddb$ID, .prank, .filename=NULL)
+## save.group.fn can either be save.group or save.group.NonTag
+save.all <- function(.tags, .iddb, .prank, .comm, save.group.fn, .filename=NULL,
+                     label=NA) {
+	g.all <- save.group.fn(.tags, .iddb, .iddb$ID, .prank, .filename=NULL)
 	V(g.all)$label <- .iddb$ID
 	V(g.all)$pencolor <- V(g.all)$fillcolor
 	
