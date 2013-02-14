@@ -3,19 +3,32 @@
 #==================
 #   Configure
 #==================
-BASEDIR=/home/wolfgang/projects/swi/prosoda/cluster
-GITDIR=/home/wolfgang/git-repos/
-PROJECT=linux
-#TAG="tag"
-TAG="non_tag"
-#=================================================================
+BASEDIR=${BASEDIR:-/home/wolfgang/projects/swi/prosoda/cluster}
+GITDIR=${GITDIR:-/home/wolfgang/git-repos/}
+PROJECT=${PROJECT:-linux}
+TAG=${TAG:-tag}
 
+# Nothing customisable below here
+#=================================================================
 CLUSTER=${BASEDIR}/cluster.py
 CONV=${BASEDIR}/conv.py
 PERSONS=${BASEDIR}/persons.r
 REPORT=${BASEDIR}/create_report.pl
 GITREPO=${GITDIR}/${PROJECT}/.git
 TAG_OPT="--${TAG}"
+
+# Parameter sanity checks
+if [[ "$TAG" != "tag" && "$TAG" != "non_tag" ]]
+then
+    echo "Please specify either 'tag' or 'non_tag' for TAG.";
+    exit -1;
+fi
+
+if [ ! -e ${GITDIR} ]
+then
+    echo "Please specify a valid git repository.";
+    exit -1;
+fi
 
 for i in "$@"; do
     VERSION=v2.6.$((i+1))
