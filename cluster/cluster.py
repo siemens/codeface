@@ -50,9 +50,13 @@ def createFileCmtDB(filename, git_repo, revrange):
     git.config4LinuxKernelAnalysis()
     git.setRevisionRange(revrange[0], revrange[1])
     
-    
     git.extractFileCommitData()
-    
+
+    # TODO TODO TODO: All the information acquired in this pass should
+    # already be available from extractFileCommitData, so we're surely
+    # duplicating work here
+    git.extractCommitData()
+
     print("Shelfing the VCS object")
     output = open(filename, 'wb')
     pickle.dump(git, output, -1)
@@ -733,13 +737,13 @@ def createStatisticalData(cmtlist, id_mgr):
     # longer, so optimisations are better spent there.
     widgets = ['Pass 2/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
     pbar = ProgressBar(widgets=widgets, maxval=len(cmtlist)).start()
-    
+
     for i in range(0, len(cmtlist)):
         cmt = cmtlist[i]
 
         if i % 10 == 0:
             pbar.update(i)
-            
+
         # Second, infer in which way people are involved in the commit
         ID = id_mgr.getPersonID(cmt.getAuthorName())
         pi = id_mgr.getPI(ID)
@@ -981,8 +985,10 @@ def buildCollaborationStructure(fileCommitList, cmtList, id_mgr, startDate=None)
             
         
 def writeData(cmtList, id_mgr,  outdir):
+    # TODO: Large parts of this function are 99% identical with
+    # emitStatisticalData. Refactor the commonalities into one joint function
     '''
-    write data to file to be further processed by statistics software
+    Write data to file to be further processed by statistics software
     
     Several files are created in outdir:
     - Names/ID Edges (ids.txt)
@@ -995,12 +1001,18 @@ def writeData(cmtList, id_mgr,  outdir):
                            delimiter='\t',
                            quotechar='\\', quoting=csv.QUOTE_MINIMAL)
     # Header
-    id_writer.writerow(["ID", "Name", "eMail"])
+    id_writer.writerow(["ID", "Name", "eMail", "added", "deleted", "total",
+                        "numcommits"])
 
     # Content
     for id in sorted(id_mgr.getPersons().keys()):
         pi = id_mgr.getPI(id)
-        id_writer.writerow( [id, pi.getName(), pi.getEmail()] )
+        cmt_stat = pi.getCommitStats()
+        added = cmt_stat["added"]
+        deleted = cmt_stat["deleted"]
+        numcommits = cmt_stat["numcommits"]
+        id_writer.writerow([id, pi.getName(), pi.getEmail(), added, deleted,
+                            added + deleted, numcommits])
     
     ##############
     # Store the adjacency matrix for developers, i.e., create
@@ -1029,7 +1041,7 @@ def writeData(cmtList, id_mgr,  outdir):
 
     return None
     
-def processPersonData(id_mgr):
+def processPersonData(cmtlist, id_mgr):
     '''
     processing of data in the id_mgr that requires all data 
     to be present.
@@ -1038,10 +1050,28 @@ def processPersonData(id_mgr):
     #contributors
     #TODO: maybe this can be moved into id manager 
     #[id_mgr.getPI(Id).EdgeProcessing() for Id in id_mgr.getPersons().keys()] 
+
+    # TODO: This is just c&p from createStatisticalData. The functions
+    # need to be merged once the non-tag analysis is stable enough
+    widgets = ['Pass 2/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
+    pbar = ProgressBar(widgets=widgets, maxval=len(cmtlist)).start()
+
+    for i in range(0, len(cmtlist)):
+        cmt = cmtlist[i]
+
+        if i % 10 == 0:
+            pbar.update(i)
+
+        # Second, infer in which way people are involved in the commit
+        ID = id_mgr.getPersonID(cmt.getAuthorName())
+        pi = id_mgr.getPI(ID)
+        cmt.setAuthorPI(pi)
+
+        pi.addCommit(cmt)
     
     #compute the per-author commit summaries.
     for (key, person) in id_mgr.getPersons().iteritems():
-       # person.computeCommitStats()
+        person.computeCommitStats()
         person.edgeProcessing()
     
 ###########################################################################
@@ -1055,7 +1085,6 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange,
         
     print("Reading from data base {0}...".format(dbfilename))
     git = readDB(dbfilename)
-    
     
     #store relevant VCS object attributes
     cmtList = git.getCommitDict()
@@ -1081,7 +1110,10 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange,
     #perform processing on collaboration data, all collaboration 
     #data is required to be present for this to work correctly 
     #-------------------------------------------------------------
-    processPersonData(id_mgr)
+    # TODO: cmtlist is an actual list, cmtList (capital L)is (
+    # why of WHY) a _HASH_, not a list.
+    cmtlist = git.extractCommitData("__main__")
+    processPersonData(cmtlist, id_mgr)
     
     #-------------------------------------------------------------------
     # Save the results in text files that can be further processed with
