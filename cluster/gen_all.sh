@@ -30,28 +30,37 @@ then
     exit -1;
 fi
 
-for i in "$@"; do
-    VERSION=v2.6.$((i+1))
-    echo "Processing ${VERSION}"
+if [[ "$#" -ne 2 && "$#" -ne 3 ]]
+then
+    echo "Usage: $0 start_rev end_rev <rc_start>";
+    exit -1;
+fi
 
-    ${CLUSTER} ${GITREPO} ${PROJECT} ${BASEDIR}/res/${PROJECT}/${TAG} \
-	v2.6.${i} v2.6.$((i+1)) v2.6.$((i+1))-rc1 ${TAG_OPT} --create_db
+START_REV=$1
+END_REV=$2
+RC_START=$3
 
-    ${PERSONS} ${BASEDIR}/res/${PROJECT}/${TAG}/${VERSION} ${TAG_OPT}
+echo "Processing ${PROJECT} (${START_REV}..${END_REV})"
+echo "-> Preparing clustering input"
+${CLUSTER} ${GITREPO} ${PROJECT} ${BASEDIR}/res/${PROJECT}/${TAG} \
+    ${START_REV} ${END_REV} ${RC_START} ${TAG_OPT} --create_db
 
-    (cd ${BASEDIR}/res/${PROJECT}/${TAG}/${VERSION};
-	for file in `ls sg*.dot wt*.dot`; do 
-	    basefile=`basename $file .dot`; 
-	    echo "Processing $file"; 
-	    cat $file | ${CONV} | sfdp -Tpdf -Gcharset=latin1 > ${basefile}.pdf; 
+echo "-> Detecting clusters"
+${PERSONS} ${BASEDIR}/res/${PROJECT}/${TAG}/${END_REV} ${TAG_OPT}
+
+echo "-> Generating cluster graphs"
+(cd ${BASEDIR}/res/${PROJECT}/${TAG}/${END_REV};
+    for file in `ls sg*.dot wt*.dot`; do
+	basefile=`basename $file .dot`;
+	cat $file | ${CONV} | sfdp -Tpdf -Gcharset=latin1 > ${basefile}.pdf;
 	done)
 
-    if [ ! -d "${BASEDIR}/res/${PROJECT}/${TAG}/latex" ]; then
-	   mkdir ${BASEDIR}/res/${PROJECT}/${TAG}/latex
-    fi
+echo "-> Creating summary report"
+if [ ! -d "${BASEDIR}/res/${PROJECT}/${TAG}/latex" ]; then
+    mkdir ${BASEDIR}/res/${PROJECT}/${TAG}/latex
+fi
 
-    ${REPORT} ${BASEDIR}/res/${PROJECT}/${TAG}/${VERSION} "${i}..$((i+1))" > ${BASEDIR}/res/${PROJECT}/${TAG}/latex/report_${VERSION}.tex;
-    (cd ${BASEDIR}/res/${PROJECT}/${TAG}/latex && \
-	pdflatex -output-directory=${BASEDIR}/res/${PROJECT}/${TAG}/ \
-	${BASEDIR}/res/${PROJECT}/${TAG}/latex/report_${VERSION}.tex)
-done
+${REPORT} ${BASEDIR}/res/${PROJECT}/${TAG}/${END_REV} "${i}..$((i+1))" > ${BASEDIR}/res/${PROJECT}/${TAG}/latex/report_${END_REV}.tex;
+(cd ${BASEDIR}/res/${PROJECT}/${TAG}/latex && \
+    pdflatex -output-directory=${BASEDIR}/res/${PROJECT}/${TAG}/ \
+    ${BASEDIR}/res/${PROJECT}/${TAG}/latex/report_${END_REV}.tex)
