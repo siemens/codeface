@@ -781,10 +781,11 @@ class gitVCS (VCS):
           
        
     def _prepareFileCommitList(self, fnameList):
-        
+        # TODO: This function mixes preparing the commit list with parsing
+        # the commits. This should be separated, as in the generic case
         #variable initialization 
         self._fileCommit_dict = {}
-        self._commit_dict = {}
+#        self._commit_dict = {}
         blameMsgCmtIds = set() #stores all commit Ids seen from blame messages
         
         count = 0
