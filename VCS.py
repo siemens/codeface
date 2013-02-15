@@ -173,6 +173,7 @@ class gitVCS (VCS):
         self.cmtHashPattern = re.compile(r'^\w{40}$') 
         self.logPattern = re.compile(r'^(.*?) (.*)$')
         self.authorPattern = re.compile(r'^Author: (.*)$')
+        self.committerPattern = re.compile(r'^Commit: (.*)$')
         self.signedOffPattern = re.compile(r'^(.*?): (.*)$')
         self.diffStatFilesPattern = re.compile(r'(\d*?) file(|s) changed')
         self.diffStatInsertPattern = re.compile(r' (\d*?) insertion')
@@ -522,12 +523,15 @@ class gitVCS (VCS):
         commit_index = i
         descr_index = i+1
 
-        # Determine the author
+        # Determine author and committer
         for line in parts[commit_index].split("\n"):
             match = self.authorPattern.search(line)
             if (match):
-                author = match.group(1)
-                cmt.author = author
+                cmt.author = match.group(1)
+
+            match = self.committerPattern.search(line)
+            if (match):
+                cmt.committer = match.group(1)
 
         signed_off_part = parts[descr_index].split("\n    \n    ")[-1]
         # Ensure that there are actually signed-offs in the signed-off
@@ -673,9 +677,9 @@ class gitVCS (VCS):
             # combination
             for difftype in ("", "--patience"):
                 for whitespace in ("", "--ignore-space-change"):
-                    cmd = ("git --git-dir={0} show --shortstat --numstat "
-                           "{1} {2} {3}".format(self.repo, difftype, 
-                                                whitespace, cmt.id)).split()
+                    cmd = ("git --git-dir={0} show --format=full --shortstat "
+                           "--numstat {1} {2} {3}".format(self.repo, difftype,
+                                                       whitespace, cmt.id)).split()
                     try:
 #                        print("About to call " + " ".join(cmd))
                         p2 = Popen(cmd, stdout=PIPE)
