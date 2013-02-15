@@ -418,6 +418,12 @@ class gitVCS (VCS):
 
         return cmt
 
+    # TODO: This function sets up a second way how to parse
+    # logstrings, with slightly different logstrings than in the
+    # regular case. Since all commits are parsed with the standard
+    # methods, there is no need for constructing half-filled
+    # commit objects. Use the infrastructure provided by _Logstring2Commit
+    # to replace this function
     def _LogString2CommitExtra(self, str):
         '''Similar to Logstring2Commit, Create an instance of commit.Commit 
         from a given log string. Adds extra data compared to Logstring2Commit
