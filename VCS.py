@@ -475,6 +475,72 @@ class gitVCS (VCS):
 
         cmt.diff_info.append((int(files), int(insertions), int(deletions)))
 
+    def _parseCommit(self, cmt):
+        # First, determine which subsystems are touched by the commit
+        cmt_subsystems = cmt.getSubsystemsTouched()
+        touched_subsys = False
+
+        for subsys in self.subsys_description.keys():
+            if cmt.id in self._commit_id_list_dict[subsys]:
+                cmt_subsystems[subsys] = 1
+                touched_subsys = True
+            else:
+                cmt_subsystems[subsys] = 0
+
+        # Commit is not associated with a specific subsystem, so
+        # file it under "general"
+        if touched_subsys == False:
+            cmt_subsystems["general"] = 1
+        else:
+            cmt_subsystems["general"] = 0
+
+            cmt.setSubsystemsTouched(cmt_subsystems)
+
+        # Second, check if the commit is within the release cycle
+        if self._rc_id_list != None:
+            if cmt.id in self._rc_id_list:
+                cmt.setInRC(True)
+            else:
+                cmt.setInRC(False)
+
+        # Third, analyse the diff content
+        # TODO: Using a list of entries in diff_info is suboptimal.
+        # This should be replaced with a hash indexed by parameter
+        # combination
+        for difftype in ("", "--patience"):
+            for whitespace in ("", "--ignore-space-change"):
+                cmd = ("git --git-dir={0} show --format=full --shortstat "
+                       "--numstat {1} {2} {3}".format(self.repo, difftype,
+                                                      whitespace, cmt.id)).split()
+                try:
+                    # print("About to call " + " ".join(cmd))
+                    p2 = Popen(cmd, stdout=PIPE)
+                    msg = p2.communicate()[0]
+                    self._analyseDiffStat(msg, cmt)
+                except UnicodeDecodeError:
+                    # Since we work in utf8 (which git returns and
+                    # Python is supposed to work with), this exception
+                    # seems to stem from a faulty encoding. Just
+                    # ignore the commit
+                    cmt.diff_info.append((0,0,0))
+                except ParseError as pe:
+                    # Since the diff format is very easy to parse,
+                    # this most likely stems from a malformed diff
+                    # that can be ignored. Nevertheless, report the
+                    # line and the commit id
+                    print("Could not parse diffstat for {0}!".
+                          format(pe.id))
+                    print("{0}".format(pe.line))
+                    cmt.diff_info.append((0,0,0))
+                except OSError:
+                    _abort("Internal error: Could not spawn git")
+
+            # The commit message is independent of the diff type, so we
+            # can re-use the information in msg
+            self._analyseCommitMsg(msg, cmt)
+
+
+
     def _analyseCommitMsg(self, msg, cmt):
         """Analyse the commit message."""
         # The format we are analysing is the following:
@@ -644,69 +710,7 @@ class gitVCS (VCS):
 #                  format(count, len(self._commit_list_dict["__main__"]), 
 #                         cmt.id))
 
-            # First, determine which subsystems are touched by the commit
-            cmt_subsystems = cmt.getSubsystemsTouched()
-            touched_subsys = False
-
-            for subsys in self.subsys_description.keys():
-                if cmt.id in self._commit_id_list_dict[subsys]:
-                    cmt_subsystems[subsys] = 1
-                    touched_subsys = True
-                else:
-                    cmt_subsystems[subsys] = 0
-
-            # Commit is not associated with a specific subsystem, so
-            # file it under "general"
-            if touched_subsys == False:
-                cmt_subsystems["general"] = 1
-            else:
-                cmt_subsystems["general"] = 0
-
-            cmt.setSubsystemsTouched(cmt_subsystems)
-
-            # Second, check if the commit is within the release cycle
-            if self._rc_id_list != None:
-                if cmt.id in self._rc_id_list:
-                    cmt.setInRC(True)
-                else:
-                    cmt.setInRC(False)
-
-            # Third, analyse the diff content
-            # TODO: Using a list of entries in diff_info is suboptimal.
-            # This should be replaced with a hash indexed by parameter
-            # combination
-            for difftype in ("", "--patience"):
-                for whitespace in ("", "--ignore-space-change"):
-                    cmd = ("git --git-dir={0} show --format=full --shortstat "
-                           "--numstat {1} {2} {3}".format(self.repo, difftype,
-                                                       whitespace, cmt.id)).split()
-                    try:
-#                        print("About to call " + " ".join(cmd))
-                        p2 = Popen(cmd, stdout=PIPE)
-                        msg = p2.communicate()[0]
-                        self._analyseDiffStat(msg, cmt)
-                    except UnicodeDecodeError:
-                        # Since we work in utf8 (which git returns and
-                        # Python is supposed to work with), this exception
-                        # seems to stem from a faulty encoding. Just
-                        # ignore the commit
-                        cmt.diff_info.append((0,0,0))
-                    except ParseError as pe:
-                        # Since the diff format is very easy to parse,
-                        # this most likely stems from a malformed diff
-                        # that can be ignored. Nevertheless, report the
-                        # line and the commit id
-                        print("Could not parse diffstat for {0}!".
-                              format(pe.id))
-                        print("{0}".format(pe.line))
-                        cmt.diff_info.append((0,0,0))
-                    except OSError:
-                        _abort("Internal error: Could not spawn git")
-                        
-            # The commit message is independent of the diff type, so we
-            # can re-use the information in msg
-            self._analyseCommitMsg(msg, cmt)
-
+            self._parseCommit(cmt)
 
         # For the subsystems, we need not re-analyse the commits again,
         # but can just pick the results from the global analysis. 
