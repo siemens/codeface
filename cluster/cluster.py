@@ -50,12 +50,8 @@ def createFileCmtDB(filename, git_repo, revrange):
     git.config4LinuxKernelAnalysis()
     git.setRevisionRange(revrange[0], revrange[1])
     
-    git.extractFileCommitData()
-
-    # TODO TODO TODO: All the information acquired in this pass should
-    # already be available from extractFileCommitData, so we're surely
-    # duplicating work here
     git.extractCommitData()
+    git.extractFileCommitData()
 
     print("Shelfing the VCS object")
     output = open(filename, 'wb')
