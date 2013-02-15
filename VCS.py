@@ -818,8 +818,9 @@ class gitVCS (VCS):
                 #since a commit can touch many files, we use the commit 
                 #hash to reference the commit data (author, date etc)
                 for cmt in cmtList:
-                    self._commit_dict[cmt.id] = cmt
-                    
+                    if cmt not in self._commit_dict:
+                        self._commit_dict[cmt.id] = cmt
+                        self._parseCommit(cmt)
                       
                 #get git blame information for each commit in each file 
                 for cmt in cmtList:
