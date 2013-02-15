@@ -395,7 +395,7 @@ class gitVCS (VCS):
         match = self.logPattern.search(str)
         if not(match):
             # TODO: Throw an exception
-            print("Internal error: Could not parse log string!")
+            print("Internal error: _Logstring2ID could not parse log string!")
             sys.exit(-1)
 
         return match.group(2)
@@ -409,7 +409,7 @@ class gitVCS (VCS):
         match = self.logPattern.search(str)
         if not(match):
             # TODO: Throw an exception
-            print("Internal error: Could not parse log string!")
+            print("Internal error: _Logstring2Commit could not parse log string!")
             sys.exit(-1)
 
         cmt = commit.Commit()
