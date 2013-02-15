@@ -876,16 +876,30 @@ class gitVCS (VCS):
         #find all commits that are missing from the commit dictionary
         #recall that fileCommit_dict stores all the commit ids for a 
         #file to reference commit objects in the commit_dict
+        # TODO: The number of commits found this way seems fairly large
+        # Check if the method is really correct.
         missingCmtIds = blameMsgCmtIds - set(self._commit_dict)
         
         #retrieve missing commit information and add it to the commit_dict
-        self._commit_dict.update( { cmtId:self.cmtHash2CmtObj(cmtId) for cmtId in missingCmtIds} )    
-            
+        missingCmts = [ self.cmtHash2CmtObj(cmtId)
+                        for cmtId in missingCmtIds ]
+        count = 0
+        widgets = ['Pass 1.5/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
+        pbar = ProgressBar(widgets=widgets,
+                           maxval=len(missingCmts)).start()
+
+        for cmt in missingCmts:
+            count += 1
+            if count % 20 == 0:
+                pbar.update(count)
+
+            self._commit_dict[cmt.id] = cmt
+            self._parseCommit(cmt)
+
         #TODO: figure out a way to get the missing commits without 
         #      having to parse all commit messages
         #get entire commit history on file
         #self._commit_dict.update( {cmt.id: cmt for cmt in self.getFileCommits() if not(self._commit_dict.has_key(cmt.id))} )
-        print(len(self._fileCommit_dict))       
     
     def cmtHash2CmtObj(self, cmtHash):
         '''
