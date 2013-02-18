@@ -39,17 +39,19 @@ fi
 START_REV=$1
 END_REV=$2
 RC_START=$3
+RESDIR="${START_REV}-${END_REV}"
 
 echo "Processing ${PROJECT} (${START_REV}..${END_REV})"
 echo "-> Preparing clustering input"
-${CLUSTER} ${GITREPO} ${PROJECT} ${BASEDIR}/res/${PROJECT}/${TAG} \
+${CLUSTER} ${GITREPO} ${PROJECT} \
+    ${BASEDIR}/res/${PROJECT}/${TAG}/${START_REV}-${END_REV} \
     ${START_REV} ${END_REV} ${RC_START} ${TAG_OPT} --create_db
 
 echo "-> Detecting clusters"
-${PERSONS} ${BASEDIR}/res/${PROJECT}/${TAG}/${END_REV} ${TAG_OPT}
+${PERSONS} ${BASEDIR}/res/${PROJECT}/${TAG}/${RESDIR} ${TAG_OPT}
 
 echo "-> Generating cluster graphs"
-(cd ${BASEDIR}/res/${PROJECT}/${TAG}/${END_REV};
+(cd ${BASEDIR}/res/${PROJECT}/${TAG}/${RESDIR};
     for file in `ls sg*.dot wt*.dot`; do
 	basefile=`basename $file .dot`;
 	cat $file | ${CONV} | sfdp -Tpdf -Gcharset=latin1 > ${basefile}.pdf;
@@ -60,7 +62,7 @@ if [ ! -d "${BASEDIR}/res/${PROJECT}/${TAG}/latex" ]; then
     mkdir ${BASEDIR}/res/${PROJECT}/${TAG}/latex
 fi
 
-${REPORT} ${BASEDIR}/res/${PROJECT}/${TAG}/${END_REV} "${i}..$((i+1))" > ${BASEDIR}/res/${PROJECT}/${TAG}/latex/report_${END_REV}.tex;
+${REPORT} ${BASEDIR}/res/${PROJECT}/${TAG}/${RESDIR} "${i}..$((i+1))" > ${BASEDIR}/res/${PROJECT}/${TAG}/latex/report_${START_REV}-${END_REV}.tex;
 (cd ${BASEDIR}/res/${PROJECT}/${TAG}/latex && \
     pdflatex -output-directory=${BASEDIR}/res/${PROJECT}/${TAG}/ \
-    ${BASEDIR}/res/${PROJECT}/${TAG}/latex/report_${END_REV}.tex)
+    ${BASEDIR}/res/${PROJECT}/${TAG}/latex/report_${START_REV}-${END_REV}.tex)

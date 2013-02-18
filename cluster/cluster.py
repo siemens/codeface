@@ -1141,27 +1141,17 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
     emitStatisticalData(cmtlist, id_mgr, outdir)
     
 ##################################################################
-def doProjectAnalysis(project, from_rev, to_rev, rc_start, outbase, git_repo,
+def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
                       create_db, nonTag, limitHistory=False):
     #--------------
     #folder setup 
     #--------------
-    if not os.path.exists(outbase):
-        try:
-            os.makedirs(outbase)
-        except os.error as e:
-            print("Could not create output dir {0}: {1}".format(outbase,
-                                                                e.strerror))
-            exit(-1)    
-
-
-    outdir = os.path.join(outbase, to_rev)
 
     if not os.path.exists(outdir):
         try:
             os.makedirs(outdir)
         except os.error as e:
-            print("Could not create output dir {0}: {1}".format(outbase,
+            print("Could not create output dir {0}: {1}".format(outdir,
                                                                 e.strerror))
             exit(-1)
 
@@ -1174,14 +1164,14 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outbase, git_repo,
     #Perform appropriate analysis
     #----------------------------
     if nonTag:
-        filename = os.path.join(outbase, "{0}-{1}-{2}-nonTag".
+        filename = os.path.join(outdir, "{0}-{1}-{2}-nonTag".
                                 format(project, from_rev, to_rev))
         print("Performing non-tag based analysis")
         performNonTagAnalysis(filename, git_repo, create_db, outdir,
                               [from_rev, to_rev], limitHistory)
     
     else:
-        filename = os.path.join(outbase, "{0}-{1}-{2}-Tag".
+        filename = os.path.join(outdir, "{0}-{1}-{2}-Tag".
                                 format(project, from_rev, to_rev))
 
         print("Performing tag based analysis")
