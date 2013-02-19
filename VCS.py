@@ -942,44 +942,21 @@ class gitVCS (VCS):
         
 ################### Testing Functions ###########################
 
-    def _testNonTagSNA(self):
+    def _testNonTagSNA(self,git):
         
-        git.setRepository("/Users/Mitchell/git/Test_repo/.git")
-        self._fileNames = ["Test_py/src/main.py"]
-        #fist get all the commits for the range you want
-        #build commit objects 
-        #clist = self._getCommitIDsFile("Test_py/src/main.py")
-        
+        testRepo = "/home/au/workspace/prosoda/.git"
+        git.setRepository(testRepo)
+        self._fileNames = ["cluster/cluster.py"]
+      
         self.extractFileCommitData()
         
-        #create a list of commit objects for each commit in the file
-        fcmtobj = fileCommit.FileCommit()
-        
-        FileCmtList = map(self._Logstring2Commit, self._getFileCommitInfo(fname))
-        fcmtobj.setCommitList(FileCmtList)
-        #call git blame for each commit object (this unique possibley for every commit) 
-        a = fcmtobj.getCommitList()
-        for cmt in fcmtobj.getCommitList():
-            blameMsg = git._getBlameMsg(fname, cmt.id)
-            
-            
-            commitLineDict = self._parseBlameMsg(blameMsg, cmt.id)
-            
-            fcmtobj.addCommitRelationship(cmt.id, commitLineDict)
-    
-        
-        #computer correltion 
-        commitLineDict = self._parseBlameMsg(blameMsg)
-        
-
 
 ############################ Test cases #########################
 if __name__ == "__main__":
     
     #test nontagSNA
     git = gitVCS()
-    git.setRepository("/Users/Mitchell/git/Test_repo/.git")
-    git._testNonTagSNA()
+    git._testNonTagSNA(git)
     
     
     git.setRepository("/Users/Mitchell/git/linux-2.6/.git")
