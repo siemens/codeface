@@ -1415,7 +1415,6 @@ test.community.quality <- function() {
 	else{
 		print("Success: modularity test passed")
 	}
-	browser()
 }
 
 test.community.quality.modularity <- function() {
@@ -1438,7 +1437,6 @@ test.community.quality.modularity <- function() {
 	
 	quality <- compute.all.community.quality(g, g.clust, "modularization")
 	
-	browser()
 }
 
 #########################################################################
