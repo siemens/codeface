@@ -299,7 +299,7 @@ class gitVCS (VCS):
         cmd = 'git --git-dir={0} log'.format(self.repo).split()
         cmd.append(cmtHash)
         cmd.append("-1")
-        cmd.append('--pretty=format:\"%ct<< >>%H<< >>%aN <%aE><< >>%cN <%cE>\"')
+        cmd.append('--pretty=format:%ct %H')
         
         #submit query to git 
         logMsg = self._gitQuery(cmd)
@@ -326,7 +326,7 @@ class gitVCS (VCS):
         #we must take merge commits, otherwise when we cross-reference with 
         #git blame some commits will be missing
         cmd = 'git --git-dir={0} log -M -C'.format(self.repo).split()
-        cmd.append('--pretty=format:\"%ct<< >>%H<< >>%aN <%aE><< >>%cN <%cE>\"')
+        cmd.append('--pretty=format:%ct %H')
         cmd.append('--date=local') # Essentially irrelevant
         if rev_start and rev_end:
             cmd.append(revrange)
@@ -416,35 +416,6 @@ class gitVCS (VCS):
         cmt.cdate = match.group(1)
         cmt.id = match.group(2)
 
-        return cmt
-
-    # TODO: This function sets up a second way how to parse
-    # logstrings, with slightly different logstrings than in the
-    # regular case. Since all commits are parsed with the standard
-    # methods, there is no need for constructing half-filled
-    # commit objects. Use the infrastructure provided by _Logstring2Commit
-    # to replace this function
-    def _LogString2CommitExtra(self, str):
-        '''Similar to Logstring2Commit, Create an instance of commit.Commit 
-        from a given log string. Adds extra data compared to Logstring2Commit
-        function'''
-        str = str.replace("\"", "")
-        spltStr = str.split("<< >>")
-        expectedLen = 4 #commit hash, commit data, author name, committer name
-        
-        if len(spltStr) != expectedLen:
-            # TODO: Throw an exception
-            print("Internal error: Could not parse log string!")
-            sys.exit(-1)
-        
-        
-        cmt = commit.Commit()
-        
-        cmt.cdate     = spltStr[0] #date of commit
-        cmt.id        = spltStr[1] #commit hash
-        cmt.author    = spltStr[2] #name and email of author
-        cmt.committer = spltStr[3] #name and email of committer 
-    
         return cmt
 
     def _analyseDiffStat(self, msg, cmt):
@@ -784,15 +755,20 @@ class gitVCS (VCS):
        #set of files, FileCmtList is a list of commit hashes
        self._prepareFileCommitList(self._fileNames) 
        
-          
+       #get diff and remaining commit data (author,committer etc)
+       #and store in respective commit objects
+       map(self._parseCommit, self._commit_dict.values())   
        
     def _prepareFileCommitList(self, fnameList):
         # TODO: This function mixes preparing the commit list with parsing
         # the commits. This should be separated, as in the generic case
         #variable initialization 
         self._fileCommit_dict = {}
-#        self._commit_dict = {}
         blameMsgCmtIds = set() #stores all commit Ids seen from blame messages
+        
+        if self._commit_dict is None:
+            self._commit_dict = {}    
+        
         
         count = 0
         widgets = ['Pass 1/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
@@ -826,7 +802,6 @@ class gitVCS (VCS):
                 for cmt in cmtList:
                     if cmt not in self._commit_dict:
                         self._commit_dict[cmt.id] = cmt
-                        self._parseCommit(cmt)
                       
                 #get git blame information for each commit in each file 
                 for cmt in cmtList:
@@ -889,18 +864,18 @@ class gitVCS (VCS):
         #retrieve missing commit information and add it to the commit_dict
         missingCmts = [ self.cmtHash2CmtObj(cmtId)
                         for cmtId in missingCmtIds ]
-        count = 0
-        widgets = ['Pass 1.5/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
-        pbar = ProgressBar(widgets=widgets,
-                           maxval=len(missingCmts)).start()
-
-        for cmt in missingCmts:
-            count += 1
-            if count % 20 == 0:
-                pbar.update(count)
-
-            self._commit_dict[cmt.id] = cmt
-            self._parseCommit(cmt)
+        if missingCmts:
+            count = 0
+            widgets = ['Pass 1.5/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
+            pbar = ProgressBar(widgets=widgets,
+                               maxval=len(missingCmts)).start()
+    
+            for cmt in missingCmts:
+                count += 1
+                if count % 20 == 0:
+                    pbar.update(count)
+    
+                self._commit_dict[cmt.id] = cmt
 
         #TODO: figure out a way to get the missing commits without 
         #      having to parse all commit messages
@@ -918,7 +893,7 @@ class gitVCS (VCS):
         logMsg = self._getSingleCommitInfo(cmtHash)
         
         #create commit object from the log message 
-        cmtObj = self._LogString2CommitExtra(logMsg[0])
+        cmtObj = self._LogString2Commit(logMsg[0])
         
         
         return cmtObj
@@ -935,8 +910,7 @@ class gitVCS (VCS):
         logMsg = self._getFileCommitInfo(fname, rev_start, rev_end)
             
         #store the commit hash to the fileCommitList
-        cmtList = map(self._LogString2CommitExtra, logMsg)
-            
+        cmtList = map(self._Logstring2Commit, logMsg)    
             
         return cmtList    
             
