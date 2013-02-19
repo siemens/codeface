@@ -58,6 +58,11 @@ generate_regular_ts <- function(raw, N, delta.t=NA) {
   return(tseries)
 }
 
+status <- function(str) {
+	cat(paste("\r", paste(rep(" ", 75), collapse=''), sep=""))
+	cat(paste("\r", str, sep=""))
+}
+
 # The following method to produce a coloured recurrence plot is taken from 
 # http://zoonek2.free.fr/UNIX/48_R/15.html#11
 # The other functions are also from there

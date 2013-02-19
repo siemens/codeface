@@ -48,7 +48,7 @@ library(xtable)
 suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(optparse))
-
+source("../utils.r")
 
 
 #######################################################################
@@ -58,11 +58,6 @@ suppressPackageStartupMessages(library(optparse))
 #========================================================================
 #   						Utility 
 #========================================================================
-
-status <- function(str) {
-	cat(paste("\r", paste(rep(" ", 75), collapse=''), sep=""))
-	cat(paste("\r", str, sep=""))
-}
 
 # Given an eMail address like "Name N. Surname <name.surname@domain.com>",
 # extract the person name without the electronic address
