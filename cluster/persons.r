@@ -359,25 +359,20 @@ save.group.NonTag <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=N
 	# otherwise (not sure what the actual issue is)
 	# NOTE: V(g)$name as label index does NOT work because the name attribute
 	# is _not_ stable.
-	
-	#suppress scientific notation while saving results to file
-	options(scipen=999)
-	
-	V(g)$label <- as.character(IDs.to.names(.iddb, idx))
-	#scientific notation will screw up the later parsing
-	V(g)$prank <-.prank$vector[idx]
+        V(g)$label <- as.character(IDs.to.names(.iddb, idx))
 	
 	# We also use the page rank to specify the font size of the vertex
 	V(g)$fontsize <- scale.data(.prank$vector, 15, 50)[idx]
 	
-	# The amount of changed lines is visualised by the nodes background colour:
-	# The darker, the more changes.
-	#fc <- as.character(as.integer(100-scale.data(log(.iddb$total+1),0,50)[idx]))
+	# The amount of changed lines is visualised by the nodes background
+	# colour: The darker, the more changes.
+        # fc <-
+	# as.character(as.integer(100-scale.data(log(.iddb$total+1),0,50)[idx]))
 	V(g)$fillcolor <- paste("grey", 50, sep="")
 	V(g)$style="filled"
 	
-	# And one more bit: The width of the bounding box changes from thin to thick
-	# with the number of commits
+	# And one more bit: The width of the bounding box changes from thin to
+	# thick with the number of commits
 	#V(g)$penwidth <- as.character(2[idx])
 	#V(g)$penwidth <- as.character(scale.data(log(.iddb$numcommits+1),1,5)[idx])
 
@@ -412,7 +407,6 @@ save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
 	# NOTE: V(g)$name as label index does NOT work because the name attribute
 	# is _not_ stable.
 	V(g)$label <- as.character(IDs.to.names(.iddb, idx))
-	V(g)$prank <- .prank$vector[idx]
 	
 	# We also use the page rank to specify the font size of the vertex
 	V(g)$fontsize <- scale.data(.prank$vector, 15, 50)[idx]
@@ -1202,14 +1196,13 @@ get.community.graph <- function(graph, community, prank, ids){
 	community.idx <- sort(unique(community$membership))
 	influential.people <- sapply(community.idx,
 			function(comm.idx) { which( prank$vector == max(prank$vector[which(community$membership == comm.idx)]))[1] })
-	browser()
+
 	names <- ids$Name[influential.people]
 	
 	g.contracted <- contract.vertices(graph, membership(community))
 	E(g.contracted)$weight <- 1 
 	g.simplified  <- simplify(g.contracted)
 	V(g.simplified)$label <- names
-	V(g.simplified)$prank <-prank$vector[influential.people]
 	
 	# We also use the page rank to specify the font size of the vertex
 	V(g.simplified)$fontsize <- scale.data(prank$vector, 15, 50)[influential.people]
