@@ -949,17 +949,19 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
 	save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
                     pr.for.all.tr, outdir, "wt_tr_small_", elems.wt.less,
                     save.group.fn, label="(small) Random Walk Community")
-	
+
 	#--------------------
 	# Community Quality
 	#--------------------
         # TODO: Export the quality data somewhere
+        if (FALSE) {
 	sg.quality.modularity  <- compute.all.community.quality(g.connected, g.spin.community, "modularity") 
 	sg.quality.conductance <- compute.all.community.quality(g.connected, g.spin.community, "conductance")
 	sg.quality.modularization <- compute.all.community.quality(g.connected, g.spin.community, "modularization")
 	wt.quality.modularity  <- compute.all.community.quality(g.connected, g.walktrap.community, "modularity")  
 	wt.quality.conductance <- compute.all.community.quality(g.connected, g.walktrap.community, "conductance")
 	wt.quality.modularization <- compute.all.community.quality(g.connected, g.walktrap.community, "modularization")
+      }
 
         #------------------
 	# Write other data 
