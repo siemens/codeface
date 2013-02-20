@@ -63,6 +63,22 @@ status <- function(str) {
 	cat(paste("\r", str, sep=""))
 }
 
+## Scale a given data set to the range [min,max]
+scale.data <- function(dat, .min=0, .max=1) {
+  datMin <- min(dat)
+  datMax <- max(dat)
+
+  if (datMin == datMax){
+    print("scale.data error, min=max")
+  }
+  else {
+    dat <- dat - min(dat)
+    dat <- dat/max(dat)*(.max-.min)
+    dat <- dat + .min
+  }
+  return(dat)
+}
+
 # The following method to produce a coloured recurrence plot is taken from 
 # http://zoonek2.free.fr/UNIX/48_R/15.html#11
 # The other functions are also from there
