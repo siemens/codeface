@@ -184,7 +184,12 @@ def getSignoffEtcCount(cmt):
     return signoffs
 
 def getSeriesDuration(res):
-    """Compute the duration of a commit series in seconds."""
+    """Compute the duration of a commit series in seconds.
+
+    NOTE: The method computed the difference between the first and
+    last commit in the series, which may not be the duration of the
+    initially queried range -- commits outside this range may be
+    included in the series."""
 
     return int(res.series[-1]["commit"].cdate)-int(res.series[0]["commit"].cdate)
 
