@@ -1163,17 +1163,14 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
     #----------------------------
     #Perform appropriate analysis
     #----------------------------
+    filename = os.path.join(outdir, "vcs_analysis.db")
+
     if nonTag:
-        filename = os.path.join(outdir, "{0}-{1}-{2}-nonTag".
-                                format(project, from_rev, to_rev))
         print("Performing non-tag based analysis")
         performNonTagAnalysis(filename, git_repo, create_db, outdir,
                               [from_rev, to_rev], limitHistory)
     
     else:
-        filename = os.path.join(outdir, "{0}-{1}-{2}-Tag".
-                                format(project, from_rev, to_rev))
-
         print("Performing tag based analysis")
         performAnalysis(filename, git_repo, [from_rev, to_rev],
 #                        kerninfo.subsysDescrLinux,
