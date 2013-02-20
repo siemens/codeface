@@ -1212,18 +1212,21 @@ if __name__ == "__main__":
     #testFileCommit()
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('repo')
-    parser.add_argument('project')
-    parser.add_argument('outdir')
-    parser.add_argument('from_rev')
-    parser.add_argument('to_rev')
+    parser.add_argument('repo', help="Path to the git repository")
+    parser.add_argument('project', help="Project name")
+    parser.add_argument('outdir', help="Directory to create result files in")
+    parser.add_argument('from_rev', help="Start revision")
+    parser.add_argument('to_rev', help="End revision")
     parser.add_argument("--rc_start",
                         help="ID/tag that marks release candidate starting point")
-    parser.add_argument('--create_db', action='store_true')
-    parser.add_argument('--non_tag', action='store_true') #default to tag based
+    parser.add_argument('--create_db', action='store_true',
+                        help="(Re-)create database")
     # tagged analysis is the default, the argument is only available
     # for systematic consistency
-    parser.add_argument('--tag', action='store_true')
+    parser.add_argument('--non_tag', action='store_true',
+                        help="Perform a source based cluster analysis")
+    parser.add_argument('--tag', action='store_true',
+                        help="Perform a tag based cluster analysis (default)")
     args = parser.parse_args()
     
     limitHistory = True
