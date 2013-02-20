@@ -21,6 +21,8 @@
 # Copyright 2010, 2011, 2012 by Wolfgang Mauerer <wm@linux-kernel.net>
 # All Rights Reserved.
 
+from TimeSeries import TimeSeries
+
 tag_types = [ "Signed-off-by", "Acked-by", "CC", "Reviewed-by",
              "Reported-by", "Tested-by" ]
 active_tag_types = [ "Signed-off-by", "Acked-by", "Reviewed-by",
@@ -88,7 +90,7 @@ def createCumulativeSeries(vcs, subsys="__main__", revrange=None):
 
     # TODO: Check if subsys exists; if not, bark.
 
-    res = []
+    res = TimeSeries()
     if revrange==None:
         list = vcs.extractCommitData(subsys)
     else:
@@ -105,7 +107,7 @@ def createCumulativeSeries(vcs, subsys="__main__", revrange=None):
             entry["value"][difftype] = csize + last_cum[difftype]
             last_cum[difftype] = csize + last_cum[difftype]
 
-        res.append(entry)
+        res.series.append(entry)
 
     return res
 
@@ -124,7 +126,7 @@ def createSeries(vcs, subsys="__main__", revrange=None):
 
     # TODO: Check if subsys exists; if not, bark.
 
-    res = []
+    res = TimeSeries()
     if revrange==None:
         list = vcs.extractCommitData(subsys)
     else:
@@ -140,7 +142,7 @@ def createSeries(vcs, subsys="__main__", revrange=None):
 
             entry["value"][difftype] = csize 
 
-        res.append(entry)
+        res.series.append(entry)
 
     return res
 
@@ -184,20 +186,20 @@ def getSignoffEtcCount(cmt):
 def getSeriesDuration(res):
     """Compute the duration of a commit series in seconds."""
 
-    return int(res[-1]["commit"].cdate)-int(res[0]["commit"].cdate)
+    return int(res.series[-1]["commit"].cdate)-int(res.series[0]["commit"].cdate)
 
 def writeToFile(res, name, uniqueTS=True):
     """Write a result list to a file.
 
-    res -- Time series obtained by createSeries etc.
+    res -- TimeSeries object obtained by createSeries etc.
     name -- Name of the output file.
     uniqueTS -- Transform the date indices into a strictly monotonic 
                 series if true."""
     FILE=open(name, "w")
     last_timestamp = 0
 
-    for i in range(0,len(res)):
-        cmt = res[i]["commit"]
+    for i in range(0,len(res.series)):
+        cmt = res.series[i]["commit"]
         if uniqueTS:
             timestamp = _compute_next_timestamp(int(cmt.cdate), last_timestamp)
             last_timestamp = int(timestamp)
@@ -207,9 +209,9 @@ def writeToFile(res, name, uniqueTS=True):
         # string spec is a bit tedious (besides, we rely on four diff
         # variations being present, which might not be true
         FILE.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n".
-                   format(timestamp, res[i]["value"][0],
-                          res[i]["value"][1], res[i]["value"][2],
-                          res[i]["value"][3], cmt.getCommitMessageLines(),
+                   format(timestamp, res.series[i]["value"][0],
+                          res.series[i]["value"][1], res.series[i]["value"][2],
+                          res.series[i]["value"][3], cmt.getCommitMessageLines(),
                           getSignoffCount(cmt),
                           getSignoffEtcCount(cmt)))
     FILE.close()
