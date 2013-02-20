@@ -1217,7 +1217,8 @@ if __name__ == "__main__":
     parser.add_argument('outdir')
     parser.add_argument('from_rev')
     parser.add_argument('to_rev')
-    parser.add_argument('rc_start')
+    parser.add_argument("--rc_start",
+                        help="ID/tag that marks release candidate starting point")
     parser.add_argument('--create_db', action='store_true')
     parser.add_argument('--non_tag', action='store_true') #default to tag based
     # tagged analysis is the default, the argument is only available
@@ -1226,8 +1227,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     limitHistory = True
-    if args.rc_start == "":
-        args.rc_start = None
 
     doProjectAnalysis(args.project, args.from_rev, args.to_rev, args.rc_start,
                       args.outdir, args.repo, args.create_db, args.non_tag,
