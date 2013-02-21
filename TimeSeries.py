@@ -27,6 +27,10 @@ class TimeSeries:
         self.start = -1
         self.end = -1
 
+        # None is a valid value since a time series does not necessarily
+        # contain a rc start date
+        self.rc_start = None
+
     def set_start(self, _start):
         self.start = _start
 
@@ -42,3 +46,9 @@ class TimeSeries:
         if (self.end == -1):
             raise Exception("Time series end date is undefined")
         return self.end
+
+    def set_rc_start(self, _start):
+        self.rc_start = _start
+
+    def get_rc_start(self):
+        return self.rc_start
