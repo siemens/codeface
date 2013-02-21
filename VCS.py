@@ -266,7 +266,7 @@ class gitVCS (VCS):
         # obtain the result is way nicer in python3.
         cmd = 'git --git-dir={0} log --no-merges -M -C'.format(self.repo).split()
         cmd.append('--pretty=format:%ct %H')
-        cmd.append('--date=local') # Essentially irrelevant
+        cmd.append('--date=local')
         cmd.append(revrange)
         if (len(dir_list) > 0):
             cmd.append("--")
@@ -300,6 +300,7 @@ class gitVCS (VCS):
         cmd.append(cmtHash)
         cmd.append("-1")
         cmd.append('--pretty=format:%ct %H')
+        cmd.append('--date=local')
         
         #submit query to git 
         logMsg = self._gitQuery(cmd)
@@ -327,7 +328,7 @@ class gitVCS (VCS):
         #git blame some commits will be missing
         cmd = 'git --git-dir={0} log -M -C'.format(self.repo).split()
         cmd.append('--pretty=format:%ct %H')
-        cmd.append('--date=local') # Essentially irrelevant
+        cmd.append('--date=local')
         if rev_start and rev_end:
             cmd.append(revrange)
         if fname:
