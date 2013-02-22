@@ -31,10 +31,9 @@ def _abort(msg):
     print(msg + "\n")
     sys.exit(-1)
 
-def executeCommand(cmd, dry_run, verbose=False):
-    if verbose | dry_run:
-        print("About to call {0}".format(" " .join(cmd)))
+def executeCommand(cmd, dry_run):
     if dry_run:
+        print("dry-run: {0}".format(" " .join(cmd)))
         return
 
     try:
