@@ -1,11 +1,5 @@
 #! /usr/bin/env python
 # Convert the dot output of igraph into something suitable for neato
-# Use, for instance, like
-# for file in `ls prefix*.dot`; do
-#    basefile=`basename $file .dot`;
-#    echo "Processing $file";
-#    cat $file | ../../conv.py | sfdp -Tpdf > ${basefile}.pdf;
-# done
 
 # This file is part of prosoda.  prosoda is free software: you can
 # redistribute it and/or modify it under the terms of the GNU General Public
