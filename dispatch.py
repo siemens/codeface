@@ -106,9 +106,13 @@ def dispatchAnalysis(args):
         for file in files:
             out = NamedTemporaryFile(mode="w")
             out.writelines(convert_dot_file(file))
+            # Make sure the information does not stall in caches
+            # before dot hits the file
+            out.flush()
 
             cmd = []
-            cmd.append("sfdp")
+            cmd.append("dot")
+            cmd.append("-Ksfdp")
             cmd.append("-Tpdf")
             cmd.append("-Gcharset=latin1")
             cmd.append("-o{0}.pdf".format(os.path.splitext(file)[0]))
