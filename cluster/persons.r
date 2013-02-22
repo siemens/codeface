@@ -33,15 +33,6 @@
 #        for learning, and then apply the inferred clustering on
 #        the complete data set to infer subsystems in a quasi-Bayesian
 #        way)
-# Perform a full analysis:
-# 1.) Call ./cluster.py with the appropriate revision settings
-# 2.) ./persons.r /Users/wolfgang/papers/csd/cluster/res/<rev>/
-# 3.) for file in `ls prefix*.dot`; do
-#        basefile=`basename $file .dot`;
-#        echo "Processing $file";
-#        cat $file | ../../conv.py | neato (or sfp, or sfdp) -Tpdf > ${basefile}.pdf;
-#     done
-# 4.) Use gen_images.sh to create all PDFs with dot
 library(igraph)
 library(stringr)
 library(xtable)
