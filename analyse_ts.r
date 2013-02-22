@@ -96,11 +96,11 @@ gen.df.from.ts <- function(ts, type) {
   return(df)
 }
 
-gen.file.list <- function(basedir, revisions) {
+gen.file.list <- function(resdir, revisions) {
   ts.file.list <- vector("list", length(revisions)-1)
 
   for (i in 2:length(revisions)) {
-    ts.file.list[[i-1]] <- paste(basedir, "/ts/raw_", revisions[[i-1]], "-",
+    ts.file.list[[i-1]] <- paste(resdir, "/ts/raw_", revisions[[i-1]], "-",
                                revisions[[i]], ".dat", sep="")
   }
 
@@ -137,13 +137,13 @@ gen.series.df <- function(series) {
   return(series.merged)
 }
 
-do.ts.analysis <- function(basedir, config.file) {
+do.ts.analysis <- function(resdir, config.file) {
   conf <- load.config(config.file)
-  basedir <- paste(basedir, conf$project, conf$tagging, sep="/")
-  graphdir <- paste(basedir, "graphs", sep="/")
+  resdir <- paste(resdir, conf$project, conf$tagging, sep="/")
+  graphdir <- paste(resdir, "graphs", sep="/")
   dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
   
-  ts.file.list <- gen.file.list(basedir, conf$revisions)
+  ts.file.list <- gen.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
   full.ts <- gen.full.ts(ts.file.list)
@@ -195,16 +195,16 @@ do.ts.analysis <- function(basedir, config.file) {
 
 ######################### Dispatcher ###################################
 ## TODO: Actually, write a dispatcher
-parser <- OptionParser(usage = "%prog basedir config")
+parser <- OptionParser(usage = "%prog resdir config")
 arguments <- parse_args(parser, positional_arguments = TRUE)
 
 if (length(arguments$args) != 2) {
-  cat("Please specify base directory and configuration file\n")
+  cat("Please specify result directory and configuration file\n")
   print_help(parser)
   stop()
 } else {
-  basedir <- arguments$args[1]
+  resdir <- arguments$args[1]
   config.file <- arguments$args[2]
 }
 
-do.ts.analysis(basedir, config.file)
+do.ts.analysis(resdir, config.file)

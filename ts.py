@@ -43,10 +43,10 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
     res = createSeries(vcs, "__main__", revrange, rc_start)
     writeToFile(res, os.path.join(destdir, "raw_{0}.dat".format(sfx)))
     
-def dispatch_ts_analysis(basedir, conf_file):
+def dispatch_ts_analysis(resdir, conf_file):
     conf = load_config(conf_file)
 
-    dbpath = os.path.join(basedir, conf["project"], conf["tagging"])
+    dbpath = os.path.join(resdir, conf["project"], conf["tagging"])
     destdir = os.path.join(dbpath, "ts")
 
     if not(os.path.exists(destdir)):
@@ -63,9 +63,9 @@ def dispatch_ts_analysis(basedir, conf_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('basedir')
+    parser.add_argument('resdir')
     parser.add_argument('conf_file')
     args = parser.parse_args()
     
-    dispatch_ts_analysis(args.basedir, args.conf_file)
+    dispatch_ts_analysis(args.resdir, args.conf_file)
 
