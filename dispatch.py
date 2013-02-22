@@ -25,7 +25,7 @@ import os
 import sys
 from conv import convert_dot_file
 from tempfile import NamedTemporaryFile, mkdtemp
-from shutil import rmtree
+import shutil
 
 def _abort(msg):
     print(msg + "\n")
@@ -127,14 +127,13 @@ def dispatchAnalysis(args):
         # STAGE 4: Report generation
         # Stage 4.1: Report preparation
         print("  -> Generating report")
+        report_base = "report-{0}_{1}".format(revs[i], revs[i+1])
         cmd = []
         cmd.append(os.path.join(basedir, "cluster", "create_report.pl"))
         cmd.append(resdir)
         cmd.append("{0}--{1}".format(revs[i], revs[i+1]))
 
-        out = open(os.path.join(resdir, "report-{0}_{1}.tex".
-                                format(revs[i], revs[i+1])),
-                   "w")
+        out = open(os.path.join(resdir, report_base + ".tex"), "w")
         res = executeCommand(cmd, args.dry_run)
         if not(args.dry_run):
             out.write(res)
@@ -144,10 +143,8 @@ def dispatchAnalysis(args):
         # Stage 4.2: Compile report
         cmd = []
         cmd.append("pdflatex")
-        cmd.append("-output-directory=" + resdir)
         cmd.append("-interaction=nonstopmode")
-        cmd.append(os.path.join(resdir, "report-{0}_{1}.tex".
-                                format(revs[i], revs[i+1])))
+        cmd.append(os.path.join(resdir, report_base + ".tex"))
 
         # We run pdflatex in a temporary directory so that it's easy to
         # get rid of the log files etc. created during the run that are
@@ -157,9 +154,10 @@ def dispatchAnalysis(args):
 
         os.chdir(tmpdir)
         executeCommand(cmd, args.dry_run)
+        shutil.copy(report_base + ".pdf", resdir)
         os.chdir(orig_wd)
 
-        rmtree(tmpdir)
+        shutil.rmtree(tmpdir)
 
     #########
     # Global stage 1: Time series generation
