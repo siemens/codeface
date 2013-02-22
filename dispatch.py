@@ -24,7 +24,8 @@ import glob
 import os
 import sys
 from conv import convert_dot_file
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, mkdtemp
+from shutil import rmtree
 
 def _abort(msg):
     print(msg + "\n")
@@ -117,21 +118,18 @@ def dispatchAnalysis(args):
 
             # NOTE: Only close the temporary file after the graph has
             # been formatted -- the temp file is destroyed after close
-#            out.close()
+            out.close()
 
         #########
         # STAGE 4: Report generation
-        print("  -> Preparing report")
-        latex_dir = os.path.join(resdir, "latex")
-        if not(os.path.exists(latex_dir)):
-            os.mkdir(latex_dir)
-
+        # Stage 4.1: Report preparation
+        print("  -> Generating report")
         cmd = []
         cmd.append(os.path.join(basedir, "cluster", "create_report.pl"))
         cmd.append(resdir)
         cmd.append("{0}--{1}".format(revs[i], revs[i+1]))
 
-        out = open(os.path.join(latex_dir, "report_{0}_{1}.tex".
+        out = open(os.path.join(resdir, "report-{0}_{1}.tex".
                                 format(revs[i], revs[i+1])),
                    "w")
         res = executeCommand(cmd, args.dry_run)
@@ -140,7 +138,25 @@ def dispatchAnalysis(args):
 
         out.close()
 
-        # TODO: Actually call latex
+        # Stage 4.2: Compile report
+        cmd = []
+        cmd.append("pdflatex")
+        cmd.append("-output-directory=" + resdir)
+        cmd.append("-interaction=nonstopmode")
+        cmd.append(os.path.join(resdir, "report-{0}_{1}.tex".
+                                format(revs[i], revs[i+1])))
+
+        # We run pdflatex in a temporary directory so that it's easy to
+        # get rid of the log files etc. created during the run that are
+        # not relevant for the final result
+        orig_wd = os.getcwd()
+        tmpdir = mkdtemp()
+
+        os.chdir(tmpdir)
+        executeCommand(cmd, args.dry_run)
+        os.chdir(orig_wd)
+
+        rmtree(tmpdir)
 
     #########
     # Global stage 1: Time series generation
