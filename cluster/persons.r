@@ -39,7 +39,7 @@ library(xtable)
 suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(optparse))
-source("../utils.r")
+source("utils.r")
 
 
 #######################################################################
