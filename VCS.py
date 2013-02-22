@@ -229,7 +229,8 @@ class gitVCS (VCS):
                 self._rc_id_list.extend([self._Logstring2ID(logstring)
                                           for logstring in clist])
             
-    def _getCommitIDsLL(self, dir_list, rev_start=None, rev_end=None):
+    def _getCommitIDsLL(self, dir_list, rev_start=None, rev_end=None,
+                        verbose=False):
         """Low-level routine to extract the commit list from the VCS.
 
         Must be implemented specifically for every VCS, and must
@@ -273,12 +274,14 @@ class gitVCS (VCS):
             for dir in dir_list:
                 cmd.append(dir)
 
-        print("About to call {0}".format(" " .join(cmd)))
+        if verbose:
+            print("About to call {0}".format(" " .join(cmd)))
         try:
             p2 = Popen(cmd, stdout=PIPE)
             clist = p2.communicate()[0].splitlines()
         except OSError:
-            _abort("Internal error: Could not spawn git")
+            _abort("Internal error: Could not spawn command '{0}'".
+                   format(" ".join(cmd)))
 
         # Remember the comment about monotonically increasing time sequences
         # above? True in principle, but unfortunately, a very small number
