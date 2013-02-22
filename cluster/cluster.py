@@ -20,7 +20,9 @@
 # Copyright 2010, 2011, 2012 by Wolfgang Mauerer <wm@linux-kernel.net>
 # All Rights Reserved.
 import sys
+sys.path.append('./')
 sys.path.append('../')
+sys.path.append('cluster/')
 
 import os
 import csv
