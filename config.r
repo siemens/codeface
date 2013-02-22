@@ -32,6 +32,10 @@ load.config <- function(file) {
     stop("Malformed configuration: Revision list must include at least 2 commits!")
   }
 
+  if (length(conf$rcs) > 0 && (length(conf$revisions) != length(conf$rcs))) {
+    stop("Malformed configuration: Revision and rcs lists must have same length!")
+  }
+
   return(conf)
 }
 

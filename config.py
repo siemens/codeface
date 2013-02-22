@@ -28,13 +28,19 @@ def load_config(file):
     f.close()
 
     # Some elementary sanity checks
-    if (not(conf.has_key("project")) or not(conf.has_key("repo")) or \
-         not(conf.has_key("tagging")) or not(conf.has_key("revisions"))):
+    if not(conf.has_key("project")) or not(conf.has_key("repo")) or \
+            not(conf.has_key("tagging")) or not(conf.has_key("revisions")):
         print("Malformed configuration: Mandatory tags missing!")
         sys.exit(-1)
         
-    if (len(conf["revisions"]) < 2):
+    if len(conf["revisions"]) < 2:
         print("Malformed configuration: At least 2 revisions required")
+        sys.exit(-1)
+
+    if (len(conf["rcs"]) > 0) & (len(conf["revisions"]) != len(conf["rcs"])):
+        print("Malformed configuration: revision and rcs list lengths differ!")
+        print("Found {0} revisions and {1} release candidates.".
+              format(len(conf["revisions"]), len(conf["rcs"])))
         sys.exit(-1)
 
     if (not(conf.has_key("rcs"))):
