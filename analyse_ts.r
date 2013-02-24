@@ -25,6 +25,7 @@ suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(yaml))
+suppressPackageStartupMessages(library(lubridate))
 source("utils.r")
 source("config.r")
 
@@ -184,8 +185,23 @@ do.ts.analysis <- function(resdir, config.file) {
                        data=dat.rc)
 
   }
-  
+
   ggsave(paste(graphdir, "ts.pdf", sep="/"), g, width=16, height=7)
+
+
+  ## Create yearly versions of the plots
+  min.year <- year(min(series.merged$time))
+  max.year <- year(max(series.merged$time))
+
+  sapply(seq(min.year, max.year), function(year) {
+    g.year <- g + xlim(dmy(paste("1-1-", year, sep="")),
+                       dmy(paste("31-12-", year, sep=""))) +
+              ggtitle(paste("Code changes in ", year, " for project '",
+                            conf$description, "'", sep=""))
+
+    ggsave(paste(graphdir, "/ts_", year, ".pdf", sep=""), g.year,
+           width=16, height=7)
+  })
   ## All-in-one graph with scaled axes (ugly)
 #  g <- ggplot(series.merged, aes(x=time, y=value.scaled, colour=type)) +
 #    geom_line() + geom_vline(aes(xintercept=as.numeric(rel.date)),
