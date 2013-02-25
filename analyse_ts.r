@@ -97,12 +97,22 @@ gen.df.from.ts <- function(ts, type) {
   return(df)
 }
 
-gen.file.list <- function(resdir, revisions) {
+gen.rev.list <- function(revisions) {
+ rev.list <- vector("list", length(revisions)-1)
+
+ for (i in 2:length(revisions)) {
+    rev.list[[i-1]] <- paste(revisions[[i-1]], "-", revisions[[i]], sep="")
+  }
+
+ return (rev.list)
+}
+
+gen.ts.file.list <- function(resdir, revisions) {
   ts.file.list <- vector("list", length(revisions)-1)
 
-  for (i in 2:length(revisions)) {
-    ts.file.list[[i-1]] <- paste(resdir, "/ts/raw_", revisions[[i-1]], "-",
-                               revisions[[i]], ".dat", sep="")
+  revs <- gen.rev.list(revisions)
+  for (i in 1:length(revs)) {
+    ts.file.list[[i]] <- paste(resdir, "/ts/raw_", revs[[i]], ".dat", sep="")
   }
 
   return(ts.file.list)
@@ -139,7 +149,7 @@ gen.series.df <- function(series) {
 }
 
 do.ts.analysis <- function(resdir, graphdir, conf) {
-  ts.file.list <- gen.file.list(resdir, conf$revisions)
+  ts.file.list <- gen.ts.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
   full.ts <- gen.full.ts(ts.file.list)
@@ -205,7 +215,6 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
 }
 
 ######################### Dispatcher ###################################
-## TODO: Actually, write a dispatcher
 parser <- OptionParser(usage = "%prog resdir config")
 arguments <- parse_args(parser, positional_arguments = TRUE)
 
