@@ -138,12 +138,7 @@ gen.series.df <- function(series) {
   return(series.merged)
 }
 
-do.ts.analysis <- function(resdir, config.file) {
-  conf <- load.config(config.file)
-  resdir <- paste(resdir, conf$project, conf$tagging, sep="/")
-  graphdir <- paste(resdir, "graphs", sep="/")
-  dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
-  
+do.ts.analysis <- function(resdir, graphdir, conf) {
   ts.file.list <- gen.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
@@ -223,4 +218,9 @@ if (length(arguments$args) != 2) {
   config.file <- arguments$args[2]
 }
 
-do.ts.analysis(resdir, config.file)
+conf <- load.config(config.file)
+resdir <- paste(resdir, conf$project, conf$tagging, sep="/")
+graphdir <- paste(resdir, "graphs", sep="/")
+dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
+
+do.ts.analysis(resdir, graphdir, conf)
