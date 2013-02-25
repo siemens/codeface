@@ -14,7 +14,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Copyright 2010, 2011, 2012 by Wolfgang Mauerer <wm@linux-kernel.net>
+# Copyright 2010, 2011 by Wolfgang Mauerer <wm@linux-kernel.net>
+# Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
 # Subsystems are characterised by a dictionary with the subsys
