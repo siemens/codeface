@@ -19,7 +19,6 @@
 ## Time series analysis based on the output of ts.py
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(zoo))
 suppressPackageStartupMessages(library(xts))
 suppressPackageStartupMessages(library(stringr))
@@ -27,9 +26,7 @@ suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(yaml))
 suppressPackageStartupMessages(library(lubridate))
-suppressPackageStartupMessages(library(gridExtra))
 source("utils.r")
-source("plot.r")
 source("config.r")
 
 ## Omit time series elements that exceed the given range
@@ -110,9 +107,6 @@ gen.rev.list <- function(revisions) {
  return (rev.list)
 }
 
-## NOTE: Although the gen.xyz.file.list functions are fairly similar,
-## they are kept separately because they will be replaced by slightly
-## different queries to a general data base later
 gen.ts.file.list <- function(resdir, revisions) {
   ts.file.list <- vector("list", length(revisions)-1)
 
@@ -284,9 +278,8 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
   ts <- vector("list", length(conf$revisions)-1)
-  tstamps <- read.table(paste(resdir, "/ts/timestamps.txt", sep=""),
-                              header=T, sep="\t")
-  tstamps <- tstamps[tstamps$type=="release",]
+  tstamps <- get.release.dates(resdir)
+
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
   for (i in 1:length(commit.file.list)) {
@@ -324,10 +317,26 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
       ylab("Value (log. scale)") +
       scale_colour_discrete("Release\nCandidate")
   ggsave(paste(graphdir, "ts_commits.pdf", sep="/"), g, width=12, height=8)
+
+  ## Stage 3: Plot annual versions of the commit time series
+  min.year <- year(min(ts.molten$date))
+  max.year <- year(max(ts.molten$date))
+
+  dummy <- sapply(seq(min.year, max.year), function(year) {
+    status(paste("Creating annual commit time series for", year))
+    g <- ggplot(data=ts.molten[year(ts.molten$date)==year,],
+                aes(x=revision, y=value, colour=inRC)) +
+                  geom_boxplot(fill="NA") + scale_y_log10() +
+                  facet_wrap(~variable, scales="free") + xlab("Revision") +
+                  ylab("Value (log. scale)") +
+                  scale_colour_discrete("Release\nCandidate") +
+                  ggtitle(paste("Commit time series for year", year))
+    ggsave(paste(graphdir, paste("ts_commits_", year, ".pdf", sep=""),
+                 sep="/"), g, width=12, height=8)
+    })
 }
 
 do.ts.analysis <- function(resdir, graphdir, conf) {
-  status("Creating time series plots")
   ts.file.list <- gen.ts.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
@@ -377,10 +386,9 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   min.year <- year(min(series.merged$time))
   max.year <- year(max(series.merged$time))
 
-  dummy <- sapply(seq(min.year, max.year), function(year) {
-    status(paste("Creating yearly time series for", year))
-    g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=T),
-                       dmy(paste("31-12-", year, sep=""), quiet=T)) +
+  sapply(seq(min.year, max.year), function(year) {
+    g.year <- g + xlim(dmy(paste("1-1-", year, sep="")),
+                       dmy(paste("31-12-", year, sep=""))) +
               ggtitle(paste("Code changes in ", year, " for project '",
                             conf$description, "'", sep=""))
 
@@ -412,6 +420,6 @@ resdir <- paste(resdir, conf$project, conf$tagging, sep="/")
 graphdir <- paste(resdir, "graphs", sep="/")
 dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
-options(error = quote(dump.frames("error.dump", TRUE)))
 do.ts.analysis(resdir, graphdir, conf)
 do.commit.analysis(resdir, graphdir, conf)
+do.cluster.analysis(resdir, graphdir, conf)
