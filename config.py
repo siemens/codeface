@@ -37,14 +37,14 @@ def load_config(file):
         print("Malformed configuration: At least 2 revisions required")
         sys.exit(-1)
 
+    if (not(conf.has_key("rcs"))):
+        conf["rcs"] = [None for x in range(len(conf["revisions"]))]
+
     if (len(conf["rcs"]) > 0) & (len(conf["revisions"]) != len(conf["rcs"])):
         print("Malformed configuration: revision and rcs list lengths differ!")
         print("Found {0} revisions and {1} release candidates.".
               format(len(conf["revisions"]), len(conf["rcs"])))
         sys.exit(-1)
-
-    if (not(conf.has_key("rcs"))):
-        conf["rcs"] = [None for x in range(len(conf["revisions"]))]
 
     conf["rcs"] = [replace_none(x) for x in conf["rcs"]]
 
