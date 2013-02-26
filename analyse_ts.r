@@ -1,22 +1,22 @@
 #! /usr/bin/env Rscript
 
-# This file is part of prosoda.  prosoda is free software: you can
-# redistribute it and/or modify it under the terms of the GNU General Public
-# License as published by the Free Software Foundation, version 2.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-# Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
-# All Rights Reserved.
+## This file is part of prosoda.  prosoda is free software: you can
+## redistribute it and/or modify it under the terms of the GNU General Public
+## License as published by the Free Software Foundation, version 2.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+## FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+## details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+##
+## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
+## All Rights Reserved.
 
-# Time series analysis based on the output of ts.py
+## Time series analysis based on the output of ts.py
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(reshape))
@@ -32,7 +32,7 @@ source("utils.r")
 source("plot.r")
 source("config.r")
 
-# Omit time series elements that exceed the given range
+## Omit time series elements that exceed the given range
 trim.series <- function(series, start, end) {
   series <- series[which(index(series) < end),]
   series <- series[which(index(series) > start),]
@@ -40,7 +40,7 @@ trim.series <- function(series, start, end) {
   return(series)
 }
 
-# Unidirectional version of the above function
+## Unidirectional version of the above function
 trim.series.start <- function(series, start) {
   return(series[which(index(series) > start),])
 }
@@ -68,7 +68,7 @@ boundaries.include.rc <- function(boundaries) {
   return (!is.na(boundaries$rc_start))
 }
 
-# Given a list of time series file names, compute the total time series
+## Given a list of time series file names, compute the total time series
 gen.full.ts <- function(ts.file.list) {
   full.series <- vector("list", length(ts.file.list))
   releases <- vector("list", length(ts.file.list))
@@ -147,11 +147,11 @@ gen.cluster.file.list <- function(resdir, revisions, type) {
   return(file.list)
 }
 
-# NOTE: width is the width of the rolling window, so series.monthly
-# does _not_ mean that there is one data point per month, but one
-# month's worth of data points go into the calculation of one smoothed
-# data point. Using the robust median instead of mean considerably
-# reduces the amount of outliers
+## NOTE: width is the width of the rolling window, so series.monthly
+## does _not_ mean that there is one data point per month, but one
+## month's worth of data points go into the calculation of one smoothed
+## data point. Using the robust median instead of mean considerably
+## reduces the amount of outliers
 gen.series.df <- function(series) {
   duration <- end(series) - start(series)
 
@@ -284,9 +284,8 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
   ts <- vector("list", length(conf$revisions)-1)
-  tstamps <- read.table(paste(resdir, "/ts/timestamps.txt", sep=""),
-                              header=T, sep="\t")
-  tstamps <- tstamps[tstamps$type=="release",]
+  tstamps <- get.release.dates(resdir)
+
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
   for (i in 1:length(commit.file.list)) {
@@ -324,6 +323,23 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
       ylab("Value (log. scale)") +
       scale_colour_discrete("Release\nCandidate")
   ggsave(paste(graphdir, "ts_commits.pdf", sep="/"), g, width=12, height=8)
+
+  ## Stage 3: Plot annual versions of the commit time series
+  min.year <- year(min(ts.molten$date))
+  max.year <- year(max(ts.molten$date))
+
+  dummy <- sapply(seq(min.year, max.year), function(year) {
+    status(paste("Creating annual commit time series for", year))
+    g <- ggplot(data=ts.molten[year(ts.molten$date)==year,],
+                aes(x=revision, y=value, colour=inRC)) +
+                  geom_boxplot(fill="NA") + scale_y_log10() +
+                  facet_wrap(~variable, scales="free") + xlab("Revision") +
+                  ylab("Value (log. scale)") +
+                  scale_colour_discrete("Release\nCandidate") +
+                  ggtitle(paste("Commit time series for year", year))
+    ggsave(paste(graphdir, paste("ts_commits_", year, ".pdf", sep=""),
+                 sep="/"), g, width=12, height=8)
+    })
 }
 
 do.ts.analysis <- function(resdir, graphdir, conf) {
@@ -415,3 +431,4 @@ dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 options(error = quote(dump.frames("error.dump", TRUE)))
 do.ts.analysis(resdir, graphdir, conf)
 do.commit.analysis(resdir, graphdir, conf)
+do.cluster.analysis(resdir, graphdir, conf)
