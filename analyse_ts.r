@@ -201,6 +201,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
 
   ts.molten <- melt(ts[c("revision", "date", subset)],
                     id=c("revision", "inRC", "date"))
+  levels(ts.molten$inRC) <- c("No", "Yes")
 
   ## TODO: Does not work when date is used instead of revision,
   ## which is the desirable alternative
@@ -208,7 +209,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     geom_boxplot(fill="NA") + scale_y_log10() +
     facet_wrap(~variable, scales="free") + xlab("Revision") +
       ylab("Value (log. scale)") +
-      scale_colour_discrete("Release\nCandidate", values=c("black", "red"))
+      scale_colour_discrete("Release\nCandidate")
   ggsave(paste(graphdir, "ts_commits.pdf", sep="/"), g, width=12, height=8)
 }
 
