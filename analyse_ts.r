@@ -19,6 +19,7 @@
 # Time series analysis based on the output of ts.py
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(zoo))
 suppressPackageStartupMessages(library(xts))
 suppressPackageStartupMessages(library(stringr))
@@ -26,7 +27,9 @@ suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(yaml))
 suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(gridExtra))
 source("utils.r")
+source("plot.r")
 source("config.r")
 
 # Omit time series elements that exceed the given range
@@ -118,6 +121,17 @@ gen.ts.file.list <- function(resdir, revisions) {
   return(ts.file.list)
 }
 
+gen.commit.file.list <- function(resdir, revisions) {
+  ts.file.list <- vector("list", length(revisions)-1)
+
+  revs <- gen.rev.list(revisions)
+  for (i in 1:length(revs)) {
+    ts.file.list[[i]] <- paste(resdir, "/", revs[[i]], "/commits.txt", sep="")
+  }
+
+  return(ts.file.list)
+}
+
 # NOTE: width is the width of the rolling window, so series.monthly
 # does _not_ mean that there is one data point per month, but one
 # month's worth of data points go into the calculation of one smoothed
@@ -146,6 +160,56 @@ gen.series.df <- function(series) {
                                         type="Cumulative"), all=T)
 
   return(series.merged)
+}
+
+plot.commit.info <- function(dat, plot.types, graphdir, revision) {
+  pdf(paste(graphdir, paste("commits_", revision, ".pdf", sep=""), sep="/"))
+  do.call(grid.arrange, plot.splom(plot.types, dat))
+  dev.off()
+}
+
+do.commit.analysis <- function(resdir, graphdir, conf) {
+  commit.file.list <- gen.commit.file.list(resdir, conf$revisions)
+
+  ## Stage 1: Prepare summary statistics for each release cycle,
+  ## and prepare the time series en passant
+  ts <- vector("list", length(conf$revisions)-1)
+  tstamps <- read.table(paste(resdir, "/ts/timestamps.txt", sep=""),
+                              header=T, sep="\t")
+  tstamps <- tstamps[tstamps$type=="release",]
+  subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
+
+  for (i in 1:length(commit.file.list)) {
+    dat <- read.table(commit.file.list[[i]], header=TRUE, sep="\t")
+    dat <- normalise.commit.dat(dat, subset)
+
+    plot.types <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
+    if (sum(dat$NumSignedOffs) > 0) {
+      ## The data does contain tagging information
+      plot.types <- c(plot.types, "NumTags")
+    }
+
+    ts[[i]] <- cbind(data.frame(revision=tstamps$tag[[i+1]],
+                                date=tstamps$date[[i+1]]), dat)
+
+    plot.commit.info(dat, plot.types, graphdir, tstamps$tag[[i+1]])
+  }
+
+  ## Stage 2: Plot the complete commit information time series
+  ts <- do.call(rbind, ts)
+  ts$date <- tstamp_to_date(ts$date)
+
+  ts.molten <- melt(ts[c("revision", "date", subset)],
+                    id=c("revision", "inRC", "date"))
+
+  ## TODO: Does not work when date is used instead of revision,
+  ## which is the desirable alternative
+  g <- ggplot(data=ts.molten, aes(x=revision, y=value, colour=inRC)) +
+    geom_boxplot(fill="NA") + scale_y_log10() +
+    facet_wrap(~variable, scales="free") + xlab("Revision") +
+      ylab("Value (log. scale)") +
+      scale_colour_discrete("Release\nCandidate", values=c("black", "red"))
+  ggsave(paste(graphdir, "ts_commits.pdf", sep="/"), g, width=12, height=8)
 }
 
 do.ts.analysis <- function(resdir, graphdir, conf) {
@@ -233,3 +297,4 @@ graphdir <- paste(resdir, "graphs", sep="/")
 dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
 do.ts.analysis(resdir, graphdir, conf)
+do.commit.analysis(resdir, graphdir, conf)
