@@ -154,7 +154,11 @@ def dispatchAnalysis(args):
 
         os.chdir(tmpdir)
         executeCommand(cmd, args.dry_run)
-        shutil.copy(report_base + ".pdf", resdir)
+        try:
+            shutil.copy(report_base + ".pdf", resdir)
+        except IOError:
+            print("Warning: Could not copy report PDF (missing input data?)")
+
         os.chdir(orig_wd)
 
         shutil.rmtree(tmpdir)
