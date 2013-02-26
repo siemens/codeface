@@ -42,7 +42,18 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
 
     res = createSeries(vcs, "__main__", revrange, rc_start)
     writeToFile(res, os.path.join(destdir, "raw_{0}.dat".format(sfx)))
+    return res
     
+def writeReleases(outfile, tstamps):
+    FILE=open(outfile, "w")
+    last_timestamp = 0
+
+    FILE.write("type\ttag\tdate\n");
+    for tstamp in tstamps:
+        FILE.write("{0}\t{1}\t{2}\n".format(tstamp[0], tstamp[1], tstamp[2]))
+
+    FILE.close()
+
 def dispatch_ts_analysis(resdir, conf_file):
     conf = load_config(conf_file)
 
@@ -52,14 +63,28 @@ def dispatch_ts_analysis(resdir, conf_file):
     if not(os.path.exists(destdir)):
         os.mkdir(destdir)
 
+    ## Stage 1: Create the individual time series (and record all time
+    ## stamps for the boundaries)
+    tstamps = []
     for i in range(1, len(conf["revisions"])):
         dbfilename = os.path.join(dbpath, "{0}-{1}".format(conf["revisions"][i-1],
                                                            conf["revisions"][i]),
                                   "vcs_analysis.db")
         
-        doAnalysis(dbfilename, destdir, revrange=[conf["revisions"][i-1],
-                                                  conf["revisions"][i]],
-                   rc_start=conf["rcs"][i])
+        ts = doAnalysis(dbfilename, destdir, revrange=[conf["revisions"][i-1],
+                                                       conf["revisions"][i]],
+                        rc_start=conf["rcs"][i])
+
+        if (i==1):
+            tstamps.append(("release", conf["revisions"][i-1], ts.get_start()))
+
+        if (ts.get_rc_start()):
+            tstamps.append(("rc", conf["revisions"][i], ts.get_rc_start()))
+
+        tstamps.append(("release", conf["revisions"][i], ts.get_end()))
+
+    ## Stage 2: Create a file with time stamps for all releases considered
+    writeReleases(os.path.join(destdir, "timestamps.txt"), tstamps)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
