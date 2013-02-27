@@ -163,8 +163,10 @@ gen.series.df <- function(series) {
 }
 
 plot.commit.info <- function(dat, plot.types, graphdir, revision) {
+  plot.list <- plot.splom(plot.types, dat)
   pdf(paste(graphdir, paste("commits_", revision, ".pdf", sep=""), sep="/"))
-  do.call(grid.arrange, plot.splom(plot.types, dat))
+  do.call(grid.arrange, c(plot.list, list(nrow=length(plot.types),
+                                         ncol=length(plot.types))))
   dev.off()
 }
 
