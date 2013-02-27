@@ -263,9 +263,9 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   min.year <- year(min(series.merged$time))
   max.year <- year(max(series.merged$time))
 
-  sapply(seq(min.year, max.year), function(year) {
-    g.year <- g + xlim(dmy(paste("1-1-", year, sep="")),
-                       dmy(paste("31-12-", year, sep=""))) +
+  dummy <- sapply(seq(min.year, max.year), function(year) {
+    g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=T),
+                       dmy(paste("31-12-", year, sep=""), quiet=T)) +
               ggtitle(paste("Code changes in ", year, " for project '",
                             conf$description, "'", sep=""))
 
