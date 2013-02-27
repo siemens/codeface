@@ -185,6 +185,8 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     dat <- read.table(commit.file.list[[i]], header=TRUE, sep="\t")
     dat <- normalise.commit.dat(dat, subset)
 
+    status(paste("Plotting commit information for revisison",
+                 conf$revisions[[i+1]]))
     plot.types <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
     if (sum(dat$NumSignedOffs) > 0) {
       ## The data does contain tagging information
@@ -197,6 +199,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     plot.commit.info(dat, plot.types, graphdir, tstamps$tag[[i+1]])
   }
 
+  status("Plotting the commit information time series")
   ## Stage 2: Plot the complete commit information time series
   ts <- do.call(rbind, ts)
   ts$date <- tstamp_to_date(ts$date)
@@ -216,6 +219,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
 }
 
 do.ts.analysis <- function(resdir, graphdir, conf) {
+  status("Creating time series plots")
   ts.file.list <- gen.ts.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
@@ -266,6 +270,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   max.year <- year(max(series.merged$time))
 
   dummy <- sapply(seq(min.year, max.year), function(year) {
+    status(paste("Creating yearly time series for", year))
     g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=T),
                        dmy(paste("31-12-", year, sep=""), quiet=T)) +
               ggtitle(paste("Code changes in ", year, " for project '",
