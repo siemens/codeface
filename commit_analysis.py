@@ -22,6 +22,7 @@
 # All Rights Reserved.
 
 from TimeSeries import TimeSeries
+import sys
 
 tag_types = [ "Signed-off-by", "Acked-by", "CC", "Reviewed-by",
              "Reported-by", "Tested-by" ]
@@ -206,7 +207,13 @@ def writeToFile(res, name, uniqueTS=True):
     for i in range(0,len(res.series)):
         cmt = res.series[i]["commit"]
         if uniqueTS:
-            timestamp = _compute_next_timestamp(int(cmt.cdate), last_timestamp)
+            try:
+                timestamp = _compute_next_timestamp(int(cmt.cdate),
+                                                    last_timestamp)
+            except ValueError:
+                print("Internal error: Could not determine timestamp " +
+                      "for commit {0}, skipping it.".format(cmt.id))
+                continue
             last_timestamp = int(timestamp)
         else:
             timestamp = cmt.cdate
