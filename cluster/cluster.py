@@ -1,8 +1,6 @@
 #! /usr/bin/env python
-##! /usr/local/bin/pypy  ### NOTE: pypy fails indeterministically sometimes
 # Prepare base data for the commit cluster analysis
 # (statistical operations will be carried out by R)
-# WM 5. Aug 2011
 
 # This file is part of prosoda.  prosoda is free software: you can
 # redistribute it and/or modify it under the terms of the GNU General Public
