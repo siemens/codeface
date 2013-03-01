@@ -125,26 +125,14 @@ gen.ts.file.list <- function(resdir, revisions) {
 }
 
 gen.commit.file.list <- function(resdir, revisions) {
-  file.list <- vector("list", length(revisions)-1)
+  ts.file.list <- vector("list", length(revisions)-1)
 
   revs <- gen.rev.list(revisions)
   for (i in 1:length(revs)) {
-    file.list[[i]] <- paste(resdir, "/", revs[[i]], "/commits.txt", sep="")
+    ts.file.list[[i]] <- paste(resdir, "/", revs[[i]], "/commits.txt", sep="")
   }
 
-  return(file.list)
-}
-
-gen.cluster.file.list <- function(resdir, revisions, type) {
-  file.list <- vector("list", length(revisions)-1)
-
-  revs <- gen.rev.list(revisions)
-  for (i in 1:length(revs)) {
-    file.list[[i]] <- paste(resdir, "/", revs[[i]], "/", type,
-                            "_cluster_stats.txt", sep="")
-  }
-
-  return(file.list)
+  return(ts.file.list)
 }
 
 ## NOTE: width is the width of the rolling window, so series.monthly
@@ -284,8 +272,9 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
   ts <- vector("list", length(conf$revisions)-1)
-  tstamps <- get.release.dates(resdir)
-
+  tstamps <- read.table(paste(resdir, "/ts/timestamps.txt", sep=""),
+                              header=T, sep="\t")
+  tstamps <- tstamps[tstamps$type=="release",]
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
   for (i in 1:length(commit.file.list)) {
@@ -323,23 +312,6 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
       ylab("Value (log. scale)") +
       scale_colour_discrete("Release\nCandidate")
   ggsave(paste(graphdir, "ts_commits.pdf", sep="/"), g, width=12, height=8)
-
-  ## Stage 3: Plot annual versions of the commit time series
-  min.year <- year(min(ts.molten$date))
-  max.year <- year(max(ts.molten$date))
-
-  dummy <- sapply(seq(min.year, max.year), function(year) {
-    status(paste("Creating annual commit time series for", year))
-    g <- ggplot(data=ts.molten[year(ts.molten$date)==year,],
-                aes(x=revision, y=value, colour=inRC)) +
-                  geom_boxplot(fill="NA") + scale_y_log10() +
-                  facet_wrap(~variable, scales="free") + xlab("Revision") +
-                  ylab("Value (log. scale)") +
-                  scale_colour_discrete("Release\nCandidate") +
-                  ggtitle(paste("Commit time series for year", year))
-    ggsave(paste(graphdir, paste("ts_commits_", year, ".pdf", sep=""),
-                 sep="/"), g, width=12, height=8)
-    })
 }
 
 do.ts.analysis <- function(resdir, graphdir, conf) {
@@ -431,4 +403,3 @@ dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 options(error = quote(dump.frames("error.dump", TRUE)))
 do.ts.analysis(resdir, graphdir, conf)
 do.commit.analysis(resdir, graphdir, conf)
-do.cluster.analysis(resdir, graphdir, conf)
