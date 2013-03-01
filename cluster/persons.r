@@ -404,7 +404,7 @@ save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
 }
 
 ## save.group.fn is the function responsible for saving a single group.
-## Can either bei save.group or save.group.NonTag
+## Can either be save.group or save.group.NonTag
 save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
                         save.group.fn, label=NA) {
   baselabel <- label
@@ -978,7 +978,7 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
 }
 
 
-performNonTagAnalysis <- function(outdir){
+performNonTagAnalysis <- function(outdir) {
   ##-----------------
   ## Read Data
   ##-----------------
@@ -1006,7 +1006,7 @@ performNonTagAnalysis <- function(outdir){
   performGraphAnalysis(adjMatrix, ids, outdir, TRUE, FALSE)
 }
 
-compute.all.community.quality <- function(graph, community, test){
+compute.all.community.quality <- function(graph, community, test) {
 ########################################################################
   ##Input:
   ##   - graph, igraph object
@@ -1027,20 +1027,20 @@ compute.all.community.quality <- function(graph, community, test){
   members <- sapply(community.id,
                     function(x) { return(list(which(community$membership==x))) })
   
-  if(test == "modularity"){
+  if(test == "modularity") {
     quality.vec <- sapply(community.id,
                           function(x) {return(community.quality.modularity(graph, members[[x]]))})
   }
-  else if (test == "wilcox"){
+  else if (test == "wilcox") {
     quality.vec <- sapply(community.id,
                           function(x) {return(community.quality.wilcox(graph, members[[x]]))})
   }
-  else if (test == "conductance"){
+  else if (test == "conductance") {
     quality.vec <- sapply(community.id,
                           function(x) {return(community.quality.conductance(graph, members[[x]]))})
     
   }
-  else if (test == "modularization"){
+  else if (test == "modularization") {
     quality.vec <- sapply(community.id,
                           function(x) {return(community.quality.modularization(graph, members[[x]], community$membership))})
   }
@@ -1050,8 +1050,8 @@ compute.all.community.quality <- function(graph, community, test){
 
 
 ## Compare the results of the tag and non tag based graphs 
-graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2, outputFileName){
-  
+graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2,
+                            outputFileName) {
   ## Normalize graphs to have edge weight between 0-1
   nonTagAdjMatrix.weighted <- scale.data(adjMatrix1, 0, 1000)
   tagAdjMatrix.weighted	 <- scale.data(adjMatrix2, 0, 1000)
@@ -1068,29 +1068,38 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2, outputFileName){
   idx.nonTag.connected <- largest.connected.subgraph(g.nonTag)
   idx.Tag.connected    <- largest.connected.subgraph(g.Tag   )
   ids.nonTag.connected <- ids1[idx.nonTag.connected,]
-  ids.Tag.connected    <- ids2[idx.Tag.connected,   ]
+  ids.Tag.connected    <- ids2[idx.Tag.connected,]
   
   
-  nonTagAdj.connected <- nonTagAdjMatrix[idx.nonTag.connected, idx.nonTag.connected]
-  TagAdj.connected    <- tagAdjMatrix   [idx.Tag.connected , idx.Tag.connected   ]
+  nonTagAdj.connected <- nonTagAdjMatrix[idx.nonTag.connected,
+                                         idx.nonTag.connected]
+  TagAdj.connected <- tagAdjMatrix[idx.Tag.connected, idx.Tag.connected]
   
-  nonTagAdj.connected.weighted <- nonTagAdjMatrix.weighted[idx.nonTag.connected, idx.nonTag.connected]
-  tagAdj.connected.weighted    <- tagAdjMatrix.weighted   [idx.Tag.connected , idx.Tag.connected   ]
+  nonTagAdj.connected.weighted <-
+    nonTagAdjMatrix.weighted[idx.nonTag.connected, idx.nonTag.connected]
+  tagAdj.connected.weighted <- tagAdjMatrix.weighted[idx.Tag.connected,
+                                                     idx.Tag.connected]
   
-  g.nonTag.connected <- graph.adjacency(nonTagAdj.connected, mode="directed", weighted=TRUE)
-  g.Tag.connected    <- graph.adjacency(TagAdj.connected,    mode="directed")
+  g.nonTag.connected <- graph.adjacency(nonTagAdj.connected,
+                                        mode="directed", weighted=TRUE)
+  g.Tag.connected    <- graph.adjacency(TagAdj.connected,
+                                        mode="directed")
   
-  g.nonTag.connected.weighted <- graph.adjacency(nonTagAdj.connected.weighted, mode="directed", weighted=TRUE)
-  g.Tag.connected.weighted    <- graph.adjacency(tagAdj.connected.weighted,    mode="directed", weighted=TRUE)
+  g.nonTag.connected.weighted <- graph.adjacency(nonTagAdj.connected.weighted,
+                                                 mode="directed", weighted=TRUE)
+  g.Tag.connected.weighted <- graph.adjacency(tagAdj.connected.weighted,
+                                              mode="directed", weighted=TRUE)
 
   ## Compute pagerank
-  pr.nonTag <- page.rank(g.nonTag.connected.weighted, damping=0.85, directed=TRUE)
-  pr.Tag    <- page.rank(g.Tag.connected.weighted,    damping=0.85, directed=TRUE)
+  pr.nonTag <- page.rank(g.nonTag.connected.weighted, damping=0.85,
+                         directed=TRUE)
+  pr.Tag <- page.rank(g.Tag.connected.weighted, damping=0.85, directed=TRUE)
   
   ## Match up ids between the two adjacency matrices
-  ## don't use email address, 1 person with multiple email addresses gets mapped to 
-  ## A single name except the arbitration rule for which email is noted doesn't 
-  ## provide consistent results betweent the tagged and non-tagged analysis 
+  ## Don't use email address, 1 person with multiple email addresses gets
+  ## mapped to a single name except the arbitration rule for which email is
+  ## noted doesn't provide consistent results between the tagged and
+  ## non-tagged analysis
   intersectNames <- intersect(ids.nonTag.connected$Name, ids.Tag.connected$Name)
   ## Get index of names from both ids sets
   idx.nonTag <- match(intersectNames, ids.nonTag.connected$Name)
@@ -1100,18 +1109,17 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2, outputFileName){
   ## Now the ids indecies should be unified between the 
   ## tag and non-tag graphs
   ids.nonTag.intersect <- ids.nonTag.connected[idx.nonTag,]
-  pr.nonTag.intersect  <- pr.nonTag           [idx.nonTag ]
+  pr.nonTag.intersect  <- pr.nonTag[idx.nonTag]
   
-  ids.Tag.intersect    <- ids.Tag.connected[idx.Tag, ]
-  pr.Tag.intersect     <- pr.Tag           [idx.Tag  ]
+  ids.Tag.intersect <- ids.Tag.connected[idx.Tag,]
+  pr.Tag.intersect <- pr.Tag[idx.Tag]
   
   if (all( ids.nonTag.intersect$Name == ids.Tag.intersect$Name )) {
-    ids.intersect    <- ids.nonTag.intersect
+    ids.intersect <- ids.nonTag.intersect
     ids.intersect$ID <- seq(1, length(ids.nonTag.intersect$eMail))
     ids.intersect$pr.NonTag <- pr.nonTag$vector[idx.nonTag]
-    ids.intersect$pr.Tag    <- pr.Tag$vector[idx.Tag]
-  }
-  else {
+    ids.intersect$pr.Tag <- pr.Tag$vector[idx.Tag]
+  } else {
     e <- simpleError("id systems don't match!")
     stop(e)
   }
@@ -1119,11 +1127,12 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2, outputFileName){
   
   ## Build adjacency matrix of interesecting ids
   nonTagAdj.intersect <- nonTagAdj.connected[idx.nonTag, idx.nonTag]
-  tagAdj.intersect    <- TagAdj.connected   [idx.Tag,    idx.Tag   ]
+  tagAdj.intersect <- TagAdj.connected[idx.Tag, idx.Tag]
   
   ## Build igraph graph objects 
-  g.nonTag <- graph.adjacency(nonTagAdj.intersect, mode = "directed", weighted=TRUE)
-  g.Tag    <- graph.adjacency(tagAdj.intersect,    mode = "directed")
+  g.nonTag <- graph.adjacency(nonTagAdj.intersect, mode = "directed",
+                              weighted=TRUE)
+  g.Tag <- graph.adjacency(tagAdj.intersect, mode = "directed")
   
   ##sum(get.adjacency(g.nonTag) != get.adjacency(g.Tag))
   similarity.adjMatrix <- nonTagAdj.intersect * tagAdj.intersect
@@ -1148,15 +1157,19 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2, outputFileName){
   plot(log(ids.intersect$pr.Tag), log(ids.intersect$pr.NonTag))
   dev.off()
   
-  performGraphAnalysis(similarity.adjMatrix.weighted, ids.intersect, "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments", TRUE, FALSE)
+  performGraphAnalysis(similarity.adjMatrix.weighted, ids.intersect,
+                       "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments",
+                       TRUE, FALSE)
   
   ##write.graph.2.file("/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments/similarityGraph.dot", g.similarity, ids.intersect, ids.intersect$ID)
 }
 
-get.community.graph <- function(graph, community, prank, ids){
+get.community.graph <- function(graph, community, prank, ids) {
   community.idx <- sort(unique(community$membership))
   influential.people <- sapply(community.idx,
-                               function(comm.idx) { which( prank$vector == max(prank$vector[which(community$membership == comm.idx)]))[1] })
+                               function(comm.idx) {
+                                 which(prank$vector == max(prank$vector[which(community$membership == comm.idx)]))[1]
+                               })
 
   names <- ids$Name[influential.people]
   
@@ -1173,7 +1186,8 @@ get.community.graph <- function(graph, community, prank, ids){
   ##fc <- as.character(as.integer(100-scale.data(log(.iddb$total+1),0,50)[idx]))
   V(g.simplified)$fillcolor <- paste("grey", 50, sep="")
   V(g.simplified)$style="filled"
-  write.graph(g.simplified, "/Users/Mitchell/Desktop/community.dot", format="dot")
+  write.graph(g.simplified, "/Users/Mitchell/Desktop/community.dot",
+              format="dot")
 }
 
 runRandCompare <- function(){
@@ -1222,8 +1236,7 @@ runRandCompare <- function(){
   
 }
 
-runGraphCompare.Tag.nonTag <- function(){
-  
+runGraphCompare.Tag.nonTag <- function() {
   ## Setup Directories
   nonTagDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_NonTag/30"
   tagDir    <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_Tag/30"
@@ -1257,15 +1270,14 @@ runGraphCompare.Tag.nonTag <- function(){
 }
 
 
-graph.similarity <- function(g1,g2){
+graph.similarity <- function(g1,g2) {
   vertexList1 <- V(g1)
   vertexList2 <- V(g2)
   
   if (!all(vertexList1 == vertexList2)) {
-    e <- simpleError("graphs not compatible!" )
+    e <- simpleError("graphs not compatible!")
     stop(e)
-  }
-  else {
+  } else {
     vertexList <- vertexList1
   }
   
@@ -1278,8 +1290,7 @@ graph.similarity <- function(g1,g2){
 }
 
 
-vertex.similarity <- function(g1, v1, g2, v2){
-  
+vertex.similarity <- function(g1, v1, g2, v2) {
   in.v1  <- neighbors(g1, v1, mode="in")
   out.v1 <- neighbors(g1, v1, mode="out")
   in.v2  <- neighbors(g2, v2, mode="in")
@@ -1288,11 +1299,10 @@ vertex.similarity <- function(g1, v1, g2, v2){
   totalEdges = length(union(in.v1,in.v2)) + length(union(out.v1,out.v2))
   matchEdges = length(intersect(in.v1,in.v2)) + length(intersect(out.v1,out.v2))
   
-  if (totalEdges != 0){
+  if (totalEdges != 0) {
     similarity = matchEdges / totalEdges 
     print(similarity)
-  }
-  else{
+  } else {
     similarity = 0
   }
   
@@ -1300,8 +1310,7 @@ vertex.similarity <- function(g1, v1, g2, v2){
 }
 
 
-write.graph.2.file <- function(.filename, g, .iddb, idx){
-  
+write.graph.2.file <- function(.filename, g, .iddb, idx) {
   V(g)$label <- as.character(IDs.to.names(.iddb, idx))	
   
   write.graph(g, .filename, format="dot")
