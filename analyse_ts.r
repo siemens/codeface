@@ -163,11 +163,17 @@ gen.series.df <- function(series) {
 }
 
 plot.commit.info <- function(dat, plot.types, graphdir, revision) {
-  plot.list <- plot.splom(plot.types, dat)
-  pdf(paste(graphdir, paste("commits_", revision, ".pdf", sep=""), sep="/"))
-  do.call(grid.arrange, c(plot.list, list(nrow=length(plot.types),
-                                         ncol=length(plot.types))))
-  dev.off()
+  MIN.COMMITS <- 10
+  if (dim(dat)[1] < MIN.COMMITS) {
+    cat("NOTE: Revision", revision, " contains less than",
+        MIN.COMMITS, "commits. Skipping.\n"))
+  } else {
+    plot.list <- plot.splom(plot.types, dat)
+    pdf(paste(graphdir, paste("commits_", revision, ".pdf", sep=""), sep="/"))
+    do.call(grid.arrange, c(plot.list, list(nrow=length(plot.types),
+                                            ncol=length(plot.types))))
+    dev.off()
+  }
 }
 
 do.commit.analysis <- function(resdir, graphdir, conf) {
