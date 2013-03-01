@@ -1,22 +1,22 @@
 #! /usr/bin/env Rscript
 
-# This file is part of prosoda.  prosoda is free software: you can
-# redistribute it and/or modify it under the terms of the GNU General Public
-# License as published by the Free Software Foundation, version 2.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-# Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
-# All Rights Reserved.
+## This file is part of prosoda.  prosoda is free software: you can
+## redistribute it and/or modify it under the terms of the GNU General Public
+## License as published by the Free Software Foundation, version 2.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+## FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+## details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+##
+## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
+## All Rights Reserved.
 
-# Time series analysis based on the output of ts.py
+## Time series analysis based on the output of ts.py
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(reshape))
@@ -32,7 +32,7 @@ source("utils.r")
 source("plot.r")
 source("config.r")
 
-# Omit time series elements that exceed the given range
+## Omit time series elements that exceed the given range
 trim.series <- function(series, start, end) {
   series <- series[which(index(series) < end),]
   series <- series[which(index(series) > start),]
@@ -40,7 +40,7 @@ trim.series <- function(series, start, end) {
   return(series)
 }
 
-# Unidirectional version of the above function
+## Unidirectional version of the above function
 trim.series.start <- function(series, start) {
   return(series[which(index(series) > start),])
 }
@@ -68,7 +68,7 @@ boundaries.include.rc <- function(boundaries) {
   return (!is.na(boundaries$rc_start))
 }
 
-# Given a list of time series file names, compute the total time series
+## Given a list of time series file names, compute the total time series
 gen.full.ts <- function(ts.file.list) {
   full.series <- vector("list", length(ts.file.list))
   releases <- vector("list", length(ts.file.list))
@@ -132,11 +132,11 @@ gen.commit.file.list <- function(resdir, revisions) {
   return(ts.file.list)
 }
 
-# NOTE: width is the width of the rolling window, so series.monthly
-# does _not_ mean that there is one data point per month, but one
-# month's worth of data points go into the calculation of one smoothed
-# data point. Using the robust median instead of mean considerably
-# reduces the amount of outliers
+## NOTE: width is the width of the rolling window, so series.monthly
+## does _not_ mean that there is one data point per month, but one
+## month's worth of data points go into the calculation of one smoothed
+## data point. Using the robust median instead of mean considerably
+## reduces the amount of outliers
 gen.series.df <- function(series) {
   duration <- end(series) - start(series)
 
@@ -271,7 +271,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   ggsave(paste(graphdir, "ts.pdf", sep="/"), g, width=16, height=7)
 
 
-  ## Create yearly versions of the plots
+  ## Create annual versions of the plots
   min.year <- year(min(series.merged$time))
   max.year <- year(max(series.merged$time))
 
