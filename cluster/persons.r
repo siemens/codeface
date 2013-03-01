@@ -431,24 +431,23 @@ persons.in.group <- function(N, .comm, .iddb) {
 ##print(persons.in.group(7, g.spin.community, ids.connected))
 
 ## Determine the page rank factors of persons in community N
-pr.in.group <- function(N, .comm, .pr) {
-  return(.pr[.pr$ID %in% which(.comm$membership==N),][c("name", "ID", "rank")])
+pr.in.group <- function(N, .comm, .iddb, .pr) {
+  ## Select all IDs that are contained in cluster N. Then, select all
+  # the page ranks
+  return(.pr$vector[.iddb$ID %in% which(.comm$membership==N)])
 }
 
 ## Check how the page ranks are distributed within the groups
-construct.pr.info <- function(.comm, .pr, N=length(unique(.comm$membership))) {
-  for (i in 0:(N-1)) {
-    grp.pranks <- log(pr.in.group(i, .comm, .pr)$rank)
+construct.pr.info <- function(.comm, .pr, .iddb,
+                              N=length(unique(.comm$membership))) {
+  res <- vector("list", N)
+  for (i in 1:N) {
+    grp.pranks <- pr.in.group(i, .comm, .iddb, .pr)
     
-    if (i == 0) {
-      res <- data.frame(group=i, max = max(grp.pranks), min=min(grp.pranks),
-                        avg=mean(grp.pranks), pranks=grp.pranks)
-    } else {
-      res <- rbind(res, data.frame(group=i, max = max(grp.pranks),
-                                   min=min(grp.pranks), avg=mean(grp.pranks),
-                                   pranks=grp.pranks))
-    }
+      res[[i]] <- data.frame(group=i, prank=grp.pranks)
   }
+
+  res <- do.call(rbind, res)
   
   res$group=as.factor(res$group)
   return (res)
