@@ -163,6 +163,7 @@ gen.series.df <- function(series) {
 }
 
 plot.commit.info <- function(dat, plot.types, graphdir, revision) {
+<<<<<<< HEAD
   MIN.COMMITS <- 10
   if (dim(dat)[1] < MIN.COMMITS) {
     cat("NOTE: Revision", revision, " contains less than",
@@ -174,6 +175,11 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
                                             ncol=length(plot.types))))
     dev.off()
   }
+=======
+  pdf(paste(graphdir, paste("commits_", revision, ".pdf", sep=""), sep="/"))
+  do.call(grid.arrange, plot.splom(plot.types, dat))
+  dev.off()
+>>>>>>> a8ebfa86a05ce0b00ae656e03f99e4a7f85c688e
 }
 
 do.commit.analysis <- function(resdir, graphdir, conf) {
@@ -191,8 +197,11 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     dat <- read.table(commit.file.list[[i]], header=TRUE, sep="\t")
     dat <- normalise.commit.dat(dat, subset)
 
+<<<<<<< HEAD
     status(paste("Plotting commit information for revisison",
                  conf$revisions[[i+1]]))
+=======
+>>>>>>> a8ebfa86a05ce0b00ae656e03f99e4a7f85c688e
     plot.types <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
     if (sum(dat$NumSignedOffs) > 0) {
       ## The data does contain tagging information
@@ -205,14 +214,20 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     plot.commit.info(dat, plot.types, graphdir, tstamps$tag[[i+1]])
   }
 
+<<<<<<< HEAD
   status("Plotting the commit information time series")
+=======
+>>>>>>> a8ebfa86a05ce0b00ae656e03f99e4a7f85c688e
   ## Stage 2: Plot the complete commit information time series
   ts <- do.call(rbind, ts)
   ts$date <- tstamp_to_date(ts$date)
 
   ts.molten <- melt(ts[c("revision", "date", subset)],
                     id=c("revision", "inRC", "date"))
+<<<<<<< HEAD
   levels(ts.molten$inRC) <- c("No", "Yes")
+=======
+>>>>>>> a8ebfa86a05ce0b00ae656e03f99e4a7f85c688e
 
   ## TODO: Does not work when date is used instead of revision,
   ## which is the desirable alternative
@@ -220,7 +235,11 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     geom_boxplot(fill="NA") + scale_y_log10() +
     facet_wrap(~variable, scales="free") + xlab("Revision") +
       ylab("Value (log. scale)") +
+<<<<<<< HEAD
       scale_colour_discrete("Release\nCandidate")
+=======
+      scale_colour_discrete("Release\nCandidate", values=c("black", "red"))
+>>>>>>> a8ebfa86a05ce0b00ae656e03f99e4a7f85c688e
   ggsave(paste(graphdir, "ts_commits.pdf", sep="/"), g, width=12, height=8)
 }
 
