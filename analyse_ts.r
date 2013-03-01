@@ -222,6 +222,23 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
       ylab("Value (log. scale)") +
       scale_colour_discrete("Release\nCandidate")
   ggsave(paste(graphdir, "ts_commits.pdf", sep="/"), g, width=12, height=8)
+
+  ## Stage 3: Plot annual versions of the commit time series
+  min.year <- year(min(ts.molten$date))
+  max.year <- year(max(ts.molten$date))
+
+  dummy <- sapply(seq(min.year, max.year), function(year) {
+    status(paste("Creating annual commit time series for", year))
+    g <- ggplot(data=ts.molten[year(ts.molten$date)==year,],
+                aes(x=revision, y=value, colour=inRC)) +
+                  geom_boxplot(fill="NA") + scale_y_log10() +
+                  facet_wrap(~variable, scales="free") + xlab("Revision") +
+                  ylab("Value (log. scale)") +
+                  scale_colour_discrete("Release\nCandidate") +
+                  ggtitle(paste("Commit time series for year", year))
+    ggsave(paste(graphdir, paste("ts_commits_", year, ".pdf", sep=""),
+                 sep="/"), g, width=12, height=8)
+    })
 }
 
 do.ts.analysis <- function(resdir, graphdir, conf) {
@@ -276,7 +293,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   max.year <- year(max(series.merged$time))
 
   dummy <- sapply(seq(min.year, max.year), function(year) {
-    status(paste("Creating yearly time series for", year))
+    status(paste("Creating annual time series for", year))
     g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=T),
                        dmy(paste("31-12-", year, sep=""), quiet=T)) +
               ggtitle(paste("Code changes in ", year, " for project '",
