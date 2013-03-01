@@ -454,7 +454,8 @@ construct.pr.info <- function(.comm, .pr, N=length(unique(.comm$membership))) {
   return (res)
 }
 
-save.cluster.stats <- function(.comm, .id.subsys, .elems, .outdir, .basename) {
+save.cluster.stats.subsys <- function(.comm, .id.subsys, .elems,
+                                      .outdir, .basename) {
   for (i in .elems) {
     print(xtable(txt.comm.subsys(.comm, .id.subsys, i)), type="latex",
           floating=FALSE, file=paste(.outdir, "/", .basename, three.digit(i), ".tex", sep=""))
@@ -966,13 +967,13 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
                      paste(outdir, "/wt_comm_subsys_small.pdf", sep=""),
                      "random walk", elems=elems.wt.less)
     
-    status("Saving raw per-cluster statistical summaries")
-    save.cluster.stats(g.spin.community, id.subsys.connected, elems.sg.more,
-                       outdir, "sg_cluster_")
-    save.cluster.stats(g.walktrap.community, id.subsys.connected,
-                       elems.wt.more, outdir, "wt_cluster_")
-    save.cluster.stats(g.walktrap.community, id.subsys.connected,
-                       elems.wt.less, outdir, "wt_cluster_")
+    status("Saving raw per-cluster, per-subsystem statistical summaries")
+    save.cluster.stats.subsys(g.spin.community, id.subsys.connected,
+                              elems.sg.more, outdir, "sg_cluster_subsys_")
+    save.cluster.stats.subsys(g.walktrap.community, id.subsys.connected,
+                              elems.wt.more, outdir, "wt_cluster_subsys_")
+    save.cluster.stats.subsys(g.walktrap.community, id.subsys.connected,
+                              elems.wt.less, outdir, "wt_cluster_subsys_")
   }
 }
 
