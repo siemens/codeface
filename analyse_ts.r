@@ -304,5 +304,6 @@ resdir <- paste(resdir, conf$project, conf$tagging, sep="/")
 graphdir <- paste(resdir, "graphs", sep="/")
 dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
+options(error = quote(dump.frames("error.dump", TRUE)))
 do.ts.analysis(resdir, graphdir, conf)
 do.commit.analysis(resdir, graphdir, conf)
