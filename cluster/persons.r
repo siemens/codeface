@@ -984,6 +984,22 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
     save.cluster.stats.subsys(g.walktrap.community, id.subsys.connected,
                               elems.wt.less, outdir, "wt_cluster_subsys_")
   }
+
+  status("Saving raw per-cluster statistical summaries")
+  save.cluster.stats(g.spin.community, ids.connected, elems.sg.more, pr.for.all,
+                     outdir, "sg_cluster_more_")
+  save.cluster.stats(g.walktrap.community, ids.connected, elems.wt.more, pr.for.all,
+                     outdir, "wt_cluster_more_")
+  save.cluster.stats(g.walktrap.community, ids.connected, elems.wt.less, pr.for.all,
+                     outdir, "wt_cluster_less_")
+
+  ## Also save the complete decomposition without removing any small communities
+  save.cluster.stats(g.spin.community, ids.connected,
+                     unique(g.spin.community$membership), pr.for.all,
+                     outdir, "sg_cluster_")
+  save.cluster.stats(g.walktrap.community, ids.connected,
+                     unique(g.walktrap.community$membership), pr.for.all,
+                     outdir, "wt_cluster_")
 }
 
 
