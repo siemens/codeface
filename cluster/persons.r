@@ -430,21 +430,21 @@ persons.in.group <- function(N, .comm, .iddb) {
 ##print("Persons in community a as determined by the spinglass algorithm")
 ##print(persons.in.group(7, g.spin.community, ids.connected))
 
-## Determine the page rank factors of persons in community N
+## Determine the page rank factors of persons in community N,
+## and merge them with the metrics information
 pr.in.group <- function(N, .comm, .iddb, .pr) {
   ## Select all IDs that are contained in cluster N. Then, select all
-  # the page ranks
-  return(.pr$vector[.iddb$ID %in% which(.comm$membership==N)])
+  ## the page ranks, and combine them with the traditional metrics
+  idx <- .iddb$ID %in% which(.comm$membership==N)
+  return(cbind(.iddb[idx,], group=N, prank=.pr$vector[idx],
+               num.members=length(which(.comm$membership==N))))
 }
 
-## Check how the page ranks are distributed within the groups
-construct.pr.info <- function(.comm, .pr, .iddb,
-                              N=length(unique(.comm$membership))) {
-  res <- vector("list", N)
-  for (i in 1:N) {
-    grp.pranks <- pr.in.group(i, .comm, .iddb, .pr)
-    
-      res[[i]] <- data.frame(group=i, prank=grp.pranks)
+## Collect page rank and developer metrics for each cluster
+construct.group.info <- function(.comm, .pr, .iddb, .elems) {
+  res <- vector("list", length(.elems))
+  for (i in 1:length(.elems)){
+    res[[i]] <- pr.in.group(.elems[[i]], .comm, .iddb, .pr)
   }
 
   res <- do.call(rbind, res)
@@ -459,6 +459,16 @@ save.cluster.stats.subsys <- function(.comm, .id.subsys, .elems,
     print(xtable(txt.comm.subsys(.comm, .id.subsys, i)), type="latex",
           floating=FALSE, file=paste(.outdir, "/", .basename, three.digit(i), ".tex", sep=""))
   }
+}
+
+## .comm is the decomposition into clusters
+## .iddb is the id-to-name database
+## .elems contains the cluster identifiers we're interested in
+## .pr contains the page ranks of the developers
+## Save information about all clusters.
+save.cluster.stats <- function(.comm, .iddb, .elems, .pr, .outdir, .basename) {
+  dat <- construct.group.info(.comm, .pr, .iddb, .elems)
+  write.table(dat, file=paste(.outdir, "/", .basename, "stats.txt", sep=""))
 }
 
 ## save.group.fn can either be save.group or save.group.NonTag
