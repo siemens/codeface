@@ -176,15 +176,22 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
   }
 }
 
+get.release.dates <- function(resdir) {
+  tstamps <- read.table(paste(resdir, "/ts/timestamps.txt", sep=""),
+                              header=T, sep="\t")
+  tstamps <- tstamps[tstamps$type=="release",]
+
+  return(tstamps)
+}
+
 do.commit.analysis <- function(resdir, graphdir, conf) {
   commit.file.list <- gen.commit.file.list(resdir, conf$revisions)
 
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
   ts <- vector("list", length(conf$revisions)-1)
-  tstamps <- read.table(paste(resdir, "/ts/timestamps.txt", sep=""),
-                              header=T, sep="\t")
-  tstamps <- tstamps[tstamps$type=="release",]
+  tstamps <- get.release.dates(resdir)
+
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
   for (i in 1:length(commit.file.list)) {
