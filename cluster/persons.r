@@ -1442,6 +1442,8 @@ if(length(arguments$args) != 2) {
 ##------------------------------
 ## Perform appropriate Analysis 
 ##------------------------------
+options(error = quote(dump.frames("error.dump", TRUE)))
+
 if (type == "--tag") {
   print("Performing Tag Based Graph Analysis")
   performTagAnalysis(dataDir)
