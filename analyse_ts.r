@@ -199,6 +199,85 @@ get.release.dates <- function(resdir) {
   return(tstamps)
 }
 
+## Perform statistical analysis on the clusters. type can be "sg"
+## (spin glass), or "wg" (walktrap -- random walk analysis)
+do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
+  if (type != "sg" && type != "wg") {
+    stop("Internal error: Specify 'wg' or 'sg' for clustering type!")
+  }
+
+  cluster.file.list <- gen.cluster.file.list(resdir, conf$revisions, type)
+
+  clusters <- vector("list", length(conf$revisions)-1)
+  clusters.summary <- vector("list", length(conf$revisions)-1)
+  tstamps <- get.release.dates(resdir)
+
+  ## Stage 1: Perform per-release operations
+  for (i in 1:length(cluster.file.list)) {
+    clusters[[i]] <- read.table(cluster.file.list[[i]], header=TRUE, sep="\t")
+    ## Assign the date of date of the release in the cluster range
+    ## as cluster date (e.g., cluster v1..v2 gets the date of v2 assigned)
+    clusters[[i]] <- cbind(clusters[[i]], date=tstamp_to_date(tstamps$date[[i+1]]))
+    clusters[[i]]$group <- as.factor(clusters[[i]]$group)
+
+    ## Compute summary statistics for each cluster. The ddply query
+    ## determines median and sum values of interesting covariates
+    ## (e.g., number of commits, number of code changes) for all cluster members
+    clusters.summary[[i]] <- ddply(clusters[[i]], .(group, num.members, date),
+                                   summarise,
+                                   prank.median=median(prank),
+                                   num.changes.median=median(total),
+                                   sum.changes=sum(total),
+                                   num.commits.median=median(numcommits),
+                                   sum.commits=sum(numcommits))
+    ## Scale the summary statistics for average statements per member
+    # (pp = "per pers
+    clusters.summary[[i]]$sum.commits.pp <-
+      clusters.summary[[i]]$sum.commits/clusters.summary[[i]]$num.members
+    clusters.summary[[i]]$sum.changes.pp <-
+      clusters.summary[[i]]$sum.changes/clusters.summary[[i]]$num.members
+
+    ## Create release-specific plots
+    g <- ggplot(clusters[[i]], aes(x=group, y=prank)) +
+      geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
+        ylab("Page rank")
+    ggsave(paste(graphdir, paste("cluster_prank_", tstamps$tag[[i+1]],
+                                 ".pdf", sep=""),
+                 sep="/"), g)
+
+    g <- ggplot(clusters[[i]], aes(x=group, y=total)) +
+      geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
+        ylab("Amount of code changes (add+del)")
+    ggsave(paste(graphdir, paste("cluster_code_changes_", tstamps$tag[[i+1]],
+                                 ".pdf", sep=""),
+                 sep="/"), g)
+  }
+
+
+  ## Stage 2: Perform global operations on all releases
+  ## TODO: Augment the date labels with release specifications; additionally,
+  ## sort the clusters by average page rank per release
+  clusters.all <- do.call(rbind, clusters)
+  clusters.summary.all <- do.call(rbind, clusters.summary)
+  clusters.all$date.factor <- as.factor(clusters.all$date)
+  clusters.summary.all$date.factor <- as.factor(clusters.summary.all$date)
+
+  g <- ggplot(clusters.all, aes(x=group, y=prank)) +
+    geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
+      ylab("Page rank") + facet_wrap(~date.factor)
+  ggsave(paste(graphdir, "cluster_prank_ts.pdf", sep="/"), g, width=12, height=8)
+
+  clusters.molten <- melt(clusters.all, id.vars=c("group", "date"),
+                          measure.vars=c("prank", "total", "numcommits"))
+  clusters.molten$date <- as.factor(clusters.molten$date)
+
+  g <- ggplot(clusters.molten, aes(x=group, y=value)) +
+    geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
+      ylab("Magnitude of covariate") + facet_grid(variable~date, scales="free_y")
+  ggsave(paste(graphdir, "cluster_comparison_ts.pdf", sep="/"), g,
+         width=12, height=8)
+}
+
 do.commit.analysis <- function(resdir, graphdir, conf) {
   commit.file.list <- gen.commit.file.list(resdir, conf$revisions)
 
@@ -352,3 +431,4 @@ dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 options(error = quote(dump.frames("error.dump", TRUE)))
 do.ts.analysis(resdir, graphdir, conf)
 do.commit.analysis(resdir, graphdir, conf)
+do.cluster.analysis(resdir, graphdir, conf)
