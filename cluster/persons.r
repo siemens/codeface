@@ -82,7 +82,7 @@ rotate.label.30 <- function(x) {
 
 txt.comm.subsys <- function(.comm, .id.subsys, i) {
   idx <- which(.comm$membership==i)
-  
+
   ##  return(summary(.id.subsys[idx,2:dim(.id.subsys)[2]]))
   res <- apply(.id.subsys[idx,2:dim(.id.subsys)[2]], 2, fivenum)
   rownames(res) <- c("lw", "lh", "med", "uh", "uw")
@@ -468,7 +468,8 @@ save.cluster.stats.subsys <- function(.comm, .id.subsys, .elems,
 ## Save information about all clusters.
 save.cluster.stats <- function(.comm, .iddb, .elems, .pr, .outdir, .basename) {
   dat <- construct.group.info(.comm, .pr, .iddb, .elems)
-  write.table(dat, file=paste(.outdir, "/", .basename, "stats.txt", sep=""))
+  write.table(dat, file=paste(.outdir, "/", .basename, "stats.txt", sep=""),
+              sep="\t")
 }
 
 ## save.group.fn can either be save.group or save.group.NonTag
