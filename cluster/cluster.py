@@ -144,7 +144,7 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
     
     return sim
 
-def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None):
+def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None, random=False):
     '''Generates the collaboration data from a file snapshot at a particular
     point in time'''
     
@@ -168,24 +168,24 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None):
     author      = True
     #find code lines of interest, these are the lines that are localized 
     #around the snapShotCmt, modify the fileState to include only the 
-    #lines of interest 
-    modFileState = linesOfInterest(fileState, snapShotCmt.id, maxDist)
+    #lines of interest
+    if(not(random)): 
+        fileState = linesOfInterest(fileState, snapShotCmt.id, maxDist)
     
     #remove commits that occur prior to the specified startDate
     if startDate != None:
-        modFileState = removePriorCommits(modFileState, cmtList, startDate)
-    
-    #remove commits made by the person of interest which do not correspond to 
-    #commit of interest
-    #modFileState = remove
+        fileState = removePriorCommits(fileState, cmtList, startDate)
     
     #collaboration is meaningless without more than one line 
     #of code
-    if len(modFileState) > 1:
+    if len(fileState) > 1:
         
         #now find the code blocks, a block is a section of code by one author
         #use the commit hash to identify the committer or author info as needed 
-        codeBlks = findCodeBlocks(modFileState, cmtList, author)
+        codeBlks = findCodeBlocks(fileState, cmtList, author)
+        
+        if random:
+            codeBlks = randomizeCommitCollaboration(codeBlks, fileState)
         
         if codeBlks:
             #next cluster the blocks, using the distance measure to figure out
