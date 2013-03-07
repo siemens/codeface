@@ -250,9 +250,8 @@ def randomizeCommitCollaboration(codeBlks, fileState):
         #remove selected range from random sampled vector
         for i in newCodeLineRange:
             codeLineNum.remove(i)
-            print(i)
             
-        
+
         #end for i 
     #end for codeBlk
     
