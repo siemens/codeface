@@ -40,6 +40,10 @@ from idManager import idManager
 import codeBlock
 import codeLine
 import math
+import random
+
+#Global Constants
+SEED = 448
 
 def _abort(msg):
     print(msg + "\n")
@@ -194,7 +198,66 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None):
             
             [computeCommitCollaboration(cluster, snapShotCmt.id, id_mgr,
                                         maxDist, author) for cluster in clusters]
+
+def randomizeCommitCollaboration(codeBlks, fileState):
+    '''
+    randomizes the location in the file where commits were made
+    '''
     
+    '''
+    Commits made to a file and the line number for the commits are
+    captured prior to using this function. This function will randomize
+    the location (line number) where the commits were made. The idea behind
+    this is to see if people really do make preferential attachment to 
+    people who are working on related code or the interactions seen from 
+    commit activity is random. If we see the no difference in the significance 
+    of the community structure between randomized and non randomized tests then 
+    we can assume interactions appear to be random. In other words the commiters 
+    are not collaboration with people near their code anymore than someone making 
+    commits far from their code. 
+    
+    - Input -
+    codeBlks: a set of codeBlock objects
+    fileState: the original file that the code blocks were found from, 
+                this is a dictionary that maps code line numbers to commit hashes
+   - Output - 
+   randCodeBlks: the randomized codeBlock objects
+    '''
+    random.seed(SEED)
+    
+    #get number of lines of code in the file 
+    fileLen = len(fileState)
+    codeLineNum = range(1, fileLen + 1)
+    
+    #randomly sample the code blocks
+    codeBlksRand = random.sample(codeBlks, len(codeBlks))
+    
+    #assign code line ranges to the randomized code blocks
+    #we map consecutive line numbers to the blocks
+    #effectively we have randomized the code block organization 
+    #in the file
+    for codeBlk in codeBlksRand:
+        
+        #get the range that is spanned by the code block 
+        blkSpan = codeBlk.end - codeBlk.start + 1
+        
+        #extract new code line range 
+        newCodeLineRange = codeLineNum[0:blkSpan]
+        
+        codeBlk.start = newCodeLineRange[0]
+        codeBlk.end   = newCodeLineRange[-1]
+        
+        #remove selected range from random sampled vector
+        for i in newCodeLineRange:
+            codeLineNum.remove(i)
+            print(i)
+            
+        
+        #end for i 
+    #end for codeBlk
+    
+    return codeBlksRand
+        
 def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist,
                                author=False):
     '''
