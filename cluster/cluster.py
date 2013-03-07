@@ -1249,7 +1249,7 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
 ##################################
 def testFileCommit():
     
-    dbfilename = "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_NonTag/linux-30-31-nonTag"
+    dbfilename = "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/linux-test"
     
     repoDir = "/Users/Mitchell/git/linux-2.6/.git"
     #fileNames = ["drivers/net/loopback.c"]
