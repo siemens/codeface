@@ -43,6 +43,12 @@ import random
 #Global Constants
 SEED = 448
 
+#enum-like class to distinguish between the various
+#methods used to link individuals
+class LinkMethod:
+    type = {"Tag":1, "Proximity":2, "Commiter2Author":3}
+        
+
 def _abort(msg):
     print(msg + "\n")
     sys.exit(-1)
