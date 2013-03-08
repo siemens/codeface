@@ -777,105 +777,32 @@ def findCodeBlocks(fileState, cmtList, author=False):
     return codeBlocks
 
 
-def createStatisticalData(cmtlist, id_mgr):
+def createStatisticalData(cmtlist, id_mgr, link_type):
     """Generate a person connection data structure from a list of commits
 
     cmtlist is the list of commits.
     id_mgr is an instance of idManager to handle person IDs and PersonInfo instances
     """
     
-    # To obtain the full collaboration information, we need to have
-    # the complete list of commits. This is why we don't compute the
-    # information during the first parsing stage, but parse the
-    # information in a second pass
-
-    # With every person, we can associate statistical information into
-    # which subsystems he/she typically commits, with whom he collaborates,
-    # and so on. From this, we can infer further information for each
-    # commit, for instance how many people working on different subststems
-    # have signed off the commit, of how important the people who sign off
-    # the commit are.
-
-    # NOTE: These operations would be really apt for parallelisation
-    # once every person has a unique ID (or if a thread safe ID assignment 
-    # mechanism is used). However, the first pass takes much much
-    # longer, so optimisations are better spent there.
-    widgets = ['Pass 2/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
-    pbar = ProgressBar(widgets=widgets, maxval=len(cmtlist)).start()
-
-    for i in range(0, len(cmtlist)):
-        cmt = cmtlist[i]
-
-        if i % 10 == 0:
-            pbar.update(i)
-
-        # Second, infer in which way people are involved in the commit
-        ID = id_mgr.getPersonID(cmt.getAuthorName())
-        pi = id_mgr.getPI(ID)
-        cmt.setAuthorPI(pi)
-
-        pi.addCommit(cmt)
-
-        # Remember which subsystems the person touched in the role as an author
-        pi.addPerformTagRelation("author", ID, cmt)
-        tag_pi_list = {}
-        
-        for tag in tag_types:
-            tag_pi_list[tag] = []
-            for name in getInvolvedPersons(cmt, [tag]):
-                relID = id_mgr.getPersonID(name)
-                tag_pi_list[tag].append(id_mgr.getPI(relID))
-                
-                # Authors typically sign-off their patches,
-                # so don't count this as a relation.
-                if (relID != ID):
-                    # Author received a sign-off etc. by relID
-                    pi.addReceiveTagRelation(tag, relID)
-
-                    # relID did a sign-off etc. to author
-                    id_mgr.getPI(relID).addPerformTagRelation(tag, ID, cmt)
-
-        cmt.setTagPIs(tag_pi_list)
-
-    # Now that all information on tags is available, compute the normalised
-    # statistics. While at it, also compute the per-author commit summaries.
-    for (key, person) in id_mgr.getPersons().iteritems():
-        person.computeTagStats()
-        person.computeCommitStats()
-
-    # Do another iteration pass over the commits, and compute data
-    # that require the first pass results as input.
-    # TODO: Think about what exactly we want to achieve here, because
-    # this is the basis for data analysis with R.
-    for cmt in cmtlist:
-        # Compute similarity between the subsystems touched by the
-        # commit, and the subsystems the author typically deals with
-        author_pi = cmt.getAuthorPI()
-        sim = computeSubsysAuthorSimilarity(cmt.getSubsystemsTouched(),
-                                            author_pi)
-        cmt.setAuthorSubsysSimilarity(sim)
-        
-        # Compute the similarity between author and taggers, and between
-        # commit and taggers
-        count = 0
-        atsim = 0 # Author-tagger similarity
-        tssim = 0 # Tagger-subsys similarity
-        
-        for (key, pi_list) in cmt.getTagPIs().iteritems():
-            for pi in pi_list:
-                count += 1
-                atsim += computeAuthorAuthorSimilarity(author_pi, pi)
-                tssim += \
-                    computeSubsysAuthorSimilarity(cmt.getSubsystemsTouched(),
-                                                  pi)
-
-        if count > 0:
-            atsim /= float(count)
-            tssim /= float(count)
-
-        cmt.setAuthorTaggersSimilarity(atsim)
-        cmt.setTaggersSubsysSimilarity(tssim)
-
+    if (link_type == LinkMethod.type["Tag"]):   
+        # Now that all information on tags is available, compute the normalised
+        # statistics. While at it, also compute the per-author commit summaries.
+        for (key, person) in id_mgr.getPersons().iteritems():
+            person.computeTagStats()
+            person.computeCommitStats()
+    
+        # Do another iteration pass over the commits, and compute data
+        # that require the first pass results as input.
+        # TODO: Think about what exactly we want to achieve here, because
+        # this is the basis for data analysis with R.
+        computeSimilarity(cmtlist)
+    
+    elif (linkType == LinkMethod.type["Proximity"]):
+        #compute the per-author commit summaries.
+        for (key, person) in id_mgr.getPersons().iteritems():
+            person.computeCommitStats()
+            person.edgeProcessing()        
+    
     return None
 
 def emitStatisticalData(cmtlist, id_mgr, outdir):
@@ -1015,32 +942,33 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
     return None
 
     
-def createPersonDB(cmtList):
-    
-    id_mgr = idManager()
-    
-    for cmt in cmtList.values():
-        
+def populatePersonDB(cmtlist, id_mgr, link_type=None): 
+    for cmt in cmtlist:
         #create person for author
         ID = id_mgr.getPersonID(cmt.getAuthorName())
         pi = id_mgr.getPI(ID)
         cmt.setAuthorPI(pi)
         pi.addCommit(cmt)
         
-        #create person for committer 
-        ID = id_mgr.getPersonID(cmt.getCommitterName())
-        pi = id_mgr.getPI(ID)
-        cmt.setCommitterPI(pi)
-        pi.addCommit(cmt)
+        if (link_type == LinkMethod.type["Proximity"]):
+            #create person for committer 
+            ID = id_mgr.getPersonID(cmt.getCommitterName())
+            pi = id_mgr.getPI(ID)
+            cmt.setCommitterPI(pi)
+            pi.addCommit(cmt)
+        
+    return None
 
-    return id_mgr
-
-def buildCollaborationStructure(fileCommitList, cmtList, id_mgr, startDate=None):
+def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None):
     '''
-    Constructs the collaboration connections between all contributors of 
-    a system. Collaboration is quantified by a single metric indicating the 
-    strength of collaboration between two individuals. A higher value 
-    indicates a stronger connection. 
+    Constructs network based on commit proximity information
+    '''
+    
+    '''
+    Two contributors are linked when they make a commit that is in 
+    close proximity to each other (ie. same file AND nearby line numbers).
+    Collaboration is quantified by a single metric indicating the 
+    strength of collaboration between two individuals.
     '''
     
     for fileCommit in fileCommitList.values():
@@ -1048,6 +976,102 @@ def buildCollaborationStructure(fileCommitList, cmtList, id_mgr, startDate=None)
         [computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate)
          for fileSnapShot in fileCommit.getFileSnapShots().items()]
             
+
+def computeTagLinks(cmtlist, id_mgr):
+    '''
+    Constructs network based on tagging information
+    '''
+    
+    '''
+    Two individual are linked by a one directional relationship
+    if a tag is placed on an individuals commit or individuals 
+    who already added a tag to a commit.
+    - Input - 
+    cmt: the commit object 
+    id_mgr: idManager object storing all individuals information
+    '''
+    # To obtain the full collaboration information, we need to have
+    # the complete list of commits. This is why we don't compute the
+    # information during the first parsing stage, but parse the
+    # information in a second pass
+
+    # With every person, we can associate statistical information into
+    # which subsystems he/she typically commits, with whom he collaborates,
+    # and so on. From this, we can infer further information for each
+    # commit, for instance how many people working on different subststems
+    # have signed off the commit, of how important the people who sign off
+    # the commit are.
+    
+    #----------------------------------
+    #Process Bar Setup
+    #----------------------------------
+    widgets = ['Pass 2/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
+    pbar = ProgressBar(widgets=widgets, maxval=len(cmtlist)).start()
+
+    #---------------------------------
+    # Identify links for all commits
+    #---------------------------------
+    for i in range(0, len(cmtlist)):
+        cmt = cmtlist[i]
+
+        if i % 10 == 0:
+            pbar.update(i)
+    
+        ID = id_mgr.getPersonID(cmt.getAuthorName())
+        pi = id_mgr.getPI(ID)
+        
+        # Remember which subsystems the person touched in the role as an author
+        pi.addPerformTagRelation("author", ID, cmt)
+        tag_pi_list = {}
+        
+        for tag in tag_types:
+                tag_pi_list[tag] = []
+                for name in getInvolvedPersons(cmt, [tag]):
+                    relID = id_mgr.getPersonID(name)
+                    tag_pi_list[tag].append(id_mgr.getPI(relID))
+                    
+                    # Authors typically sign-off their patches,
+                    # so don't count this as a relation.
+                    if (relID != ID):
+                        # Author received a sign-off etc. by relID
+                        pi.addReceiveTagRelation(tag, relID)
+    
+                        # relID did a sign-off etc. to author
+                        id_mgr.getPI(relID).addPerformTagRelation(tag, ID, cmt)
+    
+        cmt.setTagPIs(tag_pi_list)
+    #end for i
+    
+
+def computeSimilarity(cmtlist):
+    for cmt in cmtlist:
+        # Compute similarity between the subsystems touched by the
+        # commit, and the subsystems the author typically deals with
+        author_pi = cmt.getAuthorPI()
+        sim = computeSubsysAuthorSimilarity(cmt.getSubsystemsTouched(),
+                                            author_pi)
+        cmt.setAuthorSubsysSimilarity(sim)
+        
+        # Compute the similarity between author and taggers, and between
+        # commit and taggers
+        count = 0
+        atsim = 0 # Author-tagger similarity
+        tssim = 0 # Tagger-subsys similarity
+        
+        for (key, pi_list) in cmt.getTagPIs().iteritems():
+            for pi in pi_list:
+                count += 1
+                atsim += computeAuthorAuthorSimilarity(author_pi, pi)
+                tssim += \
+                    computeSubsysAuthorSimilarity(cmt.getSubsystemsTouched(),
+                                                  pi)
+
+        if count > 0:
+            atsim /= float(count)
+            tssim /= float(count)
+
+        cmt.setAuthorTaggersSimilarity(atsim)
+        cmt.setTaggersSubsysSimilarity(tssim)     
         
 def writeData(cmtList, id_mgr,  outdir):
     # TODO: Large parts of this function are 99% identical with
@@ -1105,40 +1129,7 @@ def writeData(cmtList, id_mgr,  outdir):
     out.close()
 
     return None
-    
-def processPersonData(cmtlist, id_mgr):
-    '''
-    processing of data in the id_mgr that requires all data 
-    to be present.
-    '''
-    #compute basic statistic information on the Edges between 
-    #contributors
-    #TODO: maybe this can be moved into id manager 
-    #[id_mgr.getPI(Id).EdgeProcessing() for Id in id_mgr.getPersons().keys()] 
-
-    # TODO: This is just c&p from createStatisticalData. The functions
-    # need to be merged once the non-tag analysis is stable enough
-    widgets = ['Pass 2/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
-    pbar = ProgressBar(widgets=widgets, maxval=len(cmtlist)).start()
-
-    for i in range(0, len(cmtlist)):
-        cmt = cmtlist[i]
-
-        if i % 10 == 0:
-            pbar.update(i)
-
-        # Second, infer in which way people are involved in the commit
-        ID = id_mgr.getPersonID(cmt.getAuthorName())
-        pi = id_mgr.getPI(ID)
-        cmt.setAuthorPI(pi)
-
-        pi.addCommit(cmt)
-    
-    #compute the per-author commit summaries.
-    for (key, person) in id_mgr.getPersons().iteritems():
-        person.computeCommitStats()
-        person.edgeProcessing()
-    
+        
 ###########################################################################
 # Main part
 ###########################################################################
@@ -1152,23 +1143,25 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange,
     git = readDB(dbfilename)
     
     #store relevant VCS object attributes
-    cmtList = git.getCommitDict()
+    cmtDict = git.getCommitDict()
     if limitHistory:
         startDate = git.getRevStartDate()
     else:
         startDate = None
     
+    #---------------------------------
+    #Fill person Database
+    #---------------------------------
+    id_mgr = idManager()
+    populatePersonDB(cmtDict.values, id_mgr)
     
-    #get personal info from commit data
-    id_mgr = createPersonDB(cmtList)
-    
-    #----------------------------------------
-    #build connections between contributors
-    #----------------------------------------
+    #---------------------------------
+    #compute network connections
+    #---------------------------------
     fileCommitList = git.getFileCommitDict()
    
     #calculate the collaboration metrics for all contributors
-    buildCollaborationStructure(fileCommitList, cmtList, id_mgr, startDate)
+    computeProximityLinks(fileCommitList, cmtDict, id_mgr, startDate)
         
     #-------------------------------------------------------------
     #perform processing on collaboration data, all collaboration 
@@ -1177,13 +1170,13 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange,
     # TODO: cmtlist is an actual list, cmtList (capital L)is (
     # why of WHY) a _HASH_, not a list.
     cmtlist = git.extractCommitData("__main__")
-    processPersonData(cmtlist, id_mgr)
+    createStatisticalData(cmtlist, id_mgr, LinkMethod.type["Proximity"])
     
     #-------------------------------------------------------------------
     # Save the results in text files that can be further processed with
     # statistical software, that is, GNU R
     #-------------------------------------------------------------------
-    writeData(cmtList, id_mgr, outDir)
+    writeData(cmtDict, id_mgr, outDir)
     
     
 def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
@@ -1197,16 +1190,30 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
     print("Reading from data base {0}...".format(dbfilename))
     git = readDB(dbfilename)
     cmtlist = git.extractCommitData("__main__")
-
-    # Determine in which ways the authors are connected with each other,
-    # plus some more statistical information
+    
+    #---------------------------------
+    #Fill person Database
+    #---------------------------------
     id_mgr = idManager()
+    populatePersonDB(cmtlist, id_mgr)
+    
     if subsys_descr != None:
         id_mgr.setSubsysNames(subsys_descr.keys())
-    createStatisticalData(cmtlist, id_mgr)
-                          
-    # Save the results in text files that can be further processed with
-    # statistical software, that is, GNU R
+    
+    #---------------------------------
+    #compute network connections
+    #---------------------------------
+    computeTagLinks(cmtlist, id_mgr)
+   
+    #---------------------------------
+    #compute statistical information 
+    #---------------------------------
+    createStatisticalData(cmtlist, id_mgr, LinkMethod.type["Tag"])
+    
+    #---------------------------------
+    #Save the results in text files that can be further processed with
+    #statistical software, that is, GNU R
+    #---------------------------------                      
     emitStatisticalData(cmtlist, id_mgr, outdir)
     
 ##################################################################
