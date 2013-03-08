@@ -1273,11 +1273,18 @@ def testFileCommit():
     performNonTagAnalysis(dbfilename, repoDir, False, outDir, revRange, True)
     
     
-def loadVCSObjectTest():
+def testTagBased():
     
-    dbfilename = "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_Tag/linux-30-31-Tag"
-    VCS_object = readDB(dbfilename)
+    dbfilename = "/home/au/workspace/prosoda/cluster/res/linux/tag/v2.6.30-v2.6.31/vcs_analysis.db"
     
+    repoDir = "/Users/Mitchell/git/linux-2.6/.git"
+   
+    revRange = ["v2.6.30", "v2.6.31"]
+    
+    outDir = "/home/au/workspace/prosoda/cluster/res/linux/tag/v2.6.30-v2.6.31"
+    
+    performAnalysis(dbfilename, repoDir, revRange, None, False,
+                    outDir, rcranges=None)
 
 ##################################
 #         Main
