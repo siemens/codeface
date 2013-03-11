@@ -1324,7 +1324,7 @@ def testFileCommit():
     performNonTagAnalysis(dbfilename, repoDir, False, outDir, revRange, True)
     
     
-def testTagBased():
+def testAnalysis(link_type):
     
     dbfilename = "/home/au/workspace/prosoda/cluster/res/linux/tag/v2.6.30-v2.6.31/vcs_analysis.db"
     
