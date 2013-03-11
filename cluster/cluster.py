@@ -976,6 +976,48 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None):
         [computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate)
          for fileSnapShot in fileCommit.getFileSnapShots().items()]
             
+def computeCommitterAuthorLinks(cmtlist, id_mgr):
+    '''
+    Constructs network based on the author and commiter of a commit
+    '''
+    
+    '''
+    For each commit in the cmtList a one directional link is created
+    from the commiter to the author. The commiter is aware of the contents
+    and intents of the authors work and is therefore an indication of 
+    collaboration.
+    - Input - 
+    cmtlist: commit objects 
+    id_mgr: idManager object storing all individuals information
+    '''
+    
+    #----------------------------------
+    #Process Bar Setup
+    #----------------------------------
+    widgets = ['Pass 2/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
+    pbar = ProgressBar(widgets=widgets, maxval=len(cmtlist)).start()
+    
+    for i in range(0, len(cmtlist)):
+        
+        if i % 10 == 0:
+            pbar.update(i)
+        
+        #get commiter object
+        cmt = cmtlist[i]
+
+        #find author and committer unique identifiers
+        ID_author    = id_mgr.getPersonID(cmt.getAuthorName())
+        ID_committer = id_mgr.getPersonID(cmt.getCommitterName()) 
+        pi_author    = id_mgr.getPI(ID_author)
+        pi_committer = id_mgr.getPI(ID_committer)
+        edge_weight  = 1
+        
+        #add link from committer -> author 
+        pi_committer.addOutEdge(pi_author.getID()   , edge_weight)
+        pi_author   .addInEdge (pi_committer.getID(), edge_weight)
+    #end for i  
+    
+    
 
 def computeTagLinks(cmtlist, id_mgr):
     '''
