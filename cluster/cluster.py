@@ -784,7 +784,7 @@ def createStatisticalData(cmtlist, id_mgr, link_type):
     id_mgr is an instance of idManager to handle person IDs and PersonInfo instances
     """
     
-    if (link_type == LinkMethod.type["Tag"]):   
+    if link_type == LinkMethod.type["Tag"]:   
         # Now that all information on tags is available, compute the normalised
         # statistics. While at it, also compute the per-author commit summaries.
         for (key, person) in id_mgr.getPersons().iteritems():
@@ -797,7 +797,8 @@ def createStatisticalData(cmtlist, id_mgr, link_type):
         # this is the basis for data analysis with R.
         computeSimilarity(cmtlist)
     
-    elif (linkType == LinkMethod.type["Proximity"]):
+    elif link_type == LinkMethod.type["Proximity"] or \
+         link_type == LinkMethod.type["Committer2Author"]:
         #compute the per-author commit summaries.
         for (key, person) in id_mgr.getPersons().iteritems():
             person.computeCommitStats()
@@ -950,7 +951,8 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
         cmt.setAuthorPI(pi)
         pi.addCommit(cmt)
         
-        if (link_type == LinkMethod.type["Proximity"]):
+        if link_type == LinkMethod.type["Proximity"] or \
+           link_type == LinkMethod.type["Committer2Author"]:
             #create person for committer 
             ID = id_mgr.getPersonID(cmt.getCommitterName())
             pi = id_mgr.getPI(ID)
@@ -1222,7 +1224,7 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange,
     
     
 def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
-                    outdir, rcranges=None):
+                    outdir, link_type, rcranges=None):
     if create_db == True:
         print("Creating data base for {0}..{1}").format(revrange[0],
                                                         revrange[1])
@@ -1237,7 +1239,7 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
     #Fill person Database
     #---------------------------------
     id_mgr = idManager()
-    populatePersonDB(cmtlist, id_mgr)
+    populatePersonDB(cmtlist, id_mgr, link_type)
     
     if subsys_descr != None:
         id_mgr.setSubsysNames(subsys_descr.keys())
@@ -1245,19 +1247,27 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
     #---------------------------------
     #compute network connections
     #---------------------------------
-    computeTagLinks(cmtlist, id_mgr)
-   
+    if link_type == LinkMethod.type["Tag"]:
+        computeTagLinks(cmtlist, id_mgr)
+    
+    elif link_type == LinkMethod.type["Committer2Author"]:
+        computeCommitterAuthorLinks(cmtlist, id_mgr)
+        
     #---------------------------------
     #compute statistical information 
     #---------------------------------
-    createStatisticalData(cmtlist, id_mgr, LinkMethod.type["Tag"])
+    createStatisticalData(cmtlist, id_mgr, link_type)
     
     #---------------------------------
     #Save the results in text files that can be further processed with
     #statistical software, that is, GNU R
     #---------------------------------                      
-    emitStatisticalData(cmtlist, id_mgr, outdir)
-    
+    if link_type == LinkMethod.type["Tag"]:
+        emitStatisticalData(cmtlist, id_mgr, outdir)
+        
+    elif link_type == LinkMethod.type["Committer2Author"]:
+         writeData(cmtlist, id_mgr, outdir)
+         
 ##################################################################
 def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
                       create_db, nonTag, limitHistory=False):
@@ -1293,8 +1303,7 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
         performAnalysis(filename, git_repo, [from_rev, to_rev],
 #                        kerninfo.subsysDescrLinux,
                         None,
-                        create_db, outdir, rc_range)
-
+                        create_db, outdir, LinkMethod.type["Tag"], rc_range)    
 
 ##################################
 #         TESTING CODE
