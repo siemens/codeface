@@ -46,7 +46,7 @@ SEED = 448
 #enum-like class to distinguish between the various
 #methods used to link individuals
 class LinkMethod:
-    type = {"Tag":1, "Proximity":2, "Commiter2Author":3}
+    type = {"Tag":1, "Proximity":2, "Committer2Author":3}
         
 
 def _abort(msg):
@@ -1029,7 +1029,7 @@ def computeTagLinks(cmtlist, id_mgr):
     if a tag is placed on an individuals commit or individuals 
     who already added a tag to a commit.
     - Input - 
-    cmt: the commit object 
+    cmtlist: commit objects 
     id_mgr: idManager object storing all individuals information
     '''
     # To obtain the full collaboration information, we need to have
