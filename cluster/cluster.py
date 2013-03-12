@@ -806,16 +806,12 @@ def createStatisticalData(cmtlist, id_mgr, link_type):
     
     return None
 
-def emitStatisticalData(cmtlist, id_mgr, outdir):
-    """Save the available information for further statistical processing.
 
-    Several files are created in outdir:
-    - Information about the commits proper (commits.txt)
-    - Names/ID associations (ids.txt). This file also contains
-      the per-author total of added/deleted/modified lines etc.
-    - Per-Author information on relative per-subsys work distribution (id_subsys.txt)
-    - Connection between the developers derived from commit tags (tags.txt)"""
-
+def writeCommitData2File(cmtlist, id_mgr, outdir):
+    '''
+    commit information is written to the outdir location
+    '''
+    
     # Save information about the commits
     # NOTE: We could care about different diff types, but currently,
     # we don't. There are strong indications that it does not matter
@@ -874,8 +870,13 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
         # similarity_between_author_and_signers
         # predominantly add, remove, or modify code (3-level factor)
     out.close()
-    ##############
 
+def writeSubsysPerAuthorData2File(id_mgr, outdir):
+    '''
+    per-author subsystem information is written to the outdir location
+    '''
+    
+    
     # Export per-author subsystem information (could be included in ids.txt,
     # but since the information is basically orthogonal, we use two files.)
     out = open(os.path.join(outdir, "id_subsys.txt"), 'wb')
@@ -895,8 +896,14 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
         print >>out, outstr
 
     out.close()
-
-    ##############
+    
+    
+def writeIDwithCmtStats2File(id_mgr, outdir):
+    '''
+    ID information together with commit stats for each ID are written
+    to the outdir location
+    '''
+    
     # Save id/name associations together with the per-author summary statistics
     id_writer = csv.writer(open(os.path.join(outdir, "ids.txt"), 'wb'),
                            delimiter='\t',
@@ -914,11 +921,17 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
         numcommits = cmt_stat["numcommits"]
         id_writer.writerow([id, pi.getName(), pi.getEmail(), added, deleted,
                             added + deleted, numcommits])
+        
+        
+def writeAdjMatrix2File(id_mgr, outdir):
+    '''
+    Connections between the developers are written to the outdir location
+    in adjacency matrix format
+    '''
     
-    ##############
-    # Store the adjaceny matrix for developer tagging, i.e., create
-    # a NxN matrix in which the entry a_{i,j} denotes how often developer
-    # j was tagged by developer i
+    # Store the adjacency matrix for developer network, i.e., create
+    # a NxN matrix in which the entry a_{i,j} denotes how strongly
+    # developer j was associated with developer i
     # NOTE: This produces a sparse matrix, but since the number
     # of developers is only a few thousand, it will likely not pay
     # off to utilise this fact for more efficient storage.
@@ -939,7 +952,24 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
                for id_sender in idlist]) + "\n")
 
     out.close()
+def emitStatisticalData(cmtlist, id_mgr, outdir):
+    """Save the available information for further statistical processing.
 
+    Several files are created in outdir:
+    - Information about the commits proper (commits.txt)
+    - Names/ID associations (ids.txt). This file also contains
+      the per-author total of added/deleted/modified lines etc.
+    - Per-Author information on relative per-subsys work distribution (id_subsys.txt)
+    - Connection between the developers derived from commit tags (tags.txt)"""
+    
+    writeCommitData2File(cmtlist, id_mgr, outdir)
+    
+    writeSubsysPerAuthorData2File(id_mgr, outdir)
+    
+    writeIDwithCmtStats2File(id_mgr, outdir)
+    
+    writeAdjMatrix2File(id_mgr, outdir)
+    
     return None
 
     
