@@ -45,10 +45,11 @@ SEED = 448
 
 #enum-like class to distinguish between the various
 #methods used to link individuals
-class LinkMethod:
-    type = {"Tag":1, "Proximity":2, "Committer2Author":3}
-        
-
+class LinkType:
+    tag              = "tag"
+    proximity        = "proximity"    
+    committer2author = "committer2author"
+    
 def _abort(msg):
     print(msg + "\n")
     sys.exit(-1)
@@ -784,25 +785,11 @@ def createStatisticalData(cmtlist, id_mgr, link_type):
     id_mgr is an instance of idManager to handle person IDs and PersonInfo instances
     """
     
-    if link_type == LinkMethod.type["Tag"]:   
-        # Now that all information on tags is available, compute the normalised
-        # statistics. While at it, also compute the per-author commit summaries.
-        for (key, person) in id_mgr.getPersons().iteritems():
-            person.computeTagStats()
+    # Now that all information on tags is available, compute the normalised
+    # statistics. While at it, also compute the per-author commit summaries.
+    for (key, person) in id_mgr.getPersons().iteritems():
             person.computeCommitStats()
-    
-        # Do another iteration pass over the commits, and compute data
-        # that require the first pass results as input.
-        # TODO: Think about what exactly we want to achieve here, because
-        # this is the basis for data analysis with R.
-        computeSimilarity(cmtlist)
-    
-    elif link_type == LinkMethod.type["Proximity"] or \
-         link_type == LinkMethod.type["Committer2Author"]:
-        #compute the per-author commit summaries.
-        for (key, person) in id_mgr.getPersons().iteritems():
-            person.computeCommitStats()
-            person.edgeProcessing()        
+            person.computeStats(link_type)  
     
     return None
 
@@ -923,7 +910,7 @@ def writeIDwithCmtStats2File(id_mgr, outdir):
                             added + deleted, numcommits])
         
         
-def writeAdjMatrix2File(id_mgr, outdir):
+def writeAdjMatrix2File(id_mgr, outdir, link_type):
     '''
     Connections between the developers are written to the outdir location
     in adjacency matrix format
@@ -946,13 +933,22 @@ def writeAdjMatrix2File(id_mgr, outdir):
     # Matrix. The sum of all elements in row N describes how many
     # tags id N has received. The sum of column N states how many
     # tags were given by id N to other developers.
-    for id_receiver in idlist:
-        out.write("\t".join(
-            [str(id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(id_sender))
-               for id_sender in idlist]) + "\n")
+    if link_type == LinkType.tag:
+        for id_receiver in idlist:
+            out.write("\t".join(
+                [str(id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(id_sender))
+                   for id_sender in idlist]) + "\n")
+    
+    elif link_type == LinkType.committer2author:
+        for id_receiver in idlist:
+            out.write("\t".join(
+                [str(id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, LinkType.committer2author))
+                   for id_sender in idlist]) + "\n")
 
+    
+    
     out.close()
-def emitStatisticalData(cmtlist, id_mgr, outdir):
+def emitStatisticalData(cmtlist, id_mgr, outdir, link_type):
     """Save the available information for further statistical processing.
 
     Several files are created in outdir:
@@ -968,7 +964,7 @@ def emitStatisticalData(cmtlist, id_mgr, outdir):
     
     writeIDwithCmtStats2File(id_mgr, outdir)
     
-    writeAdjMatrix2File(id_mgr, outdir)
+    writeAdjMatrix2File(id_mgr, outdir, link_type)
     
     return None
 
@@ -981,8 +977,8 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
         cmt.setAuthorPI(pi)
         pi.addCommit(cmt)
         
-        if link_type == LinkMethod.type["Proximity"] or \
-           link_type == LinkMethod.type["Committer2Author"]:
+        if link_type == LinkType.proximity or \
+           link_type == LinkType.committer2author:
             #create person for committer 
             ID = id_mgr.getPersonID(cmt.getCommitterName())
             pi = id_mgr.getPI(ID)
@@ -1045,8 +1041,8 @@ def computeCommitterAuthorLinks(cmtlist, id_mgr):
         edge_weight  = 1
         
         #add link from committer -> author 
-        pi_committer.addOutEdge(pi_author.getID()   , edge_weight)
-        pi_author   .addInEdge (pi_committer.getID(), edge_weight)
+        pi_committer.addSendRelation   ("Committer2Author", pi_author.getID(), cmt, edge_weight)
+        pi_author   .addReceiveRelation("Committer2Author", pi_committer.getID()  , edge_weight)
     #end for i  
     
     
@@ -1095,7 +1091,7 @@ def computeTagLinks(cmtlist, id_mgr):
         pi = id_mgr.getPI(ID)
         
         # Remember which subsystems the person touched in the role as an author
-        pi.addPerformTagRelation("author", ID, cmt)
+        pi.addSendRelation("author", ID, cmt)
         tag_pi_list = {}
         
         for tag in tag_types:
@@ -1108,10 +1104,10 @@ def computeTagLinks(cmtlist, id_mgr):
                     # so don't count this as a relation.
                     if (relID != ID):
                         # Author received a sign-off etc. by relID
-                        pi.addReceiveTagRelation(tag, relID)
+                        pi.addReceiveRelation(tag, relID)
     
                         # relID did a sign-off etc. to author
-                        id_mgr.getPI(relID).addPerformTagRelation(tag, ID, cmt)
+                        id_mgr.getPI(relID).addSendRelation(tag, ID, cmt)
     
         cmt.setTagPIs(tag_pi_list)
     #end for i
@@ -1197,7 +1193,7 @@ def writeData(cmtList, id_mgr,  outdir):
     # tags were given by id N to other developers.
     for id_receiver in idlist:
         out.write("\t".join(
-            [str(id_mgr.getPI(id_receiver).getSumInEdge(id_sender))
+            [str(id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, LinkType.committer2author))
                for id_sender in idlist]) + "\n")
 
     out.close()
@@ -1244,7 +1240,7 @@ def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange,
     # TODO: cmtlist is an actual list, cmtList (capital L)is (
     # why of WHY) a _HASH_, not a list.
     cmtlist = git.extractCommitData("__main__")
-    createStatisticalData(cmtlist, id_mgr, LinkMethod.type["Proximity"])
+    createStatisticalData(cmtlist, id_mgr, LinkType.proximity)
     
     #-------------------------------------------------------------------
     # Save the results in text files that can be further processed with
@@ -1277,10 +1273,10 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
     #---------------------------------
     #compute network connections
     #---------------------------------
-    if link_type == LinkMethod.type["Tag"]:
+    if link_type == LinkType.tag:
         computeTagLinks(cmtlist, id_mgr)
     
-    elif link_type == LinkMethod.type["Committer2Author"]:
+    elif link_type == LinkType.committer2author:
         computeCommitterAuthorLinks(cmtlist, id_mgr)
         
     #---------------------------------
@@ -1292,11 +1288,9 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
     #Save the results in text files that can be further processed with
     #statistical software, that is, GNU R
     #---------------------------------                      
-    if link_type == LinkMethod.type["Tag"]:
-        emitStatisticalData(cmtlist, id_mgr, outdir)
+    emitStatisticalData(cmtlist, id_mgr, outdir, link_type)
         
-    elif link_type == LinkMethod.type["Committer2Author"]:
-         writeData(cmtlist, id_mgr, outdir)
+
          
 ##################################################################
 def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
@@ -1333,7 +1327,7 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
         performAnalysis(filename, git_repo, [from_rev, to_rev],
 #                        kerninfo.subsysDescrLinux,
                         None,
-                        create_db, outdir, LinkMethod.type["Tag"], rc_range)    
+                        create_db, outdir, LinkType.tag, rc_range)    
 
 ##################################
 #         TESTING CODE
