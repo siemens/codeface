@@ -46,50 +46,48 @@ SEED = 448
 #enum-like class to distinguish between the various
 #methods used to link individuals
 class LinkType:
-    tag              = "tag"
-    proximity        = "proximity"    
-    committer2author = "committer2author"
+    tag              = "Tag"
+    proximity        = "Proximity"    
+    committer2author = "Committer2Author"
+
     
 def _abort(msg):
     print(msg + "\n")
     sys.exit(-1)
 
-def createFileCmtDB(filename, git_repo, revrange):
-    
-    git = gitVCS()
-    git.setRepository(git_repo)
-    #git.config4LinuxKernelAnalysis("kernel")
-    git.config4LinuxKernelAnalysis()
-    git.setRevisionRange(revrange[0], revrange[1])
-    
-    git.extractCommitData()
-    git.extractFileCommitData()
 
-    print("Shelfing the VCS object")
-    output = open(filename, 'wb')
-    pickle.dump(git, output, -1)
-    output.close()
-    print("Finished with pickle")
-
-
-def createDB(filename, git_repo, revrange, subsys_descr, rcranges=None):
+def createDB(filename, git_repo, revrange, subsys_descr, link_type, rcranges=None):
+    #------------------
+    #configuration
+    #------------------
     git = gitVCS();
     git.setRepository(git_repo)
     git.setRevisionRange(revrange[0], revrange[1])
     git.setSubsysDescription(subsys_descr)
+    
     if rcranges != None:
         git.setRCRanges(rcranges)
-    git.extractCommitData()
-
+    if link_type == LinkType.proximity:
+        #add all files for proximity analysis
+        git.addFiles4Analysis()
+        blame_analysis = True
+    else:
+        blame_analysis = False
+    
+    #------------------------
+    #data extraction
+    #------------------------
+    git.extractCommitData(blameAnalysis=blame_analysis)
+    
+    #------------------------
+    #save data 
+    #------------------------
     print("Shelfing the VCS object")
     output = open(filename, 'wb')
     pickle.dump(git, output, -1)
     output.close()
     print("Finished with pickle")
 
-#    d = shelve.open(filename)
-#    d["git"] = git
-#    d.close()
 
 def readDB(filename):
 #    k = shelve.open(filename)
@@ -201,8 +199,9 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None, 
             #[computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
             
             
-            [computeCommitCollaboration(cluster, snapShotCmt.id, id_mgr,
+            [computeCommitCollaboration(cluster, snapShotCmt, id_mgr,
                                         maxDist, author) for cluster in clusters]
+
 
 def randomizeCommitCollaboration(codeBlks, fileState):
     '''
@@ -261,8 +260,9 @@ def randomizeCommitCollaboration(codeBlks, fileState):
     #end for codeBlk
     
     return codeBlksRand
-        
-def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist,
+
+     
+def computeCommitCollaboration(codeBlks, cmt, id_mgr, maxDist,
                                author=False):
     '''
     Computes a value that represents the collaboration strength 
@@ -284,7 +284,7 @@ def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist,
     different (in time) contributions by a person.  
     - Input - 
     codeBlks - a collection of codeBlock objects
-    revcmtId - the commit id of the revision we are interested in 
+    cmt      - the commit object of the revision we are interested in 
                 measuring the collaboration for
     id_mgr   - manager for people and information relevant to them
                 the collaboration metric is stored in this object
@@ -302,7 +302,7 @@ def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist,
     
     
     #get all blocks contributed by the revision commit we are looking at
-    revCmtBlks = [blk for blk in codeBlks if blk.cmtHash == revCmtId]
+    revCmtBlks = [blk for blk in codeBlks if blk.cmtHash == cmt.id]
     
     #get the person responsible for this revision
     if author:
@@ -312,7 +312,7 @@ def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist,
     
     #find all other commit ids for older revisions
     oldCmtIdSet = set( [blk.cmtHash for blk in codeBlks
-                        if blk.cmtHash != revCmtId] )
+                        if blk.cmtHash != cmt.id] )
     
     #calculate relationship between personId and all other contributors 
     for oldCmtId in oldCmtIdSet:
@@ -336,12 +336,12 @@ def computeCommitCollaboration(codeBlks, revCmtId, id_mgr, maxDist,
         
         if personId == revPerson.getID():
             pass
-        
+
         inEdgePerson = id_mgr.getPI(personId)
-        revPerson.addOutEdge  ( personId         , sumStrength)
-        inEdgePerson.addInEdge( revPerson.getID(), sumStrength)
+        revPerson.addSendRelation      (LinkType.proximity, personId, cmt,     sumStrength)
+        inEdgePerson.addReceiveRelation(LinkType.proximity, revPerson.getID(), sumStrength)
     
-   
+
 def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist): 
     '''
     Computes a value that represents the collaboration strength 
@@ -791,6 +791,8 @@ def createStatisticalData(cmtlist, id_mgr, link_type):
             person.computeCommitStats()
             person.computeStats(link_type)  
     
+    computeSimilarity(cmtlist)
+    
     return None
 
 
@@ -923,7 +925,7 @@ def writeAdjMatrix2File(id_mgr, outdir, link_type):
     # of developers is only a few thousand, it will likely not pay
     # off to utilise this fact for more efficient storage.
 
-    out = open(os.path.join(outdir, "tags.txt"), 'wb')
+    out = open(os.path.join(outdir, "adjacencyMatrix.txt"), 'wb')
     idlist = sorted(id_mgr.getPersons().keys())
     # Header
     out.write("# " +
@@ -939,15 +941,17 @@ def writeAdjMatrix2File(id_mgr, outdir, link_type):
                 [str(id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(id_sender))
                    for id_sender in idlist]) + "\n")
     
-    elif link_type == LinkType.committer2author:
+    else:
         for id_receiver in idlist:
             out.write("\t".join(
-                [str(id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, LinkType.committer2author))
+                [str(id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, link_type))
                    for id_sender in idlist]) + "\n")
 
     
     
     out.close()
+
+
 def emitStatisticalData(cmtlist, id_mgr, outdir, link_type):
     """Save the available information for further statistical processing.
 
@@ -1041,11 +1045,10 @@ def computeCommitterAuthorLinks(cmtlist, id_mgr):
         edge_weight  = 1
         
         #add link from committer -> author 
-        pi_committer.addSendRelation   ("Committer2Author", pi_author.getID(), cmt, edge_weight)
-        pi_author   .addReceiveRelation("Committer2Author", pi_committer.getID()  , edge_weight)
+        pi_committer.addSendRelation   (LinkType.committer2author, pi_author.getID(), cmt, edge_weight)
+        pi_author   .addReceiveRelation(LinkType.committer2author, pi_committer.getID()  , edge_weight)
     #end for i  
-    
-    
+
 
 def computeTagLinks(cmtlist, id_mgr):
     '''
@@ -1142,130 +1145,31 @@ def computeSimilarity(cmtlist):
 
         cmt.setAuthorTaggersSimilarity(atsim)
         cmt.setTaggersSubsysSimilarity(tssim)     
+
         
-def writeData(cmtList, id_mgr,  outdir):
-    # TODO: Large parts of this function are 99% identical with
-    # emitStatisticalData. Refactor the commonalities into one joint function
-    '''
-    Write data to file to be further processed by statistics software
-    
-    Several files are created in outdir:
-    - Names/ID Edges (ids.txt)
-    - Connection between the developers derived from commits (not tags)
-    '''
-   
-    ##############
-    # Save id/name associations together with the per-author summary statistics
-    id_writer = csv.writer(open(os.path.join(outdir, "ids.txt"), 'wb'),
-                           delimiter='\t',
-                           quotechar='\\', quoting=csv.QUOTE_MINIMAL)
-    # Header
-    id_writer.writerow(["ID", "Name", "eMail", "added", "deleted", "total",
-                        "numcommits"])
 
-    # Content
-    for id in sorted(id_mgr.getPersons().keys()):
-        pi = id_mgr.getPI(id)
-        cmt_stat = pi.getCommitStats()
-        added = cmt_stat["added"]
-        deleted = cmt_stat["deleted"]
-        numcommits = cmt_stat["numcommits"]
-        id_writer.writerow([id, pi.getName(), pi.getEmail(), added, deleted,
-                            added + deleted, numcommits])
-    
-    ##############
-    # Store the adjacency matrix for developers, i.e., create
-    # a NxN matrix in which the entry a_{i,j} denotes how closely developer
-    # j was contributing to developer i
-    # NOTE: This produces a sparse matrix, but since the number
-    # of developers is only a few thousand, it will likely not pay
-    # off to utilise this fact for more efficient storage.
-
-    out = open(os.path.join(outdir, "adjacencyMatrix.txt"), 'wb')
-    idlist = sorted(id_mgr.getPersons().keys())
-    # Header
-    out.write("# " +
-              "\t".join([str(id_mgr.getPI(elem).getName()) for elem in idlist]) +
-              "\n")
-    
-    # Matrix. The sum of all elements in row N describes how many
-    # tags id N has received. The sum of column N states how many
-    # tags were given by id N to other developers.
-    for id_receiver in idlist:
-        out.write("\t".join(
-            [str(id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, LinkType.committer2author))
-               for id_sender in idlist]) + "\n")
-
-    out.close()
-
-    return None
-        
 ###########################################################################
 # Main part
 ###########################################################################
-def performNonTagAnalysis(dbfilename, git_repo, create_db, outDir, revRange,
-                          limitHistory=False):
-    
-    if create_db == True:
-        createFileCmtDB(dbfilename, git_repo, revRange)
-        
-    print("Reading from data base {0}...".format(dbfilename))
-    git = readDB(dbfilename)
-    
-    #store relevant VCS object attributes
-    cmtDict = git.getCommitDict()
-    if limitHistory:
-        startDate = git.getRevStartDate()
-    else:
-        startDate = None
-    
-    #---------------------------------
-    #Fill person Database
-    #---------------------------------
-    id_mgr = idManager()
-    populatePersonDB(cmtDict.values, id_mgr)
-    
-    #---------------------------------
-    #compute network connections
-    #---------------------------------
-    fileCommitList = git.getFileCommitDict()
-   
-    #calculate the collaboration metrics for all contributors
-    computeProximityLinks(fileCommitList, cmtDict, id_mgr, startDate)
-        
-    #-------------------------------------------------------------
-    #perform processing on collaboration data, all collaboration 
-    #data is required to be present for this to work correctly 
-    #-------------------------------------------------------------
-    # TODO: cmtlist is an actual list, cmtList (capital L)is (
-    # why of WHY) a _HASH_, not a list.
-    cmtlist = git.extractCommitData("__main__")
-    createStatisticalData(cmtlist, id_mgr, LinkType.proximity)
-    
-    #-------------------------------------------------------------------
-    # Save the results in text files that can be further processed with
-    # statistical software, that is, GNU R
-    #-------------------------------------------------------------------
-    writeData(cmtDict, id_mgr, outDir)
-    
-    
 def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
-                    outdir, link_type, rcranges=None):
+                    outdir, link_type, rcranges=None, limit_history=False):
     if create_db == True:
         print("Creating data base for {0}..{1}").format(revrange[0],
                                                         revrange[1])
-        createDB(dbfilename, git_repo, revrange, subsys_descr, rcranges)
+        createDB(dbfilename, git_repo, revrange, subsys_descr, \
+                 link_type, rcranges)
         
         
     print("Reading from data base {0}...".format(dbfilename))
     git = readDB(dbfilename)
     cmtlist = git.extractCommitData("__main__")
+    cmtdict = git.getCommitDict()
     
     #---------------------------------
     #Fill person Database
     #---------------------------------
     id_mgr = idManager()
-    populatePersonDB(cmtlist, id_mgr, link_type)
+    populatePersonDB(cmtdict.values(), id_mgr, link_type)
     
     if subsys_descr != None:
         id_mgr.setSubsysNames(subsys_descr.keys())
@@ -1278,7 +1182,15 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
     
     elif link_type == LinkType.committer2author:
         computeCommitterAuthorLinks(cmtlist, id_mgr)
+    
+    elif link_type == LinkType.proximity:
+        if limit_history:
+            startDate = git.getRevStartDate()
+        else:
+            startDate = None
         
+        fileCommitList = git.getFileCommitDict()
+        computeProximityLinks(fileCommitList, cmtdict, id_mgr, startDate)
     #---------------------------------
     #compute statistical information 
     #---------------------------------
@@ -1289,16 +1201,14 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
     #statistical software, that is, GNU R
     #---------------------------------                      
     emitStatisticalData(cmtlist, id_mgr, outdir, link_type)
-        
 
-         
+    
 ##################################################################
 def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
-                      create_db, nonTag, limitHistory=False):
+                      create_db, link_type, limit_history=False):
     #--------------
     #folder setup 
     #--------------
-
     if not os.path.exists(outdir):
         try:
             os.makedirs(outdir)
@@ -1316,18 +1226,18 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
     #Perform appropriate analysis
     #----------------------------
     filename = os.path.join(outdir, "vcs_analysis.db")
-
-    if nonTag:
-        print("Performing non-tag based analysis")
-        performNonTagAnalysis(filename, git_repo, create_db, outdir,
-                              [from_rev, to_rev], limitHistory)
-    
+    #TODO:handle this in the interface to doProjectAnalysis
+    #this will likely break everything if its handled
+    #properly right now
+    if link_type:
+        link_type = LinkType.proximity
     else:
-        print("Performing tag based analysis")
-        performAnalysis(filename, git_repo, [from_rev, to_rev],
+        link_type = LinkType.tag
+    
+    performAnalysis(filename, git_repo, [from_rev, to_rev],
 #                        kerninfo.subsysDescrLinux,
                         None,
-                        create_db, outdir, LinkType.tag, rc_range)    
+                        create_db, outdir, link_type, rc_range, limit_history)    
 
 ##################################
 #         TESTING CODE
@@ -1387,11 +1297,11 @@ if __name__ == "__main__":
                         help="Perform a tag based cluster analysis (default)")
     args = parser.parse_args()
     
-    limitHistory = True
+    limit_history = True
 
     doProjectAnalysis(args.project, args.from_rev, args.to_rev, args.rc_start,
                       args.outdir, args.repo, args.create_db, args.non_tag,
-                      limitHistory)
+                      limit_history)
     exit(0)
 
 #git_repo = "/Users/wolfgang/git-repos/linux/.git"

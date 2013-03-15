@@ -26,18 +26,7 @@ class PersonInfo:
         self.name = name
         self.email = email
         self.subsys_names = subsys_names
-        
-        #Edges FROM other developers (could be committers or authors) 
-        self.inEdges = {}
-        
-        #Edges TO other developers (could be committers or authors)
-        self.outEdges = {}
-        
-        #average of collaboration metric for a single Id
-        #key = person ID, value = average edge weight
-        self.inEdgesAvg = {}
-        self.outEdgesAvg = {}
-        
+
         # Store from which developers the person received a tag
         self.associations = {}
         for link_type in all_link_types:
@@ -125,48 +114,7 @@ class PersonInfo:
             return link_hash[ID]
         else:
             return 0
-        
-    def addInEdge(self, Id, value): 
-        '''
-        a Edge from some else towards this person
-        '''
-        self.addEdge(Id, self.inEdges, value)
-        
-        
-    def addOutEdge(self, Id, value):
-        '''
-        a Edge from this person to someone else        
-        '''
-        self.addEdge(Id, self.outEdges, value)
-    
-        
-    def edgeProcessing(self):
-        '''
-        This function should be call after all collaboration metrics have 
-        been calculated. Performs basics statistics calculations that require 
-        the entire collaboration network data present. 
-        '''
-        
-        #average over Edges 
-        for Id in self.inEdges.keys():
-            self.inEdgesAvg[Id]  = sum( self.inEdges[Id] )   / len( self.inEdges[Id] )  * 1.0
-            
-        for Id in self.outEdges.keys():
-            self.outEdgesAvg[Id] = sum( self.outEdges[Id] )  / len( self.outEdges[Id] )  * 1.0
-        
-        
-    def addEdge(self, ID, edges, value):
-        '''
-        the direction of the Edge is made by calling this 
-        with addInEdge or addOutEdge. the Value parameter 
-        indicates the weight of the relationship.
-        '''
-        
-        if(ID in edges):
-            edges[ID].append(value)
-        else:
-            edges[ID] = [value] 
-        
+
     def getActiveTagsReceivedByID(self, ID):
         return self._getLinksReceivedByID(self.active_tags_received_by_id, ID)
     
@@ -175,40 +123,6 @@ class PersonInfo:
             return self._getLinksReceivedByID(self.proximity_links_recieved_by_id, ID)
         elif link_type == committer2author_relation:
             return self._getLinksReceivedByID(self.committer_links_recieved_by_id, ID)
-        
-    def getSumInEdge(self, ID):
-        
-        if ID in self.inEdges:
-            #sum over all calculated edge weights for this person
-            return sum(self.inEdges[ID])
-        else:
-            return 0
-
-    def getSumOutEdge(self, ID):
-        
-        if ID in self.outEdges:
-            #sum over all calculated edge weights for this person
-            return sum(self.outEdges[ID])
-        else:
-            return 0
-        
-    def getAvgInEdge(self, ID):
-        
-        if ID in self.inEdgesAvg:
-            
-            return self.inEdgesAvg[ID]
-        
-        else:
-            return 0
-       
-    def getAvgOutEdge(self, ID):
-        
-        if ID in self.outEdgesAvg:
-            
-            return self.outEdgesAvg[ID]
-        
-        else:
-            return 0
 
     def getAllTagsReceivedByID(self, ID):
         return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)  
@@ -275,7 +189,7 @@ class PersonInfo:
     def computeStats(self, link_type):
         
         #computer tag specific stats
-        if link_type == "tag":
+        if link_type == "Tag":
             self.computeTagStats()
         
         #determine fraction of relation types
@@ -323,9 +237,7 @@ class PersonInfo:
         if (total_links != 0):
             for subsys in self.subsys_names + ["general"]:
                 self.subsys_fraction[subsys] /= float(total_links)
-        else:
-            print("{0} did not link on any subsystem?!".format(self.getName()))
-     
+
     def computeRelationSums(self):
         # Summarise the links given _to_ (i.e, received by) the developer
         # from a specific ID

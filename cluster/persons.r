@@ -737,7 +737,7 @@ writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
 performTagAnalysis <- function(outdir){
 ################## Process the data #################
   status("Reading files")
-  tags <- read.table(file=paste(outdir, "/tags.txt", sep=""),
+  tags <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
                      sep="\t", header=FALSE)
   colnames(tags) <- rownames(tags)
   
