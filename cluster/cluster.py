@@ -99,6 +99,7 @@ def readDB(filename):
 
     return(git)
 
+
 def computeSubsysAuthorSimilarity(cmt_subsys, author):
     """ Compute a similarity measure between commit and commit author
     in terms of touched subsystems (ranges from 0 to 1)."""
@@ -121,6 +122,7 @@ def computeSubsysAuthorSimilarity(cmt_subsys, author):
                                              asf[subsys_name]))
 
     return sim
+
 
 def computeAuthorAuthorSimilarity(auth1, auth2):
     """Compute a similarity measure (between 0 and 1) of two authors.
@@ -146,6 +148,7 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
         _abort("Internal error: Author/Author similarity exceeds one.")
     
     return sim
+
 
 def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None, random=False):
     '''Generates the collaboration data from a file snapshot at a particular
@@ -394,8 +397,7 @@ def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist):
         person.addOutEdge(   Id   , avgStrength)
         inEdgePerson.addInEdge(personId, avgStrength)
     
-    
-    
+  
 def computeEdgeStrength(blk1, blk2, maxDist):
     '''
     Calculates a value that indicates how strongly the two 
@@ -569,7 +571,8 @@ def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
     
     
     return blkClusters
-    
+
+   
 def removePriorCommits(fileState, clist, startDate):
     '''
     removes commits that occured prior to a startDate
@@ -599,7 +602,8 @@ def removePriorCommits(fileState, clist, startDate):
         #else forget about commit
         
     return modFileState
-        
+
+       
 def linesOfInterest(fileState, snapShotCommit, maxDist):
     '''
     Finds the regions of interest for analyzing the file. 
@@ -674,7 +678,8 @@ def blockDist(blk1, blk2):
     
     
     return (dist - 1) #subtract 1 so that adjacent blocks have a distance of zero
-    
+
+   
 def findCodeBlocks(fileState, cmtList, author=False):
     '''
     Finds code blocks for a given file state, a code block is defined by the
@@ -860,6 +865,7 @@ def writeCommitData2File(cmtlist, id_mgr, outdir):
         # predominantly add, remove, or modify code (3-level factor)
     out.close()
 
+
 def writeSubsysPerAuthorData2File(id_mgr, outdir):
     '''
     per-author subsystem information is written to the outdir location
@@ -885,8 +891,8 @@ def writeSubsysPerAuthorData2File(id_mgr, outdir):
         print >>out, outstr
 
     out.close()
-    
-    
+
+
 def writeIDwithCmtStats2File(id_mgr, outdir):
     '''
     ID information together with commit stats for each ID are written
@@ -910,8 +916,8 @@ def writeIDwithCmtStats2File(id_mgr, outdir):
         numcommits = cmt_stat["numcommits"]
         id_writer.writerow([id, pi.getName(), pi.getEmail(), added, deleted,
                             added + deleted, numcommits])
-        
-        
+
+    
 def writeAdjMatrix2File(id_mgr, outdir, link_type):
     '''
     Connections between the developers are written to the outdir location
@@ -972,7 +978,7 @@ def emitStatisticalData(cmtlist, id_mgr, outdir, link_type):
     
     return None
 
-    
+ 
 def populatePersonDB(cmtlist, id_mgr, link_type=None): 
     for cmt in cmtlist:
         #create person for author
@@ -991,6 +997,7 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
         
     return None
 
+
 def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None):
     '''
     Constructs network based on commit proximity information
@@ -1007,7 +1014,8 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None):
         
         [computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate)
          for fileSnapShot in fileCommit.getFileSnapShots().items()]
-            
+
+    
 def computeCommitterAuthorLinks(cmtlist, id_mgr):
     '''
     Constructs network based on the author and commiter of a commit
@@ -1274,7 +1282,6 @@ def testAnalysis(link_type):
 ##################################
 #         Main
 ##################################
-
 if __name__ == "__main__":
     
     #testFileCommit()
