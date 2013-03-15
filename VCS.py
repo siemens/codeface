@@ -660,7 +660,7 @@ class gitVCS (VCS):
                 for logstring in reversed(clist)]
 
 
-    def extractCommitData(self, subsys="__main__"):
+    def extractCommitData(self, subsys="__main__", blameAnalysis=False):
         if not(self._subsysIsValid(subsys)):
             _abort("Subsys specification invalid: {0}\n".format(subsys))
 
@@ -673,6 +673,9 @@ class gitVCS (VCS):
 
         self._prepareCommitLists()
 
+        if blameAnalysis:
+            self._prepareFileCommitList(self._fileNames)
+        
         # _commit_list_dict as computed by _prepareCommitLists() already
         # provides a decomposition of the commit list into subsystems:
         # It suffices to analyse the commits in the global commit list
@@ -683,7 +686,7 @@ class gitVCS (VCS):
         pbar = ProgressBar(widgets=widgets,
                            maxval=len(self._commit_list_dict["__main__"])).start()
 
-        for cmt in self._commit_list_dict["__main__"]:
+        for cmt in self._commit_dict.values():
             count += 1
             if count % 20 == 0:
                 pbar.update(count)
@@ -747,28 +750,19 @@ class gitVCS (VCS):
              
             
         return commitLineDict
-   
-    def extractFileCommitData(self):
-       '''high level function to extract all commits for a given file 
-       and builds a fileCommit object to store relavent data'''
-       
-       if self._fileCommit_dict:
-           print("using cached data...")
-           return
-       
-       #query the git repository for all commits to a particular 
-       #set of files, FileCmtList is a list of commit hashes
-       self._prepareFileCommitList(self._fileNames) 
-       
-       #get diff and remaining commit data (author,committer etc)
-       #and store in respective commit objects
-       map(self._parseCommit, self._commit_dict.values())   
-       
+
+
     def _prepareFileCommitList(self, fnameList):
-        # TODO: This function mixes preparing the commit list with parsing
-        # the commits. This should be separated, as in the generic case
+        '''
+        uses git blame to determine where commits are made by recording
+        the file name and line number along with the commit hash to
+        reference commit objects stored in _commit_dict.
+        '''
+
         #variable initialization 
-        self._fileCommit_dict = {}
+        if self._fileCommit_dict is None:
+            self._fileCommit_dict = {}
+        
         blameMsgCmtIds = set() #stores all commit Ids seen from blame messages
         
         if self._commit_dict is None:
@@ -805,7 +799,7 @@ class gitVCS (VCS):
                 #since a commit can touch many files, we use the commit 
                 #hash to reference the commit data (author, date etc)
                 for cmt in cmtList:
-                    if cmt not in self._commit_dict:
+                    if cmt.id not in self._commit_dict:
                         self._commit_dict[cmt.id] = cmt
                       
                 #get git blame information for each commit in each file 
@@ -898,7 +892,7 @@ class gitVCS (VCS):
         logMsg = self._getSingleCommitInfo(cmtHash)
         
         #create commit object from the log message 
-        cmtObj = self._LogString2Commit(logMsg[0])
+        cmtObj = self._Logstring2Commit(logMsg[0])
         
         
         return cmtObj
@@ -919,7 +913,7 @@ class gitVCS (VCS):
             
         return cmtList    
             
-    def config4LinuxKernelAnalysis(self, directories=None):
+    def addFiles4Analysis(self, directories=None):
         '''
         use this to configue what files should be included in the 
         file based analysis (ie. non-tag based method). This will 
