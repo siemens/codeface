@@ -1,18 +1,23 @@
 ## Included files and libraries must be collected in this header so that
 ## we can use the list on cluster nodes
-source("local.r")
-source("analysis.r")
-source("project.spec.r")
-source("keyword.list.r")
-snatm.path <- "/home/wolfgang/projects/zk/QuantArch/src/snatm/pkg/R"
-sourceDir(snatm.path)
+s <- suppressPackageStartupMessages
 
-library(tm)
-library(tm.plugin.mail)
-library(sna)
+s(source("local.r"))
+s(source("analysis.r"))
+s(source("project.spec.r"))
+s(source("keyword.list.r"))
+s(sourceDir(snatm.path))
+
+s(library(tm))
+s(library(tm.plugin.mail))
+s(library(sna))
 #library(wordnet)
-library(ggplot2)
-library(igraph)
-library(lsa)
-library(Rgraphviz) # See www.bioconductor.org/packages/2.9/bioc/html/Rgraphviz.html
-library(lubridate)
+s(library(ggplot2))
+s(library(igraph))
+s(library(lsa))
+s(library(Rgraphviz)) # See www.bioconductor.org/packages/2.9/bioc/html/Rgraphviz.html
+s(library(lubridate))
+s(library(xtable))
+s(library(reshape))
+
+rm(s)
