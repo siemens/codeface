@@ -156,9 +156,9 @@ dispatch.all <- function(conf, repo.path, data.path, doCompute) {
   ## time) to select suitable time intervals of interest. For many projects,
   ## weekly (and monthly) are much too short, and longer intervals need to
   ## be considered.
-  dispatch.sub.sequences(conf, corp.base, iter.weekly, repo.path, data.path,
+  analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, data.path,
                          "weekly", doCompute)
-  dispatch.sub.sequences(conf, corp.base, iter.4weekly, repo.path, data.path,
+  analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, data.path,
                          "4weekly", doCompute)
 
   
@@ -175,8 +175,8 @@ dispatch.all <- function(conf, repo.path, data.path, doCompute) {
 }
 
 
-dispatch.sub.sequences <- function(conf, corp.base, iter, repo.path,
-                                   data.path, data.prefix, doCompute) {
+analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
+                                  data.path, data.prefix, doCompute) {
   timestamps <- do.call(c, lapply(seq_along(corp.base$corp),
                                   function(i) DateTimeStamp(corp.base$corp[[i]])))
   
