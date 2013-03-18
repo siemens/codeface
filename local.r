@@ -1,12 +1,9 @@
 ## Some local helper functions for QuantArch
-## sourceDir is copied from somewhere, but I don't recall from where (likely the
-## R documentation). TODO: Check
-## before publishing
-sourceDir <- function(path, trace = TRUE, ...) {
-  for (nm in list.files(path, pattern = "\\.[RrSsQq]$")) {
-    if(trace) cat(nm,":")           
-    source(file.path(path, nm), ...)
-    if(trace) cat("\n")
+
+## Source all r files in a given path
+source.files <- function(path) {
+  for (nm in list.files(path, pattern = "\\.[Rr]$")) {
+    source(file.path(path, nm))
   }
 }
 
