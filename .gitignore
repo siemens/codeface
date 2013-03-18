@@ -3,3 +3,4 @@ repos/
 *.Rout
 .*
 wordnet/
+error.dump.rda
