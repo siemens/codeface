@@ -180,18 +180,37 @@ gen.networks.df <- function(networks) {
   return(ret)
 }
 
-findHighFreq <- function(x, num=10, exclude.list=list()) {
+## Find terms with highest relative frequency (given by percentage).
+## However, the result set can be limited to max.entries entries unless
+## max.entries=-1.
+## If min.entries is =! -1, this many terms are collected if possible
+## exclude.list specifies a list of generic keywords that are not supposed to
+## be considered.
+findHighFreq <- function(x, percentage=0.1, min.entries=-1, max.entries=50,
+                         exclude.list=list()) {
   if (inherits(x, "DocumentTermMatrix")) 
         x <- t(x)
-  tmp <- sort(slam::row_sums(x), decreasing=T)[1:(num+length(exclude.list))]
+  tmp <- sort(slam::row_sums(x), decreasing=T)
 
   rs <- names(tmp)
   names(rs) <- tmp
 
+  ## Delete unwanted terms
   rs <- rs[!(rs %in% exclude.list)]
+
+  ## ... and shorten the results list by percentage and upper bound
+  num <- floor(length(rs)*percentage)
+  if (max.entries != -1 && num > max.entries) {
+    num <- max.entries
+  }
+
+  if (min.entries != -1 && num < min.entries) {
+    num <- min.entries
+  }
+
   if (length(rs) > num)
     rs <- rs[1:num]
-  
+
   return(rs)
 }
 

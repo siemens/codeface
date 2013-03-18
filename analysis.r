@@ -233,9 +233,10 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
   doc.matrices <- compute.doc.matrices(forest.corp, data.path, doCompute)
   timestamp("doc.matrices finished")
   
-  ## TODO: Provide per-ml keyword collections
-  termfreq <- findHighFreq(doc.matrices$tdm, 40,
-                           unique(c(terms.d, terms.coll, terms.c, terms.programming)))
+  ## TODO: Provide per-ml keyword collections for the exclusion words
+  termfreq <- findHighFreq(doc.matrices$tdm, exclude.list=unique(c(terms.d,
+                                               terms.coll, terms.c,
+                                               terms.programming)))
   timestamp("termfreq finished")
   
   ## NOTE: For most projects, technical left-overs (like footers from majordomo
