@@ -4,3 +4,5 @@ repos/
 .*
 wordnet/
 error.dump.rda
+*.txt
+*.pdf
