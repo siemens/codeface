@@ -181,19 +181,21 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
                                   function(i) DateTimeStamp(corp.base$corp[[i]])))
   
   cat(length(corp.base$corp), "messages in corpus\n")
-  cat("Date range is ", as.character(int_start(iter[[1]])), "to",
-      as.character(int_end(iter[[1]])), "\n")
-  cat("=> Analysing ", ml, "in", length(iter), "subsets\n")
-
-  clusterExport(getSetCluster(), "ml")
-  clusterExport(getSetCluster(), "data.path")
-  clusterExport(getSetCluster(), "repo.path")
+  cat("Date range is", as.character(int_start(iter[[1]])), "to",
+      as.character(int_end(iter[[length(iter)]])), "\n")
+  cat("=> Analysing ", conf$ml, "in", length(iter), "subsets (granularity",
+      data.prefix, ")\n")
 
   lapply.cluster <- function(x, FUN, ...) {
     snow::parLapply(getSetCluster(), x, FUN, ...)
   }
+
   if (tm::clusterAvailable() && length(iter) > 1) {
     do.lapply <- lapply.cluster
+
+    ## NOTE: Exporting the global variable snatm.path is only required
+    ## as long as includes.r sources the modified snatm package manually.
+    clusterExport(getSetCluster(), "snatm.path")
     clusterCall(getSetCluster(), function() { source("includes.r"); return(NULL) })
   } else {
     do.lapply <- lapply
