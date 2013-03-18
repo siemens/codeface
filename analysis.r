@@ -1,9 +1,9 @@
-gen.forest <- function(ml, repo.path, data.path, doCompute) {
+gen.forest <- function(conf, repo.path, data.path, doCompute) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
   ## lkml variant
   if (doCompute) {
-    corp.base <- gen.corpus(ml, repo.path,
-                            suffix=".mbox", marks=c("^_{10,}", "^-{10,}", "^[*]{10,},",
+    corp.base <- gen.corpus(conf$ml, repo.path, suffix=".mbox",
+                            marks=c("^_{10,}", "^-{10,}", "^[*]{10,},",
                                    # Also remove inline diffs. TODO: Better
                                    # heuristics for non-git projects
                                    "^diff --git", "^@@",
@@ -91,12 +91,11 @@ extract.commnets <- function(forest, termfreq, ml, repo.path, data.path,
 }
 
 
-compute.interest.networks <- function(termfreq, ml,
-                                      NUM.NET.SUBJECT, NUM.NET.CONTENT,
+compute.interest.networks <- function(termfreq, NUM.NET.SUBJECT, NUM.NET.CONTENT,
                                       data.path, doCompute) {
   if (doCompute) {
-    net.subject <- gen.net("subject", termfreq, ml, data.path, NUM.NET.SUBJECT)
-    net.content <- gen.net("content", termfreq, ml, data.path, NUM.NET.CONTENT)
+    net.subject <- gen.net("subject", termfreq, data.path, NUM.NET.SUBJECT)
+    net.content <- gen.net("content", termfreq, data.path, NUM.NET.CONTENT)
     save(file=file.path(data.path, "net.subject"), net.subject)
     save(file=file.path(data.path, "net.content"), net.content)
   } else {
@@ -139,9 +138,9 @@ timestamp <- function(text) {
   cat (text, ": ", date(), "\n")
 }
 
-dispatch.all <- function(ml, repo.path, data.path, doCompute) {
+dispatch.all <- function(conf, repo.path, data.path, doCompute) {
   timestamp("start")
-  corp.base <- gen.forest(ml, repo.path, data.path, doCompute)
+  corp.base <- gen.forest(conf, repo.path, data.path, doCompute)
   timestamp("corp.base finished")
   ## #######
   ## Split the data into smaller chunks for time-resolved analysis
@@ -153,20 +152,15 @@ dispatch.all <- function(ml, repo.path, data.path, doCompute) {
   iter.weekly <- gen.iter.intervals(dates.cleaned, 1)
   iter.4weekly <- gen.iter.intervals(dates.cleaned, 4)
   
-  ## TODO: Parallellise with mclapply once things work properly in serial
-  ## Weekly analysis
+  ## TODO: Find some measure (likely depending on the number of messages per
+  ## time) to select suitable time intervals of interest. For many projects,
+  ## weekly (and monthly) are much too short, and longer intervals need to
+  ## be considered.
+  dispatch.sub.sequences(conf, corp.base, iter.weekly, repo.path, data.path,
+                         "weekly", doCompute)
+  dispatch.sub.sequences(conf, corp.base, iter.4weekly, repo.path, data.path,
+                         "4weekly", doCompute)
 
-  dispatch.sub.sequences(corp.base, iter.weekly, repo.path, data.path,
-                         ml, doCompute)
-##  dispatch.sub.sequences(corp.base, iter.4weekly, repo.path, data.path,
-##                         ml, doCompute)
-
-  
-  ## TODO: Should we restrict the maximal analysis length to one month?
-  ## Not sure if the results make sense for a longer time frame
-  ## Some descriptive statistics do make sense, but for instance not
-  ## things like computing text-document matrices. We could compute the
-  ## descriptive things directly from the corpus.
   
   ## #######
   ## Global analysis
@@ -181,8 +175,8 @@ dispatch.all <- function(ml, repo.path, data.path, doCompute) {
 }
 
 
-dispatch.sub.sequences <- function(corp.base, iter, repo.path,
-                                   data.path, ml, doCompute) {
+dispatch.sub.sequences <- function(conf, corp.base, iter, repo.path,
+                                   data.path, data.prefix, doCompute) {
   timestamps <- do.call(c, lapply(seq_along(corp.base$corp),
                                   function(i) DateTimeStamp(corp.base$corp[[i]])))
   
@@ -221,12 +215,12 @@ dispatch.sub.sequences <- function(corp.base, iter, repo.path,
     gen.dir(data.path.local)
     save(file=file.path(data.path.local, "forest.corp"), forest.corp.sub)
     
-    dispatch.steps(ml, repo.path, data.path.local, forest.corp.sub, doCompute)
+    dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub, doCompute)
     cat(" -> Finished week ", i, "\n")
   })
 }
 
-dispatch.steps <- function(ml, repo.path, data.path, forest.corp, doCompute) {
+dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
   ## TODO: Check how we can speed up prepare.text. And think about if the
   ## function is really neccessary. With stemming activated, I doubt
   ## that it really pays off.
@@ -254,14 +248,14 @@ dispatch.steps <- function(ml, repo.path, data.path, forest.corp, doCompute) {
   ## filter needs to be applied
   
   gen.dir(file.path(data.path, "commnet.terms"))
-  extract.commnets(forest.corp, termfreq, ml, repo.path, data.path, doCompute)
+  extract.commnets(forest.corp, termfreq, repo.path, data.path, doCompute)
   timestamp("extract.commnets finished")
   
   ## TODO: Find justifiable heuristics for these configurable parameters
   NUM.NET.SUBJECT <- 25
   NUM.NET.CONTENT <- 50
-  interest.networks <- compute.interest.networks(termfreq, ml,
-                                                 NUM.NET.SUBJECT, NUM.NET.CONTENT,
+  interest.networks <- compute.interest.networks(termfreq, NUM.NET.SUBJECT,
+                                                 NUM.NET.CONTENT,
                                                  data.path, doCompute)
   
   networks.dat <- analyse.networks(forest.corp$forest, interest.networks,

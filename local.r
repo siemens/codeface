@@ -99,7 +99,7 @@ gen.termplot <- function(edgelist, net, threshold, outfile, max.persons=NA, verb
 
 ## TODO: Do something with the sizes output of edgelist (which describes the weight
 ## of each keyword), for instance visualise the distribution as a sanity indicator
-gen.net <- function(type, termfreq, ml, data.path, max.terms) {
+gen.net <- function(type, termfreq, data.path, max.terms) {
   if (!(type %in% c("subject", "content"))) {
     stop ("Please specify either 'subject' or 'content' for type")
   }
