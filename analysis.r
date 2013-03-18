@@ -16,9 +16,9 @@ gen.forest <- function(ml, repo.path, data.path, doCompute) {
                                    "^Signed-off-by", "^Acked-by", "CC:"),
                               encoding="UTF-8",
                               preprocess=linux.kernel.preprocess)
-    save(file=file.path(data.path, paste("corp.base", ml, sep=".")), corp.base)
+    save(file=file.path(data.path, "corp.base"), corp.base)
   } else {
-    load(file=file.path(data.path, paste("corp.base", ml, sep=".")))
+    load(file=file.path(data.path, "corp.base"))
   }
 
   return(corp.base)
@@ -53,13 +53,13 @@ compute.doc.matrices <- function(forest.corp, data.path, doCompute) {
     ## though. For instance, use hclust. Albeit this is fairly pointless by
     ## now -- we need to find some criteria to cluster for.
 
-    save(file=file.path(data.path, paste("tdm", ml, sep=".")), tdm)
-    save(file=file.path(data.path, paste("dtm", ml, sep=".")), dtm)
-    ##save(file=file.path(data.path, paste("diss", ml, sep=".")), diss)
+    save(file=file.path(data.path, "tdm"), tdm)
+    save(file=file.path(data.path, "dtm"), dtm)
+    ##save(file=file.path(data.path, "diss"), diss)
   } else {
-    load(file=file.path(data.path, paste("tdm", ml, sep=".")))
-    load(file=file.path(data.path, paste("dtm", ml, sep=".")))
-    ##load(file=file.path(data.path, paste("diss", ml, sep=".")))
+    load(file=file.path(data.path, "tdm"))
+    load(file=file.path(data.path, "dtm"))
+    ##load(file=file.path(data.path, "diss")
   }
 
   return(list(tdm=tdm, dtm=dtm))
@@ -69,9 +69,9 @@ compute.doc.matrices <- function(forest.corp, data.path, doCompute) {
 compute.commnet <- function(forest.corp, data.path, doCompute) {
   if (doCompute) {
     commnet <- adjacency(createedges(forest.corp$forest))
-    save(file=file.path(data.path, paste("commnet", ml, sep=".")), commnet)
+    save(file=file.path(data.path, "commnet"), commnet)
   } else {
-    load(file=file.path(data.path, paste("commnet", ml, sep=".")))
+    load(file=file.path(data.path, "commnet"))
   }
   
   return(commnet)
@@ -97,11 +97,11 @@ compute.interest.networks <- function(termfreq, ml,
   if (doCompute) {
     net.subject <- gen.net("subject", termfreq, ml, data.path, NUM.NET.SUBJECT)
     net.content <- gen.net("content", termfreq, ml, data.path, NUM.NET.CONTENT)
-    save(file=file.path(data.path, paste("net.subject", ml, sep=".")), net.subject)
-    save(file=file.path(data.path, paste("net.content", ml, sep=".")), net.content)
+    save(file=file.path(data.path, "net.subject"), net.subject)
+    save(file=file.path(data.path, "net.content"), net.content)
   } else {
-    load(file=file.path(data.path, paste("net.subject", ml, sep=".")))
-    load(file=file.path(data.path, paste("net.content", ml, sep=".")))
+    load(file=file.path(data.path, "net.subject"))
+    load(file=file.path(data.path, "net.content"))
   }
 
   return(list(subject=net.subject, content=net.content))
@@ -133,22 +133,16 @@ analyse.networks <- function(forest, interest.networks, communication.network) {
 }
 
 
-##################### Analysis dispatcher ######################
-##################### Let the above rip ########################
+## ################### Analysis dispatcher ######################
+## ################### Let the above rip ########################
 timestamp <- function(text) {
   cat (text, ": ", date(), "\n")
 }
 
 dispatch.all <- function(ml, repo.path, data.path, doCompute) {
-  data.path.global <- file.path(data.path, ml)
-  gen.dir(data.path.global)
-  
   timestamp("start")
-  ## TODO: This is the current bottle neck. Needs to be sped up with
-  ## multicore, or using a cluster
-  corp.base <- gen.forest(ml, repo.path, data.path.global, doCompute)
+  corp.base <- gen.forest(ml, repo.path, data.path, doCompute)
   timestamp("corp.base finished")
-
   ## #######
   ## Split the data into smaller chunks for time-resolved analysis
   dates <- do.call(c,
@@ -223,9 +217,9 @@ dispatch.sub.sequences <- function(corp.base, iter, repo.path,
                             corp.orig=corp.base$corp.orig[idx])
     
     ## ... and perform all analysis steps
-    data.path.local <- file.path(data.path, ml, paste("weekly", i, sep="."))
+    data.path.local <- file.path(data.path, paste(data.prefix, i, sep="."))
     gen.dir(data.path.local)
-    save(file=file.path(data.path.local, paste("forest.corp", ml, sep=".")), forest.corp.sub)
+    save(file=file.path(data.path.local, "forest.corp"), forest.corp.sub)
     
     dispatch.steps(ml, repo.path, data.path.local, forest.corp.sub, doCompute)
     cat(" -> Finished week ", i, "\n")
@@ -277,7 +271,7 @@ dispatch.steps <- function(ml, repo.path, data.path, forest.corp, doCompute) {
   # TODO: This should go into a class
   res <- list(doc.matrices=doc.matrices, termfreq=termfreq,
               interest.networks=interest.networks, networks.dat=networks.dat)
-  save(file=file.path(data.path, paste("vis.data", ml, sep=".")), res)
+  save(file=file.path(data.path, "vis.data"), res)
   
   ## ######### End of actual computation. Generate graphs etc. ##############
   dispatch.plots(data.path, res)
