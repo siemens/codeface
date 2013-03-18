@@ -268,11 +268,11 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
   save(file=file.path(data.path, "vis.data"), res)
   
   ## ######### End of actual computation. Generate graphs etc. ##############
-  dispatch.plots(data.path, res)
+  dispatch.plots(conf, data.path, res)
 }
 
 
-dispatch.plots <- function(data.path, res) {
+dispatch.plots <- function(conf, data.path, res) {
   plots.path <- file.path(data.path, "plots")
   gen.dir(plots.path)
   ## NOTE: The correlation threshold is quite critical.
@@ -294,19 +294,20 @@ dispatch.plots <- function(data.path, res) {
   ## (not sure if this is really the most useful piece of information)
   g <- ggplot(res$networks.dat$icc, aes(x=centrality, y=dist, colour=type)) + geom_line() +
     geom_point() + facet_grid(source~.)
-#  print(g)
   ggsave(file.path(plots.path, "interest.communication.correlation.pdf"), g)
 
+  ## TODO: It can happen that deg is NaN here. (in the worst case, all entries
+  ## are NaNs, leading to a ggplot2 fault). Check under which circumstances this
+  ## can happen.
   g <- ggplot(res$networks.dat$ir, aes(x=x, y=y)) + geom_point(aes(size=deg, colour=col)) +
-    scale_x_log10() + scale_y_log10() + opts(title=ml) + facet_grid(source~.) +
+    scale_x_log10() + scale_y_log10() + opts(title=conf$project) +
+      facet_grid(source~.) +
       xlab("Messages initiated (log. scale)") + ylab("Responses (log. scale)")
-  print(g)
   ggsave(file.path(plots.path, "init.response.log.pdf"), g)
 
-  ## TODO: Perform automatic outlier detection, and plot the region which
-  ## contains most elements
   ## TODO: Maybe we should jitter the points a little
-  g <- ggplot(res$networks.dat$ir, aes(x=x, y=y)) + geom_point(aes(size=deg, colour=col)) +
-    opts(title=ml) + xlab("Messages initiated") + ylab("Responses")
+  g <- ggplot(res$networks.dat$ir, aes(x=x, y=y)) +
+    geom_point(aes(size=deg, colour=col)) +
+    opts(title=conf$project) + xlab("Messages initiated") + ylab("Responses")
   ggsave(file.path(plots.path, "init.response.pdf"), g)
 }
