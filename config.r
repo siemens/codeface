@@ -15,7 +15,7 @@
 ## All Rights Reserved.
 
 ## Load configuration and apply some (yet uncomprehensive) sanity checks
-require(yaml)
+library(yaml)
 
 load.config <- function(file) {
   conf <- yaml.load_file(file)
