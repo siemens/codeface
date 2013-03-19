@@ -322,3 +322,11 @@ gen.iter.intervals <- function(dates.cleaned, interval.length) {
 
   return(intervals.list[which(idx >= 5)])
 }
+
+## Aggregate by hours and a daily rolling mean (the mailing list
+## data do not contain excessive outliers, so mean is sufficient)
+gen.agg.smooth.ts <- function(ts, smooth) {
+  ts.as <- rollmean(period.apply(ts, INDEX=endpoints(ts, 'hours'),
+                                 FUN=sum), smooth)
+  ts.df <- data.frame(date=index(ts.as), value=coredata(ts.as), smooth=smooth)
+}

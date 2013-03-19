@@ -272,9 +272,30 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
                                    communication.network)
   timestamp("networks finished")
 
-  # TODO: This should go into a class
+  ## Compute base data for time series analysis
+  msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(DateTimeStamp(x)) })
+  msgs <- do.call(c, msgs)
+  msgs.ts <- zoo(rep(1,length(msgs)), order.by=msgs)
+
+  ## ... and create smoothed variants
+  HOURS.SMOOTH <- c(24,28,72)
+  ts.df <- do.call(rbind, lapply(HOURS.SMOOTH,
+                              function(x) gen.agg.smooth.ts(msgs.ts, x)))
+  ts.df$smooth <- as.factor(ts.df$smooth)
+
+  ## The exported table has three columns: date (obvious), value (smoothed
+  ## activity factor; roughly number of messages per day), and smooth (hours
+  ## used for smoothing window)
+  df.export <- ts.df
+  df.export$date <- as.numeric(df.export$date)
+  write.table(df.export,
+              file.path(data.path, "ts.txt"), row.names=F, sep = "\t", quote=F)
+
+  ## TODO: This should be represented by a class
   res <- list(doc.matrices=doc.matrices, termfreq=termfreq,
-              interest.networks=interest.networks, networks.dat=networks.dat)
+              interest.networks=interest.networks,
+              networks.dat=networks.dat,
+              ts.df=ts.df)
   save(file=file.path(data.path, "vis.data"), res)
   
   ## ######### End of actual computation. Generate graphs etc. ##############
