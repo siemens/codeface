@@ -160,8 +160,7 @@ unique(
        unlist(sapply(largest.threads, get.authors))
        )
 
-## Find the most active authors (i.e., loudmouths ;)) in the complete archive
-## (taken from the tm docs)
+## Find the most active authors (i.e., loudmouths ;))
 authors <- lapply(corp, Author)
 authors <- sapply(authors, paste, collapse = " ")
 sort(table(authors), decreasing = TRUE)[1:50]
