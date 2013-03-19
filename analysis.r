@@ -1,3 +1,6 @@
+library(zoo)
+library(xts)
+
 gen.forest <- function(conf, repo.path, data.path, doCompute) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
   ## lkml variant
@@ -279,9 +282,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
 }
 
 
-dispatch.plots <- function(conf, data.path, res) {
-  plots.path <- file.path(data.path, "plots")
-  gen.dir(plots.path)
+create.network.plots <- function(conf, plots.path, res) {
   ## NOTE: The correlation threshold is quite critical.
   ## TODO: Find some automatical means based on the maximal number of edges.
   pdf(file.path(plots.path, "tdm_plot.pdf"))
@@ -292,16 +293,18 @@ dispatch.plots <- function(conf, data.path, res) {
   ## edgelist is interest.networks$subject[[1]]
   ## adjacency matrix (net in Bohn's notation) is interest.networks$subject[[2]]
   ## respectively same elements in net.content
-  gen.termplot(res$interest.networks$subject[[1]], res$interest.networks$subject[[2]],
+  gen.termplot(res$interest.networks$subject[[1]],
+               res$interest.networks$subject[[2]],
                NA, file.path(plots.path, "termplot_subject.pdf"), max.persons=30)
-  gen.termplot(res$interest.networks$content[[1]], res$interest.networks$content[[2]],
+  gen.termplot(res$interest.networks$content[[1]],
+               res$interest.networks$content[[2]],
                NA, file.path(plots.path, "termplot_content.pdf"), max.persons=40)
-
+  
   ## Visualise the correlation between communication network and interests
   ## (not sure if this is really the most useful piece of information)
   g <- ggplot(res$networks.dat$icc, aes(x=centrality, y=dist, colour=type)) +
     geom_line() +
-    geom_point() + facet_grid(source~.)
+      geom_point() + facet_grid(source~.)
   ggsave(file.path(plots.path, "interest.communication.correlation.pdf"), g)
 
   ## TODO: It can happen that deg is NaN here. (in the worst case, all entries
@@ -309,14 +312,21 @@ dispatch.plots <- function(conf, data.path, res) {
   ## can happen.
   g <- ggplot(res$networks.dat$ir, aes(x=x, y=y)) +
     geom_point(aes(size=deg, colour=col)) +
-    scale_x_log10() + scale_y_log10() + ggtitle(conf$project) +
-      facet_grid(source~.) +
-      xlab("Messages initiated (log. scale)") + ylab("Responses (log. scale)")
+      scale_x_log10() + scale_y_log10() + ggtitle(conf$project) +
+        facet_grid(source~.) +
+          xlab("Messages initiated (log. scale)") + ylab("Responses (log. scale)")
   ggsave(file.path(plots.path, "init.response.log.pdf"), g)
 
   ## TODO: Maybe we should jitter the points a little
   g <- ggplot(res$networks.dat$ir, aes(x=x, y=y)) +
     geom_point(aes(size=deg, colour=col)) +
-    ggtitle(conf$project) + xlab("Messages initiated") + ylab("Responses")
+      ggtitle(conf$project) + xlab("Messages initiated") + ylab("Responses")
   ggsave(file.path(plots.path, "init.response.pdf"), g)
+}
+
+dispatch.plots <- function(conf, data.path, res) {
+  plots.path <- file.path(data.path, "plots")
+  gen.dir(plots.path)
+
+  create.network.plots(conf, plots.path, res)
 }
