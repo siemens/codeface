@@ -240,8 +240,12 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
   termfreq <- findHighFreq(doc.matrices$tdm, exclude.list=unique(c(terms.d,
                                                terms.coll, terms.c,
                                                terms.programming)))
+  write.table(data.frame(term=as.character(termfreq),
+                         count=as.numeric(attr(termfreq, "names"))),
+              file=file.path(data.path, "termfreq.txt"), sep="\t",
+              row.names=FALSE, quote=FALSE)
   timestamp("termfreq finished")
-  
+
   ## NOTE: For most projects, technical left-overs (like footers from majordomo
   ## etc.) will appear in the termfreq list. To find out which elements need
   ## to be removed from emails by grepping for the artefacts, use
