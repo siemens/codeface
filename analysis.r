@@ -81,11 +81,11 @@ compute.commnet <- function(forest.corp, data.path, doCompute) {
 }
 
 
-# These two calls are only relevant for the side effects -- they populate
-# basedir/<ml>/subject resp. /content
-# Iterate over all terms in termfreq, and create the adjacency matrix
-# for the communication network associated with each term
-extract.commnets <- function(forest, termfreq, ml, repo.path, data.path,
+## These two calls are only relevant for the side effects -- they populate
+## basedir/<ml>/subject resp. /content
+## Iterate over all terms in termfreq, and create the adjacency matrix
+## for the communication network associated with each term
+extract.commnets <- function(forest, termfreq, repo.path, data.path,
                              doCompute) {
   if (doCompute) {
     extract.commnet(forest, termfreq, "content", data.path)
