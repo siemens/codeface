@@ -347,9 +347,17 @@ create.network.plots <- function(conf, plots.path, res) {
   ggsave(file.path(plots.path, "init.response.pdf"), g)
 }
 
+create.ts.plots <- function(conf, plots.path, res) {
+  g <- ggplot(res$ts.df, aes(x=date, y=value, colour=smooth)) +
+    geom_line() + xlab("Date") + ylab("Mailing list activity") +
+    ggtitle(paste("Mailing list analysis for", conf$project))
+  ggsave(file.path(plots.path, "ts.pdf"), g)
+}
+
 dispatch.plots <- function(conf, data.path, res) {
   plots.path <- file.path(data.path, "plots")
   gen.dir(plots.path)
 
   create.network.plots(conf, plots.path, res)
+  create.ts.plots(conf, plots.path, res)
 }
