@@ -6,7 +6,7 @@ s(source("local.r"))
 s(source("analysis.r"))
 s(source("project.spec.r"))
 s(source("keyword.list.r"))
-s(sourceDir(snatm.path))
+s(source.files(snatm.path))
 
 s(library(tm))
 s(library(tm.plugin.mail))
