@@ -53,6 +53,31 @@ findAssocs(res$doc.matrices$tdm, "llvm", 0.6)
 ## The tm package has some standard means for doing this, check if the
 ## methods deliver satisfactory results
 
+## #####################################
+## Time series
+
+## NOTE: Using sapply directly does not work because the POSIXct
+## entries are then coerced to numeric...
+msgs <- lapply(corp, function(x) { as.POSIXct(DateTimeStamp(x)) })
+msgs <- do.call(c, msgs)
+msgs.ts <- zoo(rep(1,length(msgs)), order.by=msgs)
+
+## Aggregate by hours and a daily rolling mean (the mailing list
+## data do not contain excessive outliers, so mean is sufficient)
+gen.agg.smooth.ts <- function(ts, smooth) {
+  ts.as <- rollmean(period.apply(ts, INDEX=endpoints(test, 'hours'),
+                                 FUN=sum), smooth)
+  ts.df <- data.frame(date=index(ts.as), value=coredata(ts.as), smooth=smooth)
+}
+
+HOURS.SMOOTH <- c(24,28,72)
+df <- do.call(rbind, lapply(HOURS.SMOOTH, function(x) gen.agg.smooth.ts(msgs.ts, x)))
+df$smooth <- as.factor(df$smooth)
+# TODO: Use in the generic analysis
+ggplot(df, aes(x=date, y=value, colour=smooth)) + geom_line() + xlab("Date") +
+  ylab("Mailing list activity")
+
+
 ## ######## Exploratory/descriptive statistics for the data ###############
 ## Compute some exploratory statistics on the data
 ## NOTE: Some of these are also approximately handled by generic tm methods,
