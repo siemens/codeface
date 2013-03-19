@@ -167,14 +167,16 @@ dispatch.all <- function(conf, repo.path, data.path, doCompute) {
   
   ## #######
   ## Global analysis
+  ## NOTE: We only compute the forest for the complete interval to allow for creating
+  ## descriptive statistics.
   corp <- corp.base$corp
   forest.corp <- list(forest=make.forest(corp),
                       corp=corp,
                       corp.orig=corp.base$corp.orig)
 
-  data.path.local <- file.path(data.path, ml)
-  gen.dir(data.path.local)
-  dispatch.steps(ml, repo.path, data.path.local, forest.corp, doCompute)
+  data.path.all <- file.path(data.path, "complete")
+  gen.dir(data.path.all)
+  save(file=file.path(data.path.all, "forest.corp"), forest.corp)
 }
 
 
