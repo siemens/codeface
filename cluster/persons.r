@@ -1111,8 +1111,8 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2,
   g.Tag    <- graph.adjacency(tagAdjMatrix   , mode="directed")
   
   ## Get largest connected cluster
-  idx.nonTag.connected <- largest.connected.subgraph(g.nonTag)
-  idx.Tag.connected    <- largest.connected.subgraph(g.Tag   )
+  idx.nonTag.connected <- largestConnectedSubgraphIndices(g.nonTag)
+  idx.Tag.connected    <- largestConnectedSubgraphIndices(g.Tag   )
   ids.nonTag.connected <- ids1[idx.nonTag.connected,]
   ids.Tag.connected    <- ids2[idx.Tag.connected,]
   
