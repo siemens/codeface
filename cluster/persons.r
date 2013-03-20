@@ -694,6 +694,81 @@ community.quality.modularity <- function(graph, community.vertices){
   
 }
 
+communityStatSignificance <- function(graph, cluster.algo){
+  ############################################################################
+  ## Computer the statistical significance of community structure for a given 
+  ## graph. The graph structure is compared to the community structure
+  ## probability density of the randomized version of the graph. The
+  ## randomization procedure maintains the degree distributions of the original
+  ## graph. 
+  ## - Input -
+  ## graph: original graph for which we would like to find the statistical
+  ##        significance of community structure
+  ## cluster.algo: clustering algorithm used to find communities
+  ## - Output -
+  ## p-value: the result of the statistical significance test
+  ############################################################################
+  ## extract largest connected component
+  graph.connected   <- largestConnectedSubgraph(graph)
+  ## extract clusters
+  graph.clusters <- cluster.algo(graph.connected)
+  ## compute cluster conductance values 
+  cluster.conductance <- compute.all.community.quality(graph.connected, 
+  		                 graph.clusters, "conductance")
+  ## compute randomized conductance samples
+  niter <- 100
+  rand.samps <- randomizedConductanceSamples(graph, niter, cluster.algo)
+
+  ## test for normality
+  normality.test <- shapiro.test(rand.samps)
+
+  ## compute normal distribution
+  mean.conductance <- mean(rand.samps)
+  sd.conductance   <- sd  (rand.samps)
+  ##########################
+  ##not fully implemented
+  ##########################
+}
+
+randomizedConductanceSamples <- function(graph, ninter, cluster.algo) {
+	############################################################################
+	## Randomize a given graph while maintaining the degree distribution using
+	## a rewiring concept. For each randomized graph a decomposition is performed
+	## and the conductance is measured for each trial and is saved.
+	## - Input -
+	## graph: an igraph object that is to be randomized
+	## niter: the number of iterations in randomizing and measuring conductance
+	## cluster.algo: clustering algorithm used to find communities
+	## - Ouput - 
+	## conduct.vec: the conductance for each trial
+	############################################################################
+
+	# check if loops exist in the original graph, this information is necessary 
+	# tochoose the appropriate rewiring strategy
+	loops.exist <- any(is.loop(graph))  
+	if (loops.exist) {
+		rewire.mode = "loops"
+	}
+	else {
+		rewire.mode = "simple"
+	}
+	
+	# perform iterations
+	conduct.vec <- vector()
+	for (i in 1:niter) {
+	  #rewire graph, randomize the graph while maintaining the degree distribution
+	  rw.graph <- rewire(graph, mode = rewire.mode, niter = 100)
+	  rw.graph.connected <- largestConnectedSubgraph(rw.graph)
+	  #find clusters
+	  rw.graph.clusters <- cluster.algo(rw.graph.connected)
+	  #compute conductance
+	  rw.cluster.conductance <- compute.all.community.quality(
+			rw.graph.connected, rw.graph.clusters, "conductance")
+	  conduct.vec <- append(conduct.vec, mean(rw.cluster.conductance))
+	}
+	
+	return(conduct.vec)
+}
 
 
 ##========================================================================
