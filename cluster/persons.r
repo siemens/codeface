@@ -123,14 +123,13 @@ col.to.hex <- function(prefix="0x", r,g,b) {
   return (paste(prefix, int.to.hex(r), int.to.hex(g), int.to.hex(b), sep=""))
 }
 
-largest.connected.subgraph <- function(graph) {
-  ## Returns the indecies of vertecies that are in the largest connected subgraph
-  
+
+largestConnectedSubgraphIndices <- function(graph) {
+  ## Returns the indecies of vertices that are in the largest connected subgraph
   
   ## Find all connected subgraphs
   g.clust <- clusters(graph)
-  
-                                        # Get index of the largest connected cluster 
+  # Get index of the largest connected cluster 
   largestClustMembership = which(g.clust$csize == max(g.clust$csize))
   ## Get all indecies of connected developers for the largest cluster
   idx <- which(g.clust$membership==largestClustMembership) 
@@ -138,6 +137,27 @@ largest.connected.subgraph <- function(graph) {
   return(idx)
 } 
 
+
+largestConnectedSubgraph <- function(graph) {
+  ##############################################################################
+  ## Returns a graph composed only of the largest connected component
+  ## - Input - 
+  ## graph: igraph object
+  ## - Ouput -
+  ## graph.connected: igraph object, composed of the largest connected component
+  ##                  provided by the input graph
+  ##############################################################################
+  ## find all connected subgraphs
+  g.clust <- clusters(graph)
+  ## get index of the largest connected cluster 
+  largestClustMembership = which(g.clust$csize == max(g.clust$csize))
+  ## get all indecies of not connected to the largest cluster
+  idx <- which(g.clust$membership!=largestClustMembership) 
+  ## remove the vertices not in the largest connected component
+  graph.connected <- delete.vertices(graph,idx)
+		
+  return(graph.connected)
+}
 ##========================================================================
 ##    						Edge Functons
 ##========================================================================
