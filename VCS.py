@@ -684,7 +684,7 @@ class gitVCS (VCS):
         count = 0
         widgets = ['Pass 1/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
         pbar = ProgressBar(widgets=widgets,
-                           maxval=len(self._commit_list_dict["__main__"])).start()
+                           maxval=len(self._commit_dict)).start()
 
         for cmt in self._commit_dict.values():
             count += 1
