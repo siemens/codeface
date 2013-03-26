@@ -44,6 +44,10 @@ public class ParseBugzilla implements SearchResultCountCallback {
 				// Search a bug
 				DefaultSearchData searchData = new DefaultSearchData();
 				searchData.add("bug_status", "NEW");
+				
+				// TODO: This list needs to be passed from the driver as the person
+				// adding the bugzilla URL needs to the various possible statuses of the
+				// project
 				/*
 				 * searchData.add("bug_status", "ASSIGNED");
 				 * searchData.add("bug_status", "REOPENED");
