@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -19,6 +20,8 @@ public class FetchBugzillaHistroy implements FetchHistory {
 	public FetchBugzillaHistroy(String bugzillaURL) {
 		this.bugzillaURL = bugzillaURL;
 	}
+
+	private static Logger log = Logger.getLogger(FetchBugzillaHistroy.class);
 
 	// set the proxy server
 	static {
@@ -34,11 +37,15 @@ public class FetchBugzillaHistroy implements FetchHistory {
 	@Override
 	public List<BugHistory> fetchBugHistory(String bugId) {
 		List<BugHistory> bugHistoryList = new ArrayList<BugHistory>();
+		log.info("Fetching history details for bug: " + bugId);
 		String bugzillaHistoryURL = bugzillaURL + "/show_activity.cgi?id="
 				+ bugId;
+		log.debug("Bugzilla URL to fetch history:" + bugzillaHistoryURL);
 		try {
 
-			Document doc = Jsoup.connect(bugzillaHistoryURL).get();
+			// set the jsoup connection timeout from 3 seconds to 10 seconds.
+			Document doc = Jsoup.connect(bugzillaHistoryURL).timeout(10 * 1000)
+					.get();
 			String[] tags = { "Status", "Severity" };
 			for (String tag : tags) {
 				Elements tableRows = doc.select("div#bugzilla-body")
@@ -84,9 +91,18 @@ public class FetchBugzillaHistroy implements FetchHistory {
 					}
 					bugHistoryList.add(history);
 				}
+				
+				try {
+					Thread.sleep(5000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			log.error("Error occured while fetching history details for bug : "
+					+ bugId, e);
 		}
 		return bugHistoryList;
 	}

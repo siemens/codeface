@@ -14,4 +14,8 @@ public interface QuantArchBugzillaDAO {
 	public long addProject(String name, String issueTrackerURL,
 			String mailingListURL);
 
+	public void dumpAdjacencyMatrix(String fileName, long projectId);
+
+	public long addProduct(String name, long projectId);
+
 }
