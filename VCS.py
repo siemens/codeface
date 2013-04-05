@@ -330,7 +330,7 @@ class gitVCS (VCS):
         #build git command
         #we must take merge commits, otherwise when we cross-reference with 
         #git blame some commits will be missing
-        cmd = 'git --git-dir={0} log -M -C'.format(self.repo).split()
+        cmd = 'git --git-dir={0} log --no-merges -M -C'.format(self.repo).split()
         cmd.append('--pretty=format:%ct %H')
         cmd.append('--date=local')
         if rev_start and rev_end:
@@ -704,18 +704,17 @@ class gitVCS (VCS):
         return self._commit_list_dict[subsys]
 
 
-    def _getBlameMsg(self, fileName, commitHash):
-        '''provided with a file name and commit hash the function returns 
+    def _getBlameMsg(self, fileName, rev):
+        '''provided with a file name and revision the function returns 
         the blame message'''
         
         #build command string 
         cmd = 'git --git-dir={0} blame'.format(self.repo).split()
         cmd.append("-p") #format for machine consumption
         cmd.append("-w") #ignore whitespace changes
+        cmd.append(rev)
         cmd.append("--")
         cmd.append(fileName)
-        cmd.append(commitHash)
-    
         
         #query git repository 
         blameMsg = self._gitQuery(cmd)
@@ -752,13 +751,31 @@ class gitVCS (VCS):
         return commitLineDict
 
 
-    def _prepareFileCommitList(self, fnameList):
+    def _prepareFileCommitList(self, fnameList, singleBlame=True,
+                               ignoreOldCmts=True):
         '''
-        uses git blame to determine where commits are made by recording
-        the file name and line number along with the commit hash to
-        reference commit objects stored in _commit_dict.
+        uses git blame to determine the file layout of a revision
         '''
-
+        '''
+        The file layout is a dictionary that indicates which commit hash is
+        responsible for each line of code in a file. The blame data can be 
+        recorded for each commit or only for one revision.
+        - Input -
+        fnameList: a list of file names for which to capture the blame data
+        singleBlame: when set true only only the latest revision blame is called
+                     if set false blame data will be captured for every commit
+                     made during the specificed revision range, caution: if set
+                     false the computation become extremely intensive. The
+                     disadvantage of setting true is if two commits
+                     to the same line of code are made withing the revision 
+                     range only the most recent committed line will be captured.
+        ignoreOldCmts: commits made to the file before the start of the revision
+                        range will be ignored from the analysis. That is to say
+                        lines of code that existed prior to the revision start
+                        are ignored.
+        '''
+        
+        
         #variable initialization 
         if self._fileCommit_dict is None:
             self._fileCommit_dict = {}
@@ -770,7 +787,7 @@ class gitVCS (VCS):
         
         
         count = 0
-        widgets = ['Pass 1/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
+        widgets = ['Blame Analysis: ', Percentage(), ' ', Bar(), ' ', ETA()]
         pbar = ProgressBar(widgets=widgets,
                            maxval=len(fnameList)).start()
 
@@ -781,57 +798,37 @@ class gitVCS (VCS):
 
             #create fileCommit object, one per filename to be 
             #stored in _fileCommit_dict
-            fileCmts = fileCommit.FileCommit()
+            file_commit = fileCommit.FileCommit()
             
-            #get commit objects for the given file and revision range
+            #get commit objects for the given file within revision range
+            cmtList  = []
             cmtList  = self.getFileCommits(fname, self.rev_start, self.rev_end)
+
+            #store commit hash in fileCommit object, store only the hash 
+            #and then reference the commit db to get the object
+            file_commit.setCommitList([cmt.id for cmt in cmtList])
             
-            #many file may not have any commits made to then during the 
-            #revision of interest, in that case don't store the data
-            if len(cmtList) != 0:
-                #store commit hash in fileCommit object, store only the hash 
-                #and then reference the commit db, this prevents the duplication 
-                #of information since a commit can touch many files
-                fileCmts.setCommitList([cmt.id for cmt in cmtList])
-                
-                #store the commit object to the committerDB, the justification 
-                #for splitting this way is to avoid redundant commit info 
-                #since a commit can touch many files, we use the commit 
-                #hash to reference the commit data (author, date etc)
-                for cmt in cmtList:
-                    if cmt.id not in self._commit_dict:
-                        self._commit_dict[cmt.id] = cmt
-                      
-                #get git blame information for each commit in each file 
-                for cmt in cmtList:
-                
-                    #query git reppository for blame message
-                    blameMsg = self._getBlameMsg(fname, cmt.id)
+            #store the commit object to the committerDB, the justification 
+            #for splitting this way is to avoid redundant commit info 
+            #since a commit can touch many files, we use the commit 
+            #hash to reference the commit object (author, date etc)
+            self._commit_dict.update({cmt.id:cmt for cmt in cmtList 
+             if cmt.id not in self._commit_dict})
+            
+            # retrieve blame data
+            if singleBlame: #only one set of blame data per file
+                self._addBlameRev(self.rev_end, fname, file_commit,
+                                  blameMsgCmtIds)
+            else: # get one set of blame data for every commit made
+                # this option is computationally intensive thus the alternative
+                # singleBlame option is possible when speed is a higher
+                # priority than precision
+                [self._addBlameRev(cmt.id, fname, file_commit,
+                                      blameMsgCmtIds) for cmt in cmtList]
+            
+            #store fileCommit object to dictionary
+            self._fileCommit_dict[fname] = file_commit
            
-                    #parse the blame message, this extracts the line number 
-                    #and corresponding commit hash, returns a dictionary 
-                    #Key = line number, value = commit hash
-                    #basically a snapshot of what the file looked like 
-                    #at the time of the commit
-                    fileLayout_dict = self._parseBlameMsg(blameMsg)
-                     
-                    
-                    #store the dictionary to the fileCommit Object
-                    fileCmts.addFileSnapShot(cmt.id, fileLayout_dict)
-                    
-                    #save cmtIDs from blame message for the step below
-                    # explained in "capture the remaining commits"
-                    blameMsgCmtIds.update( fileLayout_dict.values() )
-            
-                #end for cmtList
-                
-                #store fileCommit object to dictionary
-                self._fileCommit_dict[fname] = fileCmts
-            
-            #else:
-                #do nothing
-            #end if cmtList
-                
            
         #end for fnameList 
         
@@ -841,7 +838,7 @@ class gitVCS (VCS):
         
         
         #-------------------------------
-        #capture the remaining commits 
+        #capture old commits
         #-------------------------------
         '''
          if the analysis of the git blame messages is focused 
@@ -852,35 +849,56 @@ class gitVCS (VCS):
          remaining commits otherwise we cannot reference them during 
          the blame message anaysis.
          '''
-         
-        #find all commits that are missing from the commit dictionary
-        #recall that fileCommit_dict stores all the commit ids for a 
-        #file to reference commit objects in the commit_dict
-        # TODO: The number of commits found this way seems fairly large
-        # Check if the method is really correct.
-        missingCmtIds = blameMsgCmtIds - set(self._commit_dict)
         
-        #retrieve missing commit information and add it to the commit_dict
-        missingCmts = [ self.cmtHash2CmtObj(cmtId)
-                        for cmtId in missingCmtIds ]
-        if missingCmts:
-            count = 0
-            widgets = ['Pass 1.5/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
-            pbar = ProgressBar(widgets=widgets,
-                               maxval=len(missingCmts)).start()
-    
-            for cmt in missingCmts:
-                count += 1
-                if count % 20 == 0:
-                    pbar.update(count)
-    
-                self._commit_dict[cmt.id] = cmt
+        if not(ignoreOldCmts):
+            #find all commits that are missing from the commit dictionary
+            #recall that fileCommit_dict stores all the commit ids for a 
+            #file to reference commit objects in the commit_dict
+            missingCmtIds = blameMsgCmtIds - set(self._commit_dict)
 
-        #TODO: figure out a way to get the missing commits without 
-        #      having to parse all commit messages
-        #get entire commit history on file
-        #self._commit_dict.update( {cmt.id: cmt for cmt in self.getFileCommits() if not(self._commit_dict.has_key(cmt.id))} )
-    
+            #retrieve missing commit information and add it to the commit_dict
+            missingCmts = [ self.cmtHash2CmtObj(cmtId)
+                            for cmtId in missingCmtIds ]
+            if missingCmts:
+                count = 0
+                widgets = ['Pass 1.5/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
+                pbar = ProgressBar(widgets=widgets,
+                                   maxval=len(missingCmts)).start()
+        
+                for cmt in missingCmts:
+                    count += 1
+                    if count % 20 == 0:
+                        pbar.update(count)
+        
+                    self._commit_dict[cmt.id] = cmt
+
+    def _addBlameRev(self, rev, fname, file_commit, blame_cmt_ids):
+        '''
+        saves the git blame output of a revision for a particular file
+        '''
+        '''
+        -Input-
+        rev: a revision, could be a commit hash or "v2.6.31"
+        fname: string of a filename to call git blame on
+        file_commit: a fileCommit object to store the resulting blame data
+        blame_cmt_ids: a list to keep track of all commit ids seen in the blame
+        '''
+        
+        #query git reppository for blame message
+        blameMsg = self._getBlameMsg(fname, rev)
+        
+        #parse the blame message, this extracts the line number 
+        #and corresponding commit hash, returns a dictionary 
+        #Key = line number, value = commit hash
+        #basically a snapshot of what the file looked like 
+        #at the time of the commit
+        file_layout = self._parseBlameMsg(blameMsg)
+         
+        #store the dictionary to the fileCommit Object
+        file_commit.addFileSnapShot(rev, file_layout)
+        
+        blame_cmt_ids.update( file_layout.values() )
+
     def cmtHash2CmtObj(self, cmtHash):
         '''
         input: cmtHash
@@ -924,14 +942,24 @@ class gitVCS (VCS):
         
 
         #build git query 
-        cmd = 'git --git-dir={0} ls-tree --name-only --full-tree -r'.format(self.repo).split()
-        cmd.append('HEAD')
-        if directories:
-            cmd.append(directories)
+        revrange = ""        
+        rev_start = self.rev_start
+        rev_end = self.rev_end 
+        if rev_start == None and rev_end != None:
+            revrange += reg_end
+        else:
+            if rev_start:
+                revrange += "{0}..".format(rev_start)
+    
+            if rev_end:
+                revrange += rev_end
         
+        cmd = 'git --git-dir={0} diff --name-only --diff-filter=ACMRTUXB'.format(self.repo).split()
+        cmd.append(revrange)
+       
         #query git 
         output = self._gitQuery(cmd)
-        
+
         #filter results to only get implementation files (ie *.c) 
         fileNames = [fileName for fileName in output if fileName.endswith(".c")]
         

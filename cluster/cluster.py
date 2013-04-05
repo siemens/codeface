@@ -150,7 +150,7 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
     return sim
 
 
-def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None, random=False):
+def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr, startDate=None, random=False):
     '''Generates the collaboration data from a file snapshot at a particular
     point in time'''
     
@@ -168,42 +168,47 @@ def computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate=None, 
     #------------------------
     #variable declarations 
     #------------------------
-    snapShotCmt = cmtList[ fileSnapShot[0] ] #commit object marking the point in time when the file snapshot was taken
-    fileState   = fileSnapShot[1] #the state of the file when the SnapShotCmt was committed
     maxDist     = 25
     author      = True
-    #find code lines of interest, these are the lines that are localized 
-    #around the snapShotCmt, modify the fileState to include only the 
-    #lines of interest
-    if(not(random)): 
-        fileState = linesOfInterest(fileState, snapShotCmt.id, maxDist)
+    revCmts     = [cmtList[revCmtId] for revCmtId in revCmtIds]
     
-    #remove commits that occur prior to the specified startDate
-    if startDate != None:
-        fileState = removePriorCommits(fileState, cmtList, startDate)
-    
-    #collaboration is meaningless without more than one line 
-    #of code
-    if len(fileState) > 1:
+    for cmt in revCmts:
+        #check if commit is in the current revision of the file
+        if not(cmt.id in fileState.values()):
+            break
         
-        #now find the code blocks, a block is a section of code by one author
-        #use the commit hash to identify the committer or author info as needed 
-        codeBlks = findCodeBlocks(fileState, cmtList, author)
+        #find code lines of interest, these are the lines that are localized 
+        #around the snapShotCmt, modify the fileState to include only the 
+        #lines of interest
+        if(not(random)): 
+            fileState = linesOfInterest(fileState, cmt.id, maxDist)
         
-        if random:
-            codeBlks = randomizeCommitCollaboration(codeBlks, fileState)
+        #remove commits that occur prior to the specified startDate
+        if startDate != None:
+            fileState = removePriorCommits(fileState, cmtList, startDate)
         
-        if codeBlks:
-            #next cluster the blocks, using the distance measure to figure out
-            #what blocks belong together in one group or cluster
-            clusters = simpleCluster(codeBlks, snapShotCmt, maxDist, author)
-        
-            #calculate the collaboration coefficient for each code block
-            #[computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
+        #collaboration is meaningless without more than one line 
+        #of code
+        if len(fileState) > 1:
             
+            #now find the code blocks, a block is a section of code by one author
+            #use the commit hash to identify the committer or author info as needed 
+            codeBlks = findCodeBlocks(fileState, cmtList, author)
             
-            [computeCommitCollaboration(cluster, snapShotCmt, id_mgr,
-                                        maxDist, author) for cluster in clusters]
+            if random:
+                codeBlks = randomizeCommitCollaboration(codeBlks, fileState)
+            
+            if codeBlks:
+                #next cluster the blocks, using the distance measure to figure out
+                #what blocks belong together in one group or cluster
+                clusters = simpleCluster(codeBlks, cmt, maxDist, author)
+            
+                #calculate the collaboration coefficient for each code block
+                #[computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
+                
+                
+                [computeCommitCollaboration(cluster, cmt, id_mgr,
+                                            maxDist, author) for cluster in clusters]
 
 
 def randomizeCommitCollaboration(codeBlks, fileState):
@@ -593,13 +598,16 @@ def removePriorCommits(fileState, clist, startDate):
     
     for (lineNum, cmtId) in fileState.items():
         
-        #get commit object containing commit date
-        cmtObj = clist[cmtId]
-        
-        if( cmtObj.getCdate() >= startDate ):
-            modFileState[lineNum] = cmtId
-        
-        #else forget about commit
+        if cmtId in clist:
+            #get commit object containing commit date
+            cmtObj = clist[cmtId]
+            
+            if( cmtObj.getCdate() >= startDate ):
+                modFileState[lineNum] = cmtId
+        #else:
+            # if the commit is not found in clist then we know it is a commit
+            # made before the startDate and we can ignore it
+             
         
     return modFileState
 
@@ -620,7 +628,8 @@ def linesOfInterest(fileState, snapShotCommit, maxDist):
     modFileState: the file state after line not of interest are removed 
     '''
     #variable declarations 
-    fileMaxLine = len(fileState)
+    fileMaxLine = int(max(fileState.keys(), key=int))
+    fileMinLine = int(min(fileState.keys(), key=int))
     modFileState = {} 
     
     #take a pass over the fileState to identify where the snapShotCommit 
@@ -643,8 +652,8 @@ def linesOfInterest(fileState, snapShotCommit, maxDist):
         #limit upper and lower bounds to file size
         if(upperBound > fileMaxLine):
             upperBound = fileMaxLine
-        if(lowerBound < 1):
-            lowerBound = 1
+        if(lowerBound < fileMinLine):
+            lowerBound = fileMinLine
         
         #save lines of interest    
         for i in range(lowerBound, upperBound + 1):
@@ -998,7 +1007,7 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
     return None
 
 
-def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None):
+def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None, speedUp=True):
     '''
     Constructs network based on commit proximity information
     '''
@@ -1009,11 +1018,18 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None):
     Collaboration is quantified by a single metric indicating the 
     strength of collaboration between two individuals.
     '''
-    
     for fileCommit in fileCommitList.values():
-        
-        [computeSnapshotCollaboration(fileSnapShot, cmtList, id_mgr, startDate)
-         for fileSnapShot in fileCommit.getFileSnapShots().items()]
+
+        if speedUp:
+            fileLayout = fileCommit.getFileSnapShot()
+            revCmts    = fileCommit.getrevCmts()
+            computeSnapshotCollaboration(fileLayout, revCmts, cmtList, id_mgr,
+                                         startDate)
+        else:
+            [computeSnapshotCollaboration(fileSnapShot[1], fileSnapShot[0], 
+                                    cmtList, id_mgr, startDate) 
+                                    for fileSnapShot 
+                                    in fileCommit.getFileSnapShots().items()]
 
     
 def computeCommitterAuthorLinks(cmtlist, id_mgr):

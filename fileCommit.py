@@ -28,34 +28,28 @@ class FileCommit:
         #filename under investigation
         self.fileName = None
         
-        #list of all commits to a file
-        commitList = []
-        
         #dictionary of dictionaries key is commit, value is a
         #dictionary with keys=lineNumbers value=commitHash, stores 
         #the line number and corresponding commit hash for every 
         #line of the file, 
         self.fileSnapShots = {}
         
-        #stores the line numbers that correspond to mainCommitID
-        #we restrict our analysis of the surrounding commits
-        #to some small region around the main commits contributions
-        self.lineNumsMainCmt = []
+        #stores the commit hash of all contributions to the file for a
+        #particular revision 
+        self.revCmts = []
         
     #Getter/Setters    
-    
     def getFileSnapShots(self):
         return self.fileSnapShots
-        
+    def getFileSnapShot(self):
+        return self.fileSnapShots.values()[0]
     def setCommitList(self, cmtList):
-        self.commitList = cmtList
-        
-    def getCommitList(self):
-        return self.commitList
-   
+        self.revCmts = cmtList
+
+    def getrevCmts(self):
+        return self.revCmts
    
     #Methods
-    
     def addFileSnapShot(self, key, dict):
         self.fileSnapShots[key] = dict
     
