@@ -150,7 +150,8 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
     return sim
 
 
-def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr, startDate=None, random=False):
+def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr,
+                                  startDate=None, random=False):
     '''Generates the collaboration data from a file snapshot at a particular
     point in time'''
     
@@ -173,30 +174,36 @@ def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr, startDat
     revCmts     = [cmtList[revCmtId] for revCmtId in revCmtIds]
     
     for cmt in revCmts:
-        #check if commit is in the current revision of the file
-        if not(cmt.id in fileState.values()):
+        # the fileState will be modified but for each loop we should start with 
+        # the original fileState
+        fileState_mod = fileState.copy()
+        
+        # check if commit is in the current revision of the file, if it is not
+        # we no longer have a need to process further since the commit is now
+        # irrelevant
+        if not(cmt.id in fileState_mod.values()):
             break
         
         #find code lines of interest, these are the lines that are localized 
-        #around the snapShotCmt, modify the fileState to include only the 
+        #around the cmt.id hash, modify the fileState to include only the 
         #lines of interest
         if(not(random)): 
-            fileState = linesOfInterest(fileState, cmt.id, maxDist)
+            fileState_mod = linesOfInterest(fileState_mod, cmt.id, maxDist)
         
         #remove commits that occur prior to the specified startDate
         if startDate != None:
-            fileState = removePriorCommits(fileState, cmtList, startDate)
+            fileState_mod = removePriorCommits(fileState_mod, cmtList, startDate)
         
         #collaboration is meaningless without more than one line 
         #of code
-        if len(fileState) > 1:
+        if len(fileState_mod) > 1:
             
             #now find the code blocks, a block is a section of code by one author
             #use the commit hash to identify the committer or author info as needed 
-            codeBlks = findCodeBlocks(fileState, cmtList, author)
+            codeBlks = findCodeBlocks(fileState_mod, cmtList, author)
             
             if random:
-                codeBlks = randomizeCommitCollaboration(codeBlks, fileState)
+                codeBlks = randomizeCommitCollaboration(codeBlks, fileState_mod)
             
             if codeBlks:
                 #next cluster the blocks, using the distance measure to figure out
