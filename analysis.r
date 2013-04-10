@@ -295,11 +295,84 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
   write.table(df.export,
               file.path(data.path, "ts.txt"), row.names=F, sep = "\t", quote=F)
 
+  ## Compute descriptive statistics
+  ## NOTE: forest needs to available in the defining scope for the
+  ## following four helper functions
+  forest <- forest.corp$forest
+  authors.per.thread <- function(i) {
+    length(unique(forest[forest[,"threadID"]==i, "author"]))
+  }
+  messages.per.thread <- function(i) {
+    length(forest[forest[,"threadID"]==i, "subject"])
+  }
+  get.subject <- function(i) {
+    as.character(forest[forest[,"threadID"]==i, "subject"][1])
+  }
+  get.authors <- function(threadID) {
+    unique(forest[forest[,"threadID"]==threadID, "author"])
+  }
+
+  ## Determine authors and messages _per thread_
+  num.authors <- sapply(unique(forest[,"threadID"]), authors.per.thread)
+  num.messages <- sapply(unique(forest[,"threadID"]), messages.per.thread)
+  thread.info <- data.frame(authors=num.authors, messages=num.messages,
+                            tid=attr(num.messages, "names"))
+
+  d.auth <- density(thread.info$authors)
+  d.msg <- density(thread.info$messages)
+  thread.densities <- rbind(data.frame(num=d.auth$x, density=d.auth$y,
+                                       type="Authors"),
+                            data.frame(num=d.msg$x, density=d.msg$y,
+                                       type="Messages"))
+  thread.combined <- rbind(data.frame(num=num.authors, type="Authors"),
+                       data.frame(num=num.messages, type="Messages"))
+
+  ## Infer the larges threads as measured by the number of messages per thread
+  largest.threads.msgs <- as.integer(names(sort(thread.info$messages, decreasing=T)))
+  ## ... and determine the subjects that started the threads
+  ## TODO: Maybe the arbitrary constant 20 should be chosen by some
+  ## adaptive mechanism
+  subjects.msgs <- sapply(largest.threads.msgs, get.subject)
+  if (length(subjects.msgs) > 20) {
+    subjects.msgs <- subjects.msgs[1:20]
+  }
+
+  ## freq_subjects stores the subjects that received the highest
+  ## attention, at most 20 of them.
+  write.table(subjects.msgs,
+              file=file.path(data.path, "freq_subjects.txt"), sep="\t",
+              row.names=FALSE, quote=FALSE, col.names=FALSE)
+
+  ## thread_info.txt stores the number of authors and messages
+  ## per thread (each thread is identified with a unique tid)
+  write.table(thread.info,
+              file=file.path(data.path, "thread_info.txt"), sep="\t",
+              row.names=FALSE, quote=FALSE)
+
+  ## thread_densities.txt stores a density estimation of how many threads
+  ## there are with a given number of authors resp. threads. Plot
+  ## density~num|type
+  write.table(thread.densities,
+              file=file.path(data.path, "thread_densities.txt"), sep="\t",
+              row.names=FALSE, quote=FALSE)
+
+  ## thread_combined.txt stores the number of authors resp. messages
+  ## of each thread in the time interval
+  write.table(thread.combined,
+              file=file.path(data.path, "thread_combined.txt"), sep="\t",
+              row.names=FALSE, quote=FALSE)
+
+  ## TODO: Can we classify the messages into content catgories, e.g., technical
+  ## discussions, assistance (helping users), and code submissions?
+
   ## TODO: This should be represented by a class
   res <- list(doc.matrices=doc.matrices, termfreq=termfreq,
               interest.networks=interest.networks,
               networks.dat=networks.dat,
-              ts.df=ts.df)
+              ts.df=ts.df,
+              thread.info=thread.info,
+              thread.densities=thread.densities,
+              thread.combined=thread.combined)
   save(file=file.path(data.path, "vis.data"), res)
   
   ## ######### End of actual computation. Generate graphs etc. ##############
