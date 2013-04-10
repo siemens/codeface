@@ -228,6 +228,8 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 }
 
 ## User needs to make sure that data.path exists and is writeable
+## dispatch.steps is called for every time interval that is considered
+## in the analysis
 dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
   ## TODO: Check how we can speed up prepare.text. And think about if the
   ## function is really neccessary. With stemming activated, I doubt
