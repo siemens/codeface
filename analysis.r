@@ -429,10 +429,39 @@ create.ts.plots <- function(conf, plots.path, res) {
   ggsave(file.path(plots.path, "ts.pdf"), g)
 }
 
+create.descriptive.plots <- function(conf, plots.path, res) {
+  ## How focused are discussions, respectively how does the number
+  ## of authors scale with the number of messages per thread?
+  g <- ggplot(res$thread.info, aes(x=authors, y=messages)) + geom_point() +
+    xlab("Authors per thread") + ylab("Messages per thread") + geom_smooth() +
+    ggtitle(conf$project)
+  ggsave(file.path(plots.path, "auth_msg_scatter.pdf"), g)
+
+  ## Distribution of authors and messages per thread
+  thread.info.molten <- melt(res$thread.info)
+  g <- ggplot(thread.info.molten, aes(x=variable, y=value)) + geom_boxplot() +
+    scale_y_log10() + xlab("Type") + ylab("Number per thread") +
+    ggtitle(conf$project)
+  ggsave(file.path(plots.path, "auth_msg_dist.pdf"), g)
+
+  g <- ggplot(res$thread.densities, aes(x=num, y=density)) + geom_line() +
+       scale_y_sqrt() + facet_grid(type~.) + xlab("Number per thread") +
+       ylab("Density") + ggtitle(conf$project)
+  ggsave(file.path(plots.path, "thread_densities.pdf"), g)
+
+  g <- ggplot(res$thread.combined, aes(x=num, colour=type, fill=type)) +
+    geom_histogram(binwidth=1, position="dodge") + scale_y_sqrt() +
+    xlab("Amount of thread contributions") +
+    ylab("Number of threads (sqrt transformed)") +
+    scale_size("Type of contribution") + ggtitle(conf$project)
+  ggsave(file.path(plots.path, "thread_contributions.pdf"), g)
+}
+
 dispatch.plots <- function(conf, data.path, res) {
   plots.path <- file.path(data.path, "plots")
   gen.dir(plots.path)
 
   create.network.plots(conf, plots.path, res)
   create.ts.plots(conf, plots.path, res)
+  create.descriptive.plots(conf, plots.path, res)
 }
