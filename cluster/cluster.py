@@ -1033,7 +1033,7 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None, speed
             computeSnapshotCollaboration(fileLayout, revCmts, cmtList, id_mgr,
                                          startDate)
         else:
-            [computeSnapshotCollaboration(fileSnapShot[1], fileSnapShot[0], 
+            [computeSnapshotCollaboration(fileSnapShot[1], [fileSnapShot[0]], 
                                     cmtList, id_mgr, startDate) 
                                     for fileSnapShot 
                                     in fileCommit.getFileSnapShots().items()]
