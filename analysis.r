@@ -326,20 +326,21 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
                                        type="Messages"))
 
   ## Infer the larges threads as measured by the number of messages per thread
-  largest.threads.msgs <- sort(thread.info$messages, decreasing=T, index.return=T)$ix
+  largest.threads.msgs <- sort(thread.info$messages, decreasing=T, index.return=T)
   ## ... and determine the subjects that started the threads
   ## TODO: Maybe the arbitrary constant 20 should be chosen by some
   ## adaptive mechanism
-  subjects.msgs <- sapply(largest.threads.msgs, get.subject)
+  subjects.msgs <- sapply(largest.threads.msgs$ix, get.subject)
   if (length(subjects.msgs) > 20) {
     subjects.msgs <- subjects.msgs[1:20]
+    subjects.counts <- largest.threads.msgs$x[1:20]
   }
 
   ## freq_subjects stores the subjects that received the highest
   ## attention, at most 20 of them.
-  write.table(subjects.msgs,
+  write.table(data.frame(count=subjects.counts, subject=subjects.msgs),
               file=file.path(data.path, "freq_subjects.txt"), sep="\t",
-              row.names=FALSE, quote=FALSE, col.names=FALSE)
+              row.names=FALSE, quote=FALSE, col.names=TRUE)
 
   ## thread_info.txt stores the number of authors and messages
   ## per thread (each thread is identified with a unique tid)
