@@ -324,8 +324,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
                                        type="Authors"),
                             data.frame(num=d.msg$x, density=d.msg$y,
                                        type="Messages"))
-  thread.combined <- rbind(data.frame(num=num.authors, type="Authors"),
-                       data.frame(num=num.messages, type="Messages"))
 
   ## Infer the larges threads as measured by the number of messages per thread
   largest.threads.msgs <- as.integer(names(sort(thread.info$messages, decreasing=T)))
@@ -356,12 +354,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
               file=file.path(data.path, "thread_densities.txt"), sep="\t",
               row.names=FALSE, quote=FALSE)
 
-  ## thread_combined.txt stores the number of authors resp. messages
-  ## of each thread in the time interval
-  write.table(thread.combined,
-              file=file.path(data.path, "thread_combined.txt"), sep="\t",
-              row.names=FALSE, quote=FALSE)
-
   ## TODO: Can we classify the messages into content catgories, e.g., technical
   ## discussions, assistance (helping users), and code submissions?
 
@@ -371,8 +363,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
               networks.dat=networks.dat,
               ts.df=ts.df,
               thread.info=thread.info,
-              thread.densities=thread.densities,
-              thread.combined=thread.combined)
+              thread.densities=thread.densities)
   save(file=file.path(data.path, "vis.data"), res)
   
   ## ######### End of actual computation. Generate graphs etc. ##############
@@ -449,7 +440,11 @@ create.descriptive.plots <- function(conf, plots.path, res) {
        ylab("Density") + ggtitle(conf$project)
   ggsave(file.path(plots.path, "thread_densities.pdf"), g)
 
-  g <- ggplot(res$thread.combined, aes(x=num, colour=type, fill=type)) +
+  thread.combined <- rbind(data.frame(num=res$thread.info$authors,
+                                      type="Authors"),
+                           data.frame(num=res$thread.info$messages,
+                                      type="Messages"))
+  g <- ggplot(thread.combined, aes(x=num, colour=type, fill=type)) +
     geom_histogram(binwidth=1, position="dodge") + scale_y_sqrt() +
     xlab("Amount of thread contributions") +
     ylab("Number of threads (sqrt transformed)") +
