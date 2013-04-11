@@ -326,7 +326,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
                                        type="Messages"))
 
   ## Infer the larges threads as measured by the number of messages per thread
-  largest.threads.msgs <- as.integer(names(sort(thread.info$messages, decreasing=T)))
+  largest.threads.msgs <- sort(thread.info$messages, decreasing=T, index.return=T)$ix
   ## ... and determine the subjects that started the threads
   ## TODO: Maybe the arbitrary constant 20 should be chosen by some
   ## adaptive mechanism
