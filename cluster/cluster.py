@@ -182,7 +182,7 @@ def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr,
         # we no longer have a need to process further since the commit is now
         # irrelevant
         if not(cmt.id in fileState_mod.values()):
-            break
+            continue
         
         #find code lines of interest, these are the lines that are localized 
         #around the cmt.id hash, modify the fileState to include only the 
