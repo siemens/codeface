@@ -188,7 +188,8 @@ def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr,
         #around the cmt.id hash, modify the fileState to include only the 
         #lines of interest
         if(not(random)): 
-            fileState_mod = linesOfInterest(fileState_mod, cmt.id, maxDist)
+            fileState_mod = linesOfInterest(fileState_mod, cmt.id, maxDist, 
+                                            cmtList)
         
         #remove commits that occur prior to the specified startDate
         if startDate != None:
@@ -619,7 +620,7 @@ def removePriorCommits(fileState, clist, startDate):
     return modFileState
 
        
-def linesOfInterest(fileState, snapShotCommit, maxDist):
+def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist):
     '''
     Finds the regions of interest for analyzing the file. 
     We want to look at localized regions around the commit of 
@@ -637,6 +638,8 @@ def linesOfInterest(fileState, snapShotCommit, maxDist):
     #variable declarations 
     fileMaxLine = int(max(fileState.keys(), key=int))
     fileMinLine = int(min(fileState.keys(), key=int))
+    snapShotCmtDate = cmtlist[snapShotCommit].getCdate() 
+    linesSet    = set()
     modFileState = {} 
     
     #take a pass over the fileState to identify where the snapShotCommit 
@@ -661,17 +664,25 @@ def linesOfInterest(fileState, snapShotCommit, maxDist):
             upperBound = fileMaxLine
         if(lowerBound < fileMinLine):
             lowerBound = fileMinLine
-        
         #save lines of interest    
-        for i in range(lowerBound, upperBound + 1):
-            key = str(i)
-            
-            if key in fileState:
-                modFileState[key] = fileState[key] 
-    
+        [linesSet.add(str(i)) for i in range(lowerBound, upperBound + 1)]    
     #end for line
     
-    
+    # remove lines that are from commits that occur after the snapShotCmt
+    for lineNum in linesSet:
+        cmtHash = str(fileState[lineNum])
+        if cmtHash in cmtlist:
+            cmtDate = cmtlist[cmtHash].getCdate()
+        else:
+            #must be a old commit that occurred in a prior release 
+            continue
+        
+        if cmtDate <= snapShotCmtDate:
+            # keep line since it was committed in the past with respect
+            # to the current snapshot commit 
+            modFileState[lineNum] = fileState[lineNum]
+        #else: forget line because it was in a future commit  
+        
     return modFileState
 
 
