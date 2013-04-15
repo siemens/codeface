@@ -1391,7 +1391,17 @@ runGraphCompare.Tag.nonTag <- function() {
 }
 
 
-graph.similarity <- function(g1,g2) {
+graph.difference <- function(g1,g2, weighted=FALSE) {
+  ## two graphs on the same vertex set can be compared by considering
+  ## the percent at which the two graphs agree on an edge
+  
+  ## compares to graphs that have match indexing, meaning that vertex 1 in g1
+  ## is the same person in as vertex 1 in g2. If the graph is weighted then 
+  ## a difference is considered by calculating a percent difference on matching
+  ## edges. If the graph is not weigthed then only the existance of edges 
+  ## is used to calculated how different the two graphs are.
+	
+	
   vertexList1 <- V(g1)
   vertexList2 <- V(g2)
   
@@ -1402,16 +1412,27 @@ graph.similarity <- function(g1,g2) {
     vertexList <- vertexList1
   }
   
-  vertSim <- numeric(length(vertexList))
+  vert.diff <- numeric(length(vertexList))
   for (v in vertexList) {
-    vertSim[v] <- vertex.similarity(g1, v, g2, v)
+	if (weighted){
+      vert.diff[v] <- vertex.edge.weight.difference(g1, v, g2, v)
+    } else {
+      vert.diff[v] <- vertex.neighborhood.difference(g1, v, g2, v)
+    }
   }
-  
-  return(vertSim)
+  return(vert.diff)
 }
 
 
-vertex.similarity <- function(g1, v1, g2, v2) {
+vertex.neighborhood.difference <- function(g1, v1, g2, v2) {
+  ## Calculates the percent similarity using the Jaccard index concept from
+  ## set theory. This considers the neighbour hoods of matching
+  ## verteces from two different graphs and does not consider the edge weights
+  ## rather only the existence of edges.
+  ## -- Output --
+  ## similarity: a percentage of how SIMILAR the neightboods are
+  
+	
   in.v1  <- neighbors(g1, v1, mode="in")
   out.v1 <- neighbors(g1, v1, mode="out")
   in.v2  <- neighbors(g2, v2, mode="in")
@@ -1421,15 +1442,64 @@ vertex.similarity <- function(g1, v1, g2, v2) {
   matchEdges = length(intersect(in.v1,in.v2)) + length(intersect(out.v1,out.v2))
   
   if (totalEdges != 0) {
-    similarity = matchEdges / totalEdges 
-    print(similarity)
+    difference = 1 - (matchEdges / totalEdges) 
   } else {
-    similarity = 0
+    difference = 0
   }
   
-  return(similarity)
+  return(difference)
 }
 
+vertex.edge.weight.difference <- function(g1, v1, g2, v2) {
+	##  -- To be used only on weighted graphs --
+	## computes the percent difference between two verteces from two different
+	## graphs. The percent difference is calculated based on the difference
+	## between the weights of common edges divided by the average edge weight
+	## -- Output --
+	## percent.difference: pertage DIFFERENCE for the matching edges
+	
+	g1.adjMat <- get.adjacency(g1)
+	g2.adjMat <- get.adjacency(g2)
+	
+	in.v1  <- neighbors(g1, v1, mode="in")
+	out.v1 <- neighbors(g1, v1, mode="out")
+	in.v2  <- neighbors(g2, v2, mode="in")
+	out.v2 <- neighbors(g2, v2, mode="out")
+	
+	in.union  = union(in.v1,in.v2)
+	out.union = union(out.v1, out.v2)
+	in.inter  = intersect(in.v1, in.v2)
+	out.inter = intersect(out.v1,out.v2)
+	
+	if (is.weighted(g1) && is.weighted(g2)){
+		
+		out.percent.diff <- 0
+		in.percent.diff  <- 0
+		
+		if (length(out.union) != 0){
+			out.diff <- abs(g1.adjMat[v1, out.union] - g2.adjMat[v2, out.union])
+			out.avg <- 0.5 * (g1.adjMat[v1, out.union] + 
+							       g2.adjMat[v2, out.union])
+			out.percent.diff <- mean(out.diff / out.avg)
+		}
+		if (length(in.union) != 0){  
+			in.diff <- abs(g1.adjMat[in.union, v1] - g2.adjMat[in.union, v2])
+			in.avg  <- 0.5 * (g1.adjMat[in.union, v1]  + 
+						     	   g2.adjMat[in.union, v2])
+			in.percent.diff  <- mean(in.diff / in.avg)
+		}
+		percent.difference <- mean(c(in.percent.diff, out.percent.diff))
+	}
+	else{
+		e <- simpleError("difference comparison not possible for unweighted 
+						  graphs")
+		stop(e)
+	}
+	if(percent.difference != 0){
+		browser()
+	}
+	return(percent.difference)
+}
 
 write.graph.2.file <- function(.filename, g, .iddb, idx) {
   V(g)$label <- as.character(IDs.to.names(.iddb, idx))	
