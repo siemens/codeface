@@ -74,6 +74,15 @@ def _compute_next_timestamp(time, last_time):
 
     return time
 
+# TODO: This is a layering violation. The function should be
+# provided by the VCS object, and the referenced commit must not
+# be placed into the global commit list
+def getCommitDate(vcs, id):
+    rev_range = "{0}~1..{0}".format(id)
+
+    cmt = vcs._Logstring2Commit(vcs._getCommitIDsLL("", "{0}~1".format(id), id)[0])
+    return cmt.cdate
+
 
 def createCumulativeSeries(vcs, subsys="__main__", revrange=None):
     """
@@ -113,7 +122,7 @@ def createCumulativeSeries(vcs, subsys="__main__", revrange=None):
     return res
 
 
-def createSeries(vcs, subsys="__main__", revrange=None):
+def createSeries(vcs, subsys="__main__", revrange=None, rc_start=None):
     """
     Create the list of all diffs (time/value pairs) for subsystem subsys.
 
@@ -130,8 +139,15 @@ def createSeries(vcs, subsys="__main__", revrange=None):
     res = TimeSeries()
     if revrange==None:
         list = vcs.extractCommitData(subsys)
+        res.set_start(getCommitDate(vcs, vcs.rev_start))
+        res.set_end(getCommitDate(vcs, vcs.rev_end))
     else:
         list = vcs.extractCommitDataRange(revrange, subsys)
+        res.set_start(getCommitDate(vcs, revrange[0]))
+        res.set_end(getCommitDate(vcs, revrange[1]))
+
+    if rc_start:
+        res.set_rc_start(getCommitDate(vcs, rc_start))
 
     for cmt in list:
         entry = {"commit" : cmt,
@@ -203,6 +219,11 @@ def writeToFile(res, name, uniqueTS=True):
                 series if true."""
     FILE=open(name, "w")
     last_timestamp = 0
+
+    FILE.write("#\t{0}\t{1}".format(res.get_start(), res.get_end()))
+    if (res.get_rc_start()):
+        FILE.write("\t{0}".format(res.get_rc_start()))
+    FILE.write("\n")
 
     for i in range(0,len(res.series)):
         cmt = res.series[i]["commit"]
