@@ -71,7 +71,7 @@ options(error = quote(dump.frames("error.dump", TRUE)))
 ## NOTE: This is _temporary_. After a proper package has been
 ## created, we can get rid of loading the files directly (includes.r
 ## load snatm via snatm.path)
-snatm.path <- "/home/wolfgang/projects/swi/src.nntp/snatm/pkg/R"
+snatm.path <- "../src.nntp/snatm/pkg/R"
 source("includes.r")
 set.seed(19101978) ## Fix the seed to make results of random algorithms reproducible
 
