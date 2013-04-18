@@ -1188,8 +1188,23 @@ def computeSimilarity(cmtlist):
         cmt.setAuthorTaggersSimilarity(atsim)
         cmt.setTaggersSubsysSimilarity(tssim)     
 
-        
-
+def sanityCheckLinkType(link_type):
+    '''        
+    check it the link_type argument is a valid option
+    '''
+    
+    if link_type == LinkType.committer2author:
+        return
+    elif link_type == LinkType.proximity:
+        return
+    elif link_type == LinkType.tag:
+        return
+    else:
+        print("Error: incompatible link_type {0}, must be one of {1}, {2}, {3}"\
+              .format(link_type, LinkType.proximity, LinkType.tag, \
+                      LinkType.committer2author))
+        sys.exit(1)
+    
 ###########################################################################
 # Main part
 ###########################################################################
@@ -1271,10 +1286,6 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
     #TODO:handle this in the interface to doProjectAnalysis
     #this will likely break everything if its handled
     #properly right now
-    if link_type:
-        link_type = LinkType.proximity
-    else:
-        link_type = LinkType.tag
     
     performAnalysis(filename, git_repo, [from_rev, to_rev],
 #                        kerninfo.subsysDescrLinux,
@@ -1332,16 +1343,19 @@ if __name__ == "__main__":
                         help="(Re-)create database")
     # tagged analysis is the default, the argument is only available
     # for systematic consistency
-    parser.add_argument('--non_tag', action='store_true',
-                        help="Perform a source based cluster analysis")
-    parser.add_argument('--tag', action='store_true',
-                        help="Perform a tag based cluster analysis (default)")
+    parser.add_argument('--link_type', action='store',
+                        help='Perform one of tag-based, proximity-based or \
+                        committer-author-based analysis')
+    
     args = parser.parse_args()
     
     limit_history = True
-
+    # check for valid link type argument 
+    sanityCheckLinkType(args.link_type)
+    
+    
     doProjectAnalysis(args.project, args.from_rev, args.to_rev, args.rc_start,
-                      args.outdir, args.repo, args.create_db, args.non_tag,
+                      args.outdir, args.repo, args.create_db, args.link_type,
                       limit_history)
     exit(0)
 

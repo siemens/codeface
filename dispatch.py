@@ -83,8 +83,9 @@ def dispatchAnalysis(args):
             cmd.append("--rc_start")
             cmd.append(rcs[i+1])
 
-        cmd.append("--{0}".format(conf["tagging"]))
-
+        cmd.append("--link_type")
+        cmd.append(conf["tagging"])
+        
         if (not(args.use_db)):
             cmd.append("--create_db")
 
