@@ -19,6 +19,7 @@
 ## Time series analysis based on the output of ts.py
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(zoo))
 suppressPackageStartupMessages(library(xts))
 suppressPackageStartupMessages(library(stringr))
@@ -26,8 +27,10 @@ suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(yaml))
 suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(gridExtra))
 source("utils.r")
 source("config.r")
+source("plot.r")
 
 ## Omit time series elements that exceed the given range
 trim.series <- function(series, start, end) {
