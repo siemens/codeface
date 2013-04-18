@@ -343,52 +343,6 @@ plot.group <- function(N, .tags, .iddb, .comm) {
   plot(g, vertex.label=IDs.to.names(.iddb, s))
 }
 
-save.group.NonTag <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
-  g <- graph.adjacency(.tags[idx,idx], mode="directed", weighted=TRUE)
-  ## as.character is important. The igraph C export routines bark
-  ## otherwise (not sure what the actual issue is)
-  ## NOTE: V(g)$name as label index does NOT work because the name attribute
-  ## is _not_ stable.
-  V(g)$label <- as.character(IDs.to.names(.iddb, idx))
-  
-  ## We also use the page rank to specify the font size of the vertex
-  V(g)$fontsize <- scale.data(.prank$vector, 15, 50)[idx]
-  
-  ## The amount of changed lines is visualised by the nodes background
-  ## colour: The darker, the more changes.
-  ## fc <-
-  ## as.character(as.integer(100-scale.data(log(.iddb$total+1),0,50)[idx]))
-  V(g)$fillcolor <- paste("grey", 50, sep="")
-  V(g)$style="filled"
-  
-  ## And one more bit: The width of the bounding box changes from thin to
-  ## thick with the number of commits
-  ##V(g)$penwidth <- as.character(2[idx])
-  ##V(g)$penwidth <- as.character(scale.data(log(.iddb$numcommits+1),1,5)[idx])
-
-  ## Set edge attributes
-  if( length(E(g)) != 0 ){
-    
-    E(g)$penwidth  <- 1#sqrt(E(g)$weight)
-    E(g)$arrowsize <- 1#log(E(g)$penwidth)
-    ## For dot language edge weights should be integers
-    E(g)$weight    <-  1# ceiling(E(g)$weight)
-  }
-  
-  if(!is.na(label)) {
-    g$label <- label
-    g$fontsize <- 30
-  }
-  
-  if (!is.null(.filename)) {
-    write.graph(g, .filename, format="dot")
-  }
-  
-  ## Restore default handling of floating points
-  options(scipen=0)
-  
-  return(g)
-}
 
 save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
   g <- graph.adjacency(.tags[idx,idx], mode="directed")
@@ -958,11 +912,7 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
   ## graphviz requires integer edge weights adjMatrix.connected.scaled =
   ## round( scale.data(adjMatrix.connected, 0, 1000) )
   adjMatrix.connected.scaled <- adjMatrix.connected
-  if (tagged) {
-    save.group.fn <- save.group
-  } else {
-    save.group.fn <- save.group.NonTag
-  }
+  save.group.fn <- save.group
   
   ##--------------------
   ##infomap
