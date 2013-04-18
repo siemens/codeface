@@ -19,7 +19,6 @@
 ## Time series analysis based on the output of ts.py
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(zoo))
 suppressPackageStartupMessages(library(xts))
 suppressPackageStartupMessages(library(stringr))
@@ -27,9 +26,7 @@ suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(yaml))
 suppressPackageStartupMessages(library(lubridate))
-suppressPackageStartupMessages(library(gridExtra))
 source("utils.r")
-source("plot.r")
 source("config.r")
 
 ## Omit time series elements that exceed the given range
@@ -343,7 +340,6 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
 }
 
 do.ts.analysis <- function(resdir, graphdir, conf) {
-  status("Creating time series plots")
   ts.file.list <- gen.ts.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
@@ -428,7 +424,6 @@ resdir <- paste(resdir, conf$project, conf$tagging, sep="/")
 graphdir <- paste(resdir, "graphs", sep="/")
 dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
-options(error = quote(dump.frames("error.dump", TRUE)))
 do.ts.analysis(resdir, graphdir, conf)
 do.commit.analysis(resdir, graphdir, conf)
 do.cluster.analysis(resdir, graphdir, conf)

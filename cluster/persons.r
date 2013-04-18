@@ -123,14 +123,13 @@ col.to.hex <- function(prefix="0x", r,g,b) {
   return (paste(prefix, int.to.hex(r), int.to.hex(g), int.to.hex(b), sep=""))
 }
 
-largest.connected.subgraph <- function(graph) {
-  ## Returns the indecies of vertecies that are in the largest connected subgraph
-  
+
+largestConnectedSubgraphIndices <- function(graph) {
+  ## Returns the indecies of vertices that are in the largest connected subgraph
   
   ## Find all connected subgraphs
   g.clust <- clusters(graph)
-  
-                                        # Get index of the largest connected cluster 
+  # Get index of the largest connected cluster 
   largestClustMembership = which(g.clust$csize == max(g.clust$csize))
   ## Get all indecies of connected developers for the largest cluster
   idx <- which(g.clust$membership==largestClustMembership) 
@@ -138,6 +137,27 @@ largest.connected.subgraph <- function(graph) {
   return(idx)
 } 
 
+
+largestConnectedSubgraph <- function(graph) {
+  ##############################################################################
+  ## Returns a graph composed only of the largest connected component
+  ## - Input - 
+  ## graph: igraph object
+  ## - Ouput -
+  ## graph.connected: igraph object, composed of the largest connected component
+  ##                  provided by the input graph
+  ##############################################################################
+  ## find all connected subgraphs
+  g.clust <- clusters(graph)
+  ## get index of the largest connected cluster 
+  largestClustMembership = which(g.clust$csize == max(g.clust$csize))
+  ## get all indecies of not connected to the largest cluster
+  idx <- which(g.clust$membership!=largestClustMembership) 
+  ## remove the vertices not in the largest connected component
+  graph.connected <- delete.vertices(graph,idx)
+		
+  return(graph.connected)
+}
 ##========================================================================
 ##    						Edge Functons
 ##========================================================================
@@ -674,6 +694,81 @@ community.quality.modularity <- function(graph, community.vertices){
   
 }
 
+communityStatSignificance <- function(graph, cluster.algo){
+  ############################################################################
+  ## Computer the statistical significance of community structure for a given 
+  ## graph. The graph structure is compared to the community structure
+  ## probability density of the randomized version of the graph. The
+  ## randomization procedure maintains the degree distributions of the original
+  ## graph. 
+  ## - Input -
+  ## graph: original graph for which we would like to find the statistical
+  ##        significance of community structure
+  ## cluster.algo: clustering algorithm used to find communities
+  ## - Output -
+  ## p-value: the result of the statistical significance test
+  ############################################################################
+  ## extract largest connected component
+  graph.connected   <- largestConnectedSubgraph(graph)
+  ## extract clusters
+  graph.clusters <- cluster.algo(graph.connected)
+  ## compute cluster conductance values 
+  cluster.conductance <- compute.all.community.quality(graph.connected, 
+  		                 graph.clusters, "conductance")
+  ## compute randomized conductance samples
+  niter <- 100
+  rand.samps <- randomizedConductanceSamples(graph, niter, cluster.algo)
+
+  ## test for normality
+  normality.test <- shapiro.test(rand.samps)
+
+  ## compute normal distribution
+  mean.conductance <- mean(rand.samps)
+  sd.conductance   <- sd  (rand.samps)
+  ##########################
+  ##not fully implemented
+  ##########################
+}
+
+randomizedConductanceSamples <- function(graph, ninter, cluster.algo) {
+	############################################################################
+	## Randomize a given graph while maintaining the degree distribution using
+	## a rewiring concept. For each randomized graph a decomposition is performed
+	## and the conductance is measured for each trial and is saved.
+	## - Input -
+	## graph: an igraph object that is to be randomized
+	## niter: the number of iterations in randomizing and measuring conductance
+	## cluster.algo: clustering algorithm used to find communities
+	## - Ouput - 
+	## conduct.vec: the conductance for each trial
+	############################################################################
+
+	# check if loops exist in the original graph, this information is necessary 
+	# tochoose the appropriate rewiring strategy
+	loops.exist <- any(is.loop(graph))  
+	if (loops.exist) {
+		rewire.mode = "loops"
+	}
+	else {
+		rewire.mode = "simple"
+	}
+	
+	# perform iterations
+	conduct.vec <- vector()
+	for (i in 1:niter) {
+	  #rewire graph, randomize the graph while maintaining the degree distribution
+	  rw.graph <- rewire(graph, mode = rewire.mode, niter = 100)
+	  rw.graph.connected <- largestConnectedSubgraph(rw.graph)
+	  #find clusters
+	  rw.graph.clusters <- cluster.algo(rw.graph.connected)
+	  #compute conductance
+	  rw.cluster.conductance <- compute.all.community.quality(
+			rw.graph.connected, rw.graph.clusters, "conductance")
+	  conduct.vec <- append(conduct.vec, mean(rw.cluster.conductance))
+	}
+	
+	return(conduct.vec)
+}
 
 
 ##========================================================================
@@ -737,7 +832,7 @@ writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
 performTagAnalysis <- function(outdir){
 ################## Process the data #################
   status("Reading files")
-  tags <- read.table(file=paste(outdir, "/tags.txt", sep=""),
+  tags <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
                      sep="\t", header=FALSE)
   colnames(tags) <- rownames(tags)
   
@@ -1091,8 +1186,8 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2,
   g.Tag    <- graph.adjacency(tagAdjMatrix   , mode="directed")
   
   ## Get largest connected cluster
-  idx.nonTag.connected <- largest.connected.subgraph(g.nonTag)
-  idx.Tag.connected    <- largest.connected.subgraph(g.Tag   )
+  idx.nonTag.connected <- largestConnectedSubgraphIndices(g.nonTag)
+  idx.Tag.connected    <- largestConnectedSubgraphIndices(g.Tag   )
   ids.nonTag.connected <- ids1[idx.nonTag.connected,]
   ids.Tag.connected    <- ids2[idx.Tag.connected,]
   
@@ -1296,7 +1391,16 @@ runGraphCompare.Tag.nonTag <- function() {
 }
 
 
-graph.similarity <- function(g1,g2) {
+graph.difference <- function(g1,g2, weighted=FALSE) {
+  ## two graphs on the same vertex set can be compared by considering
+  ## the percent at which the two graphs agree on an edge
+  
+  ## compares to graphs that have match indexing, meaning that vertex 1 in g1
+  ## is the same person in as vertex 1 in g2. If the graph is weighted then 
+  ## a difference is considered by calculating a percent difference on matching
+  ## edges. If the graph is not weigthed then only the existance of edges 
+  ## is used to calculated how different the two graphs are.
+	
   vertexList1 <- V(g1)
   vertexList2 <- V(g2)
   
@@ -1307,16 +1411,26 @@ graph.similarity <- function(g1,g2) {
     vertexList <- vertexList1
   }
   
-  vertSim <- numeric(length(vertexList))
+  vert.diff <- numeric(length(vertexList))
   for (v in vertexList) {
-    vertSim[v] <- vertex.similarity(g1, v, g2, v)
+	if (weighted){
+      vert.diff[v] <- vertex.edge.weight.difference(g1, v, g2, v)
+    } else {
+      vert.diff[v] <- vertex.neighborhood.difference(g1, v, g2, v)
+    }
   }
-  
-  return(vertSim)
+  return(vert.diff)
 }
 
 
-vertex.similarity <- function(g1, v1, g2, v2) {
+vertex.neighborhood.difference <- function(g1, v1, g2, v2) {
+  ## Calculates the percent similarity using the Jaccard index concept from
+  ## set theory. This considers the neighbour hoods of matching
+  ## verteces from two different graphs and does not consider the edge weights
+  ## rather only the existence of edges.
+  ## -- Output --
+  ## similarity: a percentage of how SIMILAR the neightboods are
+  
   in.v1  <- neighbors(g1, v1, mode="in")
   out.v1 <- neighbors(g1, v1, mode="out")
   in.v2  <- neighbors(g2, v2, mode="in")
@@ -1326,15 +1440,64 @@ vertex.similarity <- function(g1, v1, g2, v2) {
   matchEdges = length(intersect(in.v1,in.v2)) + length(intersect(out.v1,out.v2))
   
   if (totalEdges != 0) {
-    similarity = matchEdges / totalEdges 
-    print(similarity)
+    difference = 1 - (matchEdges / totalEdges) 
   } else {
-    similarity = 0
+    difference = 0
   }
   
-  return(similarity)
+  return(difference)
 }
 
+vertex.edge.weight.difference <- function(g1, v1, g2, v2) {
+	##  -- To be used only on weighted graphs --
+	## computes the percent difference between two verteces from two different
+	## graphs. The percent difference is calculated based on the difference
+	## between the weights of common edges divided by the average edge weight
+	## -- Output --
+	## percent.difference: pertage DIFFERENCE for the matching edges
+	
+	g1.adjMat <- get.adjacency(g1)
+	g2.adjMat <- get.adjacency(g2)
+	
+	in.v1  <- neighbors(g1, v1, mode="in")
+	out.v1 <- neighbors(g1, v1, mode="out")
+	in.v2  <- neighbors(g2, v2, mode="in")
+	out.v2 <- neighbors(g2, v2, mode="out")
+	
+	in.union  = union(in.v1,in.v2)
+	out.union = union(out.v1, out.v2)
+	in.inter  = intersect(in.v1, in.v2)
+	out.inter = intersect(out.v1,out.v2)
+	
+	if (is.weighted(g1) && is.weighted(g2)){
+		
+		out.percent.diff <- 0
+		in.percent.diff  <- 0
+		
+		if (length(out.union) != 0){
+			out.diff <- abs(g1.adjMat[v1, out.union] - g2.adjMat[v2, out.union])
+			out.avg <- 0.5 * (g1.adjMat[v1, out.union] + 
+							       g2.adjMat[v2, out.union])
+			out.percent.diff <- mean(out.diff / out.avg)
+		}
+		if (length(in.union) != 0){  
+			in.diff <- abs(g1.adjMat[in.union, v1] - g2.adjMat[in.union, v2])
+			in.avg  <- 0.5 * (g1.adjMat[in.union, v1]  + 
+						     	   g2.adjMat[in.union, v2])
+			in.percent.diff  <- mean(in.diff / in.avg)
+		}
+		percent.difference <- mean(c(in.percent.diff, out.percent.diff))
+	}
+	else{
+		e <- simpleError("difference comparison not possible for unweighted 
+						  graphs")
+		stop(e)
+	}
+	if(percent.difference != 0){
+		browser()
+	}
+	return(percent.difference)
+}
 
 write.graph.2.file <- function(.filename, g, .iddb, idx) {
   V(g)$label <- as.character(IDs.to.names(.iddb, idx))	

@@ -15,7 +15,8 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-from commit_analysis import tag_types, active_tag_types
+from commit_analysis import tag_types, active_tag_types, proximity_relation \
+, committer2author_relation, all_link_types
 
 class PersonInfo:
     """ Information about a commiter, and his relation to other commiters"""
@@ -25,31 +26,21 @@ class PersonInfo:
         self.name = name
         self.email = email
         self.subsys_names = subsys_names
-        
-        #Edges FROM other developers (could be committers or authors) 
-        self.inEdges = {}
-        
-        #Edges TO other developers (could be committers or authors)
-        self.outEdges = {}
-        
-        #average of collaboration metric for a single Id
-        #key = person ID, value = average edge weight
-        self.inEdgesAvg = {}
-        self.outEdgesAvg = {}
-        
+
         # Store from which developers the person received a tag
         self.associations = {}
-        for tag in tag_types:
-            self.associations[tag] = {}
+        for link_type in all_link_types:
+            self.associations[link_type] = {}
 
-        # See addPerformTagRelation on the meaning of the following
+        # See addSendRelation on the meaning of the following
         self.inv_associations = {}
         self.tagged_commits = {}
-        for tag in tag_types + ["author"]:
-            self.inv_associations[tag] = {}
-            self.tagged_commits[tag] = []
-
+        for link_type in all_link_types + ["author"]:
+            self.inv_associations[link_type] = {}
+        
         # See computeTagStats()
+        for tag in tag_types + ["author"]:
+            self.tagged_commits[tag] = []
         self.tag_fraction = {}
         self.subsys_fraction = {}
 
@@ -66,18 +57,18 @@ class PersonInfo:
 
         # "author" is a special-purpose role that is not included in
         # the generic tag role list.
-        for tag in tag_types + ["author"]:
-            self.subsys_touched[tag] = {}
+        for link_type in all_link_types + ["author"]:
+            self.subsys_touched[link_type] = {}
             
             # General is used if the commit does not touch any well-defined
             # subsystem(s), for instance when a generic header is modified.
             for subsys in subsys_names + ["general"]:
-                self.subsys_touched[tag][subsys] = 0
-                self.subsys_touched[tag]["general"] = 0
+                self.subsys_touched[link_type][subsys] = 0
+                self.subsys_touched[link_type]["general"] = 0
 
-        # Count how often the person has tagged a commit (i.e., given a
-        # signed-off, an acked-by etc. to some commit)
-        self.tagsPerformed = 0
+        # Count how often the person has made a link to someone else (i.e., given a
+        # signed-off, made a commit in close proximity, committed someone code)
+        self.linksPerformed = 0
 
         # Count how many tags (independent of tag category) have been
         # received form a specific ID.
@@ -87,6 +78,13 @@ class PersonInfo:
         # have beenreceived form a specific ID.
         self.active_tags_received_by_id = {}
 
+        #count how many links based on the proximity metric were received by
+        #a given ID
+        self.proximity_links_recieved_by_id = {}
+        
+        #count how many links based on committer -> author were received by 
+        #a given ID
+        self.committer_links_recieved_by_id = {}
 
     def setID(self, ID):
         self.ID = ID
@@ -111,156 +109,104 @@ class PersonInfo:
     def addCommit(self, cmt):
         self.commit_list.append(cmt)
 
-    def _getTagsReceivedByID(self, tag_hash, ID):
-        if ID in tag_hash.keys():
-            return tag_hash[ID]
+    def _getLinksReceivedByID(self, link_hash, ID):
+        if ID in link_hash.keys():
+            return link_hash[ID]
         else:
             return 0
-        
-    def addInEdge(self, Id, value): 
-        '''
-        a Edge from some else towards this person
-        '''
-        self.addEdge(Id, self.inEdges, value)
-        
-        
-    def addOutEdge(self, Id, value):
-        '''
-        a Edge from this person to someone else        
-        '''
-        self.addEdge(Id, self.outEdges, value)
-    
-        
-    def edgeProcessing(self):
-        '''
-        This function should be call after all collaboration metrics have 
-        been calculated. Performs basics statistics calculations that require 
-        the entire collaboration network data present. 
-        '''
-        
-        #average over Edges 
-        for Id in self.inEdges.keys():
-            self.inEdgesAvg[Id]  = sum( self.inEdges[Id] )   / len( self.inEdges[Id] )  * 1.0
-            
-        for Id in self.outEdges.keys():
-            self.outEdgesAvg[Id] = sum( self.outEdges[Id] )  / len( self.outEdges[Id] )  * 1.0
-        
-        
-    def addEdge(self, ID, edges, value):
-        '''
-        the direction of the Edge is made by calling this 
-        with addInEdge or addOutEdge. the Value parameter 
-        indicates the weight of the relationship.
-        '''
-        
-        if(ID in edges):
-            edges[ID].append(value)
-        else:
-            edges[ID] = [value] 
-        
+
     def getActiveTagsReceivedByID(self, ID):
-        return self._getTagsReceivedByID(self.active_tags_received_by_id, ID)
-
-    def getSumInEdge(self, ID):
-        
-        if ID in self.inEdges:
-            #sum over all calculated edge weights for this person
-            return sum(self.inEdges[ID])
-        else:
-            return 0
-
-    def getSumOutEdge(self, ID):
-        
-        if ID in self.outEdges:
-            #sum over all calculated edge weights for this person
-            return sum(self.outEdges[ID])
-        else:
-            return 0
-        
-    def getAvgInEdge(self, ID):
-        
-        if ID in self.inEdgesAvg:
-            
-            return self.inEdgesAvg[ID]
-        
-        else:
-            return 0
-       
-    def getAvgOutEdge(self, ID):
-        
-        if ID in self.outEdgesAvg:
-            
-            return self.outEdgesAvg[ID]
-        
-        else:
-            return 0
+        return self._getLinksReceivedByID(self.active_tags_received_by_id, ID)
+    
+    def getLinksReceivedByID(self, ID, link_type):
+        if link_type == proximity_relation:
+            return self._getLinksReceivedByID(self.proximity_links_recieved_by_id, ID)
+        elif link_type == committer2author_relation:
+            return self._getLinksReceivedByID(self.committer_links_recieved_by_id, ID)
 
     def getAllTagsReceivedByID(self, ID):
-        return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)
-
-    def addTagRelation(self, tag, ID, assoc):
+        return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)  
+    
+    def addRelation(self, relation_type, ID, assoc, weight=1):
         """State that the person has received or given a tag from/to ID.
 
         The distinction between taking and giving is made in other
         functions."""
 
-        if (ID in assoc[tag]):
-            assoc[tag][ID] += 1
+        if (ID in assoc[relation_type]):
+            assoc[relation_type][ID] += weight
         else:
-            assoc[tag][ID] = 1
+            assoc[relation_type][ID] = weight
+    
+    def addReceiveRelation(self, relation_type, ID, weight=1):
+        '''
+        add a one directional relation from the person identified by
+        ID and this person instance (ie. self)
+        eg. ID ----> self
+        the weight parameter specified the edge strength
+        '''
         
-    def addReceiveTagRelation(self, tag, ID):
-        """State that the person has received a tag from ID.
+        self.addRelation(relation_type, ID, self.associations, weight)
+ 
+    def addSendRelation(self, relation_type, ID, cmt, weight=1):
+        '''
+        add a one directional relation from the person instance 
+        (ie. self) and the person identified by ID
+        eg. self ----> ID 
+        the weight parameter specified the edge strength
+        '''
+        
+        self.addRelation(relation_type, ID, self.inv_associations)
+        
+        if relation_type in tag_types:
+            self.tagged_commits[relation_type].append(cmt.id)
+        
+        self.linksPerformed +=1
+        self.addCmt2Subsys(cmt, relation_type)
 
-        For instance, the person could have a commit that was Acked-By
-        ID 123, so it receives an Acked-by from 123.
-        We count how often this happens per person."""
-
-        self.addTagRelation(tag, ID, self.associations)
-
-    def getReceiveTagRelations(self, tag):
-        return self.associations[tag]
-
-
-    def addPerformTagRelation(self, tag, ID, cmt):
-        """State that the person has given a tag to ID. Also record the
-           commit hash.
-
-        Essentially the inverse of addReceiveTagRelation, with the extension
-        that the commit hash is also recorded."""
-
-        self.addTagRelation(tag, ID, self.inv_associations)
-#        print("Extending {0} by {1}. Length before: {2}".format(tag, cmt.id, len(self.tagged_commits[tag])))
-
+    def addCmt2Subsys(self, cmt, relation_type):
+        '''record which subsystem the commit was made to and what type of 
+        link was performed (proximity, tag, committed)'''
+        
         cmt_subsys = cmt.getSubsystemsTouched()
         for subsys in cmt_subsys:
-            self.subsys_touched[tag][subsys] += cmt_subsys[subsys]
-
-        self.tagged_commits[tag].append(cmt.id)
-        self.tagsPerformed += 1
-        
-    def getPerformTagRelations(self, tag):
-        return self.inv_associations[tag]
+            self.subsys_touched[relation_type][subsys] += cmt_subsys[subsys]
+    
+    def getPerformTagRelations(self, relation_type):
+        return self.inv_associations[relation_type]
 
     def getSubsysFraction(self):
         return self.subsys_fraction
 
     # Helper for computeTagStats, see below
-    def _sum_associations(self, tag, rcv_by_id_hash):
-        for ID in self.associations[tag]:
+    def _sum_relations(self, relation_type, rcv_by_id_hash):
+        for ID in self.associations[relation_type]:
             if ID in rcv_by_id_hash:
-                rcv_by_id_hash[ID] += self.associations[tag][ID]
+                rcv_by_id_hash[ID] += self.associations[relation_type][ID]
             else:
-                rcv_by_id_hash[ID] = self.associations[tag][ID]
-
+                rcv_by_id_hash[ID] = self.associations[relation_type][ID]
+    
+    def computeStats(self, link_type):
+        
+        #computer tag specific stats
+        if link_type == "Tag":
+            self.computeTagStats()
+        
+        #determine fraction of relation types
+        #for each subsystem
+        self.computeSubsysFraction()
+        
+        #sum over the relation types
+        self.computeRelationSums()
+    
     def computeTagStats(self):
         """Compute statistics inferred from the tag information.
 
         While this can be called anytime, it makes sense to call the function
-        only once all tag data have been collected."""
+        only once all link data have been collected."""
 
-        if self.tagsPerformed == 0:
-            print("Warning: {0} did not perform any tags?!".
+        if self.linksPerformed == 0:
+            print("Warning: {0} did not perform any links?!".
                   format(self.getName()))
             return
 
@@ -271,42 +217,42 @@ class PersonInfo:
         # CC, 10% Acked-By)
         for tag in tag_types + ["author"]:
             self.tag_fraction[tag] = \
-                len(self.tagged_commits[tag])/float(self.tagsPerformed)
+                len(self.tagged_commits[tag])/float(self.linksPerformed)
 
-        # Per-author distribution of subsystem tagging percentages
-        # (i.e., 30% net, 20% drivers, 50% core).
-        total_tags = 0
         
-        # Summarise over all different tag variants (for tags
-        # given _by_ the developer)
+    def computeSubsysFraction(self):
+        
+        total_links = 0
+        # Summarise over all different link variants 
         for subsys in self.subsys_names + ["general"]:
             self.subsys_fraction[subsys] = 0
 
-            for tag in tag_types + ["author"]:
+            for link_type in all_link_types + ["author"]:
                 self.subsys_fraction[subsys] += \
-                    self.subsys_touched[tag][subsys]
+                    self.subsys_touched[link_type][subsys]
 
-            total_tags += self.subsys_fraction[subsys]
+            total_links += self.subsys_fraction[subsys]
 
         # ... and normalise accordingly
-        if (total_tags != 0):
+        if (total_links != 0):
             for subsys in self.subsys_names + ["general"]:
-                self.subsys_fraction[subsys] /= float(total_tags)
-        else:
-            # An author is supposed to sign-off at least his own commits
-            print("{0} did not tag on any subsystem?!".format(self.getName()))
+                self.subsys_fraction[subsys] /= float(total_links)
 
-        # Summarise the tags given _to_ (i.e, received by) the developer
+    def computeRelationSums(self):
+        # Summarise the links given _to_ (i.e, received by) the developer
         # from a specific ID
-        for tag in self.associations.keys():
-            self._sum_associations(tag, self.all_tags_received_by_id)
+        for tag in tag_types:
+            self._sum_relations(tag, self.all_tags_received_by_id)
 
         # Active tags do not include things like CC, which can
         # be issued without the second party's consent
         for tag in active_tag_types:
-            self._sum_associations(tag, self.active_tags_received_by_id)
-
-        # TODO: Add any other calculations that are of interest here
+            self._sum_relations(tag, self.active_tags_received_by_id)
+        
+        #sum other possible link types
+        self._sum_relations(proximity_relation,        self.proximity_links_recieved_by_id)
+        self._sum_relations(committer2author_relation, self.committer_links_recieved_by_id)    
+       
             
     def getTagStats(self):
         return self.tag_fraction
