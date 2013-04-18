@@ -13,15 +13,15 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-public class FetchBugzillaHistroy implements FetchHistory {
+public class GenericHistoryFetcher implements FetchHistory {
 
 	private String bugzillaURL = null;
 
-	public FetchBugzillaHistroy(String bugzillaURL) {
+	public GenericHistoryFetcher(String bugzillaURL) {
 		this.bugzillaURL = bugzillaURL;
 	}
 
-	private static Logger log = Logger.getLogger(FetchBugzillaHistroy.class);
+	private static Logger log = Logger.getLogger(GenericHistoryFetcher.class);
 
 	// set the proxy server
 	static {
@@ -91,14 +91,13 @@ public class FetchBugzillaHistroy implements FetchHistory {
 					}
 					bugHistoryList.add(history);
 				}
-				
+
 				try {
-					Thread.sleep(5000);
+					Thread.sleep(3000);
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log.error(e);
 				}
-				
+
 			}
 		} catch (IOException e) {
 			log.error("Error occured while fetching history details for bug : "
@@ -119,7 +118,7 @@ public class FetchBugzillaHistroy implements FetchHistory {
 	}
 
 	public static void main(String[] args) throws IOException {
-		FetchHistory historyFetcher = new FetchBugzillaHistroy(
+		FetchHistory historyFetcher = new GenericHistoryFetcher(
 				"https://bugzilla.kernel.org");
 		List<BugHistory> historyList = historyFetcher.fetchBugHistory("2082");
 		for (BugHistory history : historyList) {

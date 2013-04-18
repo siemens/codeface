@@ -3,17 +3,22 @@ package de.siemens.quantarch.bugs;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.log4j.Logger;
 
+import de.siemens.quantarch.bugs.scraper.GenericProductFetcher;
+import de.siemens.quantarch.bugs.scraper.GenericStatusFetcher;
+import de.siemens.quantarch.bugs.scraper.ProductFetcher;
+import de.siemens.quantarch.bugs.scraper.StatusFetcher;
+
 import b4j.core.DefaultSearchData;
+import b4j.core.Issue;
 import b4j.core.SearchResultCountCallback;
 import b4j.core.session.HttpBugzillaSession;
-import de.siemens.quantarch.bugs.products.ParseProducts;
 
 public class BugzillaTest implements SearchResultCountCallback {
 
@@ -21,56 +26,49 @@ public class BugzillaTest implements SearchResultCountCallback {
 
 	private static Logger log = Logger.getLogger(BugzillaTest.class);
 
-	private List<String> possibleStatuses = new ArrayList<String>();
-
-	// initialize possible statuses during instance creation
-	{
-		possibleStatuses.add("NEW");
-		possibleStatuses.add("ASSIGNED");
-		possibleStatuses.add("REOPENED");
-		possibleStatuses.add("RESOLVED");
-		possibleStatuses.add("VERIFIED");
-		possibleStatuses.add("REJECTED");
-		possibleStatuses.add("DEFERRED");
-		possibleStatuses.add("NEEDINFO");
-		possibleStatuses.add("CLOSED");
-	}
-
-	private String stat = null;
-	private String prod = null;
-
-	public void queryBug() throws ConfigurationException,
+	public void queryBug(String bugzillaURL) throws ConfigurationException,
 			UnsupportedEncodingException {
 
-		ParseProducts prodParser = new ParseProducts(
-				"https://bugzilla.kernel.org");
+		HttpBugzillaSession session = null;
+		StatusFetcher statusFetcher = new GenericStatusFetcher();
+		ProductFetcher productFetcher = new GenericProductFetcher();
 
-		List<String> products = prodParser.fetchProducts();
-		// Configure from file
 		File file = new File("linuxKernelBugzilla.xml");
 		if (file.exists()) {
-			XMLConfiguration myConfig = new XMLConfiguration(file);
+			try {
+				XMLConfiguration myConfig = new XMLConfiguration(file);
 
-			// Create the session
+				// Create the session
+				session = new HttpBugzillaSession();
+				session.configure(myConfig);
 
-			HttpBugzillaSession session = new HttpBugzillaSession();
-			session.configure(myConfig);
+				// Step 2: Parse bugs based on Products and Statuses
+				List<String> prodcuts = productFetcher
+						.fetchProducts(bugzillaURL);
+				List<String> statuses = statusFetcher.fetchStatus(bugzillaURL);
 
-			// Open the session
-			if (session.open()) {
-				for (String status : possibleStatuses) {
-					for (String product : products) {
-						stat = status;
-						prod = product;
-						DefaultSearchData searchData = new DefaultSearchData();
-						searchData.add("product",
-								URLEncoder.encode(product, "UTF-8"));
-						searchData.add("bug_status", status);
-						session.searchBugs(searchData, this);
+				// Open the session
+				if (session.open()) {
+
+					DefaultSearchData searchData = new DefaultSearchData();
+					searchData.add("product",
+							URLEncoder.encode("Drivers", "UTF-8"));
+					searchData.add("bug_status", "RESOLVED");
+					Iterator<Issue> issueIter = session.searchBugs(searchData,
+							this);
+					int i = 0;
+					while (issueIter.hasNext()) {
+						Issue issue = issueIter.next();
+						log.info("[" + i++ + "]" + "Hello Bug:" + issue.getId());
 					}
 				}
-				session.close();
 				log.info("Total bugs: " + count);
+			} catch (NumberFormatException e) {
+				log.error(e);
+			} finally {
+				if (null != session) {
+					session.close();
+				}
 			}
 		} else {
 			System.out.println("File does not exist");
@@ -80,14 +78,13 @@ public class BugzillaTest implements SearchResultCountCallback {
 	public static void main(String[] args) throws ConfigurationException,
 			UnsupportedEncodingException {
 		BugzillaTest b = new BugzillaTest();
-		b.queryBug();
-
+		b.queryBug("https://bugzilla.kernel.org");
 	}
 
 	@Override
 	public void setResultCount(int resultCount) {
 		count += resultCount;
-		log.info("[" + stat + "][" + prod + "]Number of bugs:" + resultCount);
+		log.info("Number of bugs:" + resultCount);
 	}
 
 }

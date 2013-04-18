@@ -1,4 +1,4 @@
-package de.siemens.quantarch.bugs.products;
+package de.siemens.quantarch.bugs.scraper;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import de.siemens.quantarch.bugs.history.FetchBugzillaHistroy;
+import de.siemens.quantarch.bugs.history.GenericHistoryFetcher;
 
 public class ParseProducts {
 
@@ -20,7 +20,7 @@ public class ParseProducts {
 		this.bugzillaURL = bugzillaURL;
 	}
 
-	private static Logger log = Logger.getLogger(FetchBugzillaHistroy.class);
+	private static Logger log = Logger.getLogger(GenericHistoryFetcher.class);
 
 	// set the proxy server
 	static {

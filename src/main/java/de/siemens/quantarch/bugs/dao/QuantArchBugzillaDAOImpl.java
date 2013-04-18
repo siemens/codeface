@@ -184,7 +184,6 @@ public class QuantArchBugzillaDAOImpl extends JdbcDaoSupport implements
 								"SELECT id FROM issue where projectId = ? and bugId = ?",
 								new Object[] { projectId, bugId });
 			} catch (EmptyResultDataAccessException e) {
-				log.error(e);
 			}
 		}
 		return issueId;
@@ -217,14 +216,15 @@ public class QuantArchBugzillaDAOImpl extends JdbcDaoSupport implements
 
 	private String getName(long userId, long projectId) {
 		String name = getJdbcTemplate().queryForObject(
-				"SELECT name FROM person WHERE projectId = ? AND userId = ?",
+				"SELECT name FROM person WHERE projectId = ? AND id = ?",
 				new Object[] { projectId, userId }, String.class);
 		return name;
 	}
 
 	private void updateName(String name, long userId, long projectId) {
-		String QUERY = "UPDATE person SET name=? WHERE userId = ? AND projectId=?";
-		getJdbcTemplate().update(QUERY, new Object[] { userId, projectId });
+		String QUERY = "UPDATE person SET name=? WHERE id=? AND projectId=?";
+		getJdbcTemplate().update(QUERY,
+				new Object[] { name, userId, projectId });
 	}
 
 	/**
@@ -397,7 +397,30 @@ public class QuantArchBugzillaDAOImpl extends JdbcDaoSupport implements
 	 */
 	public long addProject(String name, String issueTrackerURL,
 			String mailingListURL) {
-		return 0;
+		long projectId = checkIfProjectExists(name);
+		if (projectId == -1) {
+			SimpleJdbcInsert insertProduct = new SimpleJdbcInsert(
+					getDataSource()).withTableName("project")
+					.usingGeneratedKeyColumns("id");
+			Map<String, Object> parameters = new HashMap<String, Object>(2);
+			parameters.put("name", name);
+			parameters.put("issueTrackerURL", issueTrackerURL);
+			parameters.put("mailingListURL", mailingListURL);
+			Number newId = insertProduct.executeAndReturnKey(parameters);
+			projectId = newId.longValue();
+		}
+		return projectId;
+	}
+
+	private long checkIfProjectExists(String name) {
+		long projectId = -1;
+		try {
+			projectId = getJdbcTemplate().queryForLong(
+					"SELECT id FROM project WHERE name = ?", name);
+		} catch (EmptyResultDataAccessException e) {
+			log.debug("Project with the name " + name + " not found");
+		}
+		return projectId;
 	}
 
 	@Override
@@ -414,30 +437,31 @@ public class QuantArchBugzillaDAOImpl extends JdbcDaoSupport implements
 			BufferedWriter bw = new BufferedWriter(fw);
 
 			// Step 1: Parse the issues of the project
-			String SQL = "SELECT a.id, b.name, c.name FROM issue a, person b, person c "
+			String SQL = "SELECT a.id, b.email, c.email FROM issue a, person b, person c "
 					+ "WHERE a.projectId = ? AND a.assignedTo = b.id AND a.createdBy = c.id";
 			List<CustomIssue> issues = getJdbcTemplate().query(SQL,
 					new Object[] { projectId }, new IssueRowMapper());
 			for (CustomIssue issue : issues) {
-				System.out.println(issue.id + " assigns " + issue.reporter
+				System.out.println(issue.id + " communicate " + issue.reporter
 						+ "->" + issue.assignee);
 
 				if (!issue.reporter.equalsIgnoreCase(issue.assignee)) {
-					bw.write(issue.reporter + " assigns " + issue.assignee
+					bw.write(issue.reporter + " communicate " + issue.assignee
 							+ "\n");
 				}
 
 				// Step 2: For every issue get the adjacency list
-				String SQL_QUERY = "SELECT b.name FROM issue_comment a, person b WHERE "
+				String SQL_QUERY = "SELECT b.email FROM issue_comment a, person b WHERE "
 						+ "a.fk_issueId = ? AND a.who = b.id ORDER BY a.commentDate ASC";
 				List<String> names = getJdbcTemplate().queryForList(SQL_QUERY,
 						new Object[] { issue.id }, String.class);
 				for (String name : names) {
+					System.out.println(name);
 					if (!name.equalsIgnoreCase(issue.assignee)) {
-						bw.write(name + " assigns " + issue.assignee + "\n");
+						bw.write(name + " communicate " + issue.assignee + "\n");
 					}
 					if (!name.equalsIgnoreCase(issue.reporter)) {
-						bw.write(name + " assigns " + issue.reporter + "\n");
+						bw.write(name + " communicate " + issue.reporter + "\n");
 					}
 				}
 			}
@@ -445,5 +469,17 @@ public class QuantArchBugzillaDAOImpl extends JdbcDaoSupport implements
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public long getIssue(String bugId) {
+		long issueId = -1;
+		try {
+			issueId = getJdbcTemplate().queryForLong(
+					"SELECT id FROM issue WHERE bugId = ?", bugId);
+		} catch (EmptyResultDataAccessException e) {
+
+		}
+		return issueId;
 	}
 }

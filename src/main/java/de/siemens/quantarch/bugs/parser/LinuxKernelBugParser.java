@@ -13,9 +13,9 @@ import b4j.core.DefaultSearchData;
 import b4j.core.Issue;
 import b4j.core.session.HttpBugzillaSession;
 import de.siemens.quantarch.bugs.history.BugHistory;
-import de.siemens.quantarch.bugs.history.FetchBugzillaHistroy;
+import de.siemens.quantarch.bugs.history.GenericHistoryFetcher;
 import de.siemens.quantarch.bugs.history.FetchHistory;
-import de.siemens.quantarch.bugs.products.ParseProducts;
+import de.siemens.quantarch.bugs.scraper.ParseProducts;
 
 public class LinuxKernelBugParser extends IssueParser {
 
@@ -38,7 +38,7 @@ public class LinuxKernelBugParser extends IssueParser {
 
 	@Override
 	public void parseBugs(long projectId) throws ConfigurationException {
-		FetchHistory historyFetcher = new FetchBugzillaHistroy(
+		FetchHistory historyFetcher = new GenericHistoryFetcher(
 				"https://bugzilla.kernel.org");
 		ParseProducts prodParser = new ParseProducts(
 				"https://bugzilla.kernel.org");

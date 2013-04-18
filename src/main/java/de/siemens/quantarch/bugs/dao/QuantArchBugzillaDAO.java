@@ -10,6 +10,8 @@ public interface QuantArchBugzillaDAO {
 
 	public long addIssue(Issue issue, long projectId,
 			List<BugHistory> bugHistoryList);
+	
+	public long getIssue(String bugId);
 
 	public long addProject(String name, String issueTrackerURL,
 			String mailingListURL);
