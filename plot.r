@@ -38,8 +38,9 @@ normalise.commit.dat <- function(dat, subset) {
   return(dat.subset)
 }
 
-## Remove outliers (statistically dubious, but in this case, we won't loose
-## much information)
+## Remove outliers (statistically dubious, but when used with great
+## care _and THREE iterations_ of think about why we actually did
+## apply great care, it can be admissible)
 removeOutliers <- function(values) {
   top <- quantile(values, probs=0.995)[1]
   values[values > top] <- NA
