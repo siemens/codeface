@@ -56,39 +56,42 @@ num.messages.fromdate <- function(msglist, from.date) {
   return(max(msglist$cumulative) - min(msglist$cumulative))
 }
 
-download.mbox <- function(ml, start.date) {
+download.mbox <- function(ml, start.date, outfile) {
   dat <- get.postings(ml)
   num <- num.messages.fromdate(dat, start.date)  
 
   ## Execute the command to fetch the messages into an mbox file in
   ## the current directory. Note that this can require a considerable amount
   ## of time.
-  ## TODO: Is there any way of showing some progress? We also
-  ## need to check success or failure of the command
-  cmd <- str_c("nntp-pull --server=news.gmane.org --limit=",
-               num, " ", ml)
+  ## TODO: Use nntp-pull --verbose, count the number of emitted
+  ## lines, and provide a status progress bar.
+  cmd <- str_c("nntp-pull --server=news.gmane.org --reget --limit=",
+               num, " ", ml, ">", outfile)
   cat(str_c("Downloading ", num, " messages from ", ml, "\n"))
-  system(cmd)
+#  system(cmd)
+  cat(cmd)
 }
 
 #####################################################################
-parser <- OptionParser(usage = "%prog <ml> <start date>")
+parser <- OptionParser(usage = "%prog <ml> <start date> <mbox>")
 arguments <- parse_args(parser, positional_arguments = TRUE)
 opts <- arguments$options
 
-if (length(arguments$args) != 2) {
+if (length(arguments$args) != 3) {
   print_help(parser)
 
   cat("Mandatory positional arguments:\n")
   cat("   <ml>: gmane name of the mailing list\n")
   cat("   <start date>: Date from which onwards to download messages (YYYYMMDD)\n")
+  cat("   <mbox>: mbox file name (is augmented with the suffix .mbox)\n")
   stop()
 } else {
   ml <- arguments$args[1]
   start.date <- ymd(arguments$args[2], quiet=T)
+  outfile <- str_c(arguments$args[3], ".mbox")
 }
 
-download.mbox(ml, start.date)
+download.mbox(ml, start.date, outfile)
 
 
 ########################### Debugging ##############################
