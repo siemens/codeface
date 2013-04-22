@@ -70,6 +70,7 @@ class idManager:
                 email = "could.not@be.resolved.tld"
 
         email = email.lower()
+        name = self._cleanName(name)
 
         return (name, email)
 
@@ -86,10 +87,6 @@ class idManager:
         (name, email) = self._decompose_addr(addr)
 
         if name != "":
-            
-            #clean name for troublesome characters 
-            name = self.cleanName(name)
-            
             name_known = self.person_ids.has_key(name)
         else:
             name_known = False
@@ -124,7 +121,7 @@ class idManager:
     def getPI(self, ID):
         return self.persons[ID]
     
-    def cleanName(self, name):
+    def _cleanName(self, name):
         # Remove or replace characters in names that are known
         # to cause parsing problems in later stages
         nameClean = name.replace('\"', "")
