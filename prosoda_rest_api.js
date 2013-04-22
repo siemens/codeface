@@ -23,12 +23,9 @@ var mysql = require('mysql');
 // initilize the express module and the connection to mysql
 var app = express();
 var connection = mysql.createConnection({ 
-    // ADD DB connection here
-    
-    // example MySQL@deepaks machine
-    host : 'mch0189c.ww002.siemens.net',
-    user: 'root', 
-    password: 'root', 
+    host : 'localhost',
+    user: 'quantarch',
+    password: 'quantarch',
     database: 'quantarch'
 }); 
 
