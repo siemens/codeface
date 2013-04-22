@@ -307,7 +307,7 @@ class gitVCS (VCS):
         cmd.append('--date=local')
         
         #submit query to git 
-        logMsg = self._gitQuery(cmd)
+        logMsg = self._sysCmd(cmd)
         
         return logMsg
 
@@ -341,7 +341,7 @@ class gitVCS (VCS):
         
                 
         #submit query command        
-        clist = self._gitQuery(cmd)
+        clist = self._sysCmd(cmd)
         
         # Remember the comment about monotonically increasing time sequences
         # above? True in principle, but unfortunately, a very small number
@@ -355,16 +355,15 @@ class gitVCS (VCS):
         return clist
             
             
-    def _gitQuery(self, cmd):
-        '''low level routine to submit a git command and return the 
+    def _sysCmd(self, cmd):
+        '''low level routine to submit a command to the system and return the 
         output'''
         
-#        print("About to call {0}".format(" " .join(cmd)))
         try:
             p2 = Popen(cmd, stdout=PIPE)
             output = p2.communicate()[0].splitlines()
         except OSError:
-            _abort("Internal error: Could not spawn git")
+            _abort("Internal error: OS command failure")
             
         return output
         
@@ -717,7 +716,7 @@ class gitVCS (VCS):
         cmd.append(fileName)
         
         #query git repository 
-        blameMsg = self._gitQuery(cmd)
+        blameMsg = self._sysCmd(cmd)
         
         return blameMsg
         
@@ -958,7 +957,7 @@ class gitVCS (VCS):
         cmd.append(revrange)
        
         #query git 
-        output = self._gitQuery(cmd)
+        output = self._sysCmd(cmd)
 
         #filter results to only get implementation files (ie *.c) 
         fileNames = [fileName for fileName in output if fileName.endswith(".c")]
