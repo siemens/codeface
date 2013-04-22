@@ -7,13 +7,13 @@ var mysql = require('mysql');
 // initilize the express module and the connection to mysql
 var app = express();
 var connection = mysql.createConnection({ 
-   // ADD DB connection here
-   
-   // example MySQL@deepaks machine
-   host : 'mch0189c.ww002.siemens.net',
-   user: 'root', 
-   password: 'root', 
-   database: 'quantarch'
+    // ADD DB connection here
+    
+    // example MySQL@deepaks machine
+    host : 'mch0189c.ww002.siemens.net',
+    user: 'root', 
+    password: 'root', 
+    database: 'quantarch'
 }); 
 
 app.configure(function () {
@@ -26,9 +26,9 @@ app.configure(function () {
  * Returns: the list of users in JSON format
  */
 app.get('/users', function (request, response) {
-	connection.query('SELECT * FROM person;', function (error, rows, fields) { 
+    connection.query('SELECT * FROM person;', function (error, rows, fields) { 
         response.end(JSON.stringify(rows)); 
-	});
+    });
 });
 
 /**
@@ -39,9 +39,9 @@ app.get('/users', function (request, response) {
 app.get('/user/:id', function (request, response) {
     var taskId = request.params.id;
     try {
-		connection.query('SELECT * FROM person WHERE id=' + taskId + ';', function (error, rows, fields) { 
-			response.end(JSON.stringify(rows)); 
-		});
+	connection.query('SELECT * FROM person WHERE id=' + taskId + ';', function (error, rows, fields) { 
+	    response.end(JSON.stringify(rows)); 
+	});
     } catch (exeception) {
         response.send(404);
     }
@@ -52,122 +52,122 @@ app.get('/user/:id', function (request, response) {
  * GET/POST USER ID from DB
  */
 app.getUserFromDB = function(name, email, projectID, response) {
-	// name and email have been empty
-	if  (!projectID)
-	{
-		var err = { err : 'input error: projectID missing'};
-		console.log(err);
-		response.end(JSON.stringify(err));
-	}
-	else if ((!name) && (!email))
-	{
-		var err = { err : 'input error: name and email missing'};
-		console.log(err);
-		response.end(JSON.stringify(err));
-	}
-	else
-	{
+    // name and email have been empty
+    if  (!projectID)
+    {
+	var err = { err : 'input error: projectID missing'};
+	console.log(err);
+	response.end(JSON.stringify(err));
+    }
+    else if ((!name) && (!email))
+    {
+	var err = { err : 'input error: name and email missing'};
+	console.log(err);
+	response.end(JSON.stringify(err));
+    }
+    else
+    {
 	
-		// Name AND Mail found --> return existing ID
-		connection.query('SELECT id FROM person WHERE projectId = ' + projectID + ' AND name = \'' + name + '\' AND ( email = \'' + email + '\' OR email2 =  \'' + email + '\' OR email3 = \'' + email + '\' OR email4 = \'' + email + '\' OR email5 = \'' + email + '\');', function (error, rows, fields) { 
-			//var log = { log : '1. check'};
-			//console.log(log);
-			if (rows.length == 1){
-				console.log(rows);
-				// user found: return id
-				response.end(JSON.stringify(rows[0]));			
-			} 
-			else
-			{
-				// Name found AND Mail NOT found --> return existing ID, add email
-				connection.query('SELECT id FROM person WHERE projectId = ' + projectID + ' AND name = \'' + name + '\';', function (error, rows, fields) { 
-					//var log = { log : '2. check'};
-					//console.log(log);
-					if (rows.length == 1){
-						// user found: 
-						// update mail if not empty in found user
-						if(email){
-							// TODO check what mail fields are empty/available and take one of these instead of taking the first
-							connection.query('UPDATE person SET email = \'' + email + '\' WHERE id = ' + rows[0].id + ';', function (error, ret, fields) { 
-								console.log(ret);
-								console.log(error);
-							});
-						}
-						console.log(rows);
-						//return id
-						response.end(JSON.stringify(rows[0])); 
-					}
-					else
-					{
-						// Name Not found AND mail found
-						connection.query('SELECT id FROM person WHERE projectId = ' + projectID + ' AND ( email = \'' + email + '\' OR email2 =  \'' + email + '\' OR email3 = \'' + email + '\' OR email4 = \'' + email + '\' OR email5 = \'' + email + '\');', function (error, rows, fields) { 
-							//var log = { log : '3. check'};
-							//console.log(log);
-							//console.log(error);
-							if (rows.length == 1){
-								// user found: 
-								// update name if not empty in found user
-								if (name){
-									connection.query('UPDATE person SET name = \'' + name + '\' WHERE id = ' + rows[0].id + ';', function (error, ret, fields) { });
-								}
-								//return id
-								console.log(rows);
-								response.end(JSON.stringify(rows[0])); 
-							}
-							else
-							{
-								// name not found, email not found
-								// insert new user into DB
-								//var log = { log : 'INSERT'};
-								//console.log(log);
-								if(name){
-									// insert with name and email
-									connection.query('INSERT INTO person (projectId, name, email) VALUES(\'' + projectID + '\',\'' + name + '\', \'' + email + '\');', function (error, info) { 
-										//console.log(info.insertId);
-										var id = { id : info.insertId};
-										response.end(JSON.stringify(id)); 
-									});	
-								} else
-								{
-									// insert with email only
-									connection.query('INSERT INTO person (projectId, email) VALUES(\'' + projectID + '\', \'' + email + '\');', function (error, info) { 
-										//console.log(info.insertId);
-										var id = { id : info.insertId};
-										response.end(JSON.stringify(id)); 
-									});	
-								}
-							}
-						});
-					}
-				});		
+	// Name AND Mail found --> return existing ID
+	connection.query('SELECT id FROM person WHERE projectId = ' + projectID + ' AND name = \'' + name + '\' AND ( email = \'' + email + '\' OR email2 =  \'' + email + '\' OR email3 = \'' + email + '\' OR email4 = \'' + email + '\' OR email5 = \'' + email + '\');', function (error, rows, fields) { 
+	    //var log = { log : '1. check'};
+	    //console.log(log);
+	    if (rows.length == 1){
+		console.log(rows);
+		// user found: return id
+		response.end(JSON.stringify(rows[0]));			
+	    } 
+	    else
+	    {
+		// Name found AND Mail NOT found --> return existing ID, add email
+		connection.query('SELECT id FROM person WHERE projectId = ' + projectID + ' AND name = \'' + name + '\';', function (error, rows, fields) { 
+		    //var log = { log : '2. check'};
+		    //console.log(log);
+		    if (rows.length == 1){
+			// user found: 
+			// update mail if not empty in found user
+			if(email){
+			    // TODO check what mail fields are empty/available and take one of these instead of taking the first
+			    connection.query('UPDATE person SET email = \'' + email + '\' WHERE id = ' + rows[0].id + ';', function (error, ret, fields) { 
+				console.log(ret);
+				console.log(error);
+			    });
 			}
-		});
-	}	
+			console.log(rows);
+			//return id
+			response.end(JSON.stringify(rows[0])); 
+		    }
+		    else
+		    {
+			// Name Not found AND mail found
+			connection.query('SELECT id FROM person WHERE projectId = ' + projectID + ' AND ( email = \'' + email + '\' OR email2 =  \'' + email + '\' OR email3 = \'' + email + '\' OR email4 = \'' + email + '\' OR email5 = \'' + email + '\');', function (error, rows, fields) { 
+			    //var log = { log : '3. check'};
+			    //console.log(log);
+			    //console.log(error);
+			    if (rows.length == 1){
+				// user found: 
+				// update name if not empty in found user
+				if (name){
+				    connection.query('UPDATE person SET name = \'' + name + '\' WHERE id = ' + rows[0].id + ';', function (error, ret, fields) { });
+				}
+				//return id
+				console.log(rows);
+				response.end(JSON.stringify(rows[0])); 
+			    }
+			    else
+			    {
+				// name not found, email not found
+				// insert new user into DB
+				//var log = { log : 'INSERT'};
+				//console.log(log);
+				if(name){
+				    // insert with name and email
+				    connection.query('INSERT INTO person (projectId, name, email) VALUES(\'' + projectID + '\',\'' + name + '\', \'' + email + '\');', function (error, info) { 
+					//console.log(info.insertId);
+					var id = { id : info.insertId};
+					response.end(JSON.stringify(id)); 
+				    });	
+				} else
+				{
+				    // insert with email only
+				    connection.query('INSERT INTO person (projectId, email) VALUES(\'' + projectID + '\', \'' + email + '\');', function (error, info) { 
+					//console.log(info.insertId);
+					var id = { id : info.insertId};
+					response.end(JSON.stringify(id)); 
+				    });	
+				}
+			    }
+			});
+		    }
+		});		
+	    }
+	});
+    }	
 }
- 
+
 
 /**
  * GET USER ID
  */
 app.getUserID = function(request, response) {
-	var name = request.params.name;
-	var email = request.params.email;
-	var projectID = request.params.projectID;
-	
-	app.getUserFromDB(name, email, projectID, response);
+    var name = request.params.name;
+    var email = request.params.email;
+    var projectID = request.params.projectID;
+    
+    app.getUserFromDB(name, email, projectID, response);
 }
 
 /**
  * POST USER ID
  */
 app.postUserID = function(request, response) {
-	console.log(request.body);
-	var name = JSON.stringify(request.body.name);
-	console.log(name);
-	var email = request.body.email;
-	var projectID = request.body.projectID;
-	
-	app.getUserFromDB(name, email, projectID, response);
+    console.log(request.body);
+    var name = JSON.stringify(request.body.name);
+    console.log(name);
+    var email = request.body.email;
+    var projectID = request.body.projectID;
+    
+    app.getUserFromDB(name, email, projectID, response);
 }
 
 /**
