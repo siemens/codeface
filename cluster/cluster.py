@@ -46,9 +46,9 @@ SEED = 448
 #enum-like class to distinguish between the various
 #methods used to link individuals
 class LinkType:
-    tag              = "Tag"
-    proximity        = "Proximity"    
-    committer2author = "Committer2Author"
+    tag              = "tag"
+    proximity        = "proximity"
+    committer2author = "committer2author"
 
     
 def _abort(msg):
