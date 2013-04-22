@@ -58,7 +58,7 @@ class idManager:
                 email = m.group(2)
                 m2 = re.search(self.commaNamePattern, name)
                 if m2:
-                    # Replace "Surname, Name" by "Name Surnamex"
+                    # Replace "Surname, Name" by "Name Surname"
                     name = "{0} {1}".format(m2.group(2), m2.group(1))
 
 #                print "Fixup for addr {0} required -> ({1}/{2})".format(addr, name, email)
@@ -112,7 +112,7 @@ class idManager:
             # information)
             self.person_ids[email] = self.person_ids[name]
         elif  email_known and not(name_known):
-            # Different orthographic variants if the name
+            # Different orthographic variants of the name
             self.person_ids[name] = self.person_ids[email]
 
         return self.person_ids[name]
@@ -124,8 +124,8 @@ class idManager:
         return self.persons[ID]
     
     def cleanName(self, name):
-        #removes or replaces characters in names that are known
-        #to cause parsing problems in later stages
+        # Remove or replace characters in names that are known
+        # to cause parsing problems in later stages
         nameClean = name.replace('\"', "")
         
         return nameClean
