@@ -915,7 +915,6 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   ## graphviz requires integer edge weights adjMatrix.connected.scaled =
   ## round( scale.data(adjMatrix.connected, 0, 1000) )
   adjMatrix.connected.scaled <- adjMatrix.connected
-  save.group.fn <- save.group
   
   ##--------------------
   ##infomap
@@ -937,11 +936,11 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   ## save.groups.NonTag (functions are of the same signature)
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.spin.community, pr.for.all, outdir,
-              "sg_reg_", elems.sg.more, save.group.fn,
+              "sg_reg_", elems.sg.more, save.group,
               label="Spin Glass Community")
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.spin.community, pr.for.all.tr, outdir,
-              "sg_tr_", elems.sg.more, save.group.fn,
+              "sg_tr_", elems.sg.more, save.group,
               label="Spin Glass Community")
   
   ##--------------------
@@ -959,19 +958,19 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   elems.wt.less <- select.communitiy.size.range(g.walktrap.community, 2, 10) #communities of size 2-10)
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.walktrap.community, pr.for.all, outdir,
-              "wt_reg_big_", elems.wt.more, save.group.fn,
+              "wt_reg_big_", elems.wt.more, save.group,
               label="(big) Random Walk Community")
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.walktrap.community, pr.for.all.tr, outdir,
-              "wt_tr_big_", elems.wt.more, save.group.fn,
+              "wt_tr_big_", elems.wt.more, save.group,
               label="(big) Random Walk Community")
   
   save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
               pr.for.all, outdir, "wt_reg_small_", elems.wt.less,
-              save.group.fn, label="(small) Random Walk Community")
+              save.group, label="(small) Random Walk Community")
   save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
               pr.for.all.tr, outdir, "wt_tr_small_", elems.wt.less,
-              save.group.fn, label="(small) Random Walk Community")
+              save.group, label="(small) Random Walk Community")
 
   ##--------------------
   ## Community Quality
@@ -995,19 +994,19 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   ## dot") so that we can easily skip them when batch-processing graphviz
   ## images -- they take a long while to compute
   g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all,
-                    g.spin.community, save.group.fn,
+                    g.spin.community, save.group,
                     paste(outdir, "/sg_reg_all.ldot", sep=""),
                     label="Spin glass, regular page rank")
   g.all <- save.all(adjMatrix.connected.scaled, ids.connected,
-                    pr.for.all.tr, g.spin.community, save.group.fn,
+                    pr.for.all.tr, g.spin.community, save.group,
                     paste(outdir, "/sg_tr_all.ldot", sep=""),
                     label="Spin glass, transposed page rank")
   g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all,
-                    g.walktrap.community, save.group.fn,
+                    g.walktrap.community, save.group,
                     paste(outdir, "/wt_reg_all.ldot", sep=""),
                     label="Random walk, regular page rank")
   g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all.tr,
-                    g.walktrap.community, save.group.fn,
+                    g.walktrap.community, save.group,
                     paste(outdir, "/wt_tr_all.ldot", sep=""),
                     label="Random walk, transposed page rank")
 
