@@ -588,6 +588,11 @@ community.quality.conductance <- function(graph, community.vertices){
   ## f.2 <- min(community.vertices.degree.total, not.community.vertices.degree.total) / 2
   f.2 <- intra.degree.total / 2
   
+  ## in some cases the community can be isolated
+  if (f.2 == 0){
+  	return(NaN)
+  }
+  
   return(f.1/f.2)
 }
 
@@ -673,6 +678,9 @@ communityStatSignificance <- function(graph, cluster.algo){
   graph.connected   <- largestConnectedSubgraph(graph)
   ## extract clusters
   graph.clusters <- cluster.algo(graph.connected)
+  ## save communities that have more than 10 vertices
+  #graph.clusters.more <- select.communities.more(graph.clusters, 10)
+  
   ## compute cluster conductance values 
   cluster.conductance <- compute.all.community.quality(graph.connected, 
   		                 graph.clusters, "conductance")
