@@ -1440,9 +1440,7 @@ vertex.edge.weight.difference <- function(g1, v1, g2, v2) {
 						  graphs")
 		stop(e)
 	}
-	if(percent.difference != 0){
-		browser()
-	}
+	
 	return(percent.difference)
 }
 
