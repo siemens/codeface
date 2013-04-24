@@ -152,7 +152,7 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
     return sim
 
 
-def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr,
+def computeSnapshotCollaboration(file_commit, cmtList, id_mgr,
                                   startDate=None, random=False):
     '''Generates the collaboration data from a file snapshot at a particular
     point in time'''
@@ -173,6 +173,8 @@ def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr,
     #------------------------
     maxDist     = 25
     author      = True
+    fileState   = file_commit.getFileSnapShot()
+    revIds      = file_commit.getrevCmts()
     revCmts     = [cmtList[revCmtId] for revCmtId in revCmtIds]
     
     for cmt in revCmts:
@@ -191,7 +193,7 @@ def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr,
         #lines of interest
         if(not(random)): 
             fileState_mod = linesOfInterest(fileState_mod, cmt.id, maxDist, 
-                                            cmtList)
+                                            cmtList, file_commit)
         
         #remove commits that occur prior to the specified startDate
         if startDate != None:
@@ -352,9 +354,6 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, maxDist,
         else:
             personId = oldRevBlks[0].committerId
         
-        if personId == revPerson.getID():
-            pass
-
         inEdgePerson = id_mgr.getPI(personId)
         revPerson.addSendRelation      (LinkType.proximity, personId, cmt,     sumStrength)
         inEdgePerson.addReceiveRelation(LinkType.proximity, revPerson.getID(), sumStrength)
@@ -622,7 +621,7 @@ def removePriorCommits(fileState, clist, startDate):
     return modFileState
 
        
-def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist):
+def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist, file_commit):
     '''
     Finds the regions of interest for analyzing the file. 
     We want to look at localized regions around the commit of 
@@ -633,7 +632,7 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist):
     fileState:      code line numbers together with commit hashes
     snapShotCommit: the commit hash that marks when the fileState was acquired
     maxDist:        indicates how large the area of interest should be
-    
+    file_commit: a fileCommit instance
     - Output - 
     modFileState: the file state after line not of interest are removed 
     '''
@@ -643,17 +642,20 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist):
     snapShotCmtDate = cmtlist[snapShotCommit].getCdate() 
     linesSet    = set()
     modFileState = {} 
+    snapshot_func_set = set()
     
     #take a pass over the fileState to identify where the snapShotCommit 
     #made contributions to the fileState
     snapShotCmtLines = [] 
-    for key in fileState.keys(): 
+    for lineNum in fileState.keys(): 
         
-        cmtId = fileState[key]
+        cmtId = fileState[lineNum]
         
         if cmtId == snapShotCommit:
-            snapShotCmtLines.append(key)
-    
+            snapShotCmtLines.append(lineNum)
+            # retrieve the function id that each line falls into
+            snapshot_func_set.add(file_commit.findFuncId(int(lineNum)))
+            
     #build modFileState by selecting only lines of interest
     for line in snapShotCmtLines:
         #calculate region of interest
@@ -679,10 +681,18 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist):
             #must be a old commit that occurred in a prior release 
             continue
         
+        # check to keep lines committed in the past with respect to the current 
+        # snapshot commit 
         if cmtDate <= snapShotCmtDate:
-            # keep line since it was committed in the past with respect
-            # to the current snapshot commit 
-            modFileState[lineNum] = fileState[lineNum]
+            # check if the line will fall under one of the functions that the 
+            # snapshot commit lines fall under (ie. we only want to keep lines
+            # that are in the same functions as the snapshot commit
+            if file_commit.findFuncId(int(lineNum)) in snapshot_func_set:
+                modFileState[lineNum] = fileState[lineNum]
+            
+            # else: ignore line since it belongs to some function outside of 
+            # the set of functions we are interested in
+        
         #else: forget line because it was in a future commit  
         
     return modFileState
@@ -1041,12 +1051,10 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None, speed
     Collaboration is quantified by a single metric indicating the 
     strength of collaboration between two individuals.
     '''
-    for fileCommit in fileCommitList.values():
+    for file_commit in fileCommitList.values():
 
         if speedUp:
-            fileLayout = fileCommit.getFileSnapShot()
-            revCmts    = fileCommit.getrevCmts()
-            computeSnapshotCollaboration(fileLayout, revCmts, cmtList, id_mgr,
+            computeSnapshotCollaboration(file_commit, cmtList, id_mgr,
                                          startDate)
         else:
             [computeSnapshotCollaboration(fileSnapShot[1], [fileSnapShot[0]], 

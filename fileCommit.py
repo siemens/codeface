@@ -21,12 +21,13 @@ files however this class considers a given commit only in the context of a
 single file.''' 
 
 import commit
+import bisect
 
 class FileCommit:
     def __init__(self):
 
         #filename under investigation
-        self.fileName = None
+        self.filename = None
         
         #dictionary of dictionaries key is commit, value is a
         #dictionary with keys=lineNumbers value=commitHash, stores 
@@ -38,18 +39,41 @@ class FileCommit:
         #particular revision 
         self.revCmts = []
         
+        # dictionary with key = line number, value = function name
+        self.functionId = {}
+        
+        # list of function line numbers in sorted order, this is for
+        # optimizing the process of finding a function Id given a line number
+        self.functionLineNums = []
+        
     #Getter/Setters    
     def getFileSnapShots(self):
         return self.fileSnapShots
+    
     def getFileSnapShot(self):
         return self.fileSnapShots.values()[0]
+    
     def setCommitList(self, cmtList):
         self.revCmts = cmtList
 
     def getrevCmts(self):
         return self.revCmts
-   
+    
+    def setFunctionLines(self, functionId):
+        self.functionId = functionId
+        # check if a function exists from line 1, if not make a dummy function
+        # that pre first function lines will be assigned
+        if 1 not in functionId:
+           self.functionId[1] = "preFunction" 
+        self.functionLineNums = sorted(self.functionId.iterkeys())
+        
     #Methods
     def addFileSnapShot(self, key, dict):
         self.fileSnapShots[key] = dict
+        
+    def findFuncId(self, lineNum):
+        # returns the identifier of a function given a line number
+        i = bisect.bisect_right(self.functionLineNums, lineNum)
+        funcLine = self.functionLineNums[i-1]
+        return self.functionId[funcLine]    
     
