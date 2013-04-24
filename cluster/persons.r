@@ -685,21 +685,21 @@ communityStatSignificance <- function(graph, cluster.algo){
   cluster.conductance <- compute.all.community.quality(graph.connected, 
   		                 graph.clusters, "conductance")
   ## compute randomized conductance samples
-  niter <- 100
+  niter <- 1000
   rand.samps <- randomizedConductanceSamples(graph, niter, cluster.algo)
-
+  
   ## test for normality
   normality.test <- shapiro.test(rand.samps)
-
+ 
   ## compute normal distribution
   mean.conductance <- mean(rand.samps)
   sd.conductance   <- sd  (rand.samps)
-  ##########################
-  ##not fully implemented
-  ##########################
+    
+  ## perform t-test on test statistic
+  t.test.result <- t.test(rand.samps, cluster.conductance)
 }
 
-randomizedConductanceSamples <- function(graph, ninter, cluster.algo) {
+randomizedConductanceSamples <- function(graph, niter, cluster.algo) {
 	############################################################################
 	## Randomize a given graph while maintaining the degree distribution using
 	## a rewiring concept. For each randomized graph a decomposition is performed
@@ -722,19 +722,30 @@ randomizedConductanceSamples <- function(graph, ninter, cluster.algo) {
 		rewire.mode = "simple"
 	}
 	
-	# perform iterations
+	## perform iterations
 	conduct.vec <- vector()
+	pb <- txtProgressBar(min = 0, max = niter, style = 3)
 	for (i in 1:niter) {
-	  #rewire graph, randomize the graph while maintaining the degree distribution
+	  ## update progress bar
+	  setTxtProgressBar(pb, i)
+	  
+	  ## rewire graph, randomize the graph while maintaining the degree distribution
 	  rw.graph <- rewire(graph, mode = rewire.mode, niter = 100)
 	  rw.graph.connected <- largestConnectedSubgraph(rw.graph)
-	  #find clusters
+	  
+	  ## find clusters
 	  rw.graph.clusters <- cluster.algo(rw.graph.connected)
-	  #compute conductance
+	  
+	  ## only analyze clusters that are large than 10 vertices
+	  #rw.graph.clusters.more <- select.communities.more(rw.graph.clusters, 10)
+	  
+	  ## compute conductance
 	  rw.cluster.conductance <- compute.all.community.quality(
 			rw.graph.connected, rw.graph.clusters, "conductance")
 	  conduct.vec <- append(conduct.vec, mean(rw.cluster.conductance))
 	}
+	## close progress bar
+	close(pb)
 	
 	return(conduct.vec)
 }
