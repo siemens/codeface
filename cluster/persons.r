@@ -1108,7 +1108,12 @@ compute.all.community.quality <- function(graph, community, test) {
     quality.vec <- sapply(community.id,
                           function(x) {return(community.quality.modularization(graph, members[[x]], community$membership))})
   }
-  return(quality.vec)
+  
+  ## remove nan values that might be introduced by isolated communities or 
+  ## single communities 
+  quality.vec.rm.nan <- quality.vec[!is.nan(quality.vec)]
+  
+  return(quality.vec.rm.nan)
 }
 
 
