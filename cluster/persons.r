@@ -1317,7 +1317,7 @@ runGraphCompare.Tag.nonTag <- function() {
   ids.nonTag$ID <- ids.nonTag$ID + 1
   
   
-  tagAdjMatrix <- read.table(file=paste(tagDir, "/tags.txt", sep=""),
+  tagAdjMatrix <- read.table(file=paste(tagDir, "/adjacencyMatrix.txt", sep=""),
                              sep="\t", header=FALSE)
   ids.Tag <- read.csv(file=paste(tagDir, "/ids.txt", sep=""),
                       sep="\t", header=TRUE, stringsAsFactors = FALSE)
