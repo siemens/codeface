@@ -257,11 +257,6 @@ gen.cmp.networks <- function(basenets, commnet) {
 
 ### Initiating threads vs. replying. Adapted from the snatm repository ###
 compute.initiate.respond <- function(forest, network.red, cty.list) {
-  ## The ansquest function is in severe need of renaming: An initial posting
-  ## need not necessarily be a question, but can be a bug report, a patch,
-  ## or whatever)
-  initiate.respond <- ans.quest
-
   ir <- initiate.respond(forest)
   deg <- cbind(rownames(network.red), cty.list[[1]])
   cent <- c()
