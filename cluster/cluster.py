@@ -223,6 +223,26 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr,
                                             maxDist, author) for cluster in clusters]
 
 
+def groupFuncLines(codeBlks, file_commit):
+    '''
+    put code blks that belong to a single function together
+    '''
+    funcIndx   = {}
+    indx       = 0
+    funcGroups = []
+    
+    for funcId in file_commit.functionIds.values():
+        funcIndx[funcId] = indx
+        funcGroups.append([])
+        indx += 1
+        
+    for codeBlk in codeBlks:
+        funcId = file_commit.findFuncId(codeBlk.start) 
+        blkIndx = funcIndx[funcId]
+        funcGroups[blkIndx].append(codeBlk)
+        
+    return funcGroups
+        
 def randomizeCommitCollaboration(codeBlks, fileState):
     '''
     randomizes the location in the file where commits were made
