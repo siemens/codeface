@@ -174,7 +174,7 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr,
     maxDist     = 25
     author      = True
     fileState   = file_commit.getFileSnapShot()
-    revIds      = file_commit.getrevCmts()
+    revCmtIds   = file_commit.getrevCmts()
     revCmts     = [cmtList[revCmtId] for revCmtId in revCmtIds]
     
     for cmt in revCmts:
