@@ -40,7 +40,7 @@ class FileCommit:
         self.revCmts = []
         
         # dictionary with key = line number, value = function name
-        self.functionId = {}
+        self.functionIds = {}
         
         # list of function line numbers in sorted order, this is for
         # optimizing the process of finding a function Id given a line number
@@ -59,13 +59,13 @@ class FileCommit:
     def getrevCmts(self):
         return self.revCmts
     
-    def setFunctionLines(self, functionId):
-        self.functionId = functionId
+    def setFunctionLines(self, functionIds):
+        self.functionIds = functionIds
         # check if a function exists from line 1, if not make a dummy function
         # that pre first function lines will be assigned
-        if 1 not in functionId:
-           self.functionId[1] = "preFunction" 
-        self.functionLineNums = sorted(self.functionId.iterkeys())
+        if 1 not in functionIds:
+           self.functionIds[1] = "preFunction" 
+        self.functionLineNums = sorted(self.functionIds.iterkeys())
         
     #Methods
     def addFileSnapShot(self, key, dict):
@@ -75,5 +75,5 @@ class FileCommit:
         # returns the identifier of a function given a line number
         i = bisect.bisect_right(self.functionLineNums, lineNum)
         funcLine = self.functionLineNums[i-1]
-        return self.functionId[funcLine]    
+        return self.functionIds[funcLine]    
     

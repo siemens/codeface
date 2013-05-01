@@ -674,29 +674,13 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist, file_commit):
         if cmtId == snapShotCommit:
             snapShotCmtLines.append(lineNum)
             # retrieve the function id that each line falls into
-            snapshot_func_set.add(file_commit.findFuncId(int(lineNum)))
-            
-    #build modFileState by selecting only lines of interest
-    for line in snapShotCmtLines:
-        #calculate region of interest
-        #TODO: little inefficient since there will possibly be some overlap between ranges
-        upperBound = int(line) + maxDist
-        lowerBound = int(line) - maxDist  
-        
-        #limit upper and lower bounds to file size
-        if(upperBound > fileMaxLine):
-            upperBound = fileMaxLine
-        if(lowerBound < fileMinLine):
-            lowerBound = fileMinLine
-        #save lines of interest    
-        [linesSet.add(str(i)) for i in range(lowerBound, upperBound + 1)]    
+            snapshot_func_set.add(file_commit.findFuncId(int(lineNum))) 
     #end for line
     
     # remove lines that are from commits that occur after the snapShotCmt
-    for lineNum in linesSet:
-        cmtHash = str(fileState[lineNum])
-        if cmtHash in cmtlist:
-            cmtDate = cmtlist[cmtHash].getCdate()
+    for lineNum, cmtId in fileState.items():
+        if cmtId in cmtlist:
+            cmtDate = cmtlist[cmtId].getCdate()
         else:
             #must be a old commit that occurred in a prior release 
             continue
