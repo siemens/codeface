@@ -228,7 +228,15 @@ app.getUserFromDB = function(name, email, projectID, response) {
 				var log = { log : '3. check'};
 				console.log(log);
 				console.log(error);
-				if (rows.length == 1){
+				console.log("row.length: " + rows.length)
+				if (rows.length >= 1){
+				    if (rows.length > 1) {
+					console.log("WARNING: Multiple results for a single person, something is inconsistent!")
+
+					for (var count = 0; count < rows.length; count++) {
+					    console.log("  -> ID: " + rows[count].id);
+}
+				    }
 				    // user found: 
 				    // update name if not empty in found user
 				    if (name){
