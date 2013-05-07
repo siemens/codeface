@@ -856,7 +856,7 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
   largestClustMembership = which(g.clust$csize == max(g.clust$csize))
   ## Get all indecies of connected developers for the largest cluster
   idx <- which(g.clust$membership==largestClustMembership) 
-  adjMatrix.connected <- adjMatrix[idx,idx]
+  adjMatrix.connected <- as.matrix(adjMatrix[idx,idx])
   
   
   ## Build adjacency matrix of connected developers
