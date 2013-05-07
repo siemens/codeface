@@ -147,6 +147,7 @@ class idManager:
         # Remove or replace characters in names that are known
         # to cause parsing problems in later stages
         nameClean = name.replace('\"', "")
+        nameClean = name.replace("\'", "")
         
         return nameClean
 ############################ Test cases #########################
