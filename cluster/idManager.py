@@ -18,15 +18,20 @@
 import re
 from email.Utils import parseaddr
 from PersonInfo import PersonInfo
+from dbManager import dbManager
+import httplib
+import urllib
+import json
+import sys
 
 class idManager:
-    """This class provides unique IDs for developers identified by their name and eMail address.
+    """Provide unique IDs for developers.
 
-    We use heuristics to assign a single ID to each developer even if he appears under
-    multiple eMail addresses and/or name variations."""
-    def __init__(self):
+    This class provides an interface to the REST id server. Heuristics to
+    detect developers who operate under multiple identities are included
+    in the server."""
+    def __init__(self, project):
         self.subsys_names = []
-        self.ID = 0
 
         # Map IDs to an instance of PersonInfo
         self.persons = {}
@@ -37,6 +42,21 @@ class idManager:
 
         self.fixup_emailPattern = re.compile(r'([^<]+)\s+<([^>]+)>')
         self.commaNamePattern = re.compile(r'([^,\s]+),\s+(.+)')
+
+        # Initialise the REST connection to the id server
+        # TODO: The URL needs to be configurable and must not be hard-coded
+        self._idMgrServer = "localhost"
+        self._idMgrPort = 8080
+        self._conn = httplib.HTTPConnection(self._idMgrServer, self._idMgrPort)
+
+        # Create a project ID
+        # TODO: The credentials should be made configurable
+        self._dbm = dbManager("localhost", "quantarch",
+                              "quantarch", "quantarch")
+        # TODO: Pass the analysis method to idManager via the configuration
+        # file. However, the method should not influence the id scheme so
+        # that the results are easily comparable.
+        self._projectID = self._dbm.getProjectID(project, "tag")
 
     # We need the subsystem names because PersonInfo instances
     # are created from this class -- and we want to know in which
@@ -70,50 +90,52 @@ class idManager:
                 email = "could.not@be.resolved.tld"
 
         email = email.lower()
+        # TODO: Strip trailing and pending spaces off the names
         name = self._cleanName(name)
 
         return (name, email)
 
-    def getPersonID(self, addr):
-        """Create a unique ID from a contributor
+    def _query_user_id(self, name, email):
+        """Query the ID database for a contributor ID"""
 
-        Multiple identities are detected using heuristics. We do not use
-        an explicit database because the method is supposed to be applicable for
-        a wide range of projects.
+        params = urllib.urlencode({'projectID': self._projectID,
+                                   'name': name,
+                                   'email': email})
+        headers = { "Content-type":
+                        "application/x-www-form-urlencoded; charset=utf-8",
+                    "Accept": "text/plain" }
+
+        try:
+            self._conn.request("POST", "/post_user_id", params, headers)
+            res = self._conn.getresponse()
+        except:
+            print("Could not reach ID service. Is the server running?\n")
+            sys.exit(-1)
+
+        # TODO: We should handle errors by throwing an exception instead
+        # of silently ignoring them
+        id = json.loads(res.read())["id"]
+        return(id)
+
+    def getPersonID(self, addr):
+        """Obtain a unique ID from contributor identity credentials.
+
+        The IDs are managed by a central database accessed via REST.
+        Managing multiple identities for the same person is also
+        handled there. Safety against concurrent access is provided by
+        the database.
         """
-        # TODO: This should be made thread-safe
-        # lock = threading.Lock()
 
         (name, email) = self._decompose_addr(addr)
 
-        if name != "":
-            name_known = self.person_ids.has_key(name)
-        else:
-            name_known = False
+        ID = self._query_user_id(name, email)
 
-        if email != "":
-            email_known = self.person_ids.has_key(email)
-        else:
-            print("WARNING: Developer {0} has no email address?!".format(name))
-            email_known = False
+        # Construct a local instance of PersonInfo for the contributor
+        # if it is not yet available
+        if (not(self.persons.has_key(ID))):
+            self.persons[ID] = PersonInfo(self.subsys_names, ID, name, email)
 
-#        print("EMAIL: ({0}/{1}) ({2}/{3})".format(name, email, name_known, email_known))
-        
-        if not(name_known) and not(email_known):
-            self.person_ids[name] = self.ID
-            self.person_ids[email] = self.ID
-            self.persons[self.ID] = PersonInfo(self.subsys_names, self.ID, name, email)
-            self.ID += 1
-        elif name_known and not(email_known):
-            # Person with multiple eMail addresses (we assume that the name of
-            # each developer is unique. Resolving the general case would require extra
-            # information)
-            self.person_ids[email] = self.person_ids[name]
-        elif  email_known and not(name_known):
-            # Different orthographic variants of the name
-            self.person_ids[name] = self.person_ids[email]
-
-        return self.person_ids[name]
+        return ID
 
     def getPersons(self):
         return self.persons
