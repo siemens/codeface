@@ -1208,8 +1208,9 @@ def sanityCheckLinkType(link_type):
 ###########################################################################
 # Main part
 ###########################################################################
-def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
-                    outdir, link_type, rcranges=None, limit_history=False):
+def performAnalysis(project, dbfilename, git_repo, revrange, subsys_descr,
+                    create_db, outdir, link_type, rcranges=None,
+                    limit_history=False):
     if create_db == True:
         print("Creating data base for {0}..{1}").format(revrange[0],
                                                         revrange[1])
@@ -1225,7 +1226,7 @@ def performAnalysis(dbfilename, git_repo, revrange, subsys_descr, create_db,
     #---------------------------------
     #Fill person Database
     #---------------------------------
-    id_mgr = idManager()
+    id_mgr = idManager(project)
     populatePersonDB(cmtdict.values(), id_mgr, link_type)
     
     if subsys_descr != None:
@@ -1272,7 +1273,7 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
         except os.error as e:
             print("Could not create output dir {0}: {1}".format(outdir,
                                                                 e.strerror))
-            exit(-1)
+            sys.exit(-1)
 
     if rc_start != None:
         rc_range = [[rc_start, to_rev]]
@@ -1287,7 +1288,7 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
     #this will likely break everything if its handled
     #properly right now
     
-    performAnalysis(filename, git_repo, [from_rev, to_rev],
+    performAnalysis(project, filename, git_repo, [from_rev, to_rev],
 #                        kerninfo.subsysDescrLinux,
                         None,
                         create_db, outdir, link_type, rc_range, limit_history)    
