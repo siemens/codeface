@@ -19,6 +19,7 @@ import re
 from email.Utils import parseaddr
 from PersonInfo import PersonInfo
 from dbManager import dbManager
+from config import load_global_config
 import httplib
 import urllib
 import json
@@ -50,9 +51,8 @@ class idManager:
         self._conn = httplib.HTTPConnection(self._idMgrServer, self._idMgrPort)
 
         # Create a project ID
-        # TODO: The credentials should be made configurable
-        self._dbm = dbManager("localhost", "quantarch",
-                              "quantarch", "quantarch")
+        conf = load_global_config("prosoda.conf")
+        self._dbm = dbManager(conf)
         # TODO: Pass the analysis method to idManager via the configuration
         # file. However, the method should not influence the id scheme so
         # that the results are easily comparable.

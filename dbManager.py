@@ -23,11 +23,11 @@ import sys
 class dbManager:
     """This class provides an interface to the prosoda sql database."""
 
-    def __init__(self, host, user, passwd, db):
+    def __init__(self, conf):
         try:
             self.con = None
-            self.con = mdb.Connection(host=host, user=user,
-                                      passwd=passwd, db=db)
+            self.con = mdb.Connection(host=conf["dbhost"], user=conf["dbuser"],
+                                      passwd=conf["dbpwd"], db=conf["dbname"])
         except mdb.Error, e:
             print "Could not initialise database connection: %s (%d)" % \
                     (e.args[1], e.args[0])
@@ -80,7 +80,9 @@ class dbManager:
         return(res[0])
 
 ##### Test cases #####
-dbman = dbManager("localhost", "quantarch", "quantarch", "quantarch")
+import config
+conf = config.load_global_config("prosoda.conf")
+dbman = dbManager(conf)
 project="Twitter Bootstrap2"
 print("Found ID {0} for {1}\n".format(dbman.getProjectID(project, "tag"),
                                       project))
