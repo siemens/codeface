@@ -62,6 +62,10 @@ class dbManager:
                 (e.args[0], e.args[1])
             sys.exit(-1)
 
+    def doExecCommit(self, stmt, args=None):
+        self.doExec(stmt, args)
+        self.doCommit()
+
     # NOTE: We don't provide any synchronisation since by assumption,
     # a single project is never analysed from two threads.
     # TODO: This does not consider the case that one project can
