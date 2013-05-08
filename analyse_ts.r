@@ -191,9 +191,11 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
   }
 }
 
-get.release.dates <- function(resdir) {
-  tstamps <- read.table(paste(resdir, "/ts/timestamps.txt", sep=""),
-                              header=T, sep="\t")
+get.release.dates <- function(con) {
+  ## TODO: There is no connection to the project, we just read global
+  ## time stamps this way
+  tstamps <- dbGetQuery(con, "SELECT * FROM release_timeline")
+  tstamps$date <- ymd_hms(tstamps$date, quiet=T)
   tstamps <- tstamps[tstamps$type=="release",]
 
   return(tstamps)
@@ -201,7 +203,7 @@ get.release.dates <- function(resdir) {
 
 ## Perform statistical analysis on the clusters. type can be "sg"
 ## (spin glass), or "wg" (walktrap -- random walk analysis)
-do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
+do.cluster.analysis <- function(resdir, graphdir, conf, con, type="sg") {
   if (type != "sg" && type != "wg") {
     stop("Internal error: Specify 'wg' or 'sg' for clustering type!")
   }
@@ -210,14 +212,14 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
 
   clusters <- vector("list", length(conf$revisions)-1)
   clusters.summary <- vector("list", length(conf$revisions)-1)
-  tstamps <- get.release.dates(resdir)
+  tstamps <- get.release.dates(con)
 
   ## Stage 1: Perform per-release operations
   for (i in 1:length(cluster.file.list)) {
     clusters[[i]] <- read.table(cluster.file.list[[i]], header=TRUE, sep="\t")
     ## Assign the date of date of the release in the cluster range
     ## as cluster date (e.g., cluster v1..v2 gets the date of v2 assigned)
-    clusters[[i]] <- cbind(clusters[[i]], date=tstamp_to_date(tstamps$date[[i+1]]))
+    clusters[[i]] <- cbind(clusters[[i]], date=tstamps$date[[i+1]])
     clusters[[i]]$group <- as.factor(clusters[[i]]$group)
 
     ## Compute summary statistics for each cluster. The ddply query
@@ -278,13 +280,13 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
          width=12, height=8)
 }
 
-do.commit.analysis <- function(resdir, graphdir, conf) {
+do.commit.analysis <- function(resdir, graphdir, conf, con) {
   commit.file.list <- gen.commit.file.list(resdir, conf$revisions)
 
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
   ts <- vector("list", length(conf$revisions)-1)
-  tstamps <- get.release.dates(resdir)
+  tstamps <- get.release.dates(con)
 
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
@@ -309,7 +311,6 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
   status("Plotting the commit information time series")
   ## Stage 2: Plot the complete commit information time series
   ts <- do.call(rbind, ts)
-  ts$date <- tstamp_to_date(ts$date)
 
   ts.molten <- melt(ts[c("revision", "date", subset)],
                     id=c("revision", "inRC", "date"))
@@ -342,7 +343,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     })
 }
 
-do.ts.analysis <- function(resdir, graphdir, conf) {
+do.ts.analysis <- function(resdir, graphdir, conf, con) {
   ts.file.list <- gen.ts.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
@@ -423,10 +424,20 @@ if (length(arguments$args) != 2) {
 }
 
 conf <- load.config(config.file)
+global.conf <- load.global.config("prosoda.conf")
 resdir <- paste(resdir, conf$project, conf$tagging, sep="/")
 graphdir <- paste(resdir, "graphs", sep="/")
 dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
-do.ts.analysis(resdir, graphdir, conf)
-do.commit.analysis(resdir, graphdir, conf)
-do.cluster.analysis(resdir, graphdir, conf)
+# TODO: Turn this into a database class
+suppressPackageStartupMessages(library(RMySQL))
+drv <- dbDriver("MySQL")
+con <- dbConnect(drv, host=global.conf$dbhost, user=global.conf$dbuser,
+                 password=global.conf$dbpwd, dbname=global.conf$dbname)
+
+## TODO: Turn this into a proper pipeline, or some plugin-based
+## analysis mechanism?
+options(error = quote(dump.frames("error.dump", TRUE)))
+do.ts.analysis(resdir, graphdir, conf, con)
+do.commit.analysis(resdir, graphdir, conf, con)
+do.cluster.analysis(resdir, graphdir, conf, con)

@@ -23,10 +23,12 @@ from commit_analysis import createCumulativeSeries, createSeries, \
     writeToFile, getSeriesDuration
 import os.path
 from subprocess import *
+from datetime import datetime
 import kerninfo
 import pickle
 import argparse
-from config import load_config
+from config import load_config, load_global_config
+from dbManager import dbManager;
 import yaml
 import sys
 
@@ -44,19 +46,24 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
     writeToFile(res, os.path.join(destdir, "raw_{0}.dat".format(sfx)))
     return res
     
-def writeReleases(outfile, tstamps):
-    FILE=open(outfile, "w")
-    last_timestamp = 0
+def tstamp_to_sql(tstamp):
+    """Convert a Unix timestamp into an SQL compatible DateTime string"""
+    return(datetime.utcfromtimestamp(tstamp).strftime("%Y-%m-%d %H:%M:%S"))
 
-    FILE.write("type\ttag\tdate\n");
+def writeReleases(dbm, tstamps):
+    # TODO TODO TODO: The timestampe are not associated with the project
+    # in the database right now.
     for tstamp in tstamps:
-        FILE.write("{0}\t{1}\t{2}\n".format(tstamp[0], tstamp[1], tstamp[2]))
-
-    FILE.close()
+        dbm.doExec("INSERT INTO release_timeline (type, tag, date) " + \
+                       "VALUES (%s, %s, %s)", \
+                       (tstamp[0], tstamp[1], tstamp_to_sql(int(tstamp[2]))))
+    dbm.doCommit()
 
 def dispatch_ts_analysis(resdir, conf_file):
     conf = load_config(conf_file)
+    global_conf = load_global_config("prosoda.conf")
 
+    dbm = dbManager(global_conf)
     dbpath = os.path.join(resdir, conf["project"], conf["tagging"])
     destdir = os.path.join(dbpath, "ts")
 
@@ -83,8 +90,8 @@ def dispatch_ts_analysis(resdir, conf_file):
 
         tstamps.append(("release", conf["revisions"][i], ts.get_end()))
 
-    ## Stage 2: Create a file with time stamps for all releases considered
-    writeReleases(os.path.join(destdir, "timestamps.txt"), tstamps)
+    ## Stage 2: Insert time stamps for all releases considered into the database
+    writeReleases(dbm, tstamps)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
