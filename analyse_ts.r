@@ -245,14 +245,14 @@ do.cluster.analysis <- function(resdir, graphdir, conf, con, type="sg") {
         ylab("Page rank")
     ggsave(paste(graphdir, paste("cluster_prank_", tstamps$tag[[i+1]],
                                  ".pdf", sep=""),
-                 sep="/"), g)
+                 sep="/"), g, width=7, height=7)
 
     g <- ggplot(clusters[[i]], aes(x=group, y=total)) +
       geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
         ylab("Amount of code changes (add+del)")
     ggsave(paste(graphdir, paste("cluster_code_changes_", tstamps$tag[[i+1]],
                                  ".pdf", sep=""),
-                 sep="/"), g)
+                 sep="/"), g, width=7, height=7)
   }
 
 
