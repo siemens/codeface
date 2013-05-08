@@ -812,7 +812,7 @@ performTagAnalysis <- function(outdir){
     id.subsys <- NULL
   }
   
-  performGraphAnalysis(tags, ids, outdir, FALSE, TRUE, id.subsys)
+  performGraphAnalysis(tags, ids, outdir, FALSE, id.subsys)
 }
 
 writeClassicalStatistics <- function(outdir, ids.connected) {
@@ -833,7 +833,7 @@ writeClassicalStatistics <- function(outdir, ids.connected) {
 }
 
 performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
-                                 tagged, id.subsys=NULL){
+                                 id.subsys=NULL){
   
   ##====================================
   ##     Find Connected Subgraphs
@@ -1074,7 +1074,7 @@ performNonTagAnalysis <- function(outdir) {
   ## Graph Analysis
   ##--------------------------
   
-  performGraphAnalysis(adjMatrix, ids, outdir, TRUE, FALSE)
+  performGraphAnalysis(adjMatrix, ids, outdir, TRUE)
 }
 
 compute.all.community.quality <- function(graph, community, test) {
@@ -1230,7 +1230,7 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2,
   
   performGraphAnalysis(similarity.adjMatrix.weighted, ids.intersect,
                        "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments",
-                       TRUE, FALSE)
+                       TRUE)
   
   ##write.graph.2.file("/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments/similarityGraph.dot", g.similarity, ids.intersect, ids.intersect$ID)
 }
