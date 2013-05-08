@@ -39,3 +39,13 @@ load.config <- function(file) {
   return(conf)
 }
 
+load.global.config <- function(file) {
+  conf <- yaml.load_file(file)
+
+  if (is.null(conf$dbhost) || is.null(conf$dbname) ||
+      is.null(conf$dbuser) || is.null(conf$dbpwd)) {
+    stop("Malformed global configuration: Database information is incomplete!\n")
+  }
+
+  return(conf)
+}

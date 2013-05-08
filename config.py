@@ -49,3 +49,16 @@ def load_config(file):
     conf["rcs"] = [replace_none(x) for x in conf["rcs"]]
 
     return conf
+
+def load_global_config(file):
+    f = open(file, "r")
+    conf = yaml.load(f)
+    f.close()
+
+    # Some elementary sanity checks
+    if not(conf.has_key("dbname")) or not(conf.has_key("dbhost")) or \
+            not(conf.has_key("dbuser")) or not(conf.has_key("dbpwd")):
+        print("Malformed configuration: Database information missing!")
+        sys.exit(-1)
+
+    return conf
