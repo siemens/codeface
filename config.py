@@ -16,6 +16,7 @@
 
 # Configuration file parser 
 import yaml
+import sys
 
 def replace_none(val):
     if val == "":
@@ -33,6 +34,11 @@ def load_config(file):
         print("Malformed configuration: Mandatory tags missing!")
         sys.exit(-1)
         
+    if conf["tagging"] != "tag" and conf["tagging"] != "committer2author" \
+            and conf["tagging"] != "proximity":
+        print("Unsupported tagging mechanism specified!")
+        sys.exit(-1)
+
     if len(conf["revisions"]) < 2:
         print("Malformed configuration: At least 2 revisions required")
         sys.exit(-1)
