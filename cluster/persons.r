@@ -1573,7 +1573,7 @@ if (type == "--tag") {
   print("Performing Tag Based Graph Analysis")
   performTagAnalysis(dataDir)
   
-} else if (type == "--non_tag") {
+} else if (type == "--committer2author" || type == "--proximity") {
   print("Performing nonTag Based Graph Analysis")
   performNonTagAnalysis(dataDir)
   
