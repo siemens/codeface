@@ -84,9 +84,10 @@ class dbManager:
         return(res[0])
 
 ##### Test cases #####
-import config
-conf = config.load_global_config("prosoda.conf")
-dbman = dbManager(conf)
-project="Twitter Bootstrap2"
-print("Found ID {0} for {1}\n".format(dbman.getProjectID(project, "tag"),
-                                      project))
+if __name__ == "__main__":
+    import config
+    conf = config.load_global_config("prosoda.conf")
+    dbman = dbManager(conf)
+    project="Twitter Bootstrap2"
+    print("Found ID {0} for {1}\n".format(dbman.getProjectID(project, "tag"),
+                                          project))
