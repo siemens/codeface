@@ -783,16 +783,16 @@ writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
 ##     					 Main Functions
 #########################################################################
 
-performTagAnalysis <- function(outdir){
-################## Process the data #################
+performAnalysis <- function(outdir) {
+  ################## Process the data #################
   status("Reading files")
-  tags <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
+  adjMatrix <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
                      sep="\t", header=FALSE)
-  colnames(tags) <- rownames(tags)
+  colnames(adjMatrix) <- rownames(adjMatrix)
   
-  ## The tags file format uses a different convention for edge direction
-  ## than GNU R, so we need to transpose the matrix
-  tags <- t(tags)
+  ## The adjacency matrix file format uses a different convention for edge
+  ## direction than GNU R, so we need to transpose the matrix
+  adjMatrix <- t(adjMatrix)
   
   ids <- read.csv(file=paste(outdir, "/ids.txt", sep=""),
                   sep="\t", header=TRUE)
@@ -812,7 +812,7 @@ performTagAnalysis <- function(outdir){
     id.subsys <- NULL
   }
   
-  performGraphAnalysis(tags, ids, outdir, id.subsys)
+  performGraphAnalysis(adjMatrix, ids, outdir, id.subsys)
 }
 
 writeClassicalStatistics <- function(outdir, ids.connected) {
@@ -1044,34 +1044,6 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
                      outdir, "wt_cluster_")
 }
 
-
-performNonTagAnalysis <- function(outdir) {
-  ##-----------------
-  ## Read Data
-  ##-----------------
-  status("Reading files")
-  adjMatrix <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
-                          sep="\t", header=FALSE)
-  
-  colnames(adjMatrix) <- rownames(adjMatrix)
-  
-  ## The adjacency file format uses a different convention for edge direction
-  ## than GNU R, so we need to transpose the matrix
-  adjMatrix <- t(adjMatrix)
-  
-  ids <- read.csv(file=paste(outdir, "/ids.txt", sep=""),
-                  sep="\t", header=TRUE)
-  
-  ## IDs are zero-based, but everything in R is 1-based, so simplify
-  ## things by adapting the IDs...
-  ids$ID <- ids$ID + 1
-  
-  ##--------------------------
-  ## Graph Analysis
-  ##--------------------------
-  
-  performGraphAnalysis(adjMatrix, ids, outdir)
-}
 
 compute.all.community.quality <- function(graph, community, test) {
 ########################################################################
@@ -1480,13 +1452,13 @@ experiment <- function(g, g.connected){
 nonTagTest <- function(){
   
   dataDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_NonTag/30"
-  performNonTagAnalysis(dataDir)
+  performAnalysis(dataDir)
   
 }
 TagTest <- function(){
   
   dataDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_Tag/30"
-  performTagAnalysis(dataDir)
+  performAnalysis(dataDir)
   
 }
 
@@ -1569,15 +1541,10 @@ if(length(arguments$args) != 2) {
 ##------------------------------
 options(error = quote(dump.frames("error.dump", TRUE)))
 
-if (type == "--tag") {
-  print("Performing Tag Based Graph Analysis")
-  performTagAnalysis(dataDir)
-  
-} else if (type == "--committer2author" || type == "--proximity") {
-  print("Performing nonTag Based Graph Analysis")
-  performNonTagAnalysis(dataDir)
-  
-} else{
-  print(paste("Please specify either '--tag' or '--non_tag'",
-              "to determine the analysis mode for persons.r", sep="\n"))
+if (type == "--tag" || type == "--committer2author" || type == "--proximity") {
+  performAnalysis(dataDir)
+} else {
+  print(paste("Please specify either '--tag', '--commiter2author', or",
+              "'--proximity' to determine the analysis mode for persons.r",
+              sep="\n"))
 }
