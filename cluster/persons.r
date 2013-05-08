@@ -812,7 +812,7 @@ performTagAnalysis <- function(outdir){
     id.subsys <- NULL
   }
   
-  performGraphAnalysis(tags, ids, outdir, FALSE, id.subsys)
+  performGraphAnalysis(tags, ids, outdir, id.subsys)
 }
 
 writeClassicalStatistics <- function(outdir, ids.connected) {
@@ -832,8 +832,7 @@ writeClassicalStatistics <- function(outdir, ids.connected) {
         sanitize.colnames.function=rotate.label)
 }
 
-performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
-                                 id.subsys=NULL){
+performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   
   ##====================================
   ##     Find Connected Subgraphs
@@ -841,15 +840,12 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
   ## Scale edge weights to integer values 
   ## adjMatrix <- ceiling(scale.data(adjMatrix, 0, 1000))  
   
-  if (.weighted == FALSE) {
-    .weighted = NULL
-  }
   ## Isolated graph members are outliers for the Linux kernel. Eliminate
   ## them to create a connected graph (NOTE: This must not be done for
   ## projects where proper direct clustering can happen)
   status("Computing adjacency matrices")
   
-  g <- graph.adjacency(adjMatrix, mode="directed", weighted=.weighted)
+  g <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
   g.clust <- clusters(g)
   
   ## Find the index of the largest connected cluster 
@@ -870,7 +866,7 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
   }
   
   g.connected <- graph.adjacency(adjMatrix.connected, mode="directed",
-                                 weighted=.weighted)
+                                 weighted=TRUE)
   V(g.connected)$label <- as.character(ids.connected$Name)
   
   ## TODO: Include computing classical statistics from performTagAnalysis
@@ -883,10 +879,10 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir, .weighted,
   status("Computing page rank")
   ## This puts the focus on tagging other persons
   pr.for.all <- compute.pagerank(adjMatrix.connected, transpose=TRUE,
-                                 weights=.weighted)
+                                 weights=TRUE)
   ## ... and this on being tagged. 
   pr.for.all.tr <- compute.pagerank(adjMatrix.connected, .damping=0.3,
-                                    weights=.weighted)
+                                    weights=TRUE)
   
   ## NOTE: pr.for.all$value should be one, but is 0.83 for some
   ## reason. This seems to be a documentation bug, though:
@@ -1074,7 +1070,7 @@ performNonTagAnalysis <- function(outdir) {
   ## Graph Analysis
   ##--------------------------
   
-  performGraphAnalysis(adjMatrix, ids, outdir, TRUE)
+  performGraphAnalysis(adjMatrix, ids, outdir)
 }
 
 compute.all.community.quality <- function(graph, community, test) {
@@ -1229,8 +1225,7 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2,
   dev.off()
   
   performGraphAnalysis(similarity.adjMatrix.weighted, ids.intersect,
-                       "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments",
-                       TRUE)
+                       "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments")
   
   ##write.graph.2.file("/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments/similarityGraph.dot", g.similarity, ids.intersect, ids.intersect$ID)
 }
