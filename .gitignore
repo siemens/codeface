@@ -9,7 +9,6 @@
 *.orig
 *.rej
 *.save
-linux-*
 *.db
 auto/
 db/
