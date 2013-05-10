@@ -417,6 +417,11 @@ pr.in.group <- function(N, .comm, .iddb, .pr) {
 ## Collect page rank and developer metrics for each cluster
 construct.group.info <- function(.comm, .pr, .iddb, .elems) {
   res <- vector("list", length(.elems))
+
+  ## Clusters can be empty, skip processing in this case
+  if (length(.elems) == 0)
+    return (res)
+
   for (i in 1:length(.elems)){
     res[[i]] <- pr.in.group(.elems[[i]], .comm, .iddb, .pr)
   }
