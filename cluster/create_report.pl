@@ -86,7 +86,7 @@ sub gen_latex_iter($$$;$) {
     $suffix = ".tex";
   }
 
-  my @files = split /\n/, `ls $filespec*$suffix`;
+  my @files = split /\n/, `ls $filespec*$suffix 2>/dev/null`;
   return gen_file_table(\@files, $cols, $filespec, $type, $labelfun);
 }
 
