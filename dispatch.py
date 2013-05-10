@@ -80,7 +80,7 @@ def dispatchAnalysis(args):
         cmd = []
         cmd.append(os.path.join(basedir, "cluster", "cluster.py"))
         cmd.append(os.path.join(args.gitdir, conf["repo"], ".git"))
-        cmd.append(conf["project"])
+        cmd.append(args.conf)
         cmd.append(resdir)
         cmd.append(revs[i])
         cmd.append(revs[i+1])
@@ -89,9 +89,6 @@ def dispatchAnalysis(args):
             cmd.append("--rc_start")
             cmd.append(rcs[i+1])
 
-        cmd.append("--link_type")
-        cmd.append(conf["tagging"])
-        
         if (not(args.use_db)):
             cmd.append("--create_db")
 

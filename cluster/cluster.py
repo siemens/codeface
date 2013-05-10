@@ -35,6 +35,7 @@ from VCS import gitVCS
 from PersonInfo import PersonInfo
 from commit_analysis import *
 from idManager import idManager
+from config import load_config
 import codeBlock
 import codeLine
 import math
@@ -1188,29 +1189,14 @@ def computeSimilarity(cmtlist):
         cmt.setAuthorTaggersSimilarity(atsim)
         cmt.setTaggersSubsysSimilarity(tssim)     
 
-def sanityCheckLinkType(link_type):
-    '''        
-    check it the link_type argument is a valid option
-    '''
-    
-    if link_type == LinkType.committer2author:
-        return
-    elif link_type == LinkType.proximity:
-        return
-    elif link_type == LinkType.tag:
-        return
-    else:
-        print("Error: incompatible link_type {0}, must be one of {1}, {2}, {3}"\
-              .format(link_type, LinkType.proximity, LinkType.tag, \
-                      LinkType.committer2author))
-        sys.exit(1)
-    
 ###########################################################################
 # Main part
 ###########################################################################
-def performAnalysis(project, dbfilename, git_repo, revrange, subsys_descr,
-                    create_db, outdir, link_type, rcranges=None,
+def performAnalysis(conf, dbfilename, git_repo, revrange, subsys_descr,
+                    create_db, outdir, rcranges=None,
                     limit_history=False):
+    link_type = conf["tagging"]
+
     if create_db == True:
         print("Creating data base for {0}..{1}").format(revrange[0],
                                                         revrange[1])
@@ -1226,7 +1212,7 @@ def performAnalysis(project, dbfilename, git_repo, revrange, subsys_descr,
     #---------------------------------
     #Fill person Database
     #---------------------------------
-    id_mgr = idManager(project)
+    id_mgr = idManager(conf)
     populatePersonDB(cmtdict.values(), id_mgr, link_type)
     
     if subsys_descr != None:
@@ -1262,8 +1248,8 @@ def performAnalysis(project, dbfilename, git_repo, revrange, subsys_descr,
 
     
 ##################################################################
-def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
-                      create_db, link_type, limit_history=False):
+def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir, git_repo,
+                      create_db, limit_history=False):
     #--------------
     #folder setup 
     #--------------
@@ -1288,10 +1274,10 @@ def doProjectAnalysis(project, from_rev, to_rev, rc_start, outdir, git_repo,
     #this will likely break everything if its handled
     #properly right now
     
-    performAnalysis(project, filename, git_repo, [from_rev, to_rev],
+    performAnalysis(conf, filename, git_repo, [from_rev, to_rev],
 #                        kerninfo.subsysDescrLinux,
                         None,
-                        create_db, outdir, link_type, rc_range, limit_history)    
+                        create_db, outdir, rc_range, limit_history)
 
 ##################################
 #         TESTING CODE
@@ -1334,7 +1320,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument('repo', help="Path to the git repository")
-    parser.add_argument('project', help="Project name")
+    parser.add_argument('conf', help="Project specific configuration file")
     parser.add_argument('outdir', help="Directory to create result files in")
     parser.add_argument('from_rev', help="Start revision")
     parser.add_argument('to_rev', help="End revision")
@@ -1342,22 +1328,15 @@ if __name__ == "__main__":
                         help="ID/tag that marks release candidate starting point")
     parser.add_argument('--create_db', action='store_true',
                         help="(Re-)create database")
-    # tagged analysis is the default, the argument is only available
-    # for systematic consistency
-    parser.add_argument('--link_type', action='store',
-                        help='Perform one of tag-based, proximity-based or \
-                        committer-author-based analysis')
     
     args = parser.parse_args()
     
     limit_history = True
-    # check for valid link type argument 
-    sanityCheckLinkType(args.link_type)
     
-    
-    doProjectAnalysis(args.project, args.from_rev, args.to_rev, args.rc_start,
-                      args.outdir, args.repo, args.create_db, args.link_type,
-                      limit_history)
+    # TODO: Take project and link_type from the configuration
+    conf = load_config(args.conf)
+    doProjectAnalysis(conf, args.from_rev, args.to_rev, args.rc_start,
+                      args.outdir, args.repo, args.create_db, limit_history)
     exit(0)
 
 #git_repo = "/Users/wolfgang/git-repos/linux/.git"
