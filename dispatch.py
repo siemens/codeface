@@ -42,7 +42,13 @@ def executeCommand(cmd, dry_run):
     except OSError:
         _abort("Internal error: Could not execute command '{0}'".
                format(" ".join(cmd)))
-        
+
+    if p2.returncode != 0:
+        print("\n\n******* Internal error *******")
+        print(res)
+        print("*******\n\n")
+        _abort("Internal error: Command {0} exited with {1}".format(" ".join(cmd),
+                                                                    p2.returncode))
     return res
 
 
