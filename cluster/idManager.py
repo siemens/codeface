@@ -31,7 +31,7 @@ class idManager:
     This class provides an interface to the REST id server. Heuristics to
     detect developers who operate under multiple identities are included
     in the server."""
-    def __init__(self, project):
+    def __init__(self, conf):
         self.subsys_names = []
 
         # Map IDs to an instance of PersonInfo
@@ -51,12 +51,13 @@ class idManager:
         self._conn = httplib.HTTPConnection(self._idMgrServer, self._idMgrPort)
 
         # Create a project ID
-        conf = load_global_config("prosoda.conf")
-        self._dbm = dbManager(conf)
+        glob_conf = load_global_config("prosoda.conf")
+        self._dbm = dbManager(glob_conf)
         # TODO: Pass the analysis method to idManager via the configuration
         # file. However, the method should not influence the id scheme so
         # that the results are easily comparable.
-        self._projectID = self._dbm.getProjectID(project, "tag")
+        self._projectID = self._dbm.getProjectID(conf["project"],
+                                                 conf["tagging"])
 
     # We need the subsystem names because PersonInfo instances
     # are created from this class -- and we want to know in which
