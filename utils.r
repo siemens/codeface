@@ -59,6 +59,10 @@ generate_regular_ts <- function(raw, N, delta.t=NA) {
   return(tseries)
 }
 
+can.read.file <- function(file) {
+  return (file.access(file, mode=2) != -1)
+}
+
 status <- function(str) {
 	cat(paste("\r", paste(rep(" ", 75), collapse=''), sep=""))
 	cat(paste("\r", str, sep=""))
