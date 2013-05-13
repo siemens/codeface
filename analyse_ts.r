@@ -125,16 +125,6 @@ gen.ts.file.list <- function(resdir, revisions) {
   return(ts.file.list)
 }
 
-gen.commit.file.list <- function(resdir, revisions) {
-  file.list <- vector("list", length(revisions)-1)
-
-  revs <- gen.rev.list(revisions)
-  for (i in 1:length(revs)) {
-    file.list[[i]] <- paste(resdir, "/", revs[[i]], "/commits.txt", sep="")
-  }
-
-  return(file.list)
-}
 
 gen.cluster.file.list <- function(resdir, revisions, type) {
   file.list <- vector("list", length(revisions)-1)
@@ -289,8 +279,6 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
 }
 
 do.commit.analysis <- function(resdir, graphdir, conf) {
-  commit.file.list <- gen.commit.file.list(resdir, conf$revisions)
-
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
   ts <- vector("list", length(conf$revisions)-1)
@@ -298,19 +286,28 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
 
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
-  for (i in 1:length(commit.file.list)) {
-    if (!can.read.file(commit.file.list[[i]])) {
-      cat("Cannot read ", commit.file.list[[i]], "\n")
-    }
+  for (i in 1:(length(tstamps)-1)) {
+    dat <- dbGetQuery(conf$con, str_c("SELECT * FROM commit where project=",
+                                      conf$pid, " AND releaseStartTag=",
+                                      sq(get.revision.id(conf, tstamps$tag[i])),
+                                      " AND releaseEndTag=",
+                                      sq(get.revision.id(conf, tstamps$tag[i+1]))))
 
-    dat <- read.table(commit.file.list[[i]], header=TRUE, sep="\t")
+    # TEMPORARY HACK until the column are renamed properly
+    colnames(dat) <- c("id", "commitHash", "commitDate", "author",
+                       "project",  "ChangedFiles", "addedLines", "deletedLines",
+                       "DiffSize", "commitMessageLines",
+                       "CmtMsgBytes", "numSignedOff", "NumTags", "general",
+                       "totalSubSys", "subsys", "inRC", "authorSubsysSimilarity",
+                       "authorTaggersSimilarity", "taggersSubsysSimilarity",
+                       "releaseStartTag", "releaseEndTag")
     dat <- normalise.commit.dat(dat, subset)
 
     status(paste("Plotting commit information for revisison",
                  conf$revisions[[i+1]]))
     plot.types <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
     if (sum(dat$NumSignedOffs) > 0) {
-      ## The data does contain tagging information
+      ## The data do contain tagging information
       plot.types <- c(plot.types, "NumTags")
     }
 

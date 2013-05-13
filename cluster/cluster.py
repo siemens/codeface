@@ -839,61 +839,63 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseIDs, dbm):
     # NOTE: We could care about different diff types, but currently,
     # we don't. There are strong indications that it does not matter
     # at all anyway which diff algorithm we use
-    out = open(os.path.join(outdir, "commits.txt"), 'wb')
+    projectID = dbm.getProjectID(conf["project"], conf["tagging"])
 
-    # Construct the header...
-    header = "ID	ChangedFiles	AddedLines	DeletedLines	DiffSize	CmtMsgLines	CmtMsgBytes	NumSignedOffs	NumTags	"
-    header += "\t".join(id_mgr.getSubsysNames() + ["general"])
-    header += "\tTotalSubsys"
-    header += "\tSubsys"
-    header += "\tinRC"
-    header += "\tAuthorSubsysSimilarity"
-    header += "\tAuthorTaggersSimilarity"
-    header += "\tTaggersSubsysSimilarity"
-    print >>out, header
-
-    # ... and write the values proper
-    fmtstr = "\t".join(["{" + str(x) + "}" for x in range(0,9)])
     for cmt in cmtlist:
-        outstr = fmtstr.format(cmt.id,
-                               cmt.getChangedFiles(0),
-                               cmt.getAddedLines(0),
-                               cmt.getDeletedLines(0),
-                               cmt.getAddedLines(0) + cmt.getDeletedLines(0),
-                               cmt.getCommitMessageLines(),
-                               cmt.getCommitMessageSize(),
-                               getSignoffCount(cmt),
-                               getSignoffEtcCount(cmt))
-
         subsys_touched = cmt.getSubsystemsTouched()
         subsys_count = 0
         for subsys in id_mgr.getSubsysNames() + ["general"]:
-            outstr += "\t{0}".format(subsys_touched[subsys])
             subsys_count += subsys_touched[subsys]
             if subsys_touched[subsys] == 1:
                 # If the commit touches more than one subsys, this
                 # is obviously not unique.
                 subsys_name = subsys
 
-        outstr += "\t{0}".format(subsys_count)
-        outstr += "\t{0}".format(subsys_name)
-        
         if cmt.getInRC():
-            outstr += "\t1"
+            inRC=1
         else:
-            outstr += "\t0"
+            inRC=0
 
-        outstr += "\t{0}".format(cmt.getAuthorSubsysSimilarity())
-        outstr += "\t{0}".format(cmt.getAuthorTaggersSimilarity())
-        outstr += "\t{0}".format(cmt.getTaggersSubsysSimilarity())
+        dbm.doExec("INSERT INTO commit " +
+                   "(commitHash, commitDate, author, project, changedFiles, " +
+                   #
+                   "addedLines, deletedLines, diffSize, commitMessageLines, " +
+                   "commitMessageBytes, " +
+                   #
+                   "numSignedOff, numTags, totalSubSys, " +
+                   "subsys, inRC, " +
+                   #
+                   "authorSubsysSimilarity, authorTaggersSimilarity, " +
+                   "taggersSubsysSimilarity, releaseStartTag, releaseEndTag) " +
+                   "VALUES " +
+                   # TODO: For some reason, using %d for integers does not work
+                   # (and likewise for %f)
+                   "(%s, %s, %s, %s, %s, " +
+                   " %s, %s, %s, %s, %s, " +
+                   " %s, %s, %s, %s, %s, " +
+                   " %s, %s, %s, %s, %s)",
+                   (cmt.id, tstamp_to_sql(int(cmt.getCdate())),
+                    cmt.getAuthorPI().getID(), projectID,
+                    cmt.getChangedFiles(0),
+                    #
+                    int(cmt.getAddedLines(0)), int(cmt.getDeletedLines(0)),
+                    int(cmt.getAddedLines(0) + cmt.getDeletedLines(0)),
+                    int(cmt.getCommitMessageLines()),
+                    int(cmt.getCommitMessageSize()),
+                    #
+                    int(getSignoffCount(cmt)), int(getSignoffEtcCount(cmt)),
+                    int(subsys_count), subsys_name, int(inRC),
+                    #
+                    float(cmt.getAuthorSubsysSimilarity()),
+                    float(cmt.getAuthorTaggersSimilarity()),
+                    float(cmt.getTaggersSubsysSimilarity()),
+                    int(releaseIDs[0]), int(releaseIDs[1])))
 
-        out.write(outstr + "\n")
         # TODO: Continue writing here. Include at least
         # signoff-info (subsys info of signers)
         # similarity_between_author_and_signers
         # predominantly add, remove, or modify code (3-level factor)
-    out.close()
-
+    dbm.doCommit()
 
 def writeSubsysPerAuthorData2File(id_mgr, outdir):
     '''
