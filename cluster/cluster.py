@@ -373,14 +373,12 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, maxDist,
         #get all blocks for the oldCmtId
         oldRevBlks = [blk for blk in codeBlks if blk.cmtHash == oldCmtId]
         
-        #compute relationship strength for ALL combinations of blocks  
-        allCombStrengths  = [computeEdgeStrength(blk1, blk2, maxDist)
-                             for blk1 in oldRevBlks for blk2 in revCmtBlks]
-        
-        #TODO: check if summing is the appropriate operation
-        #sum the strengths 
-        sumStrength = sum(allCombStrengths) #/ len(allCombStrengths) * 1.0
-        
+        #TODO: think about a more appropriate way to measure the collaboration
+        #     strength, at the moment this value can be interpreted as for every
+        #     commit in the neighborhood (no matter the size) is valued as 1
+        #     this means that the number of LOC has no impact on the perceived
+        #     collaboration which may negatively impact the further analysis
+        collaboration_strength = 1
         #store result
         if author: 
             personId = oldRevBlks[0].authorId
@@ -388,9 +386,11 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, maxDist,
             personId = oldRevBlks[0].committerId
         
         inEdgePerson = id_mgr.getPI(personId)
-        revPerson.addSendRelation      (LinkType.proximity, personId, cmt,     sumStrength)
-        inEdgePerson.addReceiveRelation(LinkType.proximity, revPerson.getID(), sumStrength)
-    
+        revPerson.addSendRelation      (LinkType.proximity, personId, cmt,
+                                        collaboration_strength)
+        inEdgePerson.addReceiveRelation(LinkType.proximity, revPerson.getID(),
+                                        collaboration_strength)
+        
 
 def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist): 
     '''
