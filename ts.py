@@ -50,13 +50,14 @@ def tstamp_to_sql(tstamp):
     """Convert a Unix timestamp into an SQL compatible DateTime string"""
     return(datetime.utcfromtimestamp(tstamp).strftime("%Y-%m-%d %H:%M:%S"))
 
-def writeReleases(dbm, tstamps):
-    # TODO TODO TODO: The timestampe are not associated with the project
-    # in the database right now.
+def writeReleases(dbm, tstamps, conf):
+    pid = dbm.getProjectID(conf["project"], conf["tagging"])
+
     for tstamp in tstamps:
-        dbm.doExec("INSERT INTO release_timeline (type, tag, date) " + \
-                       "VALUES (%s, %s, %s)", \
-                       (tstamp[0], tstamp[1], tstamp_to_sql(int(tstamp[2]))))
+        dbm.doExec("INSERT INTO release_timeline (type, tag, date, projectId) " + \
+                       "VALUES (%s, %s, %s, %s)", \
+                       (tstamp[0], tstamp[1], tstamp_to_sql(int(tstamp[2])),
+                        pid))
     dbm.doCommit()
 
 def dispatch_ts_analysis(resdir, conf_file):
@@ -91,7 +92,7 @@ def dispatch_ts_analysis(resdir, conf_file):
         tstamps.append(("release", conf["revisions"][i], ts.get_end()))
 
     ## Stage 2: Insert time stamps for all releases considered into the database
-    writeReleases(dbm, tstamps)
+    writeReleases(dbm, tstamps, conf)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
