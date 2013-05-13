@@ -41,6 +41,8 @@ suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(optparse))
 source("utils.r")
+source("config.r")
+source("db.r")
 
 
 #######################################################################
@@ -788,7 +790,7 @@ writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
 ##     					 Main Functions
 #########################################################################
 
-performAnalysis <- function(outdir) {
+performAnalysis <- function(outdir, conf) {
   ################## Process the data #################
   status("Reading files")
   adjMatrix <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
@@ -1528,28 +1530,26 @@ test.community.quality.modularity <- function() {
 ##----------------------------
 ## Parse commandline arguments
 ##----------------------------
-parser <- OptionParser(usage = "%prog datadir")
+parser <- OptionParser(usage = "%prog resdir config")
 arguments <- parse_args(parser, positional_arguments = TRUE)
 
 if(length(arguments$args) != 2) {
-  cat("Please specify data directory\n\n")
+  cat("Error: Please specify result directory and configuration file!\n\n")
   print_help(parser)
   stop()
   
 } else {
-  dataDir <- arguments$args[1]
-  type    <- arguments$args[2]
+  resdir <- arguments$args[1]
+  config.file <- arguments$args[2]
 }
 
 ##------------------------------
-## Perform appropriate Analysis 
+## Perform appropriate analysis
 ##------------------------------
 options(error = quote(dump.frames("error.dump", TRUE)))
 
-if (type == "--tag" || type == "--committer2author" || type == "--proximity") {
-  performAnalysis(dataDir)
-} else {
-  print(paste("Please specify either '--tag', '--commiter2author', or",
-              "'--proximity' to determine the analysis mode for persons.r",
-              sep="\n"))
-}
+conf <- load.config(config.file)
+global.conf <- load.global.config("prosoda.conf")
+conf <- init.db(conf, global.conf)
+
+performAnalysis(resdir, conf)

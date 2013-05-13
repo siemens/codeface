@@ -100,7 +100,7 @@ def dispatchAnalysis(args):
         cmd = []
         cmd.append(os.path.join(basedir, "cluster", "persons.r"))
         cmd.append(resdir)
-        cmd.append("--{0}".format(conf["tagging"]))
+        cmd.append(args.conf)
         executeCommand(cmd, args.dry_run)
 
         #########
