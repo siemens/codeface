@@ -192,10 +192,10 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
   }
 }
 
-get.release.dates <- function(con, pid) {
-  res <- dbGetQuery(con,
+get.release.dates <- function(conf) {
+  res <- dbGetQuery(conf$con,
                     str_c("SELECT * FROM release_timeline WHERE projectId=",
-                          pid, sep=""))
+                          conf$pid, sep=""))
   res$type <- as.factor(res$type)
   res$date <- ymd_hms(res$date, quiet=T)
   res <- res[res$type=="release",]
@@ -205,7 +205,7 @@ get.release.dates <- function(con, pid) {
 
 ## Perform statistical analysis on the clusters. type can be "sg"
 ## (spin glass), or "wg" (walktrap -- random walk analysis)
-do.cluster.analysis <- function(resdir, graphdir, conf, con, type="sg") {
+do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   if (type != "sg" && type != "wg") {
     stop("Internal error: Specify 'wg' or 'sg' for clustering type!")
   }
@@ -214,7 +214,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf, con, type="sg") {
 
   clusters <- vector("list", length(conf$revisions)-1)
   clusters.summary <- vector("list", length(conf$revisions)-1)
-  tstamps <- get.release.dates(con, conf$pid)
+  tstamps <- get.release.dates(conf)
 
   ## Stage 1: Perform per-release operations
   for (i in 1:length(cluster.file.list)) {
@@ -286,13 +286,13 @@ do.cluster.analysis <- function(resdir, graphdir, conf, con, type="sg") {
          width=12, height=8)
 }
 
-do.commit.analysis <- function(resdir, graphdir, conf, con) {
+do.commit.analysis <- function(resdir, graphdir, conf) {
   commit.file.list <- gen.commit.file.list(resdir, conf$revisions)
 
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
   ts <- vector("list", length(conf$revisions)-1)
-  tstamps <- get.release.dates(con, conf$pid)
+  tstamps <- get.release.dates(conf)
 
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
@@ -357,7 +357,7 @@ do.commit.analysis <- function(resdir, graphdir, conf, con) {
     })
 }
 
-do.ts.analysis <- function(resdir, graphdir, conf, con) {
+do.ts.analysis <- function(resdir, graphdir, conf) {
   ts.file.list <- gen.ts.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
@@ -443,16 +443,11 @@ resdir <- paste(resdir, conf$project, conf$tagging, sep="/")
 graphdir <- paste(resdir, "graphs", sep="/")
 dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
-# TODO: Turn this into a database class
-suppressPackageStartupMessages(library(RMySQL))
-drv <- dbDriver("MySQL")
-con <- dbConnect(drv, host=global.conf$dbhost, user=global.conf$dbuser,
-                 password=global.conf$dbpwd, dbname=global.conf$dbname)
-conf$pid <- get.project.id(con, conf$project)
+conf <- init.db(conf, global.conf)
 
 ## TODO: Turn this into a proper pipeline, or some plugin-based
 ## analysis mechanism?
 options(error = quote(dump.frames("error.dump", TRUE)))
-do.ts.analysis(resdir, graphdir, conf, con)
-do.commit.analysis(resdir, graphdir, conf, con)
-do.cluster.analysis(resdir, graphdir, conf, con)
+do.ts.analysis(resdir, graphdir, conf)
+do.commit.analysis(resdir, graphdir, conf)
+do.cluster.analysis(resdir, graphdir, conf)

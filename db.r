@@ -19,6 +19,7 @@
 
 ## TODO: Add S3 database helper class similar to dbManager.py
 
+suppressPackageStartupMessages(library(RMySQL))
 suppressPackageStartupMessages(library(stringr))
 
 sq <- function(string) {
@@ -29,4 +30,16 @@ get.project.id <- function(con, name) {
   res <- dbGetQuery(con, str_c("SELECT id FROM project WHERE name=", sq(name)))
   
   return(res$id)
+}
+
+## Establish the connection and store the relevant configuration
+## parameters in the project specific configuration structure
+init.db <- function(conf, global.conf) {
+  drv <- dbDriver("MySQL")
+  con <- dbConnect(drv, host=global.conf$dbhost, user=global.conf$dbuser,
+                   password=global.conf$dbpwd, dbname=global.conf$dbname)
+  conf$pid <- get.project.id(con, conf$project)
+  conf$con <- con
+
+  return(conf)
 }
