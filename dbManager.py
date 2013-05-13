@@ -19,6 +19,7 @@
 
 import MySQLdb as mdb
 import sys
+from datetime import datetime
 
 class dbManager:
     """This class provides an interface to the prosoda sql database."""
@@ -92,6 +93,11 @@ class dbManager:
 
         res = self.doFetchAll()[0]
         return(res[0])
+
+def tstamp_to_sql(tstamp):
+    """Convert a Unix timestamp into an SQL compatible DateTime string"""
+    return(datetime.utcfromtimestamp(tstamp).strftime("%Y-%m-%d %H:%M:%S"))
+
 
 ##### Test cases #####
 if __name__ == "__main__":
