@@ -153,7 +153,7 @@ gen.cluster.file.list <- function(resdir, revisions, type) {
 ## month's worth of data points go into the calculation of one smoothed
 ## data point. Using the robust median instead of mean considerably
 ## reduces the amount of outliers
-gen.series.df <- function(series) {
+process.ts <- function(series) {
   duration <- end(series) - start(series)
 
   ## We compute the window lengths based on natural time units
@@ -364,7 +364,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   
   ## Dispatch the calculations and create result data frames
   full.ts <- gen.full.ts(ts.file.list)
-  series.merged <- gen.series.df(full.ts$series)
+  series.merged <- process.ts(full.ts$series)
   
   ## Prepare y ranges for the different graph types
   ## Compute min/max value per type
