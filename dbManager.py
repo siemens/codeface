@@ -85,6 +85,14 @@ class dbManager:
         res = self.doFetchAll()[0]
         return(res[0])
 
+    def getRevisionID(self, projectID, tag):
+        """Determine the ID of a tag, given its textual form"""
+        self.doExec("SELECT id FROM release_timeline WHERE projectId=%s " +
+                    "AND tag=%s AND type='release'", (projectID, tag))
+
+        res = self.doFetchAll()[0]
+        return(res[0])
+
 ##### Test cases #####
 if __name__ == "__main__":
     import config
