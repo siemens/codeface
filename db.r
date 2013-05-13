@@ -32,6 +32,27 @@ get.project.id <- function(con, name) {
   return(res$id)
 }
 
+## Determine the ID of a given plot for a given project. Since
+## plots are not created in parallel, we need no locking
+get.plot.id <- function(conf, plot.name) {
+  res <- dbGetQuery(conf$con, str_c("SELECT id from plot_data WHERE name=",
+                                    sq(plot.name), "AND projectId=", conf$pid))
+
+  if (length(res) == 0) {
+    dbGetQuery(conf$con, str_c("INSERT INTO plot_data (name, projectId) VALUES (",
+                               sq(plot.name), ", ", conf$pid, ")"))
+    res <- dbGetQuery(conf$con, str_c("SELECT id from plot_data WHERE name=",
+                                      sq(plot.name), "AND projectId=", conf$pid))
+  }
+
+  if (length(res) != 1) {
+    stop("Internal error: Plot ", plot.name, " appears multiple times in DB",
+         "for project ", conf$project)
+  }
+
+  return(res$id)
+}
+
 ## Establish the connection and store the relevant configuration
 ## parameters in the project specific configuration structure
 init.db <- function(conf, global.conf) {
