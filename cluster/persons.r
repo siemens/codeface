@@ -1395,6 +1395,8 @@ vertex.neighborhood.difference <- function(g1, v1, g2, v2) {
   return(difference)
 }
 
+## TODO: this should be changed to use the Tanimoto coefficient, a more theoriticaly
+##       sound and established similairty measure for weighted graphs
 vertex.edge.weight.difference <- function(g1, v1, g2, v2) {
 	##  -- To be used only on weighted graphs --
 	## computes the percent difference between two verteces from two different
