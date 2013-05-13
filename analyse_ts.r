@@ -31,6 +31,7 @@ suppressPackageStartupMessages(library(gridExtra))
 source("utils.r")
 source("config.r")
 source("plot.r")
+source("db.r")
 
 ## Omit time series elements that exceed the given range
 trim.series <- function(series, start, end) {
@@ -191,14 +192,15 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
   }
 }
 
-get.release.dates <- function(con) {
-  ## TODO: There is no connection to the project, we just read global
-  ## time stamps this way
-  tstamps <- dbGetQuery(con, "SELECT * FROM release_timeline")
-  tstamps$date <- ymd_hms(tstamps$date, quiet=T)
-  tstamps <- tstamps[tstamps$type=="release",]
+get.release.dates <- function(con, pid) {
+  res <- dbGetQuery(con,
+                    str_c("SELECT * FROM release_timeline WHERE projectId=",
+                          pid, sep=""))
+  res$type <- as.factor(res$type)
+  res$date <- ymd_hms(res$date, quiet=T)
+  res <- res[res$type=="release",]
 
-  return(tstamps)
+  return(res)
 }
 
 ## Perform statistical analysis on the clusters. type can be "sg"
@@ -212,7 +214,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf, con, type="sg") {
 
   clusters <- vector("list", length(conf$revisions)-1)
   clusters.summary <- vector("list", length(conf$revisions)-1)
-  tstamps <- get.release.dates(con)
+  tstamps <- get.release.dates(con, conf$pid)
 
   ## Stage 1: Perform per-release operations
   for (i in 1:length(cluster.file.list)) {
@@ -290,7 +292,7 @@ do.commit.analysis <- function(resdir, graphdir, conf, con) {
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
   ts <- vector("list", length(conf$revisions)-1)
-  tstamps <- get.release.dates(con)
+  tstamps <- get.release.dates(con, conf$pid)
 
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
@@ -446,6 +448,7 @@ suppressPackageStartupMessages(library(RMySQL))
 drv <- dbDriver("MySQL")
 con <- dbConnect(drv, host=global.conf$dbhost, user=global.conf$dbuser,
                  password=global.conf$dbpwd, dbname=global.conf$dbname)
+conf$pid <- get.project.id(con, conf$project)
 
 ## TODO: Turn this into a proper pipeline, or some plugin-based
 ## analysis mechanism?
