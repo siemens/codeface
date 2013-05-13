@@ -217,6 +217,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   tstamps <- get.release.dates(conf)
 
   ## Stage 1: Perform per-release operations
+  status("Preparing per-release cluster plots")
   for (i in 1:length(cluster.file.list)) {
     ## Take into account that small cycles do not necessarily have clusters
     if (!can.read.file(cluster.file.list[[i]])) {
@@ -239,7 +240,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
                                    num.commits.median=median(numcommits),
                                    sum.commits=sum(numcommits))
     ## Scale the summary statistics for average statements per member
-    # (pp = "per pers
+    # (pp = "per person")
     clusters.summary[[i]]$sum.commits.pp <-
       clusters.summary[[i]]$sum.commits/clusters.summary[[i]]$num.members
     clusters.summary[[i]]$sum.changes.pp <-
@@ -265,6 +266,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   ## Stage 2: Perform global operations on all releases
   ## TODO: Augment the date labels with release specifications; additionally,
   ## sort the clusters by average page rank per release
+  status("Preparing global cluster plots")
   clusters.all <- do.call(rbind, clusters)
   clusters.summary.all <- do.call(rbind, clusters.summary)
   clusters.all$date.factor <- as.factor(clusters.all$date)
