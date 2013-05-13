@@ -23,11 +23,13 @@ import sys
 class dbManager:
     """This class provides an interface to the prosoda sql database."""
 
-    def __init__(self, conf):
+    def __init__(self, global_conf):
         try:
             self.con = None
-            self.con = mdb.Connection(host=conf["dbhost"], user=conf["dbuser"],
-                                      passwd=conf["dbpwd"], db=conf["dbname"])
+            self.con = mdb.Connection(host=global_conf["dbhost"],
+                                      user=global_conf["dbuser"],
+                                      passwd=global_conf["dbpwd"],
+                                      db=global_conf["dbname"])
         except mdb.Error, e:
             print "Could not initialise database connection: %s (%d)" % \
                     (e.args[1], e.args[0])
