@@ -17,7 +17,7 @@
 # All Rights Reserved.
 
 # Dispatcher for the prosoda analysis based on a configuration file
-from config import load_config
+from config import load_config, load_global_config
 from subprocess import *
 import argparse
 import glob
@@ -25,6 +25,7 @@ import os
 import sys
 from conv import convert_dot_file
 from tempfile import NamedTemporaryFile, mkdtemp
+from dbManager import dbManager
 import shutil
 
 def _abort(msg):
@@ -54,6 +55,9 @@ def executeCommand(cmd, dry_run):
 
 def dispatchAnalysis(args):
     conf = load_config(args.conf)
+    global_conf = load_global_config("prosoda.conf")
+    dbm = dbManager(global_conf)
+
     revs = conf["revisions"]
     rcs = conf["rcs"]
 
@@ -63,6 +67,17 @@ def dispatchAnalysis(args):
         basedir = args.basedir
 
     print("Processing project '{0}'".format(conf["description"]))
+    pid = dbm.getProjectID(conf["project"], conf["tagging"])
+
+    # Fill table release_timeline with the release information
+    # known so far (date is not yet available)
+    for i in range(len(revs)):
+        dbm.doExecCommit("INSERT INTO release_timeline " +
+                         "(type, tag, projectId) " +
+                         "VALUES (%s, %s, %s)",
+                         ("release", revs[i], pid))
+
+    # Analyse all revision ranges
     for i in range(len(revs)-1):
         resdir = os.path.join(args.resdir, conf["project"],
                               conf["tagging"],

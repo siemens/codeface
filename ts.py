@@ -28,7 +28,7 @@ import kerninfo
 import pickle
 import argparse
 from config import load_config, load_global_config
-from dbManager import dbManager;
+from dbManager import dbManager, tstamp_to_sql;
 import yaml
 import sys
 
@@ -46,16 +46,20 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
     writeToFile(res, os.path.join(destdir, "raw_{0}.dat".format(sfx)))
     return res
     
-def tstamp_to_sql(tstamp):
-    """Convert a Unix timestamp into an SQL compatible DateTime string"""
-    return(datetime.utcfromtimestamp(tstamp).strftime("%Y-%m-%d %H:%M:%S"))
-
 def writeReleases(dbm, tstamps, conf):
     pid = dbm.getProjectID(conf["project"], conf["tagging"])
 
     for tstamp in tstamps:
-        dbm.doExec("INSERT INTO release_timeline (type, tag, date, projectId) " + \
-                       "VALUES (%s, %s, %s, %s)", \
+        if tstamp[0] == "release":
+            dbm.doExec("UPDATE release_timeline SET date=%s WHERE " +
+                       "projectId=%s AND type=%s AND tag=%s",
+                       (tstamp_to_sql(int(tstamp[2])), pid, tstamp[0], tstamp[1]))
+            print("Trying to update {0} with {1}".format(tstamp[0],
+                                                         tstamp_to_sql(int(tstamp[2]))))
+        else:
+            dbm.doExec("INSERT INTO release_timeline " +
+                       "(type, tag, date, projectId) " +
+                       "VALUES (%s, %s, %s, %s)",
                        (tstamp[0], tstamp[1], tstamp_to_sql(int(tstamp[2])),
                         pid))
     dbm.doCommit()
