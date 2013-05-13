@@ -35,7 +35,8 @@ from VCS import gitVCS
 from PersonInfo import PersonInfo
 from commit_analysis import *
 from idManager import idManager
-from config import load_config
+from dbManager import dbManager, tstamp_to_sql
+from config import load_config, load_global_config
 import codeBlock
 import codeLine
 import math
@@ -829,7 +830,7 @@ def createStatisticalData(cmtlist, id_mgr, link_type):
     return None
 
 
-def writeCommitData2File(cmtlist, id_mgr, outdir):
+def writeCommitData2File(cmtlist, id_mgr, outdir, releaseIDs, dbm):
     '''
     commit information is written to the outdir location
     '''
@@ -946,7 +947,7 @@ def writeIDwithCmtStats2File(id_mgr, outdir):
                             added + deleted, numcommits])
 
     
-def writeAdjMatrix2File(id_mgr, outdir, link_type):
+def writeAdjMatrix2File(id_mgr, outdir, conf):
     '''
     Connections between the developers are written to the outdir location
     in adjacency matrix format
@@ -959,6 +960,7 @@ def writeAdjMatrix2File(id_mgr, outdir, link_type):
     # of developers is only a few thousand, it will likely not pay
     # off to utilise this fact for more efficient storage.
 
+    link_type = conf["tagging"]
     out = open(os.path.join(outdir, "adjacencyMatrix.txt"), 'wb')
     idlist = sorted(id_mgr.getPersons().keys())
     # Header
@@ -986,23 +988,23 @@ def writeAdjMatrix2File(id_mgr, outdir, link_type):
     out.close()
 
 
-def emitStatisticalData(cmtlist, id_mgr, outdir, link_type):
-    """Save the available information for further statistical processing.
+def emitStatisticalData(cmtlist, id_mgr, outdir, revisionIDs, dbm, conf):
+    """Save the available information for a release interval for further statistical processing.
 
-    Several files are created in outdir:
+    Several files are created in outdir respectively the database:
     - Information about the commits proper (commits.txt)
     - Names/ID associations (ids.txt). This file also contains
       the per-author total of added/deleted/modified lines etc.
     - Per-Author information on relative per-subsys work distribution (id_subsys.txt)
     - Connection between the developers derived from commit tags (tags.txt)"""
     
-    writeCommitData2File(cmtlist, id_mgr, outdir)
+    writeCommitData2File(cmtlist, id_mgr, outdir, revisionIDs, dbm)
     
     writeSubsysPerAuthorData2File(id_mgr, outdir)
     
     writeIDwithCmtStats2File(id_mgr, outdir)
     
-    writeAdjMatrix2File(id_mgr, outdir, link_type)
+    writeAdjMatrix2File(id_mgr, outdir, conf)
     
     return None
 
@@ -1192,7 +1194,7 @@ def computeSimilarity(cmtlist):
 ###########################################################################
 # Main part
 ###########################################################################
-def performAnalysis(conf, dbfilename, git_repo, revrange, subsys_descr,
+def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
                     create_db, outdir, rcranges=None,
                     limit_history=False):
     link_type = conf["tagging"]
@@ -1203,6 +1205,9 @@ def performAnalysis(conf, dbfilename, git_repo, revrange, subsys_descr,
         createDB(dbfilename, git_repo, revrange, subsys_descr, \
                  link_type, rcranges)
         
+    projectID = dbm.getProjectID(conf["project"], conf["tagging"])
+    revisionIDs = (dbm.getRevisionID(projectID, revrange[0]),
+                   dbm.getRevisionID(projectID, revrange[1]))
         
     print("Reading from data base {0}...".format(dbfilename))
     git = readDB(dbfilename)
@@ -1244,12 +1249,12 @@ def performAnalysis(conf, dbfilename, git_repo, revrange, subsys_descr,
     #Save the results in text files that can be further processed with
     #statistical software, that is, GNU R
     #---------------------------------                      
-    emitStatisticalData(cmtlist, id_mgr, outdir, link_type)
+    emitStatisticalData(cmtlist, id_mgr, outdir, revisionIDs, dbm, conf)
 
     
 ##################################################################
-def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir, git_repo,
-                      create_db, limit_history=False):
+def doProjectAnalysis(conf, dbm, from_rev, to_rev, rc_start, outdir,
+                      git_repo, create_db, limit_history=False):
     #--------------
     #folder setup 
     #--------------
@@ -1274,7 +1279,7 @@ def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir, git_repo,
     #this will likely break everything if its handled
     #properly right now
     
-    performAnalysis(conf, filename, git_repo, [from_rev, to_rev],
+    performAnalysis(conf, dbm, filename, git_repo, [from_rev, to_rev],
 #                        kerninfo.subsysDescrLinux,
                         None,
                         create_db, outdir, rc_range, limit_history)
@@ -1335,7 +1340,10 @@ if __name__ == "__main__":
     
     # TODO: Take project and link_type from the configuration
     conf = load_config(args.conf)
-    doProjectAnalysis(conf, args.from_rev, args.to_rev, args.rc_start,
+    global_conf = load_global_config("prosoda.conf")
+
+    dbm = dbManager(global_conf)
+    doProjectAnalysis(conf, dbm, args.from_rev, args.to_rev, args.rc_start,
                       args.outdir, args.repo, args.create_db, limit_history)
     exit(0)
 
