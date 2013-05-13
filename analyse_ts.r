@@ -330,6 +330,10 @@ do.commit.analysis <- function(resdir, graphdir, conf, con) {
   max.year <- year(max(ts.molten$date))
 
   dummy <- sapply(seq(min.year, max.year), function(year) {
+    if (dim(ts.molten[year(ts.molten$date)==year,])[1] == 0) {
+      status(paste("Skipping annual commit time series for", year, "(no release)"))
+      return(NA)
+    }
     status(paste("Creating annual commit time series for", year))
     g <- ggplot(data=ts.molten[year(ts.molten$date)==year,],
                 aes(x=revision, y=value, colour=inRC)) +
