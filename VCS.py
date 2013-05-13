@@ -938,7 +938,7 @@ class gitVCS (VCS):
         srcFile.close()
             
         # run ctags analysis on the file to create a tags file
-        cmd = "ctags -f {0} --fields=nk {1}".format(tagFn, srcFn).split()
+        cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tagFn, srcFn).split()
         output = self._sysCmd(cmd)
         
         # parse ctags generated file for the function line numbers
