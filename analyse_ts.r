@@ -404,6 +404,24 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
 
   ggsave(paste(graphdir, "ts.pdf", sep="/"), g, width=16, height=7)
 
+  ## Store the complete time series information into the database
+  status("Storing time series data into database")
+  for (type in unique(series.merged$type)) {
+    plot.name <- str_c("Progress TS [", type, "]")
+    plot.id <- get.plot.id(conf, plot.name)
+
+    series.sub <- series.merged[series.merged$type==type,]
+
+    ## TODO: The SQL database should be adapted to our naming conventions,
+    ## not the other way round
+    dat <- data.frame(dateValue=as.character(series.sub$time),
+                      doubleValue=series.sub$value.scaled,
+                      plotId=plot.id)
+    res <- dbWriteTable(conf$con, "timeseries", dat, append=T, row.names=F)
+    if (!res) {
+      abort("Internal error: Could not write timeseries into database!")
+    }
+  }
 
   ## Create annual versions of the plots
   min.year <- year(min(series.merged$time))
