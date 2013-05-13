@@ -216,6 +216,10 @@ do.cluster.analysis <- function(resdir, graphdir, conf, con, type="sg") {
 
   ## Stage 1: Perform per-release operations
   for (i in 1:length(cluster.file.list)) {
+    ## Take into account that small cycles do not necessarily have clusters
+    if (!can.read.file(cluster.file.list[[i]])) {
+      next
+    }
     clusters[[i]] <- read.table(cluster.file.list[[i]], header=TRUE, sep="\t")
     ## Assign the date of date of the release in the cluster range
     ## as cluster date (e.g., cluster v1..v2 gets the date of v2 assigned)
@@ -291,6 +295,10 @@ do.commit.analysis <- function(resdir, graphdir, conf, con) {
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
   for (i in 1:length(commit.file.list)) {
+    if (!can.read.file(commit.file.list[[i]])) {
+      cat("Cannot read ", commit.file.list[[i]], "\n")
+    }
+
     dat <- read.table(commit.file.list[[i]], header=TRUE, sep="\t")
     dat <- normalise.commit.dat(dat, subset)
 
