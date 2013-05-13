@@ -86,7 +86,9 @@ def dispatchAnalysis(args):
             resdir = os.path.abspath(resdir)
 
         # TODO: Sanity checks (ensure that git repo dir exists)
-
+        if 'proximity' == conf["tagging"]:
+            check4ctags()
+        
         #######
         # STAGE 1: Commit analysis
         # TODO: Instead of calling an external python script, it
