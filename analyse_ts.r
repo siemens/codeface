@@ -185,7 +185,7 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
         MIN.COMMITS, "commits. Skipping.\n")
   } else {
     plot.list <- plot.splom(plot.types, dat)
-    pdf(paste(graphdir, paste("commits_", revision, ".pdf", sep=""), sep="/"))
+    pdf(file.path(graphdir, paste("commits_", revision, ".pdf", sep="")))
     do.call(grid.arrange, c(plot.list, list(nrow=length(plot.types),
                                             ncol=length(plot.types))))
     dev.off()
@@ -250,16 +250,16 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
     g <- ggplot(clusters[[i]], aes(x=group, y=prank)) +
       geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
         ylab("Page rank")
-    ggsave(paste(graphdir, paste("cluster_prank_", tstamps$tag[[i+1]],
-                                 ".pdf", sep=""),
-                 sep="/"), g, width=7, height=7)
+    ggsave(file.path(graphdir, paste("cluster_prank_", tstamps$tag[[i+1]],
+                                     ".pdf", sep="")),
+           g, width=7, height=7)
 
     g <- ggplot(clusters[[i]], aes(x=group, y=total)) +
       geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
         ylab("Amount of code changes (add+del)")
-    ggsave(paste(graphdir, paste("cluster_code_changes_", tstamps$tag[[i+1]],
-                                 ".pdf", sep=""),
-                 sep="/"), g, width=7, height=7)
+    ggsave(file.path(graphdir, paste("cluster_code_changes_", tstamps$tag[[i+1]],
+                                     ".pdf", sep="")),
+           g, width=7, height=7)
   }
 
 
@@ -275,7 +275,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   g <- ggplot(clusters.all, aes(x=group, y=prank)) +
     geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
       ylab("Page rank") + facet_wrap(~date.factor)
-  ggsave(paste(graphdir, "cluster_prank_ts.pdf", sep="/"), g, width=12, height=8)
+  ggsave(file.path(graphdir, "cluster_prank_ts.pdf"), g, width=12, height=8)
 
   clusters.molten <- melt(clusters.all, id.vars=c("group", "date"),
                           measure.vars=c("prank", "total", "numcommits"))
@@ -284,7 +284,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   g <- ggplot(clusters.molten, aes(x=group, y=value)) +
     geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
       ylab("Magnitude of covariate") + facet_grid(variable~date, scales="free_y")
-  ggsave(paste(graphdir, "cluster_comparison_ts.pdf", sep="/"), g,
+  ggsave(file.path(graphdir, "cluster_comparison_ts.pdf"), g,
          width=12, height=8)
 }
 
@@ -335,7 +335,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     facet_wrap(~variable, scales="free") + xlab("Revision") +
       ylab("Value (log. scale)") +
       scale_colour_discrete("Release\nCandidate")
-  ggsave(paste(graphdir, "ts_commits.pdf", sep="/"), g, width=12, height=8)
+  ggsave(file.path(graphdir, "ts_commits.pdf"), g, width=12, height=8)
 
   ## Stage 3: Plot annual versions of the commit time series
   min.year <- year(min(ts.molten$date))
@@ -354,8 +354,8 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
                   ylab("Value (log. scale)") +
                   scale_colour_discrete("Release\nCandidate") +
                   ggtitle(paste("Commit time series for year", year))
-    ggsave(paste(graphdir, paste("ts_commits_", year, ".pdf", sep=""),
-                 sep="/"), g, width=12, height=8)
+    ggsave(file.path(graphdir, paste("ts_commits_", year, ".pdf", sep="")),
+           g, width=12, height=8)
     })
 }
 
@@ -402,7 +402,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
 
   }
 
-  ggsave(paste(graphdir, "ts.pdf", sep="/"), g, width=16, height=7)
+  ggsave(file.path(graphdir, "ts.pdf"), g, width=16, height=7)
 
   ## Store the complete time series information into the database
   status("Storing time series data into database")
@@ -459,8 +459,8 @@ if (length(arguments$args) != 2) {
 
 conf <- load.config(config.file)
 global.conf <- load.global.config("prosoda.conf")
-resdir <- paste(resdir, conf$project, conf$tagging, sep="/")
-graphdir <- paste(resdir, "graphs", sep="/")
+resdir <- file.path(resdir, conf$project, conf$tagging)
+graphdir <- file.path(resdir, "graphs")
 dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
 conf <- init.db(conf, global.conf)
