@@ -203,45 +203,58 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr,
         #of code
         if len(fileState_mod) > 1:
             
-            #now find the code blocks, a block is a section of code by one author
-            #use the commit hash to identify the committer or author info as needed 
-            codeBlks = findCodeBlocks(fileState_mod, cmtList, author)
+            # identify code line clustering using function location information           
+            clusters = groupFuncLines(file_commit, fileState_mod, cmtList)
             
-            if random:
-                codeBlks = randomizeCommitCollaboration(codeBlks, fileState_mod)
-            
-            if codeBlks:
-                #next cluster the blocks, using the distance measure to figure out
-                #what blocks belong together in one group or cluster
-                clusters = simpleCluster(codeBlks, cmt, maxDist, author)
-            
-                #calculate the collaboration coefficient for each code block
-                #[computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
-                
-                
-                [computeCommitCollaboration(cluster, cmt, id_mgr,
-                                            maxDist, author) for cluster in clusters]
+            #calculate the collaboration coefficient for each code block
+            [computeCommitCollaboration(cluster, cmt, id_mgr,
+                                        maxDist, author) for cluster in clusters if cluster]
 
 
-def groupFuncLines(codeBlks, file_commit):
+def groupFuncLines(file_commit, file_state, cmtList):
     '''
-    put code blks that belong to a single function together
+    cluster code lines that fall under the same function
     '''
-    funcIndx   = {}
-    indx       = 0
-    funcGroups = []
+    func_indx = {}
+    indx      = 0
+    func_blks = []
+    lines     = sorted( map( int, file_state.keys() ) )
+    blk_start = lines[0]
+    blk_end   = blk_start
     
-    for funcId in file_commit.functionIds.values():
-        funcIndx[funcId] = indx
-        funcGroups.append([])
+    for func_id in file_commit.functionIds.values():
+        func_indx[func_id] = indx
+        func_blks.append([])
         indx += 1
+    
+    for i in range(0,len(file_state) - 1):
+        curr_line  = lines[i]
+        next_line  = lines[i+1]
+        curr_cmt_id = file_state[str(curr_line)]
+        next_cmt_id = file_state[str(next_line)]
+        curr_func_id = file_commit.findFuncId(curr_line)
+        next_func_id = file_commit.findFuncId(next_line)
+        curr_func_indx = func_indx[curr_func_id]
+        next_func_indx = func_indx[next_func_id]
+        if (curr_cmt_id == next_cmt_id) and (curr_func_id == next_func_id) \
+        and (curr_line + 1 == next_line):
+            blk_end = blk_end + 1
+        else:
+            func_blks[curr_func_indx]. \
+            append(codeBlock.codeBlock(blk_start, blk_end,
+                   cmtList[str(curr_cmt_id)].getAuthorPI().getID(), 
+                   cmtList[str(curr_cmt_id)].getCommitterPI().getID(),
+                   curr_cmt_id))
+            blk_start = next_line
+            blk_end   = blk_start
         
-    for codeBlk in codeBlks:
-        funcId = file_commit.findFuncId(codeBlk.start) 
-        blkIndx = funcIndx[funcId]
-        funcGroups[blkIndx].append(codeBlk)
-        
-    return funcGroups
+    # boundary case 
+    func_blks[next_func_indx].append(codeBlock.codeBlock(blk_start, blk_end,
+                            cmtList[str(next_cmt_id)].getAuthorPI().getID(), 
+                            cmtList[str(next_cmt_id)].getCommitterPI().getID(),
+                            next_cmt_id))  
+    
+    return func_blks  
         
 def randomizeCommitCollaboration(codeBlks, fileState):
     '''
