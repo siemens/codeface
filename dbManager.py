@@ -43,7 +43,7 @@ class dbManager:
             return(self.cur.execute(stmt, args))
         except mdb.Error, e:
             print "Encountered mysql error %d during statement %s: %s" % \
-                    (stmt, e.args[0], e.args[1])
+                    (e.args[0], stmt, e.args[1])
             sys.exit(-1)
 
     def doFetchAll(self):
