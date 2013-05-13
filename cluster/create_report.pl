@@ -51,7 +51,9 @@ sub gen_file_table($$$$;$) {
 	$res .= "\\includegraphics[width=" . (1/$cols) . "\\linewidth]{$file}"
       }
     }
-    $res .= "\\\\\n";
+    if ($num > 0) {
+	$res .= "\\\\\n";
+    }
   }
 
   for ($count = 0; $count < $num % $cols; $count++) {
@@ -70,7 +72,9 @@ sub gen_file_table($$$$;$) {
       $res .= "\\includegraphics[width=" . (1/$cols) . "\\linewidth]{$file}"
     }
   }
-  $res .= "\\\\\n";
+  if ($num > 0) {
+      $res .= "\\\\\n";
+  }
 
   return $res;
 }
