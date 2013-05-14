@@ -281,16 +281,20 @@ compute.initiate.respond <- function(forest, network.red, cty.list) {
 gen.iter.intervals <- function(dates.cleaned, interval.length) {
   ## Given a list of dates and an interval length in weeks, construct
   ## pairs of date boundaries (start, end) that can be used to
-  ## select all pieces of information within the iterval
-  ## using the query start <= date(info) < end
+  ## select all pieces of information within the interval.
+  ## We also check that each interval contains at least MIN.NUM.MESSAGES
+  ## messages; smaller intervals are considered outliers and removed.
+  ## This is the reason why not just the date boundaries, but a complete
+  ## list of dates is required as input.
+  MIN.NUM.MESSAGES <- 5
   if (length(dates.cleaned) == 0)
     stop("Date list for interval generation is empty!")
 
   t.start <- ceiling_date(min(dates.cleaned), "week")
   num.intervals <- floor((max(dates.cleaned)-t.start)/dweeks(interval.length))
   if (num.intervals < 1) {
-    ## Pathological case for repositories that contain encompass less
-    ## than one week
+    ## Pathological case for repositories that encompass less
+    ## than one full interval
     num.intervals <- 1
   }
   
@@ -304,7 +308,7 @@ gen.iter.intervals <- function(dates.cleaned, interval.length) {
   ## An archive can contain messages with bogous time stamps. Such
   ## outliers can increase the time range of all messages considerably,
   ## and will consequently leave many intervals completely empty
-  ## (consider an dense interval from 01.05. to 31.07, with one outlier
+  ## (consider a dense interval from 01.05. to 31.07, with one outlier
   ## in the 1.1. The range 01.01 -- 31.04 will formally exist, but be empty)
   ## Detect essentially empty ranges (with less than 5 messages) and remove
   ## them from the interval list
@@ -315,7 +319,7 @@ gen.iter.intervals <- function(dates.cleaned, interval.length) {
   }
   idx <- sapply(intervals.list, function(i) msg.per.interval(dates.cleaned, i))
 
-  return(intervals.list[which(idx >= 5)])
+  return(intervals.list[which(idx >= MIN.NUM.MESSAGES)])
 }
 
 ## Aggregate by hours and a daily rolling mean (the mailing list
