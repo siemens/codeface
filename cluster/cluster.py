@@ -884,16 +884,16 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseIDs, dbm):
             inRC=0
 
         dbm.doExec("INSERT INTO commit " +
-                   "(commitHash, commitDate, author, project, changedFiles, " +
+                   "(commitHash, commitDate, author, projectId, ChangedFiles, " +
                    #
-                   "addedLines, deletedLines, diffSize, commitMessageLines, " +
-                   "commitMessageBytes, " +
+                   "AddedLines, DeletedLines, DiffSize, CmtMsgLines, " +
+                   "CmtMsgBytes, " +
                    #
-                   "numSignedOff, numTags, totalSubSys, " +
-                   "subsys, inRC, " +
+                   "NumSignedOffs, NumTags, TotalSubsys, " +
+                   "Subsys, inRC, " +
                    #
-                   "authorSubsysSimilarity, authorTaggersSimilarity, " +
-                   "taggersSubsysSimilarity, releaseStartTag, releaseEndTag) " +
+                   "AuthorSubsysSimilarity, AuthorTaggersSimilarity, " +
+                   "TaggersSubsysSimilarity, releaseStartTag, releaseEndTag) " +
                    "VALUES " +
                    # TODO: For some reason, using %d for integers does not work
                    # (and likewise for %f)
@@ -1029,6 +1029,8 @@ def emitStatisticalData(cmtlist, id_mgr, outdir, revisionIDs, dbm, conf):
     
     writeCommitData2File(cmtlist, id_mgr, outdir, revisionIDs, dbm)
     
+    # NOTE: Subsystem information is currently not written into the
+    # proper database because it is not configured for almost all projects
     writeSubsysPerAuthorData2File(id_mgr, outdir)
     
     writeIDwithCmtStats2File(id_mgr, outdir)

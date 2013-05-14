@@ -266,6 +266,29 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
       ylab("Magnitude of covariate") + facet_grid(variable~date, scales="free_y")
   ggsave(file.path(graphdir, "cluster_comparison_ts.pdf"), g,
          width=12, height=8)
+
+  ## Plots from scalars that range over all releases
+  ## That one, actually, is pretty pointless because the groups in
+  ## adjacent releases are not related to the previous groups by
+  ## just sharing the identifier. Continued groups should be
+  ## detected by similarity measures
+#  g <- ggplot(clusters.summary.all, aes(x=date, y=num.members)) +
+#    geom_point(aes(colour=group)) + geom_line(aes(colour=group))
+#  print(g)
+#  blub
+
+  ## TODO: Produce the following plots for each release.
+  ##  ggplot(dat, aes(x=group, y=added)) + geom_boxplot() + scale_y_log10()
+  ##  ggplot(dat, aes(x=group, y=members)) + geom_histogram(scale="identity") + scale_y_log10()
+
+  ## TODO: Create a time series that shows how the collective scalar
+  ## properties of all clusters propagate
+
+  ## TODO: It's most important to match clusters to see how stable the
+  ## communities are across time. For this, we will need the full time series
+  ## information, though. This allows us to generate more detailed time
+  ## series than is possible with simple all-cluster scalar properties,
+  ## for instance to detect variations within individual stable groups.
 }
 
 do.commit.analysis <- function(resdir, graphdir, conf) {
@@ -277,20 +300,12 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
   for (i in 1:(length(tstamps)-1)) {
-    dat <- dbGetQuery(conf$con, str_c("SELECT * FROM commit where project=",
+    dat <- dbGetQuery(conf$con, str_c("SELECT * FROM commit where projectId=",
                                       conf$pid, " AND releaseStartTag=",
                                       sq(get.revision.id(conf, tstamps$tag[i])),
                                       " AND releaseEndTag=",
                                       sq(get.revision.id(conf, tstamps$tag[i+1]))))
 
-    # TEMPORARY HACK until the column are renamed properly
-    colnames(dat) <- c("id", "commitHash", "commitDate", "author",
-                       "project",  "ChangedFiles", "addedLines", "deletedLines",
-                       "DiffSize", "commitMessageLines",
-                       "CmtMsgBytes", "numSignedOff", "NumTags", "general",
-                       "totalSubSys", "subsys", "inRC", "authorSubsysSimilarity",
-                       "authorTaggersSimilarity", "taggersSubsysSimilarity",
-                       "releaseStartTag", "releaseEndTag")
     dat <- normalise.commit.dat(dat, subset)
 
     status(paste("Plotting commit information for revisison",
@@ -323,6 +338,13 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
       ylab("Value (log. scale)") +
       scale_colour_discrete("Release\nCandidate")
   ggsave(file.path(graphdir, "ts_commits.pdf"), g, width=12, height=8)
+
+  ## Export the SVG representation to the data base
+  ggsave(file.path(graphdir, "ts_commits.svg"), g, width=12, height=8)
+  dat.svg <- readLines(file.path(graphdir, "ts_commits.svg"))
+  ## TODO: Do the actual DB export
+  file.remove(file.path(graphdir, "ts_commits.svg"))
+
 
   ## Stage 3: Plot annual versions of the commit time series
   min.year <- year(min(ts.molten$date))
@@ -401,12 +423,13 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
 
     ## TODO: The SQL database should be adapted to our naming conventions,
     ## not the other way round
-    dat <- data.frame(dateValue=as.character(series.sub$time),
-                      doubleValue=series.sub$value.scaled,
+    dat <- data.frame(time=as.character(series.sub$time),
+                      value=series.sub$value,
+                      value_scaled=series.sub$value.scaled,
                       plotId=plot.id)
     res <- dbWriteTable(conf$con, "timeseries", dat, append=T, row.names=F)
     if (!res) {
-      abort("Internal error: Could not write timeseries into database!")
+      stop("Internal error: Could not write timeseries into database!")
     }
   }
 
