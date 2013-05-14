@@ -278,32 +278,39 @@ compute.initiate.respond <- function(forest, network.red, cty.list) {
   return(data.frame(x=cent[,1], y=cent[,2], deg=deg, col=col))
 }
 
-gen.iter.intervals <- function(dates.cleaned, interval.length) {
-  ## Given a list of dates and an interval length in weeks, construct
-  ## pairs of date boundaries (start, end) that can be used to
-  ## select all pieces of information within the interval.
-  ## We also check that each interval contains at least MIN.NUM.MESSAGES
-  ## messages; smaller intervals are considered outliers and removed.
-  ## This is the reason why not just the date boundaries, but a complete
-  ## list of dates is required as input.
-  MIN.NUM.MESSAGES <- 5
-  if (length(dates.cleaned) == 0)
-    stop("Date list for interval generation is empty!")
+construct.intervals <- function(date.start, date.end, interval.length) {
+  ## Given a start and end date, compute a list of intervals of
+  ## length interval.length (given in weeks) that span the date range.
 
-  t.start <- ceiling_date(min(dates.cleaned), "week")
-  num.intervals <- floor((max(dates.cleaned)-t.start)/dweeks(interval.length))
+  t.start <- ceiling_date(date.start, "week")
+  num.intervals <- floor((date.end-t.start)/dweeks(interval.length))
   if (num.intervals < 1) {
     ## Pathological case for repositories that encompass less
     ## than one full interval
     num.intervals <- 1
   }
-  
+
   boundaries <- t.start + c(0:num.intervals)*dweeks(interval.length)
 
   ## Transform the boundaries into a list of intervals. These can then be
   ## directly utilised by lapply, leading to an easy prey for parallelisation
   intervals.list <- lapply(1:(length(boundaries)-1),
-                           function(i) new_interval(boundaries[i], boundaries[i+1]))
+                           function(i) new_interval(boundaries[i],
+                                                    boundaries[i+1]))
+  return (intervals.list)
+}
+
+
+remove.empty.intervals <- function(dates, intervals.list) {
+  ## Given a list of dates (typically representing dates of messages)
+  ## and a list of intervals, determine which of the intervals
+  ## contain less than MIN.NUM.MESSAGES messages, and remove them
+  ## from the list -- they are considered outliers.
+  ## This is the reason why not just the date boundaries, but a complete
+  ## list of dates is required as input.
+  MIN.NUM.MESSAGES <- 5
+  if (length(dates.cleaned) == 0)
+    stop("Date list for interval generation is empty!")
 
   ## An archive can contain messages with bogous time stamps. Such
   ## outliers can increase the time range of all messages considerably,
@@ -317,9 +324,17 @@ gen.iter.intervals <- function(dates.cleaned, interval.length) {
                  timestamps < int_end(itv))
     return(length(timestamps[idx]))
   }
-  idx <- sapply(intervals.list, function(i) msg.per.interval(dates.cleaned, i))
+  idx <- sapply(intervals.list, function(i) msg.per.interval(dates, i))
 
   return(intervals.list[which(idx >= MIN.NUM.MESSAGES)])
+}
+
+## Frontend for the above functions: Take a list of dates and
+## an interval length, and computer a list of non-empty intervals
+gen.iter.intervals <- function(dates, interval.length) {
+  intervals.list <- construct.intervals(min(dates), max(dates), interval.length)
+
+  return (remove.empty.intervals(dates, intervals.list))
 }
 
 ## Aggregate by hours and a daily rolling mean (the mailing list
