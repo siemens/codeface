@@ -89,5 +89,10 @@ init.db <- function(conf, global.conf) {
   conf$pid <- get.project.id(con, conf$project)
   conf$con <- con
 
+  if (is.null(conf$pid)) {
+    stop("Internal error: No ID assigned to project ", conf$project, "\n",
+          "(Did you not the VCS analysis before the ml analysis?)\n")
+  }
+
   return(conf)
 }
