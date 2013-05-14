@@ -141,10 +141,11 @@ timestamp <- function(text) {
   cat (text, ": ", date(), "\n")
 }
 
-dispatch.all <- function(conf, repo.path, data.path, doCompute) {
+dispatch.all <- function(conf, repo.path, resdir, doCompute) {
   timestamp("start")
-  corp.base <- gen.forest(conf, repo.path, data.path, doCompute)
+  corp.base <- gen.forest(conf, repo.path, resdir, doCompute)
   timestamp("corp.base finished")
+
   ## #######
   ## Split the data into smaller chunks for time-resolved analysis
   dates <- do.call(c,
@@ -159,9 +160,9 @@ dispatch.all <- function(conf, repo.path, data.path, doCompute) {
   ## time) to select suitable time intervals of interest. For many projects,
   ## weekly (and monthly) are much too short, and longer intervals need to
   ## be considered.
-  analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, data.path,
+  analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, resdir,
                          "weekly", doCompute)
-  analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, data.path,
+  analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, resdir,
                          "4weekly", doCompute)
 
   
@@ -174,9 +175,9 @@ dispatch.all <- function(conf, repo.path, data.path, doCompute) {
                       corp=corp,
                       corp.orig=corp.base$corp.orig)
 
-  data.path.all <- file.path(data.path, "complete")
+  resdir.complete <- file.path(resdir, "complete")
   gen.dir(data.path.all)
-  save(file=file.path(data.path.all, "forest.corp"), forest.corp)
+  save(file=file.path(resdir.complete, "forest.corp"), forest.corp)
 }
 
 
