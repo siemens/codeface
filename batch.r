@@ -17,7 +17,10 @@
 ## All Rights Reserved.
 
 suppressPackageStartupMessages(library(optparse))
+# NOTE: The curious source()s from ../prosoda will vanish once
+# the code bases are merged together
 source("../prosoda/config.r")
+source("../prosoda/db.r")
 source("local.r")
 
 ## TODO: Filter out spam. There's an incredible amount in some gmane archives
@@ -56,6 +59,11 @@ if (length(arguments$args) != 3) {
 }
 
 conf <- load.config(config.file)
+# NOTE: Loading the global config via three corners will go away once
+# the code bases are merged
+global.conf <- load.global.config("../prosoda/prosoda.conf")
+
+conf <- init.db(conf, global.conf)
 
 if (is.null(conf$ml)) {
   cat("No mailing list repository available for project, skipping analysis\n")
