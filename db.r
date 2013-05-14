@@ -53,6 +53,20 @@ get.plot.id <- function(conf, plot.name) {
   return(res$id)
 }
 
+## Determine the ID of a tag, given its textual form
+get.revision.id <- function(conf, tag) {
+  res <- dbGetQuery(conf$con,
+                    str_c("SELECT id FROM release_timeline WHERE projectId=",
+                          conf$pid, " AND tag=", sq(tag), " AND type='release'"))
+
+  if (length(res) > 1) {
+    stop("Internal error: Revision if for tag ", tag, " (project ", conf$project,
+         ") appears multiple times in DB!")
+  }
+
+  return(res$id)
+}
+
 ## Establish the connection and store the relevant configuration
 ## parameters in the project specific configuration structure
 init.db <- function(conf, global.conf) {
