@@ -67,6 +67,19 @@ get.revision.id <- function(conf, tag) {
   return(res$id)
 }
 
+# Get all release dates (without release candidates) for a given project
+get.release.dates <- function(conf) {
+  res <- dbGetQuery(conf$con,
+                    str_c("SELECT * FROM release_timeline WHERE projectId=",
+                          conf$pid, sep=""))
+  res$type <- as.factor(res$type)
+  res$date <- ymd_hms(res$date, quiet=T)
+  res <- res[res$type=="release",]
+
+  return(res)
+}
+
+
 ## Establish the connection and store the relevant configuration
 ## parameters in the project specific configuration structure
 init.db <- function(conf, global.conf) {

@@ -182,16 +182,6 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
   }
 }
 
-get.release.dates <- function(conf) {
-  res <- dbGetQuery(conf$con,
-                    str_c("SELECT * FROM release_timeline WHERE projectId=",
-                          conf$pid, sep=""))
-  res$type <- as.factor(res$type)
-  res$date <- ymd_hms(res$date, quiet=T)
-  res <- res[res$type=="release",]
-
-  return(res)
-}
 
 ## Perform statistical analysis on the clusters. type can be "sg"
 ## (spin glass), or "wg" (walktrap -- random walk analysis)
