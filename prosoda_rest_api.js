@@ -95,6 +95,7 @@ app.unlock = function() {
  * Synchronization is solved via LOCK/UNLOCK of DB table, Note: this has to be tested!!!!
  */
 app.getUserFromDB = function(name, email, projectID, response) {
+    //console.log("app.getUserFromDB");
     try {
 	// name and email have been empty
 	if  (!projectID)
@@ -111,15 +112,22 @@ app.getUserFromDB = function(name, email, projectID, response) {
 	}
 	else
 	{
+		// make sure to escape some characters in strings like e.g. quote char
+		var patt=/'/g;
+		name = name.replace(patt,"\\'");
+		email = email.replace(patt,"\\'");
+		//console.log(name);
+		//console.log(email);
+		
 	    // lock Person table
 	    //lock();
 	    // Name AND Mail found --> return existing ID
 	    var query = 'SELECT id FROM person WHERE projectId = ' + projectID + ' AND name = \'' + name + '\' AND ( email1 = \'' + email + '\' OR email2 =  \'' + email + '\' OR email3 = \'' + email + '\' OR email4 = \'' + email + '\' OR email5 = \'' + email + '\');';
 	    connection.query(query, function (error, rows, fields) { 
-		var log = { log : '1. check'};
-		console.log(log);
-		console.log(rows);
-		console.log(error);
+		//var log = { log : '1. check'};
+		//console.log(log);
+		//console.log(rows);
+		//console.log(error);
 		if (rows.length == 1){
 		    console.log(rows);
 		    // UNLock table Person
@@ -131,10 +139,10 @@ app.getUserFromDB = function(name, email, projectID, response) {
 		{
 		    // Name found AND Mail NOT found --> return existing ID, add email
 		    connection.query('SELECT id FROM person WHERE projectId = ' + projectID + ' AND name = \'' + name + '\';', function (error, rows, fields) { 
-			var log = { log : '2. check'};
-			console.log(log);
-			console.log(rows);
-			console.log(error);
+			//var log = { log : '2. check'};
+			//console.log(log);
+			//console.log(rows);
+			//console.log(error);
 			if (rows.length == 1){
 			    // user found: 
 			    // update mail if not empty in found user
@@ -225,10 +233,10 @@ app.getUserFromDB = function(name, email, projectID, response) {
 			{
 			    // Name Not found AND mail found
 			    connection.query('SELECT id FROM person WHERE projectId = ' + projectID + ' AND ( email1 = \'' + email + '\' OR email2 =  \'' + email + '\' OR email3 = \'' + email + '\' OR email4 = \'' + email + '\' OR email5 = \'' + email + '\');', function (error, rows, fields) { 
-				var log = { log : '3. check'};
-				console.log(log);
-				console.log(error);
-				console.log("row.length: " + rows.length)
+				//var log = { log : '3. check'};
+				//console.log(log);
+				//console.log(error);
+				//console.log("row.length: " + rows.length)
 				if (rows.length >= 1){
 				    if (rows.length > 1) {
 					console.log("WARNING: Multiple results for a single person, something is inconsistent!")
@@ -252,15 +260,15 @@ app.getUserFromDB = function(name, email, projectID, response) {
 				{
 				    // name not found, email not found
 				    // insert new user into DB
-				    var log = { log : 'INSERT'};
-				    console.log(log);
+				    //var log = { log : 'INSERT'};
+				    //console.log(log);
 				    if(name){
 					// insert with name and email
 					connection.query('INSERT INTO person (projectId, name, email1) VALUES(\'' + projectID + '\',\'' + name + '\', \'' + email + '\');', function (error, info) { 
 					    // UNLock table Person
 					    //unlock();
-					    //console.log(info.insertId);
 					    var id = { id : info.insertId};
+						console.log(id);
 					    response.end(JSON.stringify(id)); 
 					});	
 				    } else
@@ -269,8 +277,8 @@ app.getUserFromDB = function(name, email, projectID, response) {
 					connection.query('INSERT INTO person (projectId, email1) VALUES(\'' + projectID + '\', \'' + email + '\');', function (error, info) { 
 					    // UNLock table Person
 					    //unlock();
-					    console.log(info.insertId);
 					    var id = { id : info.insertId};
+						console.log(id);
 					    response.end(JSON.stringify(id)); 
 					});	
 				    }
@@ -305,8 +313,7 @@ app.getUserID = function(request, response) {
  */
 app.postUserID = function(request, response) {
     console.log(request.body);
-    var name = JSON.stringify(request.body.name);
-    console.log(name);
+    var name = request.body.name;
     var email = request.body.email;
     var projectID = request.body.projectID;
     
