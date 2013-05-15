@@ -301,7 +301,7 @@ construct.intervals <- function(date.start, date.end, interval.length) {
 }
 
 
-remove.empty.intervals <- function(dates, intervals.list) {
+get.nonempty.intervals <- function(dates, intervals.list) {
   ## Given a list of dates (typically representing dates of messages)
   ## and a list of intervals, determine which of the intervals
   ## contain less than MIN.NUM.MESSAGES messages, and remove them
@@ -326,7 +326,7 @@ remove.empty.intervals <- function(dates, intervals.list) {
   }
   idx <- sapply(intervals.list, function(i) msg.per.interval(dates, i))
 
-  return(intervals.list[which(idx >= MIN.NUM.MESSAGES)])
+  return(which(idx >= MIN.NUM.MESSAGES))
 }
 
 ## Frontend for the above functions: Take a list of dates and
@@ -334,7 +334,7 @@ remove.empty.intervals <- function(dates, intervals.list) {
 gen.iter.intervals <- function(dates, interval.length) {
   intervals.list <- construct.intervals(min(dates), max(dates), interval.length)
 
-  return (remove.empty.intervals(dates, intervals.list))
+  return (intervals.list[get.nonempty.intervals(dates, intervals.list)])
 }
 
 ## Aggregate by hours and a daily rolling mean (the mailing list
