@@ -152,9 +152,9 @@ dispatch.all <- function(conf, repo.path, resdir, doCompute) {
                    lapply(seq_along(corp.base$corp),
                           function(i) as.POSIXct(DateTimeStamp(corp.base$corp[[i]])))
                    )
-  dates.cleaned <- dates[!is.na(dates)]
-  iter.weekly <- gen.iter.intervals(dates.cleaned, 1)
-  iter.4weekly <- gen.iter.intervals(dates.cleaned, 4)
+  dates <- dates[!is.na(dates)]
+  iter.weekly <- gen.iter.intervals(dates, 1)
+  iter.4weekly <- gen.iter.intervals(dates, 4)
   
   ## TODO: Find some measure (likely depending on the number of messages per
   ## time) to select suitable time intervals of interest. For many projects,
