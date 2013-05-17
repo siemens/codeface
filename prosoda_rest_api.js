@@ -114,20 +114,24 @@ app.getUserFromDB = function(name, email, projectID, response) {
 	{
 		// make sure to escape some characters in strings like e.g. quote char
 		var patt=/'/g;
-		name = name.replace(patt,"\\'");
-		email = email.replace(patt,"\\'");
-		//console.log(name);
-		//console.log(email);
+		if(name){
+			name = name.replace(patt,"\\'");
+		}
+		if (email){
+			email = email.replace(patt,"\\'");
+		}
+		console.log(name);
+		console.log(email);
 		
 	    // lock Person table
 	    //lock();
 	    // Name AND Mail found --> return existing ID
 	    var query = 'SELECT id FROM person WHERE projectId = ' + projectID + ' AND name = \'' + name + '\' AND ( email1 = \'' + email + '\' OR email2 =  \'' + email + '\' OR email3 = \'' + email + '\' OR email4 = \'' + email + '\' OR email5 = \'' + email + '\');';
 	    connection.query(query, function (error, rows, fields) { 
-		//var log = { log : '1. check'};
-		//console.log(log);
-		//console.log(rows);
-		//console.log(error);
+		var log = { log : '1. check'};
+		console.log(log);
+		console.log(rows);
+		console.log(error);
 		if (rows.length == 1){
 		    console.log(rows);
 		    // UNLock table Person
@@ -139,10 +143,10 @@ app.getUserFromDB = function(name, email, projectID, response) {
 		{
 		    // Name found AND Mail NOT found --> return existing ID, add email
 		    connection.query('SELECT id FROM person WHERE projectId = ' + projectID + ' AND name = \'' + name + '\';', function (error, rows, fields) { 
-			//var log = { log : '2. check'};
-			//console.log(log);
-			//console.log(rows);
-			//console.log(error);
+			var log = { log : '2. check'};
+			console.log(log);
+			console.log(rows);
+			console.log(error);
 			if (rows.length == 1){
 			    // user found: 
 			    // update mail if not empty in found user
@@ -233,10 +237,10 @@ app.getUserFromDB = function(name, email, projectID, response) {
 			{
 			    // Name Not found AND mail found
 			    connection.query('SELECT id FROM person WHERE projectId = ' + projectID + ' AND ( email1 = \'' + email + '\' OR email2 =  \'' + email + '\' OR email3 = \'' + email + '\' OR email4 = \'' + email + '\' OR email5 = \'' + email + '\');', function (error, rows, fields) { 
-				//var log = { log : '3. check'};
-				//console.log(log);
-				//console.log(error);
-				//console.log("row.length: " + rows.length)
+				var log = { log : '3. check'};
+				console.log(log);
+				console.log(error);
+				console.log("row.length: " + rows.length)
 				if (rows.length >= 1){
 				    if (rows.length > 1) {
 					console.log("WARNING: Multiple results for a single person, something is inconsistent!")
@@ -292,6 +296,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
     } catch (exeception) {
 	// try to UNLock table Person
 	//unlock();
+		console.log(exeception.message);
         response.send(404);
     }
 }
