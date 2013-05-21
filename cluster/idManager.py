@@ -24,6 +24,7 @@ import httplib
 import urllib
 import json
 import sys
+import string
 
 class idManager:
     """Provide unique IDs for developers.
@@ -147,10 +148,11 @@ class idManager:
     def _cleanName(self, name):
         # Remove or replace characters in names that are known
         # to cause parsing problems in later stages
-        nameClean = name.replace('\"', "")
-        nameClean = name.replace("\'", "")
-        
-        return nameClean
+        name = name.replace('\"', "")
+        name = name.replace("\'", "")
+        name = string.lstrip(string.rstrip(name))
+
+        return name
 ############################ Test cases #########################
 if __name__ == "__main__":
     idm = idManager()
