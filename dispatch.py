@@ -32,7 +32,7 @@ def _abort(msg):
     print(msg + "\n")
     sys.exit(-1)
 
-def executeCommand(cmd, dry_run):
+def executeCommand(cmd, dry_run, ignoreErrors=False):
     if dry_run:
         print("dry-run: {0}".format(" " .join(cmd)))
         return
@@ -44,7 +44,7 @@ def executeCommand(cmd, dry_run):
         _abort("Internal error: Could not execute command '{0}'".
                format(" ".join(cmd)))
 
-    if p2.returncode != 0:
+    if p2.returncode != 0 and not(ignoreErrors):
         print("\n\n******* Internal error *******")
         print(res)
         print("*******\n\n")
@@ -174,7 +174,7 @@ def dispatchAnalysis(args):
         tmpdir = mkdtemp()
 
         os.chdir(tmpdir)
-        executeCommand(cmd, args.dry_run)
+        executeCommand(cmd, args.dry_run, ignoreErrors=True)
         try:
             shutil.copy(report_base + ".pdf", resdir)
         except IOError:
