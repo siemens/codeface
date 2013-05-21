@@ -38,7 +38,7 @@ app.configure(function () {
  * HTTP GET /users
  * Returns: the list of users in JSON format
  */
-app.get('/users', function (request, response) {
+app.get('/getUsers', function (request, response) {
     connection.query('SELECT * FROM person;', function (error, rows, fields) { 
         response.end(JSON.stringify(rows)); 
     });
@@ -49,7 +49,7 @@ app.get('/users', function (request, response) {
  * Param: :id is the unique identifier of the user you want to retrieve
  * Returns: the user with the specified :id in a JSON format
  */
-app.get('/user/:id', function (request, response) {
+app.get('/getUser/:id', function (request, response) {
     var taskId = request.params.id;
     try {
 	connection.query('SELECT * FROM person WHERE id=' + taskId + ';', function (error, rows, fields) { 
@@ -59,6 +59,57 @@ app.get('/user/:id', function (request, response) {
         response.send(404);
     }
     
+});
+
+/**
+ * HTTP GET /projects
+ * Returns: the list of projects in JSON format containing id, name, analysisMethod, analysisTime
+ */
+app.get('/getProjects', function (request, response) {
+	try {
+		connection.query('SELECT * FROM project;', function (error, rows, fields) { 
+			response.end(JSON.stringify(rows)); 
+		});
+	} catch (exeception) {
+        console.log(exeception.message);
+        response.send(exeception.message);
+    }
+});
+
+/**
+ * HTTP GET /projectByName/:name
+ * Param: :name is the name of the projects to query for
+ * Returns: the list of projects with that name in JSON format containing id, name, analysisMethod, analysisTime
+ */
+app.get('/getProjectsByName/:name', function (request, response) {
+	var name = request.params.name;
+	try {
+		connection.query('SELECT * FROM project where name = \'' + name + '\';', function (error, rows, fields) { 
+			response.end(JSON.stringify(rows)); 
+		});
+	} catch (exeception) {
+        console.log(exeception.message);
+        response.send(exeception.message);
+    }
+});
+
+/**
+ * HTTP GET /projectsByNameAndMethod/:name/:method
+ * Param: :name is the name of the projects to query for
+ * Param: :method is the name of the analysis method used for the project analysis
+ * Returns: the list of projects with that name in JSON format containing id, name, analysisMethod, analysisTime
+ */
+app.get('/getProjectsByNameAndMethod/:name/:method', function (request, response) {
+	var name = request.params.name;
+	var method = request.params.method;
+	try {
+		connection.query('SELECT * FROM project where name = \'' + name + '\' and analysisMethod = \'' + method + '\';', function (error, rows, fields) { 
+			response.end(JSON.stringify(rows)); 
+		});
+	} catch (exeception) {
+        console.log(exeception.message);
+        response.send(exeception.message);
+    }
 });
 
 /**
