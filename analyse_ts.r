@@ -421,8 +421,6 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
 
     series.sub <- series.merged[series.merged$type==type,]
 
-    ## TODO: The SQL database should be adapted to our naming conventions,
-    ## not the other way round
     dat <- data.frame(time=as.character(series.sub$time),
                       value=series.sub$value,
                       value_scaled=series.sub$value.scaled,
