@@ -39,9 +39,14 @@ app.configure(function () {
  * Returns: the list of users in JSON format
  */
 app.get('/getUsers', function (request, response) {
-    connection.query('SELECT * FROM person;', function (error, rows, fields) { 
-        response.end(JSON.stringify(rows)); 
-    });
+	try {
+		connection.query('SELECT * FROM person;', function (error, rows, fields) { 
+			response.end(JSON.stringify(rows)); 
+		});
+	 } catch (exeception) {
+        console.log(exeception.message);
+        response.send(exeception.message);
+    }
 });
 
 /**
@@ -56,7 +61,8 @@ app.get('/getUser/:id', function (request, response) {
 	    response.end(JSON.stringify(rows)); 
 	});
     } catch (exeception) {
-        response.send(404);
+        console.log(exeception.message);
+        response.send(exeception.message);
     }
     
 });
@@ -78,7 +84,7 @@ app.get('/getProjects', function (request, response) {
 
 /**
  * HTTP GET /projectByName/:name
- * Param: :name is the name of the projects to query for
+ * Param: :name (String) is the name of the projects to query for
  * Returns: the list of projects with that name in JSON format containing id, name, analysisMethod, analysisTime
  */
 app.get('/getProjectsByName/:name', function (request, response) {
@@ -95,8 +101,8 @@ app.get('/getProjectsByName/:name', function (request, response) {
 
 /**
  * HTTP GET /projectsByNameAndMethod/:name/:method
- * Param: :name is the name of the projects to query for
- * Param: :method is the name of the analysis method used for the project analysis
+ * Param: :name (String) is the name of the projects to query for
+ * Param: :method (String) is the name of the analysis method used for the project analysis
  * Returns: the list of projects with that name in JSON format containing id, name, analysisMethod, analysisTime
  */
 app.get('/getProjectsByNameAndMethod/:name/:method', function (request, response) {
@@ -104,6 +110,48 @@ app.get('/getProjectsByNameAndMethod/:name/:method', function (request, response
 	var method = request.params.method;
 	try {
 		connection.query('SELECT * FROM project where name = \'' + name + '\' and analysisMethod = \'' + method + '\';', function (error, rows, fields) { 
+			response.end(JSON.stringify(rows)); 
+		});
+	} catch (exeception) {
+        console.log(exeception.message);
+        response.send(exeception.message);
+    }
+});
+
+/**
+ * HTTP GET /getTimeSeriesData/:projectID/:plotName
+ * Param: :projectID (Integer) is the id of the project the timeseries belongs to
+ * Param: :plotName (String) is the identifiing name of the plot the timeseries belongs to
+ * Returns: the list of data for that plot ordered ascending by time in JSON format containing plotid, time, value, value_scaled
+ */
+app.get('/getTimeSeriesData/:projectID/:plotName', function (request, response) {
+	var projectID = request.params.projectID;
+	var plotName = request.params.plotName;
+	try {
+		connection.query('select plotId, time, value, value_scaled from timeseries, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName	+ '\' order by time asc;', function (error, rows, fields) { 
+			response.end(JSON.stringify(rows)); 
+		});
+	} catch (exeception) {
+        console.log(exeception.message);
+        response.send(exeception.message);
+    }
+});
+
+/**
+ * HTTP GET /getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:endTimestamp
+ * Param: :projectID (Integer) is the id of the project the timeseries belongs to
+ * Param: :plotName (String) is the identifiing name of the plot the timeseries belongs to
+ * Param: :startTimestamp (timestanp) begin of intervall
+ * Param: :endTimestamp (timestanp) end of intervall
+ * Returns: the list of data existing in the given intervall for that plot ordered ascending by time in JSON format containing plotid, time, value, value_scaled
+ */
+app.get('/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:endTimestamp', function (request, response) {
+	var projectID = request.params.projectID;
+	var plotName = request.params.plotName;
+	var begin = request.params.startTimestamp;
+	var end = request.params.endTimestamp;
+	try {
+		connection.query('select plotId, time, value, value_scaled from timeseries, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName	+ '\' and time >= \'' + begin + '\'  and time <= \'' + end + '\' order by time asc;', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
 		});
 	} catch (exeception) {
