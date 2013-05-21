@@ -72,10 +72,14 @@ def dispatchAnalysis(args):
     # Fill table release_timeline with the release information
     # known so far (date is not yet available)
     for i in range(len(revs)):
-        dbm.doExecCommit("INSERT INTO release_timeline " +
-                         "(type, tag, projectId) " +
-                         "VALUES (%s, %s, %s)",
-                         ("release", revs[i], pid))
+        dbm.doExec("SELECT * FROM release_timeline WHERE type='release' " +
+                   "AND tag=%s AND projectId=%s", (revs[i], pid))
+
+        if dbm.cur.rowcount < 1:
+            dbm.doExecCommit("INSERT INTO release_timeline " +
+                             "(type, tag, projectId) " +
+                             "VALUES (%s, %s, %s)",
+                             ("release", revs[i], pid))
 
     # Analyse all revision ranges
     for i in range(len(revs)-1):
