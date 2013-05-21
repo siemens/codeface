@@ -35,13 +35,13 @@ get.project.id <- function(con, name) {
 ## Determine the ID of a given plot for a given project. Since
 ## plots are not created in parallel, we need no locking
 get.plot.id <- function(conf, plot.name) {
-  res <- dbGetQuery(conf$con, str_c("SELECT id from plot_data WHERE name=",
+  res <- dbGetQuery(conf$con, str_c("SELECT id from plots WHERE name=",
                                     sq(plot.name), "AND projectId=", conf$pid))
 
   if (length(res) == 0) {
-    dbGetQuery(conf$con, str_c("INSERT INTO plot_data (name, projectId) VALUES (",
+    dbGetQuery(conf$con, str_c("INSERT INTO plots (name, projectId) VALUES (",
                                sq(plot.name), ", ", conf$pid, ")"))
-    res <- dbGetQuery(conf$con, str_c("SELECT id from plot_data WHERE name=",
+    res <- dbGetQuery(conf$con, str_c("SELECT id from plots WHERE name=",
                                       sq(plot.name), "AND projectId=", conf$pid))
   }
 
@@ -91,7 +91,7 @@ init.db <- function(conf, global.conf) {
 
   if (is.null(conf$pid)) {
     stop("Internal error: No ID assigned to project ", conf$project, "\n",
-          "(Did you not the VCS analysis before the ml analysis?)\n")
+         "(Did you not run the VCS analysis before the ml analysis?)\n")
   }
 
   return(conf)
