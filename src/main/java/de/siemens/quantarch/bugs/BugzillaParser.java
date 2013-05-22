@@ -6,8 +6,7 @@ import de.siemens.quantarch.bugs.scraper.StatusFetcher;
 
 public interface BugzillaParser extends SearchResultCountCallback {
 
-	public abstract void parseIssues(String projectName, String bugzillaURL,
-			String proxyServer, int proxyPort, StatusFetcher statusFetcher,
+	public abstract void parseIssues(StatusFetcher statusFetcher,
 			ProductFetcher productFetcher);
 
 }

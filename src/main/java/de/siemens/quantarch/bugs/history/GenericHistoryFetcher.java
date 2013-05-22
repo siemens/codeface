@@ -23,17 +23,6 @@ public class GenericHistoryFetcher implements FetchHistory {
 
 	private static Logger log = Logger.getLogger(GenericHistoryFetcher.class);
 
-	// set the proxy server
-	static {
-		System.setProperty("http.proxySet", "true");
-		System.setProperty("http.proxyHost", "proxyfarm.3dns.netz.sbs.de");
-		System.setProperty("http.proxyPort", "84");
-
-		System.setProperty("https.proxySet", "true");
-		System.setProperty("https.proxyHost", "proxyfarm.3dns.netz.sbs.de");
-		System.setProperty("https.proxyPort", "84");
-	}
-
 	@Override
 	public List<BugHistory> fetchBugHistory(String bugId) {
 		List<BugHistory> bugHistoryList = new ArrayList<BugHistory>();
@@ -42,11 +31,10 @@ public class GenericHistoryFetcher implements FetchHistory {
 				+ bugId;
 		log.debug("Bugzilla URL to fetch history:" + bugzillaHistoryURL);
 		try {
-
 			// set the jsoup connection timeout from 3 seconds to 10 seconds.
 			Document doc = Jsoup.connect(bugzillaHistoryURL).timeout(10 * 1000)
 					.get();
-			String[] tags = { "Status", "Severity" };
+			String[] tags = { "Status", "Severity", "Resolution" };
 			for (String tag : tags) {
 				Elements tableRows = doc.select("div#bugzilla-body")
 						.select("table").select("tbody")
@@ -91,13 +79,6 @@ public class GenericHistoryFetcher implements FetchHistory {
 					}
 					bugHistoryList.add(history);
 				}
-
-				try {
-					Thread.sleep(3000);
-				} catch (InterruptedException e) {
-					log.error(e);
-				}
-
 			}
 		} catch (IOException e) {
 			log.error("Error occured while fetching history details for bug : "

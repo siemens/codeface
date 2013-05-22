@@ -10,14 +10,9 @@ public interface QuantArchBugzillaDAO {
 
 	public long addIssue(Issue issue, long projectId,
 			List<BugHistory> bugHistoryList);
-	
+
 	public long getIssue(String bugId);
 
-	public long addProject(String name, String issueTrackerURL,
-			String mailingListURL);
-
-	public void dumpAdjacencyMatrix(String fileName, long projectId);
-
-	public long addProduct(String name, long projectId);
+	public long getProjectId(String name);
 
 }
