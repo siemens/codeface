@@ -92,8 +92,9 @@ class idManager:
                 email = "could.not@be.resolved.tld"
 
         email = email.lower()
-        # TODO: Strip trailing and pending spaces off the names
+
         name = self._cleanName(name)
+        email = self._cleanName(email)
 
         return (name, email)
 
