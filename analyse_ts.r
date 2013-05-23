@@ -390,6 +390,8 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   ## Release cycles without release candidates must be removed
   ## (otherwise, we run into plotting problems)
   dat.rc <- na.omit(full.ts$releases)
+  dat.rc <- dat.rc[dat.rc$type==unique(dat.rc$type)[1],c("date.release",
+                     "date.rc_start", "ymin", "ymax")]
   dat.rc$date.rc_start <- tstamp_to_date(dat.rc$date.rc_start)
 
   ## Visualisation
