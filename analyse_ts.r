@@ -185,7 +185,7 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
 
 ## Perform statistical analysis on the clusters. type can be "sg"
 ## (spin glass), or "wg" (walktrap -- random walk analysis)
-do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
+do.cluster.analysis <- function(resdir, graphdir, conf, tstamps, type="sg") {
   if (type != "sg" && type != "wg") {
     stop("Internal error: Specify 'wg' or 'sg' for clustering type!")
   }
@@ -194,7 +194,6 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
 
   clusters <- vector("list", length(conf$revisions)-1)
   clusters.summary <- vector("list", length(conf$revisions)-1)
-  tstamps <- get.release.dates(conf)
 
   ## Stage 1: Perform per-release operations
   status("Preparing per-release cluster plots")
@@ -291,11 +290,10 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   ## for instance to detect variations within individual stable groups.
 }
 
-do.commit.analysis <- function(resdir, graphdir, conf) {
+do.commit.analysis <- function(resdir, graphdir, conf, tstamps) {
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
   ts <- vector("list", length(conf$revisions)-1)
-  tstamps <- get.release.dates(conf)
 
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
@@ -368,7 +366,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     })
 }
 
-do.ts.analysis <- function(resdir, graphdir, conf) {
+do.ts.analysis <- function(resdir, graphdir, conf, tstamps) {
   ts.file.list <- gen.ts.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
@@ -477,6 +475,7 @@ conf <- init.db(conf, global.conf)
 ## TODO: Turn this into a proper pipeline, or some plugin-based
 ## analysis mechanism?
 options(error = quote(dump.frames("error.dump", TRUE)))
-do.ts.analysis(resdir, graphdir, conf)
-do.commit.analysis(resdir, graphdir, conf)
-do.cluster.analysis(resdir, graphdir, conf)
+tstamps <- get.release.dates(conf)
+do.ts.analysis(resdir, graphdir, conf, tstamps)
+do.commit.analysis(resdir, graphdir, conf, tstamps)
+do.cluster.analysis(resdir, graphdir, conf, tstamps)
