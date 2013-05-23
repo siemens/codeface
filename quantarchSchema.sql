@@ -40,8 +40,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`person` (
   CONSTRAINT `person_projectId`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `person_projectId_idx` ON `quantarch`.`person` (`projectId` ASC) ;
@@ -75,18 +75,18 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`issue` (
   CONSTRAINT `issue_createdBy`
     FOREIGN KEY (`createdBy` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `issue_assignedTo`
     FOREIGN KEY (`assignedTo` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE SET NULL
+    ON UPDATE CASCADE,
   CONSTRAINT `issue_projectId`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `issue_createdBy_idx` ON `quantarch`.`issue` (`createdBy` ASC) ;
@@ -112,13 +112,13 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`issue_comment` (
   CONSTRAINT `fk_issueId`
     FOREIGN KEY (`fk_issueId` )
     REFERENCES `quantarch`.`issue` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `issue_comment_who`
     FOREIGN KEY (`who` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `fk_issueId_idx` ON `quantarch`.`issue_comment` (`fk_issueId` ASC) ;
@@ -141,13 +141,13 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_thread` (
   CONSTRAINT `mail_createdBy`
     FOREIGN KEY (`createdBy` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `mail_projectId`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `mail_createdBy_idx` ON `quantarch`.`mail_thread` (`createdBy` ASC) ;
@@ -167,13 +167,13 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_comments` (
   CONSTRAINT `mail_comment_who`
     FOREIGN KEY (`who` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `mailThreadId`
     FOREIGN KEY (`mailThreadId` )
     REFERENCES `quantarch`.`mail_thread` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `mail_comment_who_idx` ON `quantarch`.`mail_comments` (`who` ASC) ;
@@ -196,8 +196,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`release_timeline` (
   CONSTRAINT `release_project_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `release_project_ref_idx` ON `quantarch`.`release_timeline` (`projectId` ASC) ;
@@ -217,18 +217,18 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`release_range` (
   CONSTRAINT `releaseRange_releaseStartId`
     FOREIGN KEY (`releaseStartId` )
     REFERENCES `quantarch`.`release_timeline` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `releaseRange_releaseEndId`
     FOREIGN KEY (`releaseEndId` )
     REFERENCES `quantarch`.`release_timeline` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `releaseRange_projectId`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `releaseRange_releaseStartId_idx` ON `quantarch`.`release_range` (`releaseStartId` ASC) ;
@@ -249,13 +249,13 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`cc_list` (
   CONSTRAINT `cclist_issueId`
     FOREIGN KEY (`issueId` )
     REFERENCES `quantarch`.`issue` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `cclist_who`
     FOREIGN KEY (`who` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `cclist_issueId_idx` ON `quantarch`.`cc_list` (`issueId` ASC) ;
@@ -295,23 +295,23 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`commit` (
   CONSTRAINT `commit_person`
     FOREIGN KEY (`author` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `commit_project`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `commit_release_start`
     FOREIGN KEY (`releaseStartTag` )
     REFERENCES `quantarch`.`release_timeline` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE SET NULL
+    ON UPDATE CASCADE,
   CONSTRAINT `commit_release_end`
     FOREIGN KEY (`releaseEndTag` )
     REFERENCES `quantarch`.`release_timeline` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `commit_person_idx` ON `quantarch`.`commit` (`author` ASC) ;
@@ -337,13 +337,13 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`commit_communication` (
   CONSTRAINT `commitcom_commit`
     FOREIGN KEY (`commitId` )
     REFERENCES `quantarch`.`commit` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `commitcom_person`
     FOREIGN KEY (`who` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `commtcom_commit_idx` ON `quantarch`.`commit_communication` (`commitId` ASC) ;
@@ -364,13 +364,13 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`issue_duplicates` (
   CONSTRAINT `original_issue_duplicate`
     FOREIGN KEY (`originalBugId` )
     REFERENCES `quantarch`.`issue` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `duplicate_issue_duplicate`
     FOREIGN KEY (`duplicateBugId` )
     REFERENCES `quantarch`.`issue` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `original_issue_duplicate_idx` ON `quantarch`.`issue_duplicates` (`originalBugId` ASC) ;
@@ -391,13 +391,13 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`issue_dependencies` (
   CONSTRAINT `dependent_original_issue`
     FOREIGN KEY (`originalIssueId` )
     REFERENCES `quantarch`.`issue` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `dependent_dependent_issue`
     FOREIGN KEY (`dependentIssueId` )
     REFERENCES `quantarch`.`issue` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `dependent_original_issue_idx` ON `quantarch`.`issue_dependencies` (`originalIssueId` ASC) ;
@@ -422,13 +422,13 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`user_commit_stats` (
   CONSTRAINT `user_person_key`
     FOREIGN KEY (`user` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `release_timeline_key`
     FOREIGN KEY (`release_timeline_id` )
     REFERENCES `quantarch`.`release_timeline` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `user_person_key_idx` ON `quantarch`.`user_commit_stats` (`user` ASC) ;
@@ -449,8 +449,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`plots` (
   CONSTRAINT `plot_project_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `plot_project_ref_idx` ON `quantarch`.`plots` (`projectId` ASC) ;
@@ -468,8 +468,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`plot_bin` (
   CONSTRAINT `plot_bin_plot_ref`
     FOREIGN KEY (`plotID` )
     REFERENCES `quantarch`.`plots` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `plot_bin_plot_ref_idx` ON `quantarch`.`plot_bin` (`plotID` ASC) ;
@@ -491,18 +491,18 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster` (
   CONSTRAINT `project_cluster_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `dot_plot_bin_data`
     FOREIGN KEY (`dot` )
     REFERENCES `quantarch`.`plot_bin` (`plotID` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE SET NULL
+    ON UPDATE CASCADE,
   CONSTRAINT `svg_plot_bin_data_ref`
     FOREIGN KEY (`svg` )
     REFERENCES `quantarch`.`plot_bin` (`plotID` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `project_cluster_ref_idx` ON `quantarch`.`cluster` (`projectId` ASC) ;
@@ -525,13 +525,13 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster_user_mapping` (
   CONSTRAINT `cluster_cluster_user_ref`
     FOREIGN KEY (`clusterId` )
     REFERENCES `quantarch`.`cluster` (`clusterId` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `person_cluster_user_ref`
     FOREIGN KEY (`person` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `cluster_cluster_user_ref_idx` ON `quantarch`.`cluster_user_mapping` (`clusterId` ASC) ;
@@ -556,13 +556,13 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`issue_history` (
   CONSTRAINT `issue_history_issue_map`
     FOREIGN KEY (`issueId` )
     REFERENCES `quantarch`.`issue` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `issue_history_person_map`
     FOREIGN KEY (`who` )
     REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `issue_history_issue_map_idx` ON `quantarch`.`issue_history` (`issueId` ASC) ;
@@ -584,8 +584,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`url_info` (
   CONSTRAINT `url_info_project`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `url_info_project_idx` ON `quantarch`.`url_info` (`projectId` ASC) ;
@@ -604,8 +604,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`timeseries` (
   CONSTRAINT `plot_time_double_plot_ref`
     FOREIGN KEY (`plotId` )
     REFERENCES `quantarch`.`plots` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `plot_time_double_plot_ref_idx` ON `quantarch`.`timeseries` (`plotId` ASC) ;
@@ -625,8 +625,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`freq_subjects` (
   CONSTRAINT `freq_subects_project_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `freq_subects_project_ref_idx` ON `quantarch`.`freq_subjects` (`projectId` ASC) ;
@@ -646,8 +646,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`thread_info` (
   CONSTRAINT `mailThread_thread_info_ref`
     FOREIGN KEY (`mailThreadId` )
     REFERENCES `quantarch`.`mail_thread` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `mailThread_thread_info_ref_idx` ON `quantarch`.`thread_info` (`mailThreadId` ASC) ;
@@ -668,8 +668,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`thread_density` (
   CONSTRAINT `project_thread_density_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `project_thread_density_ref_idx` ON `quantarch`.`thread_density` (`projectId` ASC) ;
