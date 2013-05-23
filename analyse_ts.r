@@ -385,11 +385,10 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   for (i in 1:num.types) {
     res[[i]] <- cbind(full.ts$releases, ranges[i,])
   }
-  full.ts$releases <- do.call(rbind, res)
 
   ## Release cycles without release candidates must be removed
   ## (otherwise, we run into plotting problems)
-  dat.rc <- na.omit(full.ts$releases)
+  dat.rc <- na.omit(do.call(rbind, res))
   dat.rc <- dat.rc[dat.rc$type==unique(dat.rc$type)[1],c("date.release",
                      "date.rc_start", "ymin", "ymax")]
   dat.rc$date.rc_start <- tstamp_to_date(dat.rc$date.rc_start)
@@ -400,7 +399,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   g <- ggplot(series.merged, aes(x=time, y=value)) + geom_line() +
     facet_grid(type~., scale="free_y") +
     geom_vline(aes(xintercept=as.numeric(date.release), colour="red"),
-               data=full.ts$releases) +
+               data=dat.rc) +
     scale_fill_manual(values = alpha(c("blue", "red"), .1)) +
     xlab("Time") + ylab("Amount of changes") +
     ggtitle(paste("Code changes for project '", conf$description, "'", sep=""))
