@@ -39,6 +39,7 @@ app.configure(function () {
  * Returns: the list of users in JSON format
  */
 app.get('/getUsers', function (request, response) {
+	console.log("/getUsers");
 	try {
 		connection.query('SELECT * FROM person;', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
@@ -55,6 +56,7 @@ app.get('/getUsers', function (request, response) {
  * Returns: the user with the specified :id in a JSON format
  */
 app.get('/getUser/:id', function (request, response) {
+	console.log("/getUser/:id");
     var taskId = request.params.id;
     try {
 	connection.query('SELECT * FROM person WHERE id=' + taskId + ';', function (error, rows, fields) { 
@@ -68,10 +70,73 @@ app.get('/getUser/:id', function (request, response) {
 });
 
 /**
- * HTTP GET /projects
+ * HTTP GET /getReleaseTimelines
+ * Param: :projectID (Integer) is the id of the project the timeseries belong to
+ * Returns: the list of ReleaseTimelines belonging to the given project in JSON format
+ */
+app.get('/getReleaseTimelines/:projectID', function (request, response) {
+	console.log("/getReleaseTimelines/:projectID");
+	var projectID = request.params.projectID;
+	try {
+		connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ';', function (error, rows, fields) { 
+			response.end(JSON.stringify(rows)); 
+		});
+	} catch (exeception) {
+        console.log(exeception.message);
+        response.send(exeception.message);
+    }
+});
+
+/**
+ * HTTP GET /getReleaseTimelinesForInterval
+ * Param: :projectID (Integer) is the id of the project the timeseries belong to
+ * Param: :startTimestamp (timestanp) begin of intervall
+ * Param: :endTimestamp (timestanp) end of intervall
+ * Returns: the list of ReleaseTimelines belonging to the given project in JSON format
+ */
+app.get('/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp', function (request, response) {
+	console.log("/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp");
+	var projectID = request.params.projectID;
+	var begin = request.params.startTimestamp;
+	var end = request.params.endTimestamp;
+	try {
+		connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ' and date >= \'' + begin + '\' and date <= \'' + end + '\';', function (error, rows, fields) { 
+			response.end(JSON.stringify(rows)); 
+		});
+	} catch (exeception) {
+        console.log(exeception.message);
+        response.send(exeception.message);
+    }
+});
+
+/**
+ * HTTP GET /getPlotBinData
+ * Param: :projectID (Integer) is the id of the project the data belongs to
+ * Param: :plotName (String) is the name of the plot
+ * Param: :plotType (String) is the type of the plot
+ * Returns: the list of ReleaseTimelines belonging to the given project in JSON format
+ */
+app.get('/getPlotBinData/:projectID/:plotName/:plotType', function (request, response) {
+	console.log("/getPlotBinData/:projectID/:plotName/:plotType");
+	var projectID = request.params.projectID;
+	var plotName = request.params.plotName;
+	var plotType = request.params.plotType;
+	try {
+		connection.query('select plotId, type, data from plot_bin, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName	+ '\' and type = \'' + plotType	+ '\';', function (error, rows, fields) { 
+			response.end(JSON.stringify(rows)); 
+		});
+	} catch (exeception) {
+        console.log(exeception.message);
+        response.send(exeception.message);
+    }
+});
+
+/**
+ * HTTP GET /getProjects
  * Returns: the list of projects in JSON format containing id, name, analysisMethod, analysisTime
  */
 app.get('/getProjects', function (request, response) {
+	console.log("/getProjects");
 	try {
 		connection.query('SELECT * FROM project;', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
@@ -88,6 +153,7 @@ app.get('/getProjects', function (request, response) {
  * Returns: the list of projects with that name in JSON format containing id, name, analysisMethod, analysisTime
  */
 app.get('/getProjectsByName/:name', function (request, response) {
+	console.log("/getProjectsByName/:name");
 	var name = request.params.name;
 	try {
 		connection.query('SELECT * FROM project where name = \'' + name + '\';', function (error, rows, fields) { 
@@ -106,6 +172,7 @@ app.get('/getProjectsByName/:name', function (request, response) {
  * Returns: the list of projects with that name in JSON format containing id, name, analysisMethod, analysisTime
  */
 app.get('/getProjectsByNameAndMethod/:name/:method', function (request, response) {
+	console.log("/getProjectsByNameAndMethod/:name/:method");
 	var name = request.params.name;
 	var method = request.params.method;
 	try {
@@ -125,6 +192,7 @@ app.get('/getProjectsByNameAndMethod/:name/:method', function (request, response
  * Returns: the list of data for that plot ordered ascending by time in JSON format containing plotid, time, value, value_scaled
  */
 app.get('/getTimeSeriesData/:projectID/:plotName', function (request, response) {
+	console.log("/getTimeSeriesData/:projectID/:plotName");
 	var projectID = request.params.projectID;
 	var plotName = request.params.plotName;
 	try {
@@ -146,6 +214,7 @@ app.get('/getTimeSeriesData/:projectID/:plotName', function (request, response) 
  * Returns: the list of data existing in the given intervall for that plot ordered ascending by time in JSON format containing plotid, time, value, value_scaled
  */
 app.get('/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:endTimestamp', function (request, response) {
+	console.log("/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:endTimestamp");
 	var projectID = request.params.projectID;
 	var plotName = request.params.plotName;
 	var begin = request.params.startTimestamp;
@@ -162,10 +231,9 @@ app.get('/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:end
 
 /**
  * LOCK Person table
- * TODO
  */
 lockTablePerson = function() {
-	var log = { log : 'locking table person'};
+	var log = { log : 'lockTablePerson'};
     console.log(log);
     // Lock table Person
     connection.query('LOCK TABLE PERSON WRITE;', function (error, ret, fields) { 
@@ -177,10 +245,9 @@ lockTablePerson = function() {
 
 /**
  * UNLOCK all tables
- * TODO
  */
 unlockTablePerson = function() {
-	var log = { log : 'unlocking table person'};
+	var log = { log : 'unlockTablePerson'};
     console.log(log);
 	// Unlock table person
 	connection.query('UNLOCK TABLES;', function (error, ret, fields) { 
@@ -195,7 +262,7 @@ unlockTablePerson = function() {
  * Synchronization is solved via LOCK/UNLOCK of DB table, Note: this has to be tested!!!!
  */
 app.getUserFromDB = function(name, email, projectID, response) {
-    console.log("app.getUserFromDB");
+    console.log("getUserFromDB");
     try {
 	// name and email have been empty
 	if  (!projectID)
@@ -276,7 +343,10 @@ app.getUserFromDB = function(name, email, projectID, response) {
 								connection.query('SELECT email5 FROM person WHERE id = ' + rows[0].id + ';', function (error, e5, fields) { 
 								    if (e5[0].email5)
 								    {
-									// email5 occupied, discard new email
+										// email5 occupied, discard new email
+										unlockTablePerson();
+										var log = { log : 'id: ' +rows[0].id + ', email slots full, email discarded'};
+										console.log(log);
 								    }
 								    else
 								    {
@@ -374,6 +444,8 @@ app.getUserFromDB = function(name, email, projectID, response) {
 						connection.query('UPDATE person SET name = \'' + name + '\' WHERE id = ' + rows[0].id + ';', function (error, ret, fields) { 
 							// UNLock table Person
 							unlockTablePerson();
+							//console.log(ret);
+							//console.log(error);
 						});
 				    }
 					var log = { log : 'id: ' +rows[0].id + ', name updated'};
