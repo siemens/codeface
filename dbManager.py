@@ -86,13 +86,19 @@ class dbManager:
         res = self.doFetchAll()[0]
         return(res[0])
 
-    def getRevisionID(self, projectID, tag):
-        """Determine the ID of a tag, given its textual form"""
+    def getTagID(self, projectID, tag, type):
+        """Determine the ID of a tag, given its textual form and the type"""
         self.doExec("SELECT id FROM release_timeline WHERE projectId=%s " +
-                    "AND tag=%s AND type='release'", (projectID, tag))
+                    "AND tag=%s AND type=%s", (projectID, tag, type))
 
         res = self.doFetchAll()[0]
         return(res[0])
+
+    def getRevisionID(self, projectID, tag):
+        return(self.getTagID(projectID, tag, "release"))
+
+    def getRCID(self, projectID, tag):
+        return(self.getTagID(projectID, tag, "rc"))
 
 def tstamp_to_sql(tstamp):
     """Convert a Unix timestamp into an SQL compatible DateTime string"""
