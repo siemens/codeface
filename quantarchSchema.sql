@@ -213,6 +213,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`release_range` (
   `releaseStartId` BIGINT NOT NULL ,
   `releaseEndId` BIGINT NOT NULL ,
   `projectId` BIGINT NOT NULL ,
+  `releaseRCStartId` BIGINT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `releaseRange_releaseStartId`
     FOREIGN KEY (`releaseStartId` )
@@ -228,6 +229,11 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`release_range` (
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
     ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `releaseRange_RCStartId`
+    FOREIGN KEY (`releaseRCStartId` )
+    REFERENCES `quantarch`.`release_timeline` (`id` )
+    ON DELETE SET NULL
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
@@ -236,6 +242,8 @@ CREATE INDEX `releaseRange_releaseStartId_idx` ON `quantarch`.`release_range` (`
 CREATE INDEX `releaseRange_releaseEndId_idx` ON `quantarch`.`release_range` (`releaseEndId` ASC) ;
 
 CREATE INDEX `releaseRange_projectId_idx` ON `quantarch`.`release_range` (`projectId` ASC) ;
+
+CREATE INDEX `releaseRange_RCStartId_idx` ON `quantarch`.`release_range` (`releaseRCStartId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -304,12 +312,12 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`commit` (
     ON UPDATE CASCADE,
   CONSTRAINT `commit_release_start`
     FOREIGN KEY (`releaseStartTag` )
-    REFERENCES `quantarch`.`release_timeline` (`id` )
+    REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE SET NULL
     ON UPDATE CASCADE,
   CONSTRAINT `commit_release_end`
     FOREIGN KEY (`releaseEndTag` )
-    REFERENCES `quantarch`.`release_timeline` (`id` )
+    REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE SET NULL
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
