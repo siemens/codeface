@@ -70,38 +70,10 @@ boundaries.include.rc <- function(boundaries) {
 }
 
 
-get.boundaries <- function(i, tstamps.all) {
-  tstamps.release <- tstamps.all[tstamps.all$type=="release",]
-  tstamps.rc <- tstamps.all[tstamps.all$type=="rc",]
-  tag <- conf$revisions[conf$revisions==tstamps.release[i+1,]$tag]
-  tag.start <- conf$revisions[conf$revisions==tstamps.release[i,]$tag]
-
-  rc <- NA
-  if (sum(tstamps.rc$tag==tag) > 0) {
-    rc <- tstamps.rc[tstamps.rc$tag==tag,]$date
-  }
-
-  return(data.frame(date.start=tstamps.release[i,]$date,
-                    date.end=tstamps.release[i+1,]$date,
-                    date.rc_start=rc,
-                    tag=tag,
-                    cycle=paste(tag.start, tag, sep="-")))
-}
-
-prepare.release.boundaries <- function(tstamps.all) {
-  len <- dim(tstamps.all[tstamps.all$type=="release",])[1]-1
-  res <- lapply(1:len, function(i) {
-    return(get.boundaries(i, tstamps.all))
-  })
-
-  res <- do.call(rbind, res)
-  res$date.rc_start <- tstamp_to_date(res$date.rc_start)
-  return(res)
-}
-
 ## Given a list of time series file names, compute the total time series
-gen.full.ts <- function(ts.file.list, boundaries) {
+gen.full.ts <- function(ts.file.list, conf) {
   full.series <- vector("list", length(ts.file.list))
+  boundaries <- conf$boundaries
 
   if (dim(boundaries)[1] != length(ts.file.list)) {
     stop("Internal error: Release boundaries don't match ts list length")
@@ -213,7 +185,7 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
 
 ## Perform statistical analysis on the clusters. type can be "sg"
 ## (spin glass), or "wg" (walktrap -- random walk analysis)
-do.cluster.analysis <- function(resdir, graphdir, conf, tstamps, type="sg") {
+do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   if (type != "sg" && type != "wg") {
     stop("Internal error: Specify 'wg' or 'sg' for clustering type!")
   }
@@ -233,7 +205,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf, tstamps, type="sg") {
     clusters[[i]] <- read.table(cluster.file.list[[i]], header=TRUE, sep="\t")
     ## Assign the date of date of the release in the cluster range
     ## as cluster date (e.g., cluster v1..v2 gets the date of v2 assigned)
-    clusters[[i]] <- cbind(clusters[[i]], date=tstamps$date[[i+1]])
+    clusters[[i]] <- cbind(clusters[[i]], date=conf$boundaries$date.end[i])
     clusters[[i]]$group <- as.factor(clusters[[i]]$group)
 
     ## Compute summary statistics for each cluster. The ddply query
@@ -257,15 +229,15 @@ do.cluster.analysis <- function(resdir, graphdir, conf, tstamps, type="sg") {
     g <- ggplot(clusters[[i]], aes(x=group, y=prank)) +
       geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
         ylab("Page rank")
-    ggsave(file.path(graphdir, paste("cluster_prank_", tstamps$tag[[i+1]],
+    ggsave(file.path(graphdir, paste("cluster_prank_", conf$boundaries$tag[i],
                                      ".pdf", sep="")),
            g, width=7, height=7)
 
     g <- ggplot(clusters[[i]], aes(x=group, y=total)) +
       geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
         ylab("Amount of code changes (add+del)")
-    ggsave(file.path(graphdir, paste("cluster_code_changes_", tstamps$tag[[i+1]],
-                                     ".pdf", sep="")),
+    ggsave(file.path(graphdir, paste("cluster_code_changes_",
+                                     conf$boundaries$tag[i], ".pdf", sep="")),
            g, width=7, height=7)
   }
 
@@ -318,11 +290,12 @@ do.cluster.analysis <- function(resdir, graphdir, conf, tstamps, type="sg") {
   ## for instance to detect variations within individual stable groups.
 }
 
-do.commit.analysis <- function(resdir, graphdir, conf, tstamps) {
+do.commit.analysis <- function(resdir, graphdir, conf) {
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
   ts <- vector("list", length(conf$revisions)-1)
-
+  tstamps <- conf$tstamps.release
+  
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
   for (i in 1:(length(tstamps)-1)) {
@@ -394,12 +367,11 @@ do.commit.analysis <- function(resdir, graphdir, conf, tstamps) {
     })
 }
 
-do.ts.analysis <- function(resdir, graphdir, conf, tstamps.all) {
+do.ts.analysis <- function(resdir, graphdir, conf) {
   ts.file.list <- gen.ts.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
-  boundaries <- prepare.release.boundaries(tstamps.all)
-  full.ts <- gen.full.ts(ts.file.list, boundaries)
+  full.ts <- gen.full.ts(ts.file.list, conf)
   series.merged <- process.ts(full.ts)
   
   ## Prepare y ranges for the different graph types
@@ -412,7 +384,7 @@ do.ts.analysis <- function(resdir, graphdir, conf, tstamps.all) {
   num.types <- length(unique(ranges$type))
   res <- vector("list", num.types)
   for (i in 1:num.types) {
-    res[[i]] <- cbind(boundaries, ranges[i,])
+    res[[i]] <- cbind(conf$boundaries, ranges[i,])
   }
   boundaries.plot <- do.call(rbind, res)
 
@@ -502,8 +474,6 @@ conf <- init.db(conf, global.conf)
 ## TODO: Turn this into a proper pipeline, or some plugin-based
 ## analysis mechanism?
 options(error = quote(dump.frames("error.dump", TRUE)))
-tstamps.release <- get.release.dates(conf)
-tstamps.all <- get.release.rc.dates(conf)
-do.ts.analysis(resdir, graphdir, conf, tstamps.all)
-do.commit.analysis(resdir, graphdir, conf, tstamps.release)
-do.cluster.analysis(resdir, graphdir, conf, tstamps.release)
+do.ts.analysis(resdir, graphdir, conf)
+do.commit.analysis(resdir, graphdir, conf)
+do.cluster.analysis(resdir, graphdir, conf)
