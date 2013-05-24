@@ -21,6 +21,7 @@
 
 suppressPackageStartupMessages(library(RMySQL))
 suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(lubridate))
 source("boundaries.r")
 
 sq <- function(string) {
@@ -74,7 +75,13 @@ get.release.rc.dates <- function(conf) {
                     str_c("SELECT * FROM release_timeline WHERE projectId=",
                           conf$pid, sep=""))
   res$type <- as.factor(res$type)
-  res$date <- ymd_hms(res$date, quiet=T)
+
+  ## When the first date (which is that of a release) is not available,
+  ## then none is yet (dates are only inserted into the database in
+  ## ts.py)
+  if (!is.na(res$date[1])) {
+    res$date <- ymd_hms(res$date, quiet=T)
+  }
 
   return(res)
 }
