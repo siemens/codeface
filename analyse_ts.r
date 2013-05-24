@@ -32,6 +32,7 @@ source("utils.r")
 source("config.r")
 source("plot.r")
 source("db.r")
+source("query.r")
 
 ## Omit time series elements that exceed the given range
 trim.series <- function(series, start, end) {
