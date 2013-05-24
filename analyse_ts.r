@@ -300,11 +300,9 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
   for (i in 1:(length(tstamps)-1)) {
+    range.id <- get.range.id(conf, tstamps$tag[i], tstamps$tag[i+1])
     dat <- dbGetQuery(conf$con, str_c("SELECT * FROM commit where projectId=",
-                                      conf$pid, " AND releaseStartTag=",
-                                      sq(get.revision.id(conf, tstamps$tag[i])),
-                                      " AND releaseEndTag=",
-                                      sq(get.revision.id(conf, tstamps$tag[i+1]))))
+                                      conf$pid, " AND releaseRangeId=", range.id))
 
     dat <- normalise.commit.dat(dat, subset)
 
