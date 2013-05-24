@@ -50,18 +50,9 @@ def writeReleases(dbm, tstamps, conf):
     pid = dbm.getProjectID(conf["project"], conf["tagging"])
 
     for tstamp in tstamps:
-        if tstamp[0] == "release":
-            dbm.doExec("UPDATE release_timeline SET date=%s WHERE " +
-                       "projectId=%s AND type=%s AND tag=%s",
-                       (tstamp_to_sql(int(tstamp[2])), pid, tstamp[0], tstamp[1]))
-            print("Trying to update {0} with {1}".format(tstamp[0],
-                                                         tstamp_to_sql(int(tstamp[2]))))
-        else:
-            dbm.doExec("INSERT INTO release_timeline " +
-                       "(type, tag, date, projectId) " +
-                       "VALUES (%s, %s, %s, %s)",
-                       (tstamp[0], tstamp[1], tstamp_to_sql(int(tstamp[2])),
-                        pid))
+        dbm.doExec("UPDATE release_timeline SET date=%s WHERE " +
+                   "projectId=%s AND type=%s AND tag=%s",
+                   (tstamp_to_sql(int(tstamp[2])), pid, tstamp[0], tstamp[1]))
     dbm.doCommit()
 
 def dispatch_ts_analysis(resdir, conf_file):

@@ -72,6 +72,8 @@ def dispatchAnalysis(args):
     # Fill table release_timeline with the release information
     # known so far (date is not yet available)
     for i in range(len(revs)):
+        # We need to make sure that no entries are duplicated to avoid
+        # creating malformed release databases
         dbm.doExec("SELECT * FROM release_timeline WHERE type='release' " +
                    "AND tag=%s AND projectId=%s", (revs[i], pid))
 
@@ -81,6 +83,39 @@ def dispatchAnalysis(args):
                              "VALUES (%s, %s, %s)",
                              ("release", revs[i], pid))
 
+    # Also construct the release ranges, again with the information known
+    # so far
+    for i in range(len(revs)-1):
+        startID = dbm.getRevisionID(pid, revs[i])
+        endID = dbm.getRevisionID(pid, revs[i+1])
+        rcTag = rcs[i+1]
+        rcID = None
+
+        if (rcTag != None):
+            dbm.doExec("SELECT * FROM release_timeline WHERE type='rc' " +
+                   "AND tag=%s AND projectId=%s", (rcTag, pid))
+
+            if dbm.cur.rowcount < 1:
+                dbm.doExecCommit("INSERT INTO release_timeline " +
+                                 "(type, tag, projectId) " +
+                                 "VALUES (%s, %s, %s)",
+                                 ("rc", rcTag, pid))
+                rcID = dbm.getRCID(pid, rcTag)
+
+        if (rcID != None):
+            dbm.doExecCommit("INSERT INTO release_range " +
+                             "(releaseStartId, releaseEndId, "+
+                             "projectId, releaseRCStartId) " +
+                             "VALUES (%s, %s, %s, %s)",
+                             (startID, endID, pid, rcID))
+        else:
+            dbm.doExecCommit("INSERT INTO release_range " +
+                             "(releaseStartId, releaseEndId, "+
+                             "projectId) " +
+                             "VALUES (%s, %s, %s)",
+                             (startID, endID, pid))
+
+    #############################
     # Analyse all revision ranges
     for i in range(len(revs)-1):
         resdir = os.path.join(args.resdir, conf["project"],
