@@ -100,27 +100,25 @@ prepare.release.boundaries <- function(tstamps.all) {
 }
 
 ## Given a list of time series file names, compute the total time series
-gen.full.ts <- function(ts.file.list) {
+gen.full.ts <- function(ts.file.list, boundaries) {
   full.series <- vector("list", length(ts.file.list))
-  releases <- vector("list", length(ts.file.list))
+
+  if (dim(boundaries)[1] != length(ts.file.list)) {
+    stop("Internal error: Release boundaries don't match ts list length")
+  }
   
   for (i in 1:length(ts.file.list)) {
     conn <- file(ts.file.list[[i]], "r")
-    boundaries <- get.series.boundaries(conn)
     
     full.series[[i]] <- read.zoo(conn, FUN=tstamp_to_date)[,1]    
-    full.series[[i]] <- trim.series(full.series[[i]], boundaries$date.start,
-                                    boundaries$date.end)
-
-    releases[[i]] <- data.frame(date.release=boundaries$date.end,
-                                date.rc_start=boundaries$date.rc_start)
+    full.series[[i]] <- trim.series(full.series[[i]], boundaries$date.start[i],
+                                    boundaries$date.end[i])
     close(conn)
   }
 
   full.series <- do.call(c, full.series)
-  releases <- data.frame(do.call(rbind, releases))
   
-  return (list(series=full.series, releases=releases))
+  return (full.series)
 }
 
 ## Convert a time series into a data frame
@@ -396,47 +394,46 @@ do.commit.analysis <- function(resdir, graphdir, conf, tstamps) {
     })
 }
 
-do.ts.analysis <- function(resdir, graphdir, conf, tstamps) {
+do.ts.analysis <- function(resdir, graphdir, conf, tstamps.all) {
   ts.file.list <- gen.ts.file.list(resdir, conf$revisions)
   
   ## Dispatch the calculations and create result data frames
-  full.ts <- gen.full.ts(ts.file.list)
-  series.merged <- process.ts(full.ts$series)
+  boundaries <- prepare.release.boundaries(tstamps.all)
+  full.ts <- gen.full.ts(ts.file.list, boundaries)
+  series.merged <- process.ts(full.ts)
   
   ## Prepare y ranges for the different graph types
-  ## Compute min/max value per type
+  ## Compute min/max value per type, and prepare a special
+  ## version of boundaries used for plotting which includes
+  ## the boundaries
   ranges <- ddply(series.merged, .(type), summarise,
                   ymin=min(value), ymax=max(value))
   
-  num.types <- length(ranges)
+  num.types <- length(unique(ranges$type))
   res <- vector("list", num.types)
   for (i in 1:num.types) {
-    res[[i]] <- cbind(full.ts$releases, ranges[i,])
+    res[[i]] <- cbind(boundaries, ranges[i,])
   }
-
-  ## Release cycles without release candidates must be removed
-  ## (otherwise, we run into plotting problems)
-  dat.rc <- na.omit(do.call(rbind, res))
-  dat.rc <- dat.rc[dat.rc$type==unique(dat.rc$type)[1],c("date.release",
-                     "date.rc_start", "ymin", "ymax")]
-  dat.rc$date.rc_start <- tstamp_to_date(dat.rc$date.rc_start)
+  boundaries.plot <- do.call(rbind, res)
 
   ## Visualisation
   ## TODO: log and sqrt transform are reasonable for the averaged, but not
   ## for the cumulative series
   g <- ggplot(series.merged, aes(x=time, y=value)) + geom_line() +
     facet_grid(type~., scale="free_y") +
-    geom_vline(aes(xintercept=as.numeric(date.release), colour="red"),
-               data=dat.rc) +
+    geom_vline(aes(xintercept=as.numeric(date.end), colour="red"),
+               data=boundaries.plot) +
     scale_fill_manual(values = alpha(c("blue", "red"), .1)) +
     xlab("Time") + ylab("Amount of changes") +
     ggtitle(paste("Code changes for project '", conf$description, "'", sep=""))
 
-  if (dim(dat.rc)[1] > 0) {
+  ## na.omit is required to remove all cycles that don't contain
+  ## rc regions.
+  if (dim(na.omit(boundaries.plot))[1] > 0) {
     ## Only plot release candidate regions if there are any, actually
     g <- g + geom_rect(aes(NULL, NULL, xmin=date.rc_start,
-                           xmax=date.release, ymin=ymin, ymax=ymax, fill="blue"),
-                       data=dat.rc)
+                           xmax=date.end, ymin=ymin, ymax=ymax, fill="blue"),
+                       data=na.omit(boundaries.plot))
 
   }
 
@@ -505,7 +502,8 @@ conf <- init.db(conf, global.conf)
 ## TODO: Turn this into a proper pipeline, or some plugin-based
 ## analysis mechanism?
 options(error = quote(dump.frames("error.dump", TRUE)))
-tstamps <- get.release.dates(conf)
-do.ts.analysis(resdir, graphdir, conf, tstamps)
-do.commit.analysis(resdir, graphdir, conf, tstamps)
-do.cluster.analysis(resdir, graphdir, conf, tstamps)
+tstamps.release <- get.release.dates(conf)
+tstamps.all <- get.release.rc.dates(conf)
+do.ts.analysis(resdir, graphdir, conf, tstamps.all)
+do.commit.analysis(resdir, graphdir, conf, tstamps.release)
+do.cluster.analysis(resdir, graphdir, conf, tstamps.release)
