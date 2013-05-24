@@ -21,6 +21,7 @@
 
 suppressPackageStartupMessages(library(RMySQL))
 suppressPackageStartupMessages(library(stringr))
+source("boundaries.r")
 
 sq <- function(string) {
   return(str_c("'", string, "'"))
@@ -86,6 +87,17 @@ get.release.dates <- function(conf) {
   return(res)
 }
 
+## Augment the configuration "object" with information that
+## is of interest to several analysis passes/operations
+augment.conf <- function(conf) {
+  conf$tstamps.release <- get.release.dates(conf)
+  conf$tstamps.all <- get.release.rc.dates(conf)
+
+  conf$boundaries <- prepare.release.boundaries(conf$tstamps.all)
+
+  return(conf)
+}
+
 ## Establish the connection and store the relevant configuration
 ## parameters in the project specific configuration structure
 init.db <- function(conf, global.conf) {
@@ -99,6 +111,8 @@ init.db <- function(conf, global.conf) {
     stop("Internal error: No ID assigned to project ", conf$project, "\n",
          "(Did you not run the VCS analysis before the ml analysis?)\n")
   }
+
+  conf <- augment.conf(conf)
 
   return(conf)
 }
