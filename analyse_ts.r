@@ -74,6 +74,8 @@ get.boundaries <- function(i, tstamps.all) {
   tstamps.release <- tstamps.all[tstamps.all$type=="release",]
   tstamps.rc <- tstamps.all[tstamps.all$type=="rc",]
   tag <- conf$revisions[conf$revisions==tstamps.release[i+1,]$tag]
+  tag.start <- conf$revisions[conf$revisions==tstamps.release[i,]$tag]
+
   rc <- NA
   if (sum(tstamps.rc$tag==tag) > 0) {
     rc <- tstamps.rc[tstamps.rc$tag==tag,]$date
@@ -81,7 +83,9 @@ get.boundaries <- function(i, tstamps.all) {
 
   return(data.frame(date.start=tstamps.release[i,]$date,
                     date.end=tstamps.release[i+1,]$date,
-                    date.rc_start=rc))
+                    date.rc_start=rc,
+                    tag=tag,
+                    cycle=paste(tag.start, tag, sep="-")))
 }
 
 prepare.release.boundaries <- function(tstamps.all) {
