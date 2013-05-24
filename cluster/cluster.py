@@ -830,7 +830,7 @@ def createStatisticalData(cmtlist, id_mgr, link_type):
     return None
 
 
-def writeCommitData2File(cmtlist, id_mgr, outdir, releaseIDs, dbm):
+def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm):
     '''
     commit information is written to the outdir location
     '''
@@ -866,14 +866,14 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseIDs, dbm):
                    "Subsys, inRC, " +
                    #
                    "AuthorSubsysSimilarity, AuthorTaggersSimilarity, " +
-                   "TaggersSubsysSimilarity, releaseStartTag, releaseEndTag) " +
+                   "TaggersSubsysSimilarity, releaseRangeId) " +
                    "VALUES " +
                    # TODO: For some reason, using %d for integers does not work
                    # (and likewise for %f)
                    "(%s, %s, %s, %s, %s, " +
                    " %s, %s, %s, %s, %s, " +
                    " %s, %s, %s, %s, %s, " +
-                   " %s, %s, %s, %s, %s)",
+                   " %s, %s, %s, %s)",
                    (cmt.id, tstamp_to_sql(int(cmt.getCdate())),
                     cmt.getAuthorPI().getID(), projectID,
                     cmt.getChangedFiles(0),
@@ -889,7 +889,7 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseIDs, dbm):
                     float(cmt.getAuthorSubsysSimilarity()),
                     float(cmt.getAuthorTaggersSimilarity()),
                     float(cmt.getTaggersSubsysSimilarity()),
-                    int(releaseIDs[0]), int(releaseIDs[1])))
+                    int(releaseRangeID)))
 
         # TODO: Continue writing here. Include at least
         # signoff-info (subsys info of signers)
@@ -990,7 +990,7 @@ def writeAdjMatrix2File(id_mgr, outdir, conf):
     out.close()
 
 
-def emitStatisticalData(cmtlist, id_mgr, outdir, revisionIDs, dbm, conf):
+def emitStatisticalData(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
     """Save the available information for a release interval for further statistical processing.
 
     Several files are created in outdir respectively the database:
@@ -1000,7 +1000,7 @@ def emitStatisticalData(cmtlist, id_mgr, outdir, revisionIDs, dbm, conf):
     - Per-Author information on relative per-subsys work distribution (id_subsys.txt)
     - Connection between the developers derived from commit tags (tags.txt)"""
     
-    writeCommitData2File(cmtlist, id_mgr, outdir, revisionIDs, dbm)
+    writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm)
     
     # NOTE: Subsystem information is currently not written into the
     # proper database because it is not configured for almost all projects
@@ -1212,6 +1212,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
     revisionIDs = (dbm.getRevisionID(projectID, revrange[0]),
                    dbm.getRevisionID(projectID, revrange[1]))
+    releaseRangeID = dbm.getReleaseRange(projectID, revisionIDs)
         
     print("Reading from data base {0}...".format(dbfilename))
     git = readDB(dbfilename)
@@ -1253,7 +1254,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     #Save the results in text files that can be further processed with
     #statistical software, that is, GNU R
     #---------------------------------                      
-    emitStatisticalData(cmtlist, id_mgr, outdir, revisionIDs, dbm, conf)
+    emitStatisticalData(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf)
 
     
 ##################################################################
