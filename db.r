@@ -93,7 +93,7 @@ augment.conf <- function(conf) {
   conf$tstamps.release <- get.release.dates(conf)
   conf$tstamps.all <- get.release.rc.dates(conf)
 
-  conf$boundaries <- prepare.release.boundaries(conf$tstamps.all)
+  conf$boundaries <- prepare.release.boundaries(conf)
 
   return(conf)
 }
