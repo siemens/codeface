@@ -100,6 +100,15 @@ class dbManager:
     def getRCID(self, projectID, tag):
         return(self.getTagID(projectID, tag, "rc"))
 
+    def getReleaseRange(self, projectID, revisionIDs):
+        """Given a pair of release IDs, determine the release range ID"""
+        self.doExec("SELECT id FROM release_range WHERE projectId=%s " +
+                    "AND releaseStartId=%s AND releaseEndId=%s",
+                    (projectID, revisionIDs[0], revisionIDs[1]))
+
+        res = self.doFetchAll()[0]
+        return(res[0])
+
 def tstamp_to_sql(tstamp):
     """Convert a Unix timestamp into an SQL compatible DateTime string"""
     return(datetime.utcfromtimestamp(tstamp).strftime("%Y-%m-%d %H:%M:%S"))
