@@ -69,6 +69,32 @@ boundaries.include.rc <- function(boundaries) {
   return (!is.na(boundaries$rc_start))
 }
 
+
+get.boundaries <- function(i, tstamps.all) {
+  tstamps.release <- tstamps.all[tstamps.all$type=="release",]
+  tstamps.rc <- tstamps.all[tstamps.all$type=="rc",]
+  tag <- conf$revisions[conf$revisions==tstamps.release[i+1,]$tag]
+  rc <- NA
+  if (sum(tstamps.rc$tag==tag) > 0) {
+    rc <- tstamps.rc[tstamps.rc$tag==tag,]$date
+  }
+
+  return(data.frame(date.start=tstamps.release[i,]$date,
+                    date.end=tstamps.release[i+1,]$date,
+                    date.rc_start=rc))
+}
+
+prepare.release.boundaries <- function(tstamps.all) {
+  len <- dim(tstamps.all[tstamps.all$type=="release",])[1]-1
+  res <- lapply(1:len, function(i) {
+    return(get.boundaries(i, tstamps.all))
+  })
+
+  res <- do.call(rbind, res)
+  res$date.rc_start <- tstamp_to_date(res$date.rc_start)
+  return(res)
+}
+
 ## Given a list of time series file names, compute the total time series
 gen.full.ts <- function(ts.file.list) {
   full.series <- vector("list", length(ts.file.list))
