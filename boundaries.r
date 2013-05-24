@@ -16,9 +16,9 @@
 
 ## Helper functions for constructing release boundary information
 
-get.boundaries <- function(i, tstamps.all) {
-  tstamps.release <- tstamps.all[tstamps.all$type=="release",]
-  tstamps.rc <- tstamps.all[tstamps.all$type=="rc",]
+get.boundaries <- function(i, conf) {
+  tstamps.release <- conf$tstamps.all[conf$tstamps.all$type=="release",]
+  tstamps.rc <- conf$tstamps.all[conf$tstamps.all$type=="rc",]
   tag <- conf$revisions[conf$revisions==tstamps.release[i+1,]$tag]
   tag.start <- conf$revisions[conf$revisions==tstamps.release[i,]$tag]
 
@@ -34,10 +34,10 @@ get.boundaries <- function(i, tstamps.all) {
                     cycle=paste(tag.start, tag, sep="-")))
 }
 
-prepare.release.boundaries <- function(tstamps.all) {
-  len <- dim(tstamps.all[tstamps.all$type=="release",])[1]-1
+prepare.release.boundaries <- function(conf) {
+  len <- dim(conf$tstamps.all[conf$tstamps.all$type=="release",])[1]-1
   res <- lapply(1:len, function(i) {
-    return(get.boundaries(i, tstamps.all))
+    return(get.boundaries(i, conf))
   })
 
   res <- do.call(rbind, res)
