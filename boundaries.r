@@ -23,9 +23,7 @@ get.boundaries <- function(i, conf) {
   tag.start <- conf$revisions[conf$revisions==tstamps.release[i,]$tag]
 
   rc <- NA
-  if (sum(tstamps.rc$tag==tag) > 0) {
-    rc <- tstamps.rc[tstamps.rc$tag==tag,]$date
-  }
+  rc <- tstamps.rc[i,]$date
 
   return(data.frame(date.start=tstamps.release[i,]$date,
                     date.end=tstamps.release[i+1,]$date,
