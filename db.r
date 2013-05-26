@@ -67,6 +67,15 @@ get.revision.id <- function(conf, tag) {
   }
 
   return(res$id)
+get.range.id <- function(conf, tag.start, tag.end) {
+  start.id <- get.revision.id(conf, tag.start)
+  end.id <- get.revision.id(conf, tag.end)
+
+  res <- dbGetQuery(conf$con,
+                    str_c("SELECT id FROM release_range WHERE projectId=",
+                          conf$pid, " AND releaseStartId=", start.id,
+                          " AND releaseEndId=", end.id))
+  return(res$id[1])
 }
 
 # Get release and release candidate dates for a given project
