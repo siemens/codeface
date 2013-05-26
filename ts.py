@@ -66,8 +66,11 @@ def dispatch_ts_analysis(resdir, conf_file):
     if not(os.path.exists(destdir)):
         os.mkdir(destdir)
 
-    ## Stage 1: Create the individual time series (and record all time
-    ## stamps for the boundaries)
+    # Stage 1: Create the individual time series (and record all time
+    # stamps for the boundaries)
+    # NOTE: The time stamp information in the database is still incomplete
+    # in this stage, it is written out _after_ this stage. So we must
+    # not rely on the content of tstamps before that is done.
     tstamps = []
     for i in range(1, len(conf["revisions"])):
         dbfilename = os.path.join(dbpath, "{0}-{1}".format(conf["revisions"][i-1],
@@ -82,7 +85,7 @@ def dispatch_ts_analysis(resdir, conf_file):
             tstamps.append(("release", conf["revisions"][i-1], ts.get_start()))
 
         if (ts.get_rc_start()):
-            tstamps.append(("rc", conf["revisions"][i], ts.get_rc_start()))
+            tstamps.append(("rc", conf["rcs"][i], ts.get_rc_start()))
 
         tstamps.append(("release", conf["revisions"][i], ts.get_end()))
 
