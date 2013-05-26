@@ -33,13 +33,14 @@ get.boundaries <- function(i, conf) {
 }
 
 prepare.release.boundaries <- function(conf) {
+  ## TODO: The information should be constructed from an sql query,
+  ## and not be constructed with the above magic.
   len <- dim(conf$tstamps.all[conf$tstamps.all$type=="release",])[1]-1
   res <- lapply(1:len, function(i) {
     return(get.boundaries(i, conf))
   })
 
   res <- do.call(rbind, res)
-  res$date.rc_start <- tstamp_to_date(res$date.rc_start)
   return(res)
 }
 
