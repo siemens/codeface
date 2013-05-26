@@ -85,10 +85,12 @@ get.release.rc.dates <- function(conf) {
                           conf$pid, sep=""))
   res$type <- as.factor(res$type)
 
-  ## When the first date (which is that of a release) is not available,
-  ## then none is yet (dates are only inserted into the database in
-  ## ts.py)
-  if (!is.na(res$date[1])) {
+  ## When no rc dates are available yet, all entries of res$date
+  ## are NAs -- in which case ymd_hms will throw an error, so we need
+  ## to skip trying to convert the vector. If there's at least one
+  ## valie date entry included, ymd_hms will happily convert the
+  ## NAs to NAs.
+  if (sum(is.na(res$date)) != length(res$date)) {
     res$date <- ymd_hms(res$date, quiet=T)
   }
 
