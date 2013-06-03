@@ -9,6 +9,7 @@
 *.rej
 *.save
 *.db
+*.rda
 auto/
 db/
 rep/
