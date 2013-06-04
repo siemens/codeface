@@ -17,7 +17,10 @@
 
 ## Some utility functions for plottin
 
-normalise.commit.dat <- function(dat, subset) {
+normalise.commit.dat <- function(dat, subset=NULL) {
+  if (is.null(subset)) {
+    subset <- colnames(dat)
+  }
   dat.subset <- dat[subset]
 
   ## The size of a diff and the number of changed files can be 0, which
