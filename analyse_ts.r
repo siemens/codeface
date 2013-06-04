@@ -20,7 +20,6 @@
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(reshape))
-suppressPackageStartupMessages(library(zoo))
 suppressPackageStartupMessages(library(xts))
 suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(scales))
@@ -121,7 +120,7 @@ gen.full.ts <- function(conf) {
   
   for (i in 1:length(ts)) {
     ts[[i]]$ChangedLines <- ts[[i]]$AddedLines + ts[[i]]$DeletedLines
-    full.series[[i]] <- zoo(ts[[i]]$ChangedLines, order.by=ts[[i]]$commitDate)
+    full.series[[i]] <- xts(ts[[i]]$ChangedLines, order.by=ts[[i]]$commitDate)
     full.series[[i]] <- trim.series(full.series[[i]], boundaries$date.start[i],
                                     boundaries$date.end[i])
   }
