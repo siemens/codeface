@@ -105,23 +105,25 @@ make.index.unique <- function(dat, subset) {
 }
 
 
-
-## Given a list of time series file names, compute the total time series
-gen.full.ts <- function(ts.file.list, conf) {
-  full.series <- vector("list", length(ts.file.list))
+## Compute the total progress time series
+gen.full.ts <- function(conf) {
   boundaries <- conf$boundaries
+  full.series <- vector("list", dim(boundaries)[1])
 
-  if (dim(boundaries)[1] != length(ts.file.list)) {
+  tstamps <- conf$tstamps.release
+
+  subset <- c("commitDate", "AddedLines", "DeletedLines")
+  ts <- get.commits.by.ranges(conf, subset, make.index.unique)
+
+  if (dim(boundaries)[1] != length(ts)) {
     stop("Internal error: Release boundaries don't match ts list length")
   }
   
-  for (i in 1:length(ts.file.list)) {
-    conn <- file(ts.file.list[[i]], "r")
-    
-    full.series[[i]] <- read.zoo(conn, FUN=tstamp_to_date)[,1]    
+  for (i in 1:length(ts)) {
+    ts[[i]]$ChangedLines <- ts[[i]]$AddedLines + ts[[i]]$DeletedLines
+    full.series[[i]] <- zoo(ts[[i]]$ChangedLines, order.by=ts[[i]]$commitDate)
     full.series[[i]] <- trim.series(full.series[[i]], boundaries$date.start[i],
                                     boundaries$date.end[i])
-    close(conn)
   }
 
   full.series <- do.call(c, full.series)
@@ -418,10 +420,8 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
 }
 
 do.ts.analysis <- function(resdir, graphdir, conf) {
-  ts.file.list <- gen.ts.file.list(resdir, conf$revisions)
-  
   ## Dispatch the calculations and create result data frames
-  full.ts <- gen.full.ts(ts.file.list, conf)
+  full.ts <- gen.full.ts(conf)
   series.merged <- process.ts(full.ts)
   
   ## Prepare y ranges for the different graph types

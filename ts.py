@@ -43,7 +43,6 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
         sfx = "{0}-{1}".format(vcs.rev_start, vcs.rev_end)
 
     res = createSeries(vcs, "__main__", revrange, rc_start)
-    writeToFile(res, os.path.join(destdir, "raw_{0}.dat".format(sfx)))
     return res
     
 def writeReleases(dbm, tstamps, conf):
@@ -77,8 +76,8 @@ def dispatch_ts_analysis(resdir, conf_file):
                                                            conf["revisions"][i]),
                                   "vcs_analysis.db")
         
-        ts = doAnalysis(dbfilename, destdir, revrange=[conf["revisions"][i-1],
-                                                       conf["revisions"][i]],
+        ts = doAnalysis(dbfilename, destdir,
+                        revrange=[conf["revisions"][i-1], conf["revisions"][i]],
                         rc_start=conf["rcs"][i])
 
         if (i==1):
