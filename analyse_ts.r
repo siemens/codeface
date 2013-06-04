@@ -149,21 +149,6 @@ gen.rev.list <- function(revisions) {
  return (rev.list)
 }
 
-## NOTE: Although the gen.xyz.file.list functions are fairly similar,
-## they are kept separately because they will be replaced by slightly
-## different queries to a general data base later
-gen.ts.file.list <- function(resdir, revisions) {
-  ts.file.list <- vector("list", length(revisions)-1)
-
-  revs <- gen.rev.list(revisions)
-  for (i in 1:length(revs)) {
-    ts.file.list[[i]] <- paste(resdir, "/ts/raw_", revs[[i]], ".dat", sep="")
-  }
-
-  return(ts.file.list)
-}
-
-
 gen.cluster.file.list <- function(resdir, revisions, type) {
   file.list <- vector("list", length(revisions)-1)
 
