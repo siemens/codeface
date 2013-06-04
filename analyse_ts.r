@@ -70,6 +70,41 @@ boundaries.include.rc <- function(boundaries) {
   return (!is.na(boundaries$rc_start))
 }
 
+compute.next.timestamp <- function(time, last.time) {
+  ## Computing the time stamp is done using this seemingly bizarre way because
+  ## we need to have strictly monotonic timestamps on the one hand, but want
+  ## to have the distance between commits proportional to their real temporal
+  ## committance distance. So we cannot just use the timestamp difference
+  ## between this and the last event, but add one.
+
+  ## Correct for identical dates
+  if (time == last.time)
+    time <- time + seconds(1)
+
+  ## Correct for negative time differences (can arise from multiple
+  ## consecutive identical time stamps)
+  if (time < last.time)
+    time <- last.time + seconds(1)
+
+  return(time)
+}
+
+## Take a list of commits and make their date indices unique by
+## adding a one second offset to identical ones.
+make.index.unique <- function(dat, subset) {
+  dat$commitDate <- ymd_hms(dat$commitDate, quiet=T)
+  last.timestamp <- min(dat$commitDate) - seconds(1)
+
+  for (i in 1:length(dat$commitDate)) {
+    dat$commitDate[[i]] <- compute.next.timestamp(dat$commitDate[[i]],
+                                                  last.timestamp)
+    last.timestamp <- dat$commitDate[[i]]
+  }
+
+  return(dat)
+}
+
+
 
 ## Given a list of time series file names, compute the total time series
 gen.full.ts <- function(ts.file.list, conf) {
