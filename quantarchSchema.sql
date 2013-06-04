@@ -297,8 +297,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`commit` (
   `AuthorSubsysSimilarity` FLOAT NULL ,
   `AuthorTaggersSimilarity` FLOAT NULL ,
   `TaggersSubsysSimilarity` FLOAT NULL ,
-  `releaseStartTag` BIGINT NULL ,
-  `releaseEndTag` BIGINT NULL ,
+  `releaseRangeId` BIGINT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `commit_person`
     FOREIGN KEY (`author` )
@@ -310,13 +309,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`commit` (
     REFERENCES `quantarch`.`project` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `commit_release_start`
-    FOREIGN KEY (`releaseStartTag` )
-    REFERENCES `quantarch`.`release_range` (`id` )
-    ON DELETE SET NULL
-    ON UPDATE CASCADE,
-  CONSTRAINT `commit_release_end`
-    FOREIGN KEY (`releaseEndTag` )
+  CONSTRAINT `commit_release_range`
+    FOREIGN KEY (`releaseRangeId` )
     REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE SET NULL
     ON UPDATE CASCADE)
@@ -326,9 +320,7 @@ CREATE INDEX `commit_person_idx` ON `quantarch`.`commit` (`author` ASC) ;
 
 CREATE INDEX `commit_project_idx` ON `quantarch`.`commit` (`projectId` ASC) ;
 
-CREATE INDEX `commit_release_start_idx` ON `quantarch`.`commit` (`releaseStartTag` ASC) ;
-
-CREATE INDEX `commit_release_end_idx` ON `quantarch`.`commit` (`releaseEndTag` ASC) ;
+CREATE INDEX `commit_release_end_idx` ON `quantarch`.`commit` (`releaseRangeId` ASC) ;
 
 
 -- -----------------------------------------------------
