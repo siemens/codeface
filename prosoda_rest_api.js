@@ -19,14 +19,28 @@
  */
 var express = require('express');
 var mysql = require('mysql');
+var yaml = require("js-yaml");
+
+// get property file name
+var fileName = process.argv[2];
+if(!fileName)
+{
+	console.log('Usage: node ' + process.argv[1] + ' FILENAME');
+	process.exit(1);
+} 
+
+// read configuration file & parse the YAML
+var fs = require('fs');
+var file = fs.readFileSync(fileName, "utf8");
+var config = yaml.load(file);
 
 // initilize the express module and the connection to mysql
 var app = express();
 var connection = mysql.createConnection({ 
-    host : 'localhost',
-    user: 'quantarch',
-    password: 'quantarch',
-    database: 'quantarch'
+    host : config.dbhost,
+    user: config.dbuser,
+    password: config.dbpwd,
+    database: config.dbname
 }); 
 
 app.configure(function () {
@@ -548,4 +562,4 @@ app.post('/post_user_id', app.postUserID);
 /**
  * Start listening on port 8080
  */
-app.listen(8080); //to port on which the express server listen
+app.listen(config.nodejsPort, config.nodejsHostname); //to port & hostname on which the express server listen
