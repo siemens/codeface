@@ -15,7 +15,7 @@
 ## Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-## Some utility functions for plottin
+## Some utility functions for plotting
 
 normalise.commit.dat <- function(dat, subset=NULL) {
   if (is.null(subset)) {
