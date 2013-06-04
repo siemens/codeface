@@ -405,7 +405,8 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
 }
 
 do.ts.analysis <- function(resdir, graphdir, conf) {
-  ## Dispatch the calculations and create result data frames
+  ## Prepare the raw time series as input to the smoothing
+  ## algorithms
   full.ts <- gen.full.ts(conf)
   series.merged <- process.ts(full.ts)
   
