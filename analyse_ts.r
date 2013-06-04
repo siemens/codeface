@@ -291,33 +291,47 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   ## for instance to detect variations within individual stable groups.
 }
 
-do.commit.analysis <- function(resdir, graphdir, conf) {
-  ## Stage 1: Prepare summary statistics for each release cycle,
-  ## and prepare the time series en passant
+get.commits.by.ranges <- function(conf, subset=NULL) {
   ts <- vector("list", length(conf$revisions)-1)
   tstamps <- conf$tstamps.release
-  
-  subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
 
-  for (i in 1:(length(tstamps)-1)) {
+  for (i in 1:(dim(tstamps)[1]-1)) {
     range.id <- get.range.id(conf, tstamps$tag[i], tstamps$tag[i+1])
     dat <- dbGetQuery(conf$con, str_c("SELECT * FROM commit where projectId=",
                                       conf$pid, " AND releaseRangeId=", range.id))
 
     dat <- normalise.commit.dat(dat, subset)
 
-    status(paste("Plotting commit information for revisison",
-                 conf$revisions[[i+1]]))
-    plot.types <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
-    if (sum(dat$NumSignedOffs) > 0) {
-      ## The data do contain tagging information
-      plot.types <- c(plot.types, "NumTags")
+    if (dim(dat)[1] == 0) {
+      cat("Skipping empty cycle", tstamps$tag[i], "..", tstamps$tag[i+1])
+      next
     }
 
     ts[[i]] <- cbind(data.frame(revision=tstamps$tag[[i+1]],
                                 date=tstamps$date[[i+1]]), dat)
+  }
 
-    plot.commit.info(dat, plot.types, graphdir, tstamps$tag[[i+1]])
+  return(ts)
+}
+
+do.commit.analysis <- function(resdir, graphdir, conf) {
+  ## Stage 1: Prepare summary statistics for each release cycle,
+  ## and prepare the time series en passant
+  tstamps <- conf$tstamps.release
+
+  subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
+  ts <- get.commits.by.ranges(conf, subset)
+
+  for (i in 1:(length(ts))) {
+    status(paste("Plotting commit information for revision",
+                 conf$revisions[[i+1]]))
+    plot.types <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
+    if (sum(ts[[i]]$NumSignedOffs) > 0) {
+      ## The data do contain tagging information
+      plot.types <- c(plot.types, "NumTags")
+    }
+
+    plot.commit.info(ts[[i]], plot.types, graphdir, tstamps$tag[[i+1]])
   }
 
   status("Plotting the commit information time series")
