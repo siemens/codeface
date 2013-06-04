@@ -291,7 +291,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   ## for instance to detect variations within individual stable groups.
 }
 
-get.commits.by.ranges <- function(conf, subset=NULL) {
+get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
   ts <- vector("list", length(conf$revisions)-1)
   tstamps <- conf$tstamps.release
 
@@ -300,7 +300,9 @@ get.commits.by.ranges <- function(conf, subset=NULL) {
     dat <- dbGetQuery(conf$con, str_c("SELECT * FROM commit where projectId=",
                                       conf$pid, " AND releaseRangeId=", range.id))
 
-    dat <- normalise.commit.dat(dat, subset)
+    if (!is.null(FUN)) {
+      dat <- FUN(dat, subset)
+    }
 
     if (dim(dat)[1] == 0) {
       cat("Skipping empty cycle", tstamps$tag[i], "..", tstamps$tag[i+1])
@@ -320,7 +322,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
   tstamps <- conf$tstamps.release
 
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
-  ts <- get.commits.by.ranges(conf, subset)
+  ts <- get.commits.by.ranges(conf, subset, normalise.commit.dat)
 
   for (i in 1:(length(ts))) {
     status(paste("Plotting commit information for revision",
