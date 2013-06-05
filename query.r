@@ -18,6 +18,9 @@
 ## in this file should only use a-priori knowledge that is available
 ## in the configuration object, not any other state.
 
+suppressPackageStartupMessages(library(RMySQL))
+suppressPackageStartupMessages(library(stringr))
+
 ## Obtain the series.merged object constructed in do.ts.analysis
 query.series.merged <- function(conf, subset=NULL) {
   res <- lapply(c("Averaged (small window)", "Averaged (large window)",
@@ -66,4 +69,12 @@ get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
   }
 
   return(ts)
+}
+
+### General SQL helper functions
+## Test if a table is empty (returns false) or not (returns true)
+table.has.entries <- function(conf, table) {
+  dat <- dbGetQuery(conf$con, str_c("SELECT * from ", table))
+
+  return (dim(dat)[1] > 0)
 }
