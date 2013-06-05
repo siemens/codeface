@@ -32,19 +32,7 @@ source("config.r")
 source("plot.r")
 source("db.r")
 source("query.r")
-
-## Omit time series elements that exceed the given range
-trim.series <- function(series, start, end) {
-  series <- series[which(index(series) < end),]
-  series <- series[which(index(series) > start),]
-  
-  return(series)
-}
-
-## Unidirectional version of the above function
-trim.series.start <- function(series, start) {
-  return(series[which(index(series) > start),])
-}
+source("ts_utils.r")
 
 get.series.boundaries <- function(conn) {
   ## Read the first (comment) line of the time series connection,
