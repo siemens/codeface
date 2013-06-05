@@ -27,3 +27,25 @@ trim.series.start <- function(series, start) {
   return(series[which(index(series) > start),])
 }
 
+## Given a series.merged object, extract the data for a particular
+## type, and return the result as xts time series
+gen.series <- function(series.merged, type) {
+  if (type != "Averaged (small window)" &&
+      type != "Averaged (large window)" &&
+      type != "Cumulative") {
+    stop("Internal error: gen.series called with unknown type argument")
+  }
+
+  series <- series.merged[series.merged$type==type,]
+  return (xts(series$value.scaled, series$time))
+}
+
+## Split a time series into per-release-range sub-series
+split.by.ranges <- function(series, conf) {
+  lapply(1:dim(boundaries)[1], function(i) {
+    boundaries <- conf$boundaries[i,]
+    sub.series <- series[paste(boundaries$date.start, boundaries$date.end, sep="/")]
+
+    return(sub.series)
+  })
+}
