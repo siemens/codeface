@@ -84,3 +84,7 @@ compute.release.distance <- function(series.merged, conf) {
   return(res)
 }
 
+## Given a boundaries, check if there are any RC phases present
+has.rcs <- function(boundaries) {
+  return (sum(!is.na(boundaries$date.rc_start)) > 0)
+}
