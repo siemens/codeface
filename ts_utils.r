@@ -49,3 +49,35 @@ split.by.ranges <- function(series, conf) {
     return(sub.series)
   })
 }
+
+## Compute the distance between two sime series by dynamic time
+## warping. Since the computation scales unfavourably with increasing
+## series lengths, we down-sample the series if its length exceeds the
+## threshold set by MAX.points
+compute.distance <- function(series1, series2) {
+  MAX.POINTS <- 500
+  ## TODO: If we resample the series, we should maybe do this multiple
+  ## times, repeat the distance calculation, and compute a agglomerated
+  ## result
+  if (length(series1) > MAX.POINTS) {
+    series1 <- sample(series1, MAX.POINTS)
+  }
+  if (length(series2) > MAX.POINTS) {
+    series2 <- sample(series2, MAX.POINTS)
+  }
+
+  return(dtw(series1, series2)$normalizedDistance)
+}
+
+## Compute the distance between a specific time series of a project
+## for all subsequent releases
+compute.release.distance <- function(series.merged, conf) {
+  series <- gen.series(series.merged, "Averaged (large window)")
+  series <- split.by.ranges(series, conf)
+
+  res <- sapply(1:(length(series)-1), function(i) {
+    compute.distance(series[[i]], series[[i+1]])
+  })
+  return(res)
+}
+
