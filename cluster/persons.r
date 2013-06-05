@@ -1569,7 +1569,11 @@ if(length(arguments$args) != 2) {
 ##------------------------------
 ## Perform appropriate analysis
 ##------------------------------
-options(error = quote(dump.frames("error.dump", TRUE)))
+if (!interactive()) {
+  options(error = quote(dump.frames("error.dump", TRUE)))
+} else {
+  options(error=recover)
+}
 
 conf <- load.config(config.file)
 global.conf <- load.global.config("prosoda.conf")
