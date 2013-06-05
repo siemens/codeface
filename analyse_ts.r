@@ -451,6 +451,30 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
 #  print(g)
 }
 
+## Perform analyses that concern the per-release structure of projects
+do.release.analysis <- function(resdir, graphdir, conf) {
+  series.merged <- query.series.merged(conf)
+
+  ## Check how similar the release cycles are to each other. Independent
+  ## of the actual shape of the cycle, having similar cycles shows that
+  ## the project follows a certain well-defined process
+  plot.name <- "Release TS distance"
+  plot.id <- get.plot.id(conf, plot.name)
+
+  dat <- compute.release.distance(series.merged, conf)
+  dat <- data.frame(time=as.character(conf$boundaries$date.end[-1]), value=res,
+                    value_scaled=res, plotId=plot.id)
+
+  res <- dbWriteTable(conf$con, "timeseries", dat, append=T, row.names=F)
+  if (!res) {
+    stop("Internal error: Could not write release distance TS into database!")
+  }
+
+  ## TODO: Compute the difference between release cycles and a
+  ## per-determined, desirable shape of the release curve.
+}
+
+
 ######################### Dispatcher ###################################
 parser <- OptionParser(usage = "%prog resdir config")
 arguments <- parse_args(parser, positional_arguments = TRUE)
@@ -483,3 +507,4 @@ if (!interactive()) {
 do.ts.analysis(resdir, graphdir, conf)
 do.commit.analysis(resdir, graphdir, conf)
 do.cluster.analysis(resdir, graphdir, conf)
+do.release.analysis(resdir, graphdir, conf)
