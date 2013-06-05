@@ -120,7 +120,8 @@ gen.full.ts <- function(conf) {
   
   for (i in 1:length(ts)) {
     ts[[i]]$ChangedLines <- ts[[i]]$AddedLines + ts[[i]]$DeletedLines
-    full.series[[i]] <- xts(ts[[i]]$ChangedLines, order.by=ts[[i]]$commitDate)
+    full.series[[i]] <- na.omit(xts(ts[[i]]$ChangedLines,
+                                    order.by=ts[[i]]$commitDate))
     full.series[[i]] <- trim.series(full.series[[i]], boundaries$date.start[i],
                                     boundaries$date.end[i])
   }
@@ -174,8 +175,10 @@ process.ts <- function(series) {
   ## Assume that a month has roughly 30 days.
   width.monthly <- length(series)/as.numeric(duration/7)
   width.daily <- length(series)/as.numeric(duration)
-  series.daily <- rollapply(series, width=width.daily, median, align="center")
-  series.monthly <- rollapply(series, width=width.monthly, median, align="center")
+  series.daily <- na.omit(rollapply(series, width=width.daily, median,
+                                    align="center"))
+  series.monthly <- na.omit(rollapply(series, width=width.monthly, median,
+                                      align="center"))
   series.cumulative <- cumsum(series)
 
   ## NOTE: R can only merge two data frames at once
