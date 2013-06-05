@@ -505,6 +505,8 @@ if (!interactive()) {
 }
 
 do.ts.analysis(resdir, graphdir, conf)
+## NOTE: The processed (smoothed, cumulated) time series are available in the
+## database only after do.ts.analysis()
 do.commit.analysis(resdir, graphdir, conf)
 do.cluster.analysis(resdir, graphdir, conf)
 do.release.analysis(resdir, graphdir, conf)
