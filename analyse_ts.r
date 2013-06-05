@@ -511,7 +511,12 @@ conf <- init.db(conf, global.conf)
 
 ## TODO: Turn this into a proper pipeline, or some plugin-based
 ## analysis mechanism?
-options(error = quote(dump.frames("error.dump", TRUE)))
+if (!interactive()) {
+  options(error = quote(dump.frames("error.dump", TRUE)))
+} else {
+  options(error=recover)
+}
+
 do.ts.analysis(resdir, graphdir, conf)
 do.commit.analysis(resdir, graphdir, conf)
 do.cluster.analysis(resdir, graphdir, conf)
