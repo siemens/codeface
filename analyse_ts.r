@@ -303,31 +303,6 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   ## for instance to detect variations within individual stable groups.
 }
 
-get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
-  ts <- vector("list", length(conf$revisions)-1)
-  tstamps <- conf$tstamps.release
-
-  for (i in 1:(dim(tstamps)[1]-1)) {
-    range.id <- get.range.id(conf, tstamps$tag[i], tstamps$tag[i+1])
-    dat <- dbGetQuery(conf$con, str_c("SELECT * FROM commit where projectId=",
-                                      conf$pid, " AND releaseRangeId=", range.id))
-
-    if (!is.null(FUN)) {
-      dat <- FUN(dat, subset)
-    }
-
-    if (dim(dat)[1] == 0) {
-      cat("Skipping empty cycle", tstamps$tag[i], "..", tstamps$tag[i+1])
-      next
-    }
-
-    ts[[i]] <- cbind(data.frame(revision=tstamps$tag[[i+1]],
-                                date=tstamps$date[[i+1]]), dat)
-  }
-
-  return(ts)
-}
-
 do.commit.analysis <- function(resdir, graphdir, conf) {
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
