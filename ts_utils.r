@@ -14,6 +14,9 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+suppressPackageStartupMessages(library(xts))
+suppressPackageStartupMessages(library(dtw))
+
 ## Omit time series elements that exceed the given range
 trim.series <- function(series, start, end) {
   series <- series[which(index(series) < end),]
