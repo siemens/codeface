@@ -468,8 +468,8 @@ do.release.analysis <- function(resdir, graphdir, conf) {
   plot.id <- get.plot.id(conf, plot.name)
 
   dat <- compute.release.distance(series.merged, conf)
-  dat <- data.frame(time=as.character(conf$boundaries$date.end[-1]), value=res,
-                    value_scaled=res, plotId=plot.id)
+  dat <- data.frame(time=as.character(conf$boundaries$date.end[-1]), value=dat,
+                    value_scaled=dat, plotId=plot.id)
 
   res <- dbWriteTable(conf$con, "timeseries", dat, append=T, row.names=F)
   if (!res) {
