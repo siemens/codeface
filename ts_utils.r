@@ -45,6 +45,7 @@ gen.series <- function(series.merged, type) {
 
 ## Split a time series into per-release-range sub-series
 split.by.ranges <- function(series, conf) {
+  boundaries <- conf$boundaries
   lapply(1:dim(boundaries)[1], function(i) {
     boundaries <- conf$boundaries[i,]
     sub.series <- series[paste(boundaries$date.start, boundaries$date.end, sep="/")]
