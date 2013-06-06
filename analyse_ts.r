@@ -66,12 +66,12 @@ compute.next.timestamp <- function(time, last.time) {
 
   ## Correct for identical dates
   if (time == last.time)
-    time <- time + seconds(1)
+    time <- time + dseconds(1)
 
   ## Correct for negative time differences (can arise from multiple
   ## consecutive identical time stamps)
   if (time < last.time)
-    time <- last.time + seconds(1)
+    time <- last.time + dseconds(1)
 
   return(time)
 }
@@ -80,7 +80,7 @@ compute.next.timestamp <- function(time, last.time) {
 ## adding a one second offset to identical ones.
 make.index.unique <- function(dat, subset) {
   dat$commitDate <- ymd_hms(dat$commitDate, quiet=T)
-  last.timestamp <- min(dat$commitDate) - seconds(1)
+  last.timestamp <- min(dat$commitDate) - dseconds(1)
 
   for (i in 1:length(dat$commitDate)) {
     dat$commitDate[[i]] <- compute.next.timestamp(dat$commitDate[[i]],
