@@ -1,0 +1,12 @@
+How to automatically create the quantarch database
+
+* To set up DB quantarch
+
+  mysql -uquantarch -pquantarach < quantarchSchema.sql
+  (replace username and password with the appropriate values)
+
+* To use a different DB name:
+
+  cat quantarchSchema.sql | sed -e 's/quantarch/quantarch2/g;' | \
+      mysql -uquantarch -pquantarch
+  (replace quantarch2 with the desired name)
