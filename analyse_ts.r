@@ -357,8 +357,14 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
       return(NA)
     }
     status(paste("Creating annual commit time series for", year))
-    g <- ggplot(data=ts.molten[year(ts.molten$date)==year,],
-                aes(x=revision, y=value, colour=inRC)) +
+    dat <- ts.molten[year(ts.molten$date)==year,]
+
+    # Don't plot tagging information if there are no tags
+    if (length(unique(dat[dat$variable=="NumTags",]$value)) == 1) {
+      dat <-  dat[dat$variable!="NumTags",]
+    }
+
+    g <- ggplot(data=dat, aes(x=revision, y=value, colour=inRC)) +
                   geom_boxplot(fill="NA") + scale_y_log10() +
                   facet_wrap(~variable, scales="free") + xlab("Revision") +
                   ylab("Value (log. scale)") +
