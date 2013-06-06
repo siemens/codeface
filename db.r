@@ -67,6 +67,8 @@ get.revision.id <- function(conf, tag) {
   }
 
   return(res$id)
+}
+
 get.range.id <- function(conf, tag.start, tag.end) {
   start.id <- get.revision.id(conf, tag.start)
   end.id <- get.revision.id(conf, tag.end)
