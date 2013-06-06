@@ -774,8 +774,8 @@ influential.developers <- function(N, .ranks, .tags, .iddb) {
 writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
   
   ##print("Top 20 page, rank (focus on giving tags)")
-  write.table(devs.by.pr[1:20,], file=paste(outdir, "/top20.pr.txt", sep=""), sep="\t",
-              quote=FALSE)
+  write.table(devs.by.pr[1:20,], file=paste(outdir, "/top20.pr.txt", sep=""),
+              sep="\t", quote=FALSE, fileEncoding="UTF-8")
   print(xtable(devs.by.pr[1:20,]), type="latex", floating=FALSE,
         file=paste(outdir, "/top20.pr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
   ##print("Top 20 page rank (focus on being tagged)")
