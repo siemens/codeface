@@ -60,6 +60,12 @@ query.project.name <- function(con, pid) {
   return(dat$name)
 }
 
+query.projects <- function(con) {
+  dat <- dbGetQuery(con, str_c("SELECT id, name FROM project"))
+
+  return(dat)
+}
+
 get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
   ts <- vector("list", length(conf$revisions)-1)
   tstamps <- conf$tstamps.release
