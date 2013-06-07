@@ -140,3 +140,14 @@ init.db <- function(conf, global.conf) {
 
   return(conf)
 }
+
+## Same in blue for use cases when no single project is considered.
+## We augment the global configuration with the con object in this case.
+init.db.global <- function(global.conf) {
+  drv <- dbDriver("MySQL")
+  con <- dbConnect(drv, host=global.conf$dbhost, user=global.conf$dbuser,
+                   password=global.conf$dbpwd, dbname=global.conf$dbname)
+  global.conf$con <- con
+
+  return(global.conf)
+}
