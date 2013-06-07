@@ -27,7 +27,11 @@ query.series.merged <- function(conf, subset=NULL) {
                   "Cumulative"),
                 function(type) {
                   plot.id <- get.plot.id(conf, str_c("Progress TS [", type, "]"))
-                  return(query.timeseries(conf$con, plot.id, subset))
+
+                  dat <- query.timeseries(conf$con, plot.id, subset)
+                  dat$type <- type
+
+                  return(dat)
                 })
 
   return(do.call(rbind, res))
@@ -44,7 +48,6 @@ query.timeseries <- function(con, plot.id, subset=NULL) {
   }
 
   dat <- dbGetQuery(conf$con, query)
-  dat$type <- type
   dat$time <- ymd_hms(dat$time, quiet=T)
   colnames(dat)[3] <- "value.scaled"
 
