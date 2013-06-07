@@ -1,0 +1,3 @@
+Please call all dynamic visualisation scripts from the main
+prosoda directory; this way, all include files can be found
+properly.
