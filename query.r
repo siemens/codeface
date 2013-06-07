@@ -54,6 +54,12 @@ query.timeseries <- function(con, plot.id, subset=NULL) {
   return(dat)
 }
 
+query.project.name <- function(con, pid) {
+  dat <- dbGetQuery(con, str_c("SELECT name FROM project WHERE id=", sq(pid)))
+
+  return(dat$name)
+}
+
 get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
   ts <- vector("list", length(conf$revisions)-1)
   tstamps <- conf$tstamps.release
