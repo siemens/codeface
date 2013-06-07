@@ -27,23 +27,28 @@ query.series.merged <- function(conf, subset=NULL) {
                   "Cumulative"),
                 function(type) {
                   plot.id <- get.plot.id(conf, str_c("Progress TS [", type, "]"))
-                  query <- str_c("SELECT time, value, value_scaled ",
-                                 "FROM timeseries where plotId=",
-                                 plot.id)
-                  if (!is.null(subset)) {
-                    ## TODO: Handle the case of subset selection
-                    ## by modifying query appropriately
-                  }
-
-                  dat <- dbGetQuery(conf$con, query)
-                  dat$type <- type
-                  dat$time <- ymd_hms(dat$time, quiet=T)
-                  colnames(dat)[3] <- "value.scaled"
-
-                  return(dat)
+                  return(query.timeseries(conf$con, plot.id, subset))
                 })
 
   return(do.call(rbind, res))
+}
+
+## Obtain the data for the timeseries identified by a specific plot.id
+query.timeseries <- function(con, plot.id, subset=NULL) {
+  query <- str_c("SELECT time, value, value_scaled ",
+                 "FROM timeseries where plotId=",
+                 plot.id)
+  if (!is.null(subset)) {
+    ## TODO: Handle the case of subset selection
+    ## by modifying query appropriately
+  }
+
+  dat <- dbGetQuery(conf$con, query)
+  dat$type <- type
+  dat$time <- ymd_hms(dat$time, quiet=T)
+  colnames(dat)[3] <- "value.scaled"
+
+  return(dat)
 }
 
 get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
