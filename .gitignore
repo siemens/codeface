@@ -10,6 +10,7 @@
 *.save
 *.db
 *.rda
+*.Rout
 auto/
 db/
 rep/
