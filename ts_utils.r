@@ -88,3 +88,9 @@ compute.release.distance <- function(series.merged, conf) {
 has.rcs <- function(boundaries) {
   return (sum(!is.na(boundaries$date.rc_start)) > 0)
 }
+
+## Give a time series object, return a data frame with t and val
+## that contains the time/value pairs of all time series elements.
+ts.to.df <- function(time.series) {
+  return(data.frame(t=index(time.series), val=coredata(time.series)))
+}
