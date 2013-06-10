@@ -94,3 +94,29 @@ has.rcs <- function(boundaries) {
 ts.to.df <- function(time.series) {
   return(data.frame(t=index(time.series), val=coredata(time.series)))
 }
+
+## Detrend a time series by fitting a linear model, and subtracting it
+## from the original series.
+## NOTE: This is somewhat bogous; since the time series usual has considerable
+## autocorrelation, the derived model will be inaccurate, and the confidence
+## intervals will be too large since the residuals are correlated.
+## However, it's unclear how much this matters in practical use.
+simple.detrend <- function(s) {
+  m <- lm(coredata(s) ~ index(s))
+
+  return(data.frame(t=index(s)[-1], value=coredata(s)[-1],
+                    detrend=resid(m)[-1], trend=fitted(m)[-1]))
+}
+
+## Perform detrending on a per-range basis
+detrend.by.range <- function(s, boundaries) {
+  s.split <- split.by.ranges(s, boundaries)
+
+  res <- lapply(s.split, function(s) {
+    return(simple.detrend(s))
+  })
+
+  res <- do.call(rbind, res)
+
+  return(res)
+}
