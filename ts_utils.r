@@ -44,10 +44,9 @@ gen.series <- function(series.merged, type) {
 }
 
 ## Split a time series into per-release-range sub-series
-split.by.ranges <- function(series, conf) {
-  boundaries <- conf$boundaries
+split.by.ranges <- function(series, boundaries) {
   lapply(1:dim(boundaries)[1], function(i) {
-    boundaries <- conf$boundaries[i,]
+    boundaries <- boundaries[i,]
     sub.series <- series[paste(boundaries$date.start, boundaries$date.end, sep="/")]
 
     return(sub.series)
@@ -77,7 +76,7 @@ compute.distance <- function(series1, series2) {
 ## for all subsequent releases
 compute.release.distance <- function(series.merged, conf) {
   series <- gen.series(series.merged, "Averaged (large window)")
-  series <- split.by.ranges(series, conf)
+  series <- split.by.ranges(series, conf$boundaries)
 
   res <- sapply(1:(length(series)-1), function(i) {
     compute.distance(series[[i]], series[[i+1]])
