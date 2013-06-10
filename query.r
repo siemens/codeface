@@ -47,7 +47,7 @@ query.timeseries <- function(con, plot.id, subset=NULL) {
     ## by modifying query appropriately
   }
 
-  dat <- dbGetQuery(conf$con, query)
+  dat <- dbGetQuery(con, query)
   dat$time <- ymd_hms(dat$time, quiet=T)
   colnames(dat)[3] <- "value.scaled"
 
