@@ -57,7 +57,7 @@ split.by.ranges <- function(series, boundaries) {
 ## warping. Since the computation scales unfavourably with increasing
 ## series lengths, we down-sample the series if its length exceeds the
 ## threshold set by MAX.points
-compute.distance <- function(series1, series2) {
+compute.ts.distance <- function(series1, series2) {
   MAX.POINTS <- 500
   ## TODO: If we resample the series, we should maybe do this multiple
   ## times, repeat the distance calculation, and compute a agglomerated
@@ -79,7 +79,7 @@ compute.release.distance <- function(series.merged, conf) {
   series <- split.by.ranges(series, conf$boundaries)
 
   res <- sapply(1:(length(series)-1), function(i) {
-    compute.distance(series[[i]], series[[i+1]])
+    compute.ts.distance(series[[i]], series[[i+1]])
   })
   return(res)
 }
