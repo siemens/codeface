@@ -211,42 +211,6 @@ clique.community <- function(graph, k) {
   })
 }
 
-## Was not particularly useful on some test graphs (essentially, the graph
-## is split into two halves, with some very small pieces in addition))
-largeScaleCommunity <- function(g,mode="all"){
-  V(g)$group <- as.character(V(g))
-  thisOrder <- sample(vcount(g),vcount(g))-1
-  t <- 0
-  done <- FALSE
-  while(!done){
-    t <- t+1
-    cat("\rtick:",t)
-    done <- TRUE ## change to FALSE whenever a node changes groups              
-    for(i in thisOrder){
-      ## get the neighbor group frequencies:                                    
-      groupFreq <- table(V(g)[nei(i,mode=mode)]$group)
-      ## pick one of the most frequent:                                         
-      newGroup <- sample(names(groupFreq) [groupFreq==max(groupFreq)],1)
-      if(done){done <- newGroup==V(g)[i]$group}
-      V(g)[i]$group <- newGroup
-    }
-  }
-  ## now fix any distinct groups with same labels:                              
-  for(i in unique(V(g)$group)){
-    ## only bother for connected groups                                         
-    if(!is.connected(subgraph(g,V(g)[group==i]))){
-      theseNodes <- V(g)[group==i]
-      theseClusters <- clusters(subgraph(g,theseNodes))
-      ## iterate through the clusters and append their names                    
-      for(j in unique(theseClusters$membership)){
-        V(g)[theseNodes[theseClusters$membership==j]]$group <- paste(i,j,sep=".")
-      }
-    }
-  }
-  return(g)
-}
-
-
 ## Select communities with more than .min members
 select.communities.more <- function(.comm, .min) {
   N <- length(unique(.comm$membership))
@@ -1473,7 +1437,6 @@ experiment <- function(g, g.connected){
   
   test <-  clique.community(g.connected, 5)
   
-  test <- largeScaleCommunity(g.connected)
 }
 
 #########################################################################
