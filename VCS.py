@@ -41,6 +41,9 @@ import commit
 import fileCommit
 import re
 import sys
+import os
+import ctags
+from ctags import CTags, TagEntry
 
 class Error(Exception):
     """Base class for exceptions in this module."""
@@ -307,7 +310,7 @@ class gitVCS (VCS):
         cmd.append('--date=local')
         
         #submit query to git 
-        logMsg = self._gitQuery(cmd)
+        logMsg = self._sysCmd(cmd)
         
         return logMsg
 
@@ -341,7 +344,7 @@ class gitVCS (VCS):
         
                 
         #submit query command        
-        clist = self._gitQuery(cmd)
+        clist = self._sysCmd(cmd)
         
         # Remember the comment about monotonically increasing time sequences
         # above? True in principle, but unfortunately, a very small number
@@ -355,16 +358,15 @@ class gitVCS (VCS):
         return clist
             
             
-    def _gitQuery(self, cmd):
-        '''low level routine to submit a git command and return the 
+    def _sysCmd(self, cmd):
+        '''low level routine to submit a command to the system and return the 
         output'''
         
-#        print("About to call {0}".format(" " .join(cmd)))
         try:
             p2 = Popen(cmd, stdout=PIPE)
             output = p2.communicate()[0].splitlines()
         except OSError:
-            _abort("Internal error: Could not spawn git")
+            _abort("Internal error: OS command failure")
             
         return output
         
@@ -705,19 +707,21 @@ class gitVCS (VCS):
 
 
     def _getBlameMsg(self, fileName, rev):
-        '''provided with a file name and revision the function returns 
+        '''provided with a filename and revision the function returns 
         the blame message'''
         
         #build command string 
         cmd = 'git --git-dir={0} blame'.format(self.repo).split()
         cmd.append("-p") #format for machine consumption
         cmd.append("-w") #ignore whitespace changes
+        cmd.append("-C") #find copied code (attribute to original)
+        cmd.append("-M") #find moved code (attribute to original)
         cmd.append(rev)
         cmd.append("--")
         cmd.append(fileName)
         
         #query git repository 
-        blameMsg = self._gitQuery(cmd)
+        blameMsg = self._sysCmd(cmd)
         
         return blameMsg
         
@@ -728,7 +732,7 @@ class gitVCS (VCS):
         
         #variable declarations
         commitLineDict = {} #dictionary, key is line number, value is commit ID 
-        
+        codeLines      = [] # list of source code lines
         
         while msg:
             
@@ -742,13 +746,13 @@ class gitVCS (VCS):
                
                commitLineDict[lineNum] = commitHash
                
-               #here we could get the line of code if needed, 
-               #for now it would be a waste to do anything 
-               #with it so just toss it away
-               msg.pop(0) 
+            # check for line of code, signaled by a tab character
+            elif line[0].startswith('\t'):
+               line[0] = line[0][1:] # remove tab character
+               codeLines.append(' '.join(line) + '\n') 
              
             
-        return commitLineDict
+        return (commitLineDict, codeLines)
 
 
     def _prepareFileCommitList(self, fnameList, singleBlame=True,
@@ -799,6 +803,7 @@ class gitVCS (VCS):
             #create fileCommit object, one per filename to be 
             #stored in _fileCommit_dict
             file_commit = fileCommit.FileCommit()
+            file_commit.filename = fname
             
             #get commit objects for the given file within revision range
             cmtList  = []
@@ -817,13 +822,13 @@ class gitVCS (VCS):
             
             # retrieve blame data
             if singleBlame: #only one set of blame data per file
-                self._addBlameRev(self.rev_end, fname, file_commit,
+                self._addBlameRev(self.rev_end, file_commit,
                                   blameMsgCmtIds)
             else: # get one set of blame data for every commit made
                 # this option is computationally intensive thus the alternative
                 # singleBlame option is possible when speed is a higher
                 # priority than precision
-                [self._addBlameRev(cmt.id, fname, file_commit,
+                [self._addBlameRev(cmt.id, file_commit,
                                       blameMsgCmtIds) for cmt in cmtList]
             
             #store fileCommit object to dictionary
@@ -872,7 +877,7 @@ class gitVCS (VCS):
         
                     self._commit_dict[cmt.id] = cmt
 
-    def _addBlameRev(self, rev, fname, file_commit, blame_cmt_ids):
+    def _addBlameRev(self, rev, file_commit, blame_cmt_ids):
         '''
         saves the git blame output of a revision for a particular file
         '''
@@ -885,20 +890,81 @@ class gitVCS (VCS):
         '''
         
         #query git reppository for blame message
-        blameMsg = self._getBlameMsg(fname, rev)
+        blameMsg = self._getBlameMsg(file_commit.filename, rev)
         
         #parse the blame message, this extracts the line number 
         #and corresponding commit hash, returns a dictionary 
         #Key = line number, value = commit hash
         #basically a snapshot of what the file looked like 
         #at the time of the commit
-        file_layout = self._parseBlameMsg(blameMsg)
+        (cmt_lines, src_lines) = self._parseBlameMsg(blameMsg)
          
         #store the dictionary to the fileCommit Object
-        file_commit.addFileSnapShot(rev, file_layout)
+        file_commit.addFileSnapShot(rev, cmt_lines)
         
-        blame_cmt_ids.update( file_layout.values() )
-
+        # locate all function lines in the file
+        self._getFunctionLines(src_lines, file_commit)
+        
+        blame_cmt_ids.update( cmt_lines.values() )
+    
+    def _getFunctionLines(self, file_layout_src, file_commit):
+        '''
+        computes the line numbers of each function in the file
+        '''
+        '''
+        - Input -
+        file_name: original name of the file, used only to determine the 
+                    programming language (ie. file.c is a c-language file)
+        file_layout_scr: dictionary with key=line number value = line of code
+        file_commit: fileCommit instance where the results will be stored
+        
+        - Description -
+        The file_layout is used to construct a source code file that can be
+        parsed by ctags to generate a ctags file. The ctags file is then
+        accessed to extract the function tags and line numbers to be save in 
+        the fileCommit object
+        '''
+        
+        # grab the file extension to determine the language of the file
+        fileExt = os.path.splitext(file_commit.filename)[1]
+        
+        # temporary file where we write transient data needed for ctags
+        srcFn = 'srcTmp' + fileExt
+        tagFn = 'tagTmp'
+        # generate a source code file from the file_layout_src dictionary 
+        # and save it to a temporary location 
+        srcFile = open(srcFn, 'w')
+        for line in file_layout_src:
+            print(line)
+            srcFile.write(line)
+        srcFile.close()
+            
+        # run ctags analysis on the file to create a tags file
+        cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tagFn, srcFn).split()
+        output = self._sysCmd(cmd)
+        
+        # parse ctags generated file for the function line numbers
+        try:
+            tagFile = CTags(tagFn)
+        except:
+            _abort("Error: failure to load ctags file")
+            sys.exit(1)
+        
+        # locate function line numbers and names
+        entry = TagEntry()
+        funcLines = {}
+        while(tagFile.next(entry)):
+            if 'f' == entry['kind']:
+                funcLines[int(entry['lineNumber'])] = entry['name']
+        
+        # clean up temporary files 
+        os.remove(srcFn)
+        os.remove(tagFn)
+        
+        # save result to the file commit instance
+        file_commit.setFunctionLines(funcLines)
+        
+        
     def cmtHash2CmtObj(self, cmtHash):
         '''
         input: cmtHash
@@ -958,7 +1024,7 @@ class gitVCS (VCS):
         cmd.append(revrange)
        
         #query git 
-        output = self._gitQuery(cmd)
+        output = self._sysCmd(cmd)
 
         #filter results to only get implementation files (ie *.c) 
         fileNames = [fileName for fileName in output if fileName.endswith(".c")]
@@ -977,7 +1043,21 @@ class gitVCS (VCS):
       
         self.extractFileCommitData()
         
+    def _testCtagsFunctionality(self):
+       # setup 
+       filePath = '/Users/Mitchell/Documents/workspace/prosoda/cluster/cluster.py'
+       srcFile = open(filePath, 'r')
+       file_layout = []
+       line_number = 0
+       for line in srcFile:
+           file_layout.append(line)
 
+       # test function call 
+       file_commit = fileCommit.FileCommit()
+       file_commit.filename = filePath
+       funcLines = self._getFunctionLines(file_layout, file_commit)
+       
+       
 ############################ Test cases #########################
 if __name__ == "__main__":
     

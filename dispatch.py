@@ -125,7 +125,9 @@ def dispatchAnalysis(args):
             resdir = os.path.abspath(resdir)
 
         # TODO: Sanity checks (ensure that git repo dir exists)
-
+        if 'proximity' == conf["tagging"]:
+            check4ctags()
+        
         #######
         # STAGE 1: Commit analysis
         # TODO: Instead of calling an external python script, it
@@ -241,6 +243,22 @@ def dispatchAnalysis(args):
 
     executeCommand(cmd, args.dry_run)
 
+def check4ctags():
+    # check if the appropriate ctags is installed on the system
+    prog_name    = 'Exuberant Ctags'
+    prog_version = 'Exuberant Ctags 5.9~svn20110310'
+    cmd = "ctags-exuberant --version".split()
+    
+    res = executeCommand(cmd, None)
+    
+    if not(res.startswith(prog_name)):
+        print "Fatal Error: program {0} does not exist".format("ctags-exuberant")
+        
+    if not(res.startswith(prog_version)):
+        # TODO: change this to use standard mechanism for error logging
+        print "Fatal Error: Ctags version {0} not found".format(prog_version)
+        exit()
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('resdir',

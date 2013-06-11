@@ -588,6 +588,11 @@ community.quality.conductance <- function(graph, community.vertices){
   ## f.2 <- min(community.vertices.degree.total, not.community.vertices.degree.total) / 2
   f.2 <- intra.degree.total / 2
   
+  ## in some cases the community can be isolated
+  if (f.2 == 0){
+  	return(NaN)
+  }
+  
   return(f.1/f.2)
 }
 
@@ -673,25 +678,28 @@ communityStatSignificance <- function(graph, cluster.algo){
   graph.connected   <- largestConnectedSubgraph(graph)
   ## extract clusters
   graph.clusters <- cluster.algo(graph.connected)
+  ## save communities that have more than 10 vertices
+  #graph.clusters.more <- select.communities.more(graph.clusters, 10)
+  
   ## compute cluster conductance values 
   cluster.conductance <- compute.all.community.quality(graph.connected, 
   		                 graph.clusters, "conductance")
   ## compute randomized conductance samples
-  niter <- 100
+  niter <- 1000
   rand.samps <- randomizedConductanceSamples(graph, niter, cluster.algo)
-
+  
   ## test for normality
   normality.test <- shapiro.test(rand.samps)
-
+ 
   ## compute normal distribution
   mean.conductance <- mean(rand.samps)
   sd.conductance   <- sd  (rand.samps)
-  ##########################
-  ##not fully implemented
-  ##########################
+    
+  ## perform t-test on test statistic
+  t.test.result <- t.test(rand.samps, cluster.conductance)
 }
 
-randomizedConductanceSamples <- function(graph, ninter, cluster.algo) {
+randomizedConductanceSamples <- function(graph, niter, cluster.algo) {
 	############################################################################
 	## Randomize a given graph while maintaining the degree distribution using
 	## a rewiring concept. For each randomized graph a decomposition is performed
@@ -714,19 +722,30 @@ randomizedConductanceSamples <- function(graph, ninter, cluster.algo) {
 		rewire.mode = "simple"
 	}
 	
-	# perform iterations
+	## perform iterations
 	conduct.vec <- vector()
+	pb <- txtProgressBar(min = 0, max = niter, style = 3)
 	for (i in 1:niter) {
-	  #rewire graph, randomize the graph while maintaining the degree distribution
+	  ## update progress bar
+	  setTxtProgressBar(pb, i)
+	  
+	  ## rewire graph, randomize the graph while maintaining the degree distribution
 	  rw.graph <- rewire(graph, mode = rewire.mode, niter = 100)
 	  rw.graph.connected <- largestConnectedSubgraph(rw.graph)
-	  #find clusters
+	  
+	  ## find clusters
 	  rw.graph.clusters <- cluster.algo(rw.graph.connected)
-	  #compute conductance
+	  
+	  ## only analyze clusters that are large than 10 vertices
+	  #rw.graph.clusters.more <- select.communities.more(rw.graph.clusters, 10)
+	  
+	  ## compute conductance
 	  rw.cluster.conductance <- compute.all.community.quality(
 			rw.graph.connected, rw.graph.clusters, "conductance")
 	  conduct.vec <- append(conduct.vec, mean(rw.cluster.conductance))
 	}
+	## close progress bar
+	close(pb)
 	
 	return(conduct.vec)
 }
@@ -915,7 +934,6 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   ## graphviz requires integer edge weights adjMatrix.connected.scaled =
   ## round( scale.data(adjMatrix.connected, 0, 1000) )
   adjMatrix.connected.scaled <- adjMatrix.connected
-  save.group.fn <- save.group
   
   ##--------------------
   ##infomap
@@ -937,11 +955,11 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   ## save.groups.NonTag (functions are of the same signature)
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.spin.community, pr.for.all, outdir,
-              "sg_reg_", elems.sg.more, save.group.fn,
+              "sg_reg_", elems.sg.more, save.group,
               label="Spin Glass Community")
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.spin.community, pr.for.all.tr, outdir,
-              "sg_tr_", elems.sg.more, save.group.fn,
+              "sg_tr_", elems.sg.more, save.group,
               label="Spin Glass Community")
   
   ##--------------------
@@ -959,19 +977,19 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   elems.wt.less <- select.communitiy.size.range(g.walktrap.community, 2, 10) #communities of size 2-10)
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.walktrap.community, pr.for.all, outdir,
-              "wt_reg_big_", elems.wt.more, save.group.fn,
+              "wt_reg_big_", elems.wt.more, save.group,
               label="(big) Random Walk Community")
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.walktrap.community, pr.for.all.tr, outdir,
-              "wt_tr_big_", elems.wt.more, save.group.fn,
+              "wt_tr_big_", elems.wt.more, save.group,
               label="(big) Random Walk Community")
   
   save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
               pr.for.all, outdir, "wt_reg_small_", elems.wt.less,
-              save.group.fn, label="(small) Random Walk Community")
+              save.group, label="(small) Random Walk Community")
   save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
               pr.for.all.tr, outdir, "wt_tr_small_", elems.wt.less,
-              save.group.fn, label="(small) Random Walk Community")
+              save.group, label="(small) Random Walk Community")
 
   ##--------------------
   ## Community Quality
@@ -995,19 +1013,19 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   ## dot") so that we can easily skip them when batch-processing graphviz
   ## images -- they take a long while to compute
   g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all,
-                    g.spin.community, save.group.fn,
+                    g.spin.community, save.group,
                     paste(outdir, "/sg_reg_all.ldot", sep=""),
                     label="Spin glass, regular page rank")
   g.all <- save.all(adjMatrix.connected.scaled, ids.connected,
-                    pr.for.all.tr, g.spin.community, save.group.fn,
+                    pr.for.all.tr, g.spin.community, save.group,
                     paste(outdir, "/sg_tr_all.ldot", sep=""),
                     label="Spin glass, transposed page rank")
   g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all,
-                    g.walktrap.community, save.group.fn,
+                    g.walktrap.community, save.group,
                     paste(outdir, "/wt_reg_all.ldot", sep=""),
                     label="Random walk, regular page rank")
   g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all.tr,
-                    g.walktrap.community, save.group.fn,
+                    g.walktrap.community, save.group,
                     paste(outdir, "/wt_tr_all.ldot", sep=""),
                     label="Random walk, transposed page rank")
 
@@ -1090,7 +1108,12 @@ compute.all.community.quality <- function(graph, community, test) {
     quality.vec <- sapply(community.id,
                           function(x) {return(community.quality.modularization(graph, members[[x]], community$membership))})
   }
-  return(quality.vec)
+  
+  ## remove nan values that might be introduced by isolated communities or 
+  ## single communities 
+  quality.vec.rm.nan <- quality.vec[!is.nan(quality.vec)]
+  
+  return(quality.vec.rm.nan)
 }
 
 
@@ -1294,7 +1317,7 @@ runGraphCompare.Tag.nonTag <- function() {
   ids.nonTag$ID <- ids.nonTag$ID + 1
   
   
-  tagAdjMatrix <- read.table(file=paste(tagDir, "/tags.txt", sep=""),
+  tagAdjMatrix <- read.table(file=paste(tagDir, "/adjacencyMatrix.txt", sep=""),
                              sep="\t", header=FALSE)
   ids.Tag <- read.csv(file=paste(tagDir, "/ids.txt", sep=""),
                       sep="\t", header=TRUE, stringsAsFactors = FALSE)
@@ -1372,6 +1395,8 @@ vertex.neighborhood.difference <- function(g1, v1, g2, v2) {
   return(difference)
 }
 
+## TODO: this should be changed to use the Tanimoto coefficient, a more theoriticaly
+##       sound and established similairty measure for weighted graphs
 vertex.edge.weight.difference <- function(g1, v1, g2, v2) {
 	##  -- To be used only on weighted graphs --
 	## computes the percent difference between two verteces from two different
@@ -1417,9 +1442,7 @@ vertex.edge.weight.difference <- function(g1, v1, g2, v2) {
 						  graphs")
 		stop(e)
 	}
-	if(percent.difference != 0){
-		browser()
-	}
+	
 	return(percent.difference)
 }
 

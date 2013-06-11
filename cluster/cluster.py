@@ -152,7 +152,7 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
     return sim
 
 
-def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr,
+def computeSnapshotCollaboration(file_commit, cmtList, id_mgr,
                                   startDate=None, random=False):
     '''Generates the collaboration data from a file snapshot at a particular
     point in time'''
@@ -173,6 +173,8 @@ def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr,
     #------------------------
     maxDist     = 25
     author      = True
+    fileState   = file_commit.getFileSnapShot()
+    revCmtIds   = file_commit.getrevCmts()
     revCmts     = [cmtList[revCmtId] for revCmtId in revCmtIds]
     
     for cmt in revCmts:
@@ -191,7 +193,7 @@ def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr,
         #lines of interest
         if(not(random)): 
             fileState_mod = linesOfInterest(fileState_mod, cmt.id, maxDist, 
-                                            cmtList)
+                                            cmtList, file_commit)
         
         #remove commits that occur prior to the specified startDate
         if startDate != None:
@@ -201,26 +203,59 @@ def computeSnapshotCollaboration(fileState, revCmtIds, cmtList, id_mgr,
         #of code
         if len(fileState_mod) > 1:
             
-            #now find the code blocks, a block is a section of code by one author
-            #use the commit hash to identify the committer or author info as needed 
-            codeBlks = findCodeBlocks(fileState_mod, cmtList, author)
+            # identify code line clustering using function location information           
+            clusters = groupFuncLines(file_commit, fileState_mod, cmtList)
             
-            if random:
-                codeBlks = randomizeCommitCollaboration(codeBlks, fileState_mod)
-            
-            if codeBlks:
-                #next cluster the blocks, using the distance measure to figure out
-                #what blocks belong together in one group or cluster
-                clusters = simpleCluster(codeBlks, cmt, maxDist, author)
-            
-                #calculate the collaboration coefficient for each code block
-                #[computePersonsCollaboration(cluster, snapShotCmt.getAuthorPI().getID(), id_mgr, maxDist) for cluster in clusters]
-                
-                
-                [computeCommitCollaboration(cluster, cmt, id_mgr,
-                                            maxDist, author) for cluster in clusters]
+            #calculate the collaboration coefficient for each code block
+            [computeCommitCollaboration(cluster, cmt, id_mgr,
+                                        maxDist, author) for cluster in clusters if cluster]
 
 
+def groupFuncLines(file_commit, file_state, cmtList):
+    '''
+    cluster code lines that fall under the same function
+    '''
+    func_indx = {}
+    indx      = 0
+    func_blks = []
+    lines     = sorted( map( int, file_state.keys() ) )
+    blk_start = lines[0]
+    blk_end   = blk_start
+    
+    for func_id in file_commit.functionIds.values():
+        func_indx[func_id] = indx
+        func_blks.append([])
+        indx += 1
+    
+    for i in range(0,len(file_state) - 1):
+        curr_line  = lines[i]
+        next_line  = lines[i+1]
+        curr_cmt_id = file_state[str(curr_line)]
+        next_cmt_id = file_state[str(next_line)]
+        curr_func_id = file_commit.findFuncId(curr_line)
+        next_func_id = file_commit.findFuncId(next_line)
+        curr_func_indx = func_indx[curr_func_id]
+        next_func_indx = func_indx[next_func_id]
+        if (curr_cmt_id == next_cmt_id) and (curr_func_id == next_func_id) \
+        and (curr_line + 1 == next_line):
+            blk_end = blk_end + 1
+        else:
+            func_blks[curr_func_indx]. \
+            append(codeBlock.codeBlock(blk_start, blk_end,
+                   cmtList[str(curr_cmt_id)].getAuthorPI().getID(), 
+                   cmtList[str(curr_cmt_id)].getCommitterPI().getID(),
+                   curr_cmt_id))
+            blk_start = next_line
+            blk_end   = blk_start
+        
+    # boundary case 
+    func_blks[next_func_indx].append(codeBlock.codeBlock(blk_start, blk_end,
+                            cmtList[str(next_cmt_id)].getAuthorPI().getID(), 
+                            cmtList[str(next_cmt_id)].getCommitterPI().getID(),
+                            next_cmt_id))  
+    
+    return func_blks  
+        
 def randomizeCommitCollaboration(codeBlks, fileState):
     '''
     randomizes the location in the file where commits were made
@@ -338,27 +373,24 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, maxDist,
         #get all blocks for the oldCmtId
         oldRevBlks = [blk for blk in codeBlks if blk.cmtHash == oldCmtId]
         
-        #compute relationship strength for ALL combinations of blocks  
-        allCombStrengths  = [computeEdgeStrength(blk1, blk2, maxDist)
-                             for blk1 in oldRevBlks for blk2 in revCmtBlks]
-        
-        #TODO: check if summing is the appropriate operation
-        #sum the strengths 
-        sumStrength = sum(allCombStrengths) #/ len(allCombStrengths) * 1.0
-        
+        #TODO: think about a more appropriate way to measure the collaboration
+        #     strength, at the moment this value can be interpreted as for every
+        #     commit in the neighborhood (no matter the size) is valued as 1
+        #     this means that the number of LOC has no impact on the perceived
+        #     collaboration which may negatively impact the further analysis
+        collaboration_strength = 1
         #store result
         if author: 
             personId = oldRevBlks[0].authorId
         else:
             personId = oldRevBlks[0].committerId
         
-        if personId == revPerson.getID():
-            pass
-
         inEdgePerson = id_mgr.getPI(personId)
-        revPerson.addSendRelation      (LinkType.proximity, personId, cmt,     sumStrength)
-        inEdgePerson.addReceiveRelation(LinkType.proximity, revPerson.getID(), sumStrength)
-    
+        revPerson.addSendRelation      (LinkType.proximity, personId, cmt,
+                                        collaboration_strength)
+        inEdgePerson.addReceiveRelation(LinkType.proximity, revPerson.getID(),
+                                        collaboration_strength)
+        
 
 def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist): 
     '''
@@ -622,7 +654,7 @@ def removePriorCommits(fileState, clist, startDate):
     return modFileState
 
        
-def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist):
+def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist, file_commit):
     '''
     Finds the regions of interest for analyzing the file. 
     We want to look at localized regions around the commit of 
@@ -633,7 +665,7 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist):
     fileState:      code line numbers together with commit hashes
     snapShotCommit: the commit hash that marks when the fileState was acquired
     maxDist:        indicates how large the area of interest should be
-    
+    file_commit: a fileCommit instance
     - Output - 
     modFileState: the file state after line not of interest are removed 
     '''
@@ -643,46 +675,41 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist):
     snapShotCmtDate = cmtlist[snapShotCommit].getCdate() 
     linesSet    = set()
     modFileState = {} 
+    snapshot_func_set = set()
     
     #take a pass over the fileState to identify where the snapShotCommit 
     #made contributions to the fileState
     snapShotCmtLines = [] 
-    for key in fileState.keys(): 
+    for lineNum in fileState.keys(): 
         
-        cmtId = fileState[key]
+        cmtId = fileState[lineNum]
         
         if cmtId == snapShotCommit:
-            snapShotCmtLines.append(key)
-    
-    #build modFileState by selecting only lines of interest
-    for line in snapShotCmtLines:
-        #calculate region of interest
-        #TODO: little inefficient since there will possibly be some overlap between ranges
-        upperBound = int(line) + maxDist
-        lowerBound = int(line) - maxDist  
-        
-        #limit upper and lower bounds to file size
-        if(upperBound > fileMaxLine):
-            upperBound = fileMaxLine
-        if(lowerBound < fileMinLine):
-            lowerBound = fileMinLine
-        #save lines of interest    
-        [linesSet.add(str(i)) for i in range(lowerBound, upperBound + 1)]    
+            snapShotCmtLines.append(lineNum)
+            # retrieve the function id that each line falls into
+            snapshot_func_set.add(file_commit.findFuncId(int(lineNum))) 
     #end for line
     
     # remove lines that are from commits that occur after the snapShotCmt
-    for lineNum in linesSet:
-        cmtHash = str(fileState[lineNum])
-        if cmtHash in cmtlist:
-            cmtDate = cmtlist[cmtHash].getCdate()
+    for lineNum, cmtId in fileState.items():
+        if cmtId in cmtlist:
+            cmtDate = cmtlist[cmtId].getCdate()
         else:
             #must be a old commit that occurred in a prior release 
             continue
         
+        # check to keep lines committed in the past with respect to the current 
+        # snapshot commit 
         if cmtDate <= snapShotCmtDate:
-            # keep line since it was committed in the past with respect
-            # to the current snapshot commit 
-            modFileState[lineNum] = fileState[lineNum]
+            # check if the line will fall under one of the functions that the 
+            # snapshot commit lines fall under (ie. we only want to keep lines
+            # that are in the same functions as the snapshot commit
+            if file_commit.findFuncId(int(lineNum)) in snapshot_func_set:
+                modFileState[lineNum] = fileState[lineNum]
+            
+            # else: ignore line since it belongs to some function outside of 
+            # the set of functions we are interested in
+        
         #else: forget line because it was in a future commit  
         
     return modFileState
@@ -1043,12 +1070,10 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None, speed
     Collaboration is quantified by a single metric indicating the 
     strength of collaboration between two individuals.
     '''
-    for fileCommit in fileCommitList.values():
+    for file_commit in fileCommitList.values():
 
         if speedUp:
-            fileLayout = fileCommit.getFileSnapShot()
-            revCmts    = fileCommit.getrevCmts()
-            computeSnapshotCollaboration(fileLayout, revCmts, cmtList, id_mgr,
+            computeSnapshotCollaboration(file_commit, cmtList, id_mgr,
                                          startDate)
         else:
             [computeSnapshotCollaboration(fileSnapShot[1], [fileSnapShot[0]], 
