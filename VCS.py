@@ -714,6 +714,8 @@ class gitVCS (VCS):
         cmd = 'git --git-dir={0} blame'.format(self.repo).split()
         cmd.append("-p") #format for machine consumption
         cmd.append("-w") #ignore whitespace changes
+        cmd.append("-C") #find copied code (attribute to original)
+        cmd.append("-M") #find moved code (attribute to original)
         cmd.append(rev)
         cmd.append("--")
         cmd.append(fileName)
