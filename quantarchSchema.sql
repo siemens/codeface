@@ -408,32 +408,32 @@ CREATE INDEX `dependent_dependent_issue_idx` ON `quantarch`.`issue_dependencies`
 -- -----------------------------------------------------
 -- Table `quantarch`.`user_commit_stats`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`user_commit_stats` ;
+DROP TABLE IF EXISTS `quantarch`.`author_commit_stats` ;
 
-CREATE  TABLE IF NOT EXISTS `quantarch`.`user_commit_stats` (
+CREATE  TABLE IF NOT EXISTS `quantarch`.`author_commit_stats` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `user` BIGINT NOT NULL ,
-  `release_timeline_id` BIGINT NOT NULL ,
+  `author` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT NOT NULL ,
   `added` INT NULL ,
   `deleted` INT NULL ,
   `total` INT NULL ,
-  `numCommits` INT NULL ,
+  `numcommits` INT NULL ,
   PRIMARY KEY (`id`) ,
-  CONSTRAINT `user_person_key`
-    FOREIGN KEY (`user` )
+  CONSTRAINT `author_person_key`
+    FOREIGN KEY (`author` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `release_timeline_key`
-    FOREIGN KEY (`release_timeline_id` )
-    REFERENCES `quantarch`.`release_timeline` (`id` )
+  CONSTRAINT `releaseRangeId_key`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `user_person_key_idx` ON `quantarch`.`user_commit_stats` (`user` ASC) ;
+CREATE INDEX `author_person_key_idx` ON `quantarch`.`author_commit_stats` (`author` ASC) ;
 
-CREATE INDEX `release_timeline_key_idx` ON `quantarch`.`user_commit_stats` (`release_timeline_id` ASC) ;
+CREATE INDEX `release_range_key_idx` ON `quantarch`.`author_commit_stats` (`releaseRangeId` ASC) ;
 
 
 -- -----------------------------------------------------
