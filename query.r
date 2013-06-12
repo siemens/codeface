@@ -66,6 +66,14 @@ query.projects <- function(con) {
   return(dat)
 }
 
+## Obtain the per-release-range statistics
+get.range.stats <- function(con, range.id) {
+  dat <- dbGetQuery(con, str_c("SELECT ID, Name, added, deleted, total, ",
+                               "numcommits from author_commit_stats_view ",
+                               "WHERE releaseRangeId=", range.id))
+  return(dat)
+}
+
 get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
   ts <- vector("list", length(conf$revisions)-1)
   tstamps <- conf$tstamps.release
