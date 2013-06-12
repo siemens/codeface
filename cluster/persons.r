@@ -310,7 +310,7 @@ plot.group <- function(N, .tags, .iddb, .comm) {
 }
 
 
-save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
+save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
   g <- graph.adjacency(.tags[idx,idx], mode="directed")
   ## as.character is important. The igraph C export routines bark
   ## otherwise (not sure what the actual issue is)
@@ -343,7 +343,7 @@ save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
   return(g)
 }
 
-save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
+save.groups <- function(conf, .tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
                         label=NA) {
   baselabel <- label
   for (i in .which) {
@@ -353,7 +353,7 @@ save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
     if (!is.na(baselabel)) {
       label <- paste(baselabel, i, sep=" ")
     }
-    save.group(.tags, .iddb, idx, .prank, filename, label)
+    save.group(conf, .tags, .iddb, idx, .prank, filename, label)
   }
 }
 
@@ -415,9 +415,9 @@ save.cluster.stats <- function(.comm, .iddb, .elems, .pr, .outdir, .basename) {
               sep="\t")
 }
 
-save.all <- function(.tags, .iddb, .prank, .comm, save.group.fn, .filename=NULL,
+save.all <- function(conf, .tags, .iddb, .prank, .comm, .filename=NULL,
                      label=NA) {
-  g.all <- save.group.fn(.tags, .iddb, .iddb$ID, .prank, .filename=NULL)
+  g.all <- save.group(conf, .tags, .iddb, .iddb$ID, .prank, .filename=NULL)
   V(g.all)$label <- .iddb$ID
   V(g.all)$pencolor <- V(g.all)$fillcolor
   
@@ -914,11 +914,11 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
 
   ## TODO: For the non-tagged analysis, use save.groups instead of
   ## save.groups.NonTag (functions are of the same signature)
-  save.groups(adjMatrix.connected.scaled, ids.connected,
+  save.groups(conf, adjMatrix.connected.scaled, ids.connected,
               g.spin.community, pr.for.all, outdir,
               "sg_reg_", elems.sg.more,
               label="Spin Glass Community")
-  save.groups(adjMatrix.connected.scaled, ids.connected,
+  save.groups(conf, adjMatrix.connected.scaled, ids.connected,
               g.spin.community, pr.for.all.tr, outdir,
               "sg_tr_", elems.sg.more,
               label="Spin Glass Community")
@@ -931,24 +931,27 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   g.walktrap.community <- walktrap.community(g.connected)
   
   status("Writing community graph sources for random walks")
+  ## TODO TODO: Make the smallest size of communities configurable,
+  ## or set it via some adaptive mechanism
+
   elems.wt.more <- select.communities.more(g.walktrap.community, 10)
   ## When selecting elements lower than some value we must take care to
   ## no select communities with size 1 as the graph.adjacency function
   ## fail with the weights attribute true
   elems.wt.less <- select.communitiy.size.range(g.walktrap.community, 2, 10) #communities of size 2-10)
-  save.groups(adjMatrix.connected.scaled, ids.connected,
+  save.groups(conf, adjMatrix.connected.scaled, ids.connected,
               g.walktrap.community, pr.for.all, outdir,
               "wt_reg_big_", elems.wt.more,
               label="(big) Random Walk Community")
-  save.groups(adjMatrix.connected.scaled, ids.connected,
+  save.groups(conf, adjMatrix.connected.scaled, ids.connected,
               g.walktrap.community, pr.for.all.tr, outdir,
               "wt_tr_big_", elems.wt.more,
               label="(big) Random Walk Community")
   
-  save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
+  save.groups(conf, adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
               pr.for.all, outdir, "wt_reg_small_", elems.wt.less,
               label="(small) Random Walk Community")
-  save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
+  save.groups(conf, adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
               pr.for.all.tr, outdir, "wt_tr_small_", elems.wt.less,
               label="(small) Random Walk Community")
 
@@ -973,20 +976,20 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   ## NOTE: The all-in-one graphs get a different suffix (ldot for "large
   ## dot") so that we can easily skip them when batch-processing graphviz
   ## images -- they take a long while to compute
-  g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all,
-                    g.spin.community, save.group,
+  g.all <- save.all(conf, adjMatrix.connected.scaled, ids.connected, pr.for.all,
+                    g.spin.community,
                     paste(outdir, "/sg_reg_all.ldot", sep=""),
                     label="Spin glass, regular page rank")
-  g.all <- save.all(adjMatrix.connected.scaled, ids.connected,
-                    pr.for.all.tr, g.spin.community, save.group,
+  g.all <- save.all(conf, adjMatrix.connected.scaled, ids.connected,
+                    pr.for.all.tr, g.spin.community,
                     paste(outdir, "/sg_tr_all.ldot", sep=""),
                     label="Spin glass, transposed page rank")
-  g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all,
-                    g.walktrap.community, save.group,
+  g.all <- save.all(conf, adjMatrix.connected.scaled, ids.connected, pr.for.all,
+                    g.walktrap.community,
                     paste(outdir, "/wt_reg_all.ldot", sep=""),
                     label="Random walk, regular page rank")
-  g.all <- save.all(adjMatrix.connected.scaled, ids.connected, pr.for.all.tr,
-                    g.walktrap.community, save.group,
+  g.all <- save.all(conf, adjMatrix.connected.scaled, ids.connected, pr.for.all.tr,
+                    g.walktrap.community,
                     paste(outdir, "/wt_tr_all.ldot", sep=""),
                     label="Random walk, transposed page rank")
 
