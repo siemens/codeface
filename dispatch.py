@@ -115,6 +115,12 @@ def dispatchAnalysis(args):
                              "VALUES (%s, %s, %s)",
                              (startID, endID, pid))
 
+    ## Obtain all release range ids created
+    dbm.doExec("SELECT id FROM release_range WHERE projectId=%s", (pid))
+    releaseRangeIds = dbm.doFetchAll()
+    releaseRangeIds = [str(releaseRangeIds[i][0])
+                       for i in range(0,len(releaseRangeIds))]
+
     #############################
     # Analyse all revision ranges
     for i in range(len(revs)-1):
@@ -157,6 +163,7 @@ def dispatchAnalysis(args):
         cmd.append(os.path.join(basedir, "cluster", "persons.r"))
         cmd.append(resdir)
         cmd.append(args.conf)
+        cmd.append(releaseRangeIds[i])
         executeCommand(cmd, args.dry_run)
 
         #########

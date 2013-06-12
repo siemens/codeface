@@ -43,6 +43,7 @@ suppressPackageStartupMessages(library(optparse))
 source("utils.r")
 source("config.r")
 source("db.r")
+source("query.r")
 
 
 #######################################################################
@@ -779,7 +780,7 @@ writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
 ##     					 Main Functions
 #########################################################################
 
-performAnalysis <- function(outdir, conf) {
+performAnalysis <- function(outdir, conf, range.id) {
   ################## Process the data #################
   status("Reading files")
   adjMatrix <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
@@ -790,13 +791,8 @@ performAnalysis <- function(outdir, conf) {
   ## direction than GNU R, so we need to transpose the matrix
   adjMatrix <- t(adjMatrix)
   
-  ids <- read.csv(file=paste(outdir, "/ids.txt", sep=""),
-                  sep="\t", header=TRUE)
-  
-  ## IDs are zero-based, but everything in R is 1-based, so simplify
-  ## things by adapting the IDs...
-  ids$ID <- ids$ID + 1
-  
+  ids <- get.range.stats(conf$con, range.id)
+
   id.subsys <- read.csv(file=paste(outdir, "/id_subsys.txt", sep=""),
 			sep="\t", header=TRUE)
   id.subsys$ID <- id.subsys$ID + 1
@@ -808,7 +804,7 @@ performAnalysis <- function(outdir, conf) {
     id.subsys <- NULL
   }
   
-  performGraphAnalysis(adjMatrix, ids, outdir, id.subsys)
+  performGraphAnalysis(conf, adjMatrix, ids, outdir, id.subsys)
 }
 
 writeClassicalStatistics <- function(outdir, ids.connected) {
@@ -828,7 +824,7 @@ writeClassicalStatistics <- function(outdir, ids.connected) {
         sanitize.colnames.function=rotate.label)
 }
 
-performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
+performGraphAnalysis <- function(conf, adjMatrix, ids, outdir,  id.subsys=NULL){
   
   ##====================================
   ##     Find Connected Subgraphs
@@ -1199,7 +1195,7 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2,
   plot(log(ids.intersect$pr.Tag), log(ids.intersect$pr.NonTag))
   dev.off()
   
-  performGraphAnalysis(similarity.adjMatrix.weighted, ids.intersect,
+  performGraphAnalysis(conf, similarity.adjMatrix.weighted, ids.intersect,
                        "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments")
   
   ##write.graph.2.file("/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments/similarityGraph.dot", g.similarity, ids.intersect, ids.intersect$ID)
@@ -1525,10 +1521,10 @@ test.community.quality.modularity <- function() {
 ##----------------------------
 ## Parse commandline arguments
 ##----------------------------
-parser <- OptionParser(usage = "%prog resdir config")
+parser <- OptionParser(usage = "%prog resdir config rangeid")
 arguments <- parse_args(parser, positional_arguments = TRUE)
 
-if(length(arguments$args) != 2) {
+if(length(arguments$args) != 3) {
   cat("Error: Please specify result directory and configuration file!\n\n")
   print_help(parser)
   stop()
@@ -1536,6 +1532,7 @@ if(length(arguments$args) != 2) {
 } else {
   resdir <- arguments$args[1]
   config.file <- arguments$args[2]
+  range.id <- arguments$args[3]
 }
 
 ##------------------------------
@@ -1551,4 +1548,4 @@ conf <- load.config(config.file)
 global.conf <- load.global.config("prosoda.conf")
 conf <- init.db(conf, global.conf)
 
-performAnalysis(resdir, conf)
+performAnalysis(resdir, conf, range.id)
