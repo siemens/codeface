@@ -343,10 +343,8 @@ save.group <- function(.tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
   return(g)
 }
 
-## save.group.fn is the function responsible for saving a single group.
-## Can either be save.group or save.group.NonTag
 save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
-                        save.group.fn, label=NA) {
+                        label=NA) {
   baselabel <- label
   for (i in .which) {
     filename <- paste(.basedir, "/", .prefix, "group_", three.digit(i), ".dot", sep="")
@@ -355,7 +353,7 @@ save.groups <- function(.tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
     if (!is.na(baselabel)) {
       label <- paste(baselabel, i, sep=" ")
     }
-    save.group.fn(.tags, .iddb, idx, .prank, filename, label)
+    save.group(.tags, .iddb, idx, .prank, filename, label)
   }
 }
 
@@ -417,7 +415,6 @@ save.cluster.stats <- function(.comm, .iddb, .elems, .pr, .outdir, .basename) {
               sep="\t")
 }
 
-## save.group.fn can either be save.group or save.group.NonTag
 save.all <- function(.tags, .iddb, .prank, .comm, save.group.fn, .filename=NULL,
                      label=NA) {
   g.all <- save.group.fn(.tags, .iddb, .iddb$ID, .prank, .filename=NULL)
@@ -919,11 +916,11 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   ## save.groups.NonTag (functions are of the same signature)
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.spin.community, pr.for.all, outdir,
-              "sg_reg_", elems.sg.more, save.group,
+              "sg_reg_", elems.sg.more,
               label="Spin Glass Community")
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.spin.community, pr.for.all.tr, outdir,
-              "sg_tr_", elems.sg.more, save.group,
+              "sg_tr_", elems.sg.more,
               label="Spin Glass Community")
   
   ##--------------------
@@ -941,19 +938,19 @@ performGraphAnalysis <- function(adjMatrix, ids, outdir,  id.subsys=NULL){
   elems.wt.less <- select.communitiy.size.range(g.walktrap.community, 2, 10) #communities of size 2-10)
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.walktrap.community, pr.for.all, outdir,
-              "wt_reg_big_", elems.wt.more, save.group,
+              "wt_reg_big_", elems.wt.more,
               label="(big) Random Walk Community")
   save.groups(adjMatrix.connected.scaled, ids.connected,
               g.walktrap.community, pr.for.all.tr, outdir,
-              "wt_tr_big_", elems.wt.more, save.group,
+              "wt_tr_big_", elems.wt.more,
               label="(big) Random Walk Community")
   
   save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
               pr.for.all, outdir, "wt_reg_small_", elems.wt.less,
-              save.group, label="(small) Random Walk Community")
+              label="(small) Random Walk Community")
   save.groups(adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
               pr.for.all.tr, outdir, "wt_tr_small_", elems.wt.less,
-              save.group, label="(small) Random Walk Community")
+              label="(small) Random Walk Community")
 
   ##--------------------
   ## Community Quality
