@@ -130,6 +130,7 @@ init.db <- function(conf, global.conf) {
                    password=global.conf$dbpwd, dbname=global.conf$dbname)
   conf$pid <- get.project.id(con, conf$project)
   conf$con <- con
+  dbGetQuery(con, "SET NAMES utf8")
 
   if (is.null(conf$pid)) {
     stop("Internal error: No ID assigned to project ", conf$project, "\n",
@@ -148,6 +149,6 @@ init.db.global <- function(global.conf) {
   con <- dbConnect(drv, host=global.conf$dbhost, user=global.conf$dbuser,
                    password=global.conf$dbpwd, dbname=global.conf$dbname)
   global.conf$con <- con
-
+  dbGetQuery(con, "SET NAMES utf8")
   return(global.conf)
 }
