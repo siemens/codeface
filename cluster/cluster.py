@@ -951,29 +951,34 @@ def writeSubsysPerAuthorData2File(id_mgr, outdir):
     out.close()
 
 
-def writeIDwithCmtStats2File(id_mgr, outdir):
+def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm):
     '''
     ID information together with commit stats for each ID are written
-    to the outdir location
-    '''
+    to the database.
     
-    # Save id/name associations together with the per-author summary statistics
-    id_writer = csv.writer(open(os.path.join(outdir, "ids.txt"), 'wb'),
-                           delimiter='\t',
-                           quotechar='\\', quoting=csv.QUOTE_MINIMAL)
-    # Header
-    id_writer.writerow(["ID", "Name", "eMail", "added", "deleted", "total",
-                        "numcommits"])
+    NOTE: The information written here can not completely faithfully
+    be recovered from table commit: When tags are used to capture collaboration
+    relations, persons without commits can be referenced, for instance when
+    they are CCed in a patch, but did not contribute any code during the
+    release cycle.
+    '''
 
-    # Content
+    projectID = dbm.getProjectID(conf["project"], conf["tagging"])
+
     for id in sorted(id_mgr.getPersons().keys()):
         pi = id_mgr.getPI(id)
         cmt_stat = pi.getCommitStats()
         added = cmt_stat["added"]
         deleted = cmt_stat["deleted"]
         numcommits = cmt_stat["numcommits"]
-        id_writer.writerow([id, pi.getName(), pi.getEmail(), added, deleted,
-                            added + deleted, numcommits])
+        dbm.doExec("INSERT INTO author_commit_stats " +
+                   "(author, releaseRangeId, added, deleted, total, numcommits) "
+                   + "VALUES (%s, %s, %s, %s, %s, %s)",
+                   (id, releaseRangeID, cmt_stat["added"], cmt_stat["deleted"],
+                    cmt_stat["added"] + cmt_stat["deleted"],
+                    cmt_stat["numcommits"]))
+
+    dbm.doCommit()
 
     
 def writeAdjMatrix2File(id_mgr, outdir, conf):
@@ -1021,11 +1026,11 @@ def emitStatisticalData(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
     """Save the available information for a release interval for further statistical processing.
 
     Several files are created in outdir respectively the database:
-    - Information about the commits proper (commits.txt)
+    - Information about the commits proper (formerly commits.txt)
     - Names/ID associations (ids.txt). This file also contains
       the per-author total of added/deleted/modified lines etc.
     - Per-Author information on relative per-subsys work distribution (id_subsys.txt)
-    - Connection between the developers derived from commit tags (tags.txt)"""
+    - Connection between the developers derived from commit tags (adjacencyMatrix.txt)"""
     
     writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm)
     
@@ -1033,7 +1038,7 @@ def emitStatisticalData(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
     # proper database because it is not configured for almost all projects
     writeSubsysPerAuthorData2File(id_mgr, outdir)
     
-    writeIDwithCmtStats2File(id_mgr, outdir)
+    writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm)
     
     writeAdjMatrix2File(id_mgr, outdir, conf)
     
