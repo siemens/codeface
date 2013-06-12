@@ -753,17 +753,26 @@ influential.developers <- function(N, .ranks, .tags, .iddb) {
 
 writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
   
-  ##print("Top 20 page, rank (focus on giving tags)")
+  ## Top 20 page rank (focus on giving tags)
   write.table(devs.by.pr[1:20,], file=paste(outdir, "/top20.pr.txt", sep=""),
               sep="\t", quote=FALSE, fileEncoding="UTF-8")
+
+  ## xtable uses gsub without bytes=FALSE, which leads to breakage with
+  ## UTF-8 string. Temporarily switch to C to avoid these problems
+  Sys.setlocale(locale="C")
   print(xtable(devs.by.pr[1:20,]), type="latex", floating=FALSE,
-        file=paste(outdir, "/top20.pr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
-  ##print("Top 20 page rank (focus on being tagged)")
+        file=paste(outdir, "/top20.pr.tex", sep=""),
+        sanitize.colnames.function=rotate.label.30)
+  Sys.setlocale(locale="")
+
+  ## Top 20 page rank (focus on being tagged)
   write.table(devs.by.pr.tr[1:20,], file=paste(outdir, "/top20.pr.tr.txt", sep=""), sep="\t",
               quote=FALSE)
+  Sys.setlocale(locale="C")
   print(xtable(devs.by.pr.tr[1:20,]), type="latex", floating=FALSE,
-        file=paste(outdir, "/top20.pr.tr.tex", sep=""), sanitize.colnames.function=rotate.label.30)
-  
+        file=paste(outdir, "/top20.pr.tr.tex", sep=""),
+        sanitize.colnames.function=rotate.label.30)
+  Sys.setlocale(locale="")
 }
 
 #########################################################################
