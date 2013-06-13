@@ -103,12 +103,33 @@ get.release.rc.dates <- function(conf) {
   return(res)
 }
 
-# Get release dates (without release candidates) for a given project
+## Get release dates (without release candidates) for a given project
 get.release.dates <- function(conf) {
   res <- get.release.rc.dates(conf)
   res <- res[res$type=="release",]
 
   return(res)
+}
+
+## Get the (db-internal) id of a cluster for a given (sequence) id and
+## clustering method, and create a new entry if there is not yet one.
+get.cluster.id <- function(conf, method, num) {
+  res <- dbGetQuery(conf$con, str_c("SELECT clusterId from cluster ",
+                                    "WHERE clusterMethod=", sq(method),
+                                    " AND projectId=", conf$pid,
+                                    " AND clusterNumber=", num))
+
+  if (length(res) == 0) {
+    dbGetQuery(conf$con, str_c("INSERT INTO cluster (projectId, clusterNumber, ",
+                          "clusterMethod) VALUES (",
+                          conf$pid, ", ", num, ", ", sq(method), ")"))
+    res <- dbGetQuery(conf$con, str_c("SELECT clusterId from cluster ",
+                                      "WHERE clusterMethod=", sq(method),
+                                      " AND projectId=", conf$pid,
+                                      " AND clusterNumber=", num))
+  }
+
+  return(res$clusterId)
 }
 
 ## Augment the configuration "object" with information that
