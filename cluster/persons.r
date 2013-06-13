@@ -311,7 +311,7 @@ plot.group <- function(N, .tags, .iddb, .comm) {
 }
 
 
-save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label=NA) {
+save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label) {
   g <- graph.adjacency(.tags[idx,idx], mode="directed")
   ## as.character is important. The igraph C export routines bark
   ## otherwise (not sure what the actual issue is)
@@ -345,7 +345,7 @@ save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label=NA
 }
 
 save.groups <- function(conf, .tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
-                        label=NA) {
+                        label) {
   baselabel <- label
   for (i in .which) {
     filename <- paste(.basedir, "/", .prefix, "group_", three.digit(i), ".dot", sep="")
@@ -417,8 +417,9 @@ save.cluster.stats <- function(.comm, .iddb, .elems, .pr, .outdir, .basename) {
 }
 
 save.all <- function(conf, .tags, .iddb, .prank, .comm, .filename=NULL,
-                     label=NA) {
-  g.all <- save.group(conf, .tags, .iddb, .iddb$ID, .prank, .filename=NULL)
+                     label) {
+  g.all <- save.group(conf, .tags, .iddb, .iddb$ID, .prank, .filename=NULL,
+                      label=NA)
   V(g.all)$label <- .iddb$ID
   V(g.all)$pencolor <- V(g.all)$fillcolor
   
