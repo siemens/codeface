@@ -84,6 +84,22 @@ scale.data <- function(dat, .min=0, .max=1) {
   return(dat)
 }
 
+## Given an igraph edge list (data frame with columns to and from), create
+## a weighted edge list
+gen.weighted.edgelist <- function(edges) {
+  edges.weighted <- lapply(unique(edges$from), function(from.vertex) {
+    to.vertices <- edges[edges$from==from.vertex,]$to
+    res <- do.call(rbind, lapply(unique(to.vertices), function(to.vertex) {
+      return(data.frame(from=from.vertex, to=to.vertex,
+                        weight=sum(to.vertices==to.vertex)))
+    }))
+
+    return(res)
+  })
+
+  return(do.call(rbind, edges.weighted))
+}
+
 # The following method to produce a coloured recurrence plot is taken from 
 # http://zoonek2.free.fr/UNIX/48_R/15.html#11
 # The other functions are also from there
