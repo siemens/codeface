@@ -483,6 +483,7 @@ DROP TABLE IF EXISTS `quantarch`.`cluster` ;
 CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster` (
   `clusterId` BIGINT NOT NULL AUTO_INCREMENT ,
   `projectId` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT NOT NULL ,
   `clusterNumber` INT NULL ,
   `clusterMethod` VARCHAR(45) NULL ,
   `dot` BIGINT NULL ,
@@ -491,6 +492,11 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster` (
   CONSTRAINT `project_cluster_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `cluster_releaseRangeId`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `dot_plot_bin_data`
@@ -520,6 +526,7 @@ DROP TABLE IF EXISTS `quantarch`.`cluster_user_mapping` ;
 CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster_user_mapping` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `person` BIGINT NOT NULL ,
+  `prank` DOUBLE NOT NULL ,
   `clusterId` BIGINT NOT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `cluster_cluster_user_ref`
