@@ -874,13 +874,18 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   
   ## Find the index of the largest connected cluster 
   largestClustMembership = which(g.clust$csize == max(g.clust$csize))
-  ## Get all indecies of connected developers for the largest cluster
+  ## Get all indices of connected developers for the largest cluster
   idx <- which(g.clust$membership==largestClustMembership) 
   adjMatrix.connected <- as.matrix(adjMatrix[idx,idx])
   
   
   ## Build adjacency matrix of connected developers
   ids.connected <- ids[idx,]
+  ## Working with the adjacency matrices is easier if the IDs are numbered
+  ## consecutively. We need to be able to map the consecutive (local) ids
+  ## back to the (global) ids used in the data base later on, so keep
+  ## a mapping by storing a copy in ID.orig.
+  ids.connected$ID.orig <- ids.connected$ID
   ids.connected$ID=seq(1:length(idx))
   ids.connected$Name <- as.character(ids.connected$Name)
 
