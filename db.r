@@ -111,21 +111,22 @@ get.release.dates <- function(conf) {
   return(res)
 }
 
-## Get the (db-internal) id of a cluster for a given (sequence) id and
-## clustering method, and create a new entry if there is not yet one.
-get.cluster.id <- function(conf, method, num) {
+get.cluster.id <- function(conf, range.id, method, num) {
   res <- dbGetQuery(conf$con, str_c("SELECT clusterId from cluster ",
                                     "WHERE clusterMethod=", sq(method),
                                     " AND projectId=", conf$pid,
+                                    " AND releaseRangeId=", range.id,
                                     " AND clusterNumber=", num))
 
   if (length(res) == 0) {
     dbGetQuery(conf$con, str_c("INSERT INTO cluster (projectId, clusterNumber, ",
-                          "clusterMethod) VALUES (",
-                          conf$pid, ", ", num, ", ", sq(method), ")"))
+                               "releaseRangeId, clusterMethod) VALUES (",
+                               conf$pid, ", ", num, ", ", range.id, ", ",
+                               sq(method), ")"))
     res <- dbGetQuery(conf$con, str_c("SELECT clusterId from cluster ",
                                       "WHERE clusterMethod=", sq(method),
                                       " AND projectId=", conf$pid,
+                                      " AND releaseRangeId=", range.id,
                                       " AND clusterNumber=", num))
   }
 
