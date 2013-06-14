@@ -812,7 +812,7 @@ writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
 ##     					 Main Functions
 #########################################################################
 
-performAnalysis <- function(outdir, conf, range.id) {
+performAnalysis <- function(outdir, conf) {
   ################## Process the data #################
   status("Reading files")
   adjMatrix <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
@@ -823,7 +823,7 @@ performAnalysis <- function(outdir, conf, range.id) {
   ## direction than GNU R, so we need to transpose the matrix
   adjMatrix <- t(adjMatrix)
   
-  ids <- get.range.stats(conf$con, range.id)
+  ids <- get.range.stats(conf$con, conf$range.id)
 
   id.subsys <- read.csv(file=paste(outdir, "/id_subsys.txt", sep=""),
 			sep="\t", header=TRUE)
@@ -856,7 +856,7 @@ writeClassicalStatistics <- function(outdir, ids.connected) {
         sanitize.colnames.function=rotate.label)
 }
 
-performGraphAnalysis <- function(conf, adjMatrix, ids, outdir,  id.subsys=NULL){
+performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   
   ##====================================
   ##     Find Connected Subgraphs
@@ -1579,5 +1579,6 @@ if (!interactive()) {
 conf <- load.config(config.file)
 global.conf <- load.global.config("prosoda.conf")
 conf <- init.db(conf, global.conf)
+conf$range.id <- range.id
 
-performAnalysis(resdir, conf, range.id)
+performAnalysis(resdir, conf)
