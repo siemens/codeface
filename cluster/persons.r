@@ -347,6 +347,7 @@ save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label) {
 save.groups <- function(conf, .tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
                         label) {
   baselabel <- label
+  j <- 0
   for (i in .which) {
     filename <- paste(.basedir, "/", .prefix, "group_", three.digit(i), ".dot", sep="")
     ##		status(paste("Saving", filename))
@@ -354,7 +355,41 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank, .basedir, .prefix, .w
     if (!is.na(baselabel)) {
       label <- paste(baselabel, i, sep=" ")
     }
-    save.group(conf, .tags, .iddb, idx, .prank, filename, label)
+    g <- save.group(conf, .tags, .iddb, idx, .prank, filename, label)
+
+    ## Store the cluster content into the database
+    if (!is.na(baselabel)) {
+      cluster.id <- get.cluster.id(conf, conf$range.id, baselabel, j)
+
+      users.df <- lapply(idx, function(index.local) {
+        prank <- .prank$vector[index.local]
+        person.id <- .iddb[index.local,]$ID.orig
+        return(data.frame(id=NA, person=person.id, clusterId=cluster.id,
+                          prank=prank))
+      })
+      users.df <- do.call(rbind, users.df)
+
+      dbWriteTable(conf$con, "cluster_user_mapping", users.df, append=T, row.names=F)
+
+      ## TODO: Insert the generated dot file into the database
+
+      ## Construct a systematic representation of the graph for the data base
+      edges <- get.data.frame(g, what="edges")
+
+      ## Transform the edge list so that IDs are not consecutive,
+      ## but use the in-DB values.
+      edges$to <- .iddb[edges$to,]$ID.orig
+      edges$from <- .iddb[edges$from,]$ID.orig
+
+      ## Create a weighted edgelist, and associate it with the in-cluster
+      ## database id
+      edges <- gen.weighted.edgelist(edges)
+      edges <- cbind(clusterId=cluster.id, edges)
+
+      dbWriteTable(conf$con, "cluster_edgelist", edges, append=T, row.names=F)
+
+      j <- j + 1
+    }
   }
 }
 
