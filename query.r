@@ -110,6 +110,24 @@ get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
   return(ts)
 }
 
+## Get the IDs of all clusters for the given release range
+query.cluster.ids <- function(conf, range.id, cluster.method) {
+  dat <- dbGetQuery(conf$con, str_c("SELECT clusterId FROM cluster WHERE ",
+                                    "projectId=", conf$pid, " AND releaseRangeId=",
+                                    range.id, " AND clusterMethod=",
+                                    sq(cluster.method)))
+
+  return(dat$clusterId)
+}
+
+## Get all members (in terms of person id) of a cluster
+query.cluster.members <- function(conf, cluster.id) {
+  dat <- dbGetQuery(conf$con, str_c("SELECT person FROM cluster_user_mapping ",
+                                    "WHERE clusterId=", cluster.id))
+
+  return(dat$person)
+}
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
