@@ -408,32 +408,32 @@ CREATE INDEX `dependent_dependent_issue_idx` ON `quantarch`.`issue_dependencies`
 -- -----------------------------------------------------
 -- Table `quantarch`.`user_commit_stats`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`author_commit_stats` ;
+DROP TABLE IF EXISTS `quantarch`.`user_commit_stats` ;
 
-CREATE  TABLE IF NOT EXISTS `quantarch`.`author_commit_stats` (
+CREATE  TABLE IF NOT EXISTS `quantarch`.`user_commit_stats` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `author` BIGINT NOT NULL ,
-  `releaseRangeId` BIGINT NOT NULL ,
+  `user` BIGINT NOT NULL ,
+  `release_timeline_id` BIGINT NOT NULL ,
   `added` INT NULL ,
   `deleted` INT NULL ,
   `total` INT NULL ,
-  `numcommits` INT NULL ,
+  `numCommits` INT NULL ,
   PRIMARY KEY (`id`) ,
-  CONSTRAINT `author_person_key`
-    FOREIGN KEY (`author` )
+  CONSTRAINT `user_person_key`
+    FOREIGN KEY (`user` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `releaseRangeId_key`
-    FOREIGN KEY (`releaseRangeId` )
-    REFERENCES `quantarch`.`release_range` (`id` )
+  CONSTRAINT `release_timeline_key`
+    FOREIGN KEY (`release_timeline_id` )
+    REFERENCES `quantarch`.`release_timeline` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `author_person_key_idx` ON `quantarch`.`author_commit_stats` (`author` ASC) ;
+CREATE INDEX `user_person_key_idx` ON `quantarch`.`user_commit_stats` (`user` ASC) ;
 
-CREATE INDEX `release_range_key_idx` ON `quantarch`.`author_commit_stats` (`releaseRangeId` ASC) ;
+CREATE INDEX `release_timeline_key_idx` ON `quantarch`.`user_commit_stats` (`release_timeline_id` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -680,6 +680,60 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`thread_density` (
 ENGINE = InnoDB;
 
 CREATE INDEX `project_thread_density_ref_idx` ON `quantarch`.`thread_density` (`projectId` ASC) ;
+
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`pagerank`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`pagerank` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
+  `projectId` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT NOT NULL ,
+  `technique` VARCHAR(45) NULL ,
+  PRIMARY KEY (`id`) ,
+  CONSTRAINT `pagerank_releaserange`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `pagerank_project`
+    FOREIGN KEY (`projectId` )
+    REFERENCES `quantarch`.`project` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE INDEX `pagerank_releaserange_idx` ON `quantarch`.`pagerank` (`releaseRangeId` ASC) ;
+
+CREATE INDEX `pagerank_project_idx` ON `quantarch`.`pagerank` (`projectId` ASC) ;
+
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`pagerank_matrix`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`pagerank_matrix` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank_matrix` (
+  `pageRankId` BIGINT NOT NULL ,
+  `personID` BIGINT NOT NULL ,
+  `rankValue` DOUBLE NOT NULL ,
+  CONSTRAINT `pagerankMatrix_pagerank`
+    FOREIGN KEY (`pageRankId` )
+    REFERENCES `quantarch`.`pagerank` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `pagerankMatrix_person`
+    FOREIGN KEY (`personID` )
+    REFERENCES `quantarch`.`person` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE INDEX `pagerankMatrix_pagerank_idx` ON `quantarch`.`pagerank_matrix` (`pageRankId` ASC) ;
+
+CREATE INDEX `pagerankMatrix_person_idx` ON `quantarch`.`pagerank_matrix` (`personID` ASC) ;
 
 USE `quantarch` ;
 
