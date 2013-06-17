@@ -303,6 +303,120 @@ do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
   ## for instance to detect variations within individual stable groups.
 }
 
+
+## Given two cluster ids, retrieve the persons in each cluster from
+## the database, and compute an overlap measure (size of intersecting
+## members divided by the size of the larger cluster).
+## If less than MIN.SIMILARITY (in percent) of the members of
+## the _smaller_ cluster are contained in the intersection, we regard
+## the clusters as totally disjoint and assign a zero similarity.
+MIN.SIMILARITY <- 10
+clusters.simple.similarity <- function(conf, c1.id, c2.id) {
+  c1.members <- query.cluster.members(conf, c1.id)
+  c2.members <- query.cluster.members(conf, c2.id)
+
+  smaller.size <- min(length(c1.members), length(c2.members))
+  larger.size <- max(length(c1.members), length(c2.members))
+
+  clust.isct <- intersect(c1.members, c2.members)
+
+  if (length(clust.isct) < MIN.SIMILARITY/100*smaller.size) {
+    return (0.0)
+  }
+
+  return(length(clust.isct)/larger.size)
+}
+
+## Compute a mapping which clusters belong together across releases
+determine.cluster.mapping <- function(conf, type="sg") {
+  ## Clusters that are classified to match across two releases
+  ## are identified by the same numerical label.
+
+  ## For each release range, obtain a data frame that contains all
+  ## cluster ids for the release and a (yet undefined) label.
+  range.ids <- query.range.ids(conf)
+
+  if (length(range.ids) != dim(conf$boundaries)[1]) {
+    stop("Internal error: Different # of range ids than rows in conf$boundaries!")
+  }
+
+  res <- lapply(1:length(range.ids), function(i) {
+    ## TODO: Honour the type argument
+    ## new.cluster is set to TRUE is there is no linkage to a cluster
+    ## in the preceeding release (appropriate FALSE will be set during
+    ## processing)
+    range.id <- range.ids[[i]]
+    cluster.ids <- query.cluster.ids(conf, range.id, "Spin glass community")
+
+    ## boundaries.index can be used as index into conf$boundaries
+    ## to determine
+    return(data.frame(new.cluster=TRUE, label=NA, cluster.id=cluster.ids,
+                      boundaries.index=i))
+  })
+
+  ## Labelling the clusters in the first release is simple: Just use
+  ## consecutive numbers. Every cluster is necessarily new.
+  res[[1]]$label = 0:(length(res[[1]]$label)-1)
+  next.label <- length(res[[1]]$label)
+
+  ## Compute similarities between all clusters in range i and the
+  ## clusters in range i+1.
+  for (i in 1:(length(res)-1)) {
+    cat("Computing for range ", i, "\n")
+    clust.sim <- expand.grid(c1=res[[i]]$cluster.id,
+                             c2=res[[i+1]]$cluster.id)
+    clust.sim$sim <- sapply(1:dim(clust.sim)[1], function(j) {
+      c.ids <- clust.sim[j,]
+      ## We could save some effort by querying the cluster members once
+      ## and then re-using the results.
+      return(clusters.simple.similarity(conf, c.ids$c1, c.ids$c2))
+    })
+
+    ## Remove total mismatches, and sort the matches by decreasing strength
+    clust.sim <- clust.sim[clust.sim$sim>0,]
+    clust.sim <- clust.sim[sort(clust.sim$sim, index.return=T, decreasing=T)$ix,]
+
+    ## Systematically pick the best matches
+    for (j in 1:dim(clust.sim)[1]) {
+      ## Given the assignment from c1 to c2, determine which label c1 has in
+      ## the previous range
+      c1 = clust.sim[j,]$c1
+      c2 = clust.sim[j,]$c2
+
+      label.c1 <- res[[i]][which(res[[i]]$cluster.id == c1),]$label
+
+      ## If c2 does not yet have a label (labels that were assigned earlier
+      ## have higher prio because they stem from higher similarity values)
+      ## _and_ if the label is not yet used, assign it to c2
+      label.c2 <- res[[i+1]][which(res[[i+1]]$cluster.id == c2),]$label
+
+      if(is.na(label.c2) & !(label.c1 %in% res[[i+1]]$label)) {
+        res[[i+1]][which(res[[i+1]]$cluster.id == c2),]$label <- label.c1
+      }
+    }
+
+    ## Finally, assign new labels to all clusters that have not been
+    ## labelled yet.
+    unlabelled.idx <- which(is.na(res[[i+1]]$label))
+    labelled.idx <- which(!is.na(res[[i+1]]$label))
+
+    if (length(unlabelled.idx) > 0) {
+      res[[i+1]][unlabelled.idx,]$label <-
+        next.label:(next.label+length(unlabelled.idx)-1)
+    }
+
+    next.label <- next.label + length(unlabelled.idx)
+
+    ## Mark all clusters that have been carried over from the
+    ## previous release
+    if (length(labelled.idx) > 0) {
+      res[[i+1]][labelled.idx,]$new.cluster <- FALSE
+    }
+  }
+
+  return(res)
+}
+
 do.commit.analysis <- function(resdir, graphdir, conf) {
   ## Stage 1: Prepare summary statistics for each release cycle,
   ## and prepare the time series en passant
