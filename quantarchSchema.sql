@@ -692,6 +692,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank` (
   `projectId` BIGINT NOT NULL ,
   `releaseRangeId` BIGINT NOT NULL ,
   `technique` VARCHAR(45) NULL ,
+  `name` VARCHAR(45) NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `pagerank_releaserange`
     FOREIGN KEY (`releaseRangeId` )
@@ -734,6 +735,69 @@ ENGINE = InnoDB;
 CREATE INDEX `pagerankMatrix_pagerank_idx` ON `quantarch`.`pagerank_matrix` (`pageRankId` ASC) ;
 
 CREATE INDEX `pagerankMatrix_person_idx` ON `quantarch`.`pagerank_matrix` (`personID` ASC) ;
+
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`adjacence`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`adjacence` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`adjacence` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
+  `clusterId` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT NOT NULL ,
+  `technique` VARCHAR(45) NULL ,
+  `name` VARCHAR(45) NULL ,
+  PRIMARY KEY (`id`) ,
+  CONSTRAINT `adjacency_releaserange`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `pagerank_cluster`
+    FOREIGN KEY (`clusterId` )
+    REFERENCES `quantarch`.`cluster` (`clusterId` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE INDEX `pagerank_releaserange_idx` ON `quantarch`.`adjacence` (`releaseRangeId` ASC) ;
+
+CREATE INDEX `pagerank_cluster_idx` ON `quantarch`.`adjacence` (`clusterId` ASC) ;
+
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`adjacency_matrix`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`adjacency_matrix` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`adjacency_matrix` (
+  `adjacenceId` BIGINT NOT NULL ,
+  `rowId` BIGINT NOT NULL ,
+  `columnId` BIGINT NOT NULL ,
+  `value` DOUBLE NOT NULL ,
+  CONSTRAINT `adjacenceMatrix_adjacence`
+    FOREIGN KEY (`adjacenceId` )
+    REFERENCES `quantarch`.`adjacence` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `adjacenceMatrix_person_row`
+    FOREIGN KEY (`rowId` )
+    REFERENCES `quantarch`.`person` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `adjacenceMatrix_person_column`
+    FOREIGN KEY (`columnId` )
+    REFERENCES `quantarch`.`person` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE INDEX `pagerankMatrix_person_idx` ON `quantarch`.`adjacency_matrix` (`rowId` ASC) ;
+
+CREATE INDEX `adjacenceMatrix_adjacence_idx` ON `quantarch`.`adjacency_matrix` (`adjacenceId` ASC) ;
+
+CREATE INDEX `adjacenceMatrix_person_column_idx` ON `quantarch`.`adjacency_matrix` (`columnId` ASC) ;
 
 USE `quantarch` ;
 
