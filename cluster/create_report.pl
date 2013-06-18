@@ -127,11 +127,13 @@ if ($#ARGV != 1) {
 my $basedir=$ARGV[0];
 my $cycle=$ARGV[1];
 
+binmode(STDOUT, ":utf8");
 print <<"END";
 \\documentclass{article}
 \\usepackage[landscape,a4paper,pdftex,top=5mm,bottom=5mm,left=5mm,right=5mm]{geometry}
 \\usepackage{graphicx}
 \\usepackage{calc}
+\\usepackage{lmodern}
 \\begin{document}
 \\setlength{\\parindent}{0pt}
 \\begin{center}
