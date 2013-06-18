@@ -181,7 +181,7 @@ def dispatchAnalysis(args):
             cmd.append("dot")
             cmd.append("-Ksfdp")
             cmd.append("-Tpdf")
-            cmd.append("-Gcharset=latin1")
+            cmd.append("-Gcharset=utf-8")
             cmd.append("-o{0}.pdf".format(os.path.splitext(file)[0]))
             cmd.append(out.name)
             executeCommand(cmd, args.dry_run)
@@ -209,11 +209,11 @@ def dispatchAnalysis(args):
 
         # Stage 4.2: Compile report
         cmd = []
-        cmd.append("pdflatex")
+        cmd.append("lualatex")
         cmd.append("-interaction=nonstopmode")
         cmd.append(os.path.join(resdir, report_base + ".tex"))
 
-        # We run pdflatex in a temporary directory so that it's easy to
+        # We run latex in a temporary directory so that it's easy to
         # get rid of the log files etc. created during the run that are
         # not relevant for the final result
         orig_wd = os.getcwd()
