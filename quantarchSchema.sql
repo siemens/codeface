@@ -545,6 +545,36 @@ CREATE INDEX `cluster_cluster_user_ref_idx` ON `quantarch`.`cluster_user_mapping
 
 CREATE INDEX `person_cluster_user_ref_idx` ON `quantarch`.`cluster_user_mapping` (`person` ASC) ;
 
+-- -----------------------------------------------------
+-- Table `quantarch`.`cluster_edgelist`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`cluster_edgelist` ;
+
+CREATE TABLE IF NOT EXISTS `quantarch`.`cluster_edgelist` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
+  `from` BIGINT NOT NULL ,
+  `to` BIGINT NOT NULL ,
+  `weight` BIGINT NOT NULL ,
+  `clusterID` BIGINT NOT NULL ,
+  PRIMARY KEY (`id`) ,
+  CONSTRAINT `cluster_edgelist_cluster_ref`
+    FOREIGN KEY (`clusterId` )
+    REFERENCES `quantarch`.`cluster` (`clusterId` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `cluster_edgelist_from_ref`
+    FOREIGN KEY (`from` )
+    REFERENCES `quantarch`.`person` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `cluster_edgelist_to_ref`
+    FOREIGN KEY (`to` )
+    REFERENCES `quantarch`.`person` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE INDEX `cluster_edgelist_cluster_ref_idx` ON `quantarch`.`cluster_edgelist` (`clusterId` ASC) ;
 
 -- -----------------------------------------------------
 -- Table `quantarch`.`issue_history`
