@@ -429,7 +429,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     status(paste("Plotting commit information for revision",
                  conf$revisions[[i+1]]))
     plot.types <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
-    if (sum(ts[[i]]$NumSignedOffs) > 0) {
+    if (sum(ts[[i]]$NumTags) > 0) {
       ## The data do contain tagging information
       plot.types <- c(plot.types, "NumTags")
     }
