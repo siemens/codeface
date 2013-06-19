@@ -376,10 +376,16 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank, .basedir, .prefix, .w
       ## Construct a systematic representation of the graph for the data base
       edges <- get.data.frame(g, what="edges")
 
-      ## Transform the edge list so that IDs are not consecutive,
-      ## but use the in-DB values.
-      edges$to <- .iddb[edges$to,]$ID.orig
-      edges$from <- .iddb[edges$from,]$ID.orig
+      ## NOTE: Index handling is somewhat complicated: idx contains a set
+      ## of indices generated for the global graph. .iddx[index,]$ID.orig
+      ## maps these back to the in-DB indices.
+      ## V(g) for the current graph uses another different indexing system:
+      ## indices ar 1..|V(g)|. To convert from the graph-local indices
+      ## to the graph-global ones, use idx[V(g)]. To convert these to in-DB
+      ## indices, use .iddb[idx[V(g)]]$ID.org.
+
+      edges$to <- .iddb[idx[edges$to],]$ID.orig
+      edges$from <- .iddb[idx[edges$from],]$ID.orig
 
       ## Create a weighted edgelist, and associate it with the in-cluster
       ## database id
