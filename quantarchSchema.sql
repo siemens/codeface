@@ -483,7 +483,6 @@ DROP TABLE IF EXISTS `quantarch`.`cluster` ;
 CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster` (
   `clusterId` BIGINT NOT NULL AUTO_INCREMENT ,
   `projectId` BIGINT NOT NULL ,
-  `releaseRangeId` BIGINT NOT NULL ,
   `clusterNumber` INT NULL ,
   `clusterMethod` VARCHAR(45) NULL ,
   `dot` BIGINT NULL ,
@@ -492,11 +491,6 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster` (
   CONSTRAINT `project_cluster_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `cluster_releaseRangeId`
-    FOREIGN KEY (`releaseRangeId` )
-    REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `dot_plot_bin_data`
@@ -526,7 +520,6 @@ DROP TABLE IF EXISTS `quantarch`.`cluster_user_mapping` ;
 CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster_user_mapping` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `person` BIGINT NOT NULL ,
-  `prank` DOUBLE NOT NULL ,
   `clusterId` BIGINT NOT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `cluster_cluster_user_ref`
@@ -545,36 +538,6 @@ CREATE INDEX `cluster_cluster_user_ref_idx` ON `quantarch`.`cluster_user_mapping
 
 CREATE INDEX `person_cluster_user_ref_idx` ON `quantarch`.`cluster_user_mapping` (`person` ASC) ;
 
--- -----------------------------------------------------
--- Table `quantarch`.`cluster_edgelist`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`cluster_edgelist` ;
-
-CREATE TABLE IF NOT EXISTS `quantarch`.`cluster_edgelist` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `from` BIGINT NOT NULL ,
-  `to` BIGINT NOT NULL ,
-  `weight` BIGINT NOT NULL ,
-  `clusterID` BIGINT NOT NULL ,
-  PRIMARY KEY (`id`) ,
-  CONSTRAINT `cluster_edgelist_cluster_ref`
-    FOREIGN KEY (`clusterId` )
-    REFERENCES `quantarch`.`cluster` (`clusterId` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `cluster_edgelist_from_ref`
-    FOREIGN KEY (`from` )
-    REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `cluster_edgelist_to_ref`
-    FOREIGN KEY (`to` )
-    REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-CREATE INDEX `cluster_edgelist_cluster_ref_idx` ON `quantarch`.`cluster_edgelist` (`clusterId` ASC) ;
 
 -- -----------------------------------------------------
 -- Table `quantarch`.`issue_history`
@@ -768,66 +731,66 @@ CREATE INDEX `pagerankMatrix_person_idx` ON `quantarch`.`pagerank_matrix` (`pers
 
 
 -- -----------------------------------------------------
--- Table `quantarch`.`adjacence`
+-- Table `quantarch`.`graph`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`adjacence` ;
+DROP TABLE IF EXISTS `quantarch`.`graph` ;
 
-CREATE  TABLE IF NOT EXISTS `quantarch`.`adjacence` (
+CREATE  TABLE IF NOT EXISTS `quantarch`.`graph` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `clusterId` BIGINT NOT NULL ,
   `releaseRangeId` BIGINT NOT NULL ,
   `technique` VARCHAR(45) NULL ,
   `name` VARCHAR(45) NULL ,
   PRIMARY KEY (`id`) ,
-  CONSTRAINT `adjacency_releaserange`
+  CONSTRAINT `graph_releaserange`
     FOREIGN KEY (`releaseRangeId` )
     REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `pagerank_cluster`
+  CONSTRAINT `graph_cluster`
     FOREIGN KEY (`clusterId` )
     REFERENCES `quantarch`.`cluster` (`clusterId` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `pagerank_releaserange_idx` ON `quantarch`.`adjacence` (`releaseRangeId` ASC) ;
+CREATE INDEX `graph_releaserange_idx` ON `quantarch`.`graph` (`releaseRangeId` ASC) ;
 
-CREATE INDEX `pagerank_cluster_idx` ON `quantarch`.`adjacence` (`clusterId` ASC) ;
+CREATE INDEX `graph_cluster_idx` ON `quantarch`.`graph` (`clusterId` ASC) ;
 
 
 -- -----------------------------------------------------
--- Table `quantarch`.`adjacency_matrix`
+-- Table `quantarch`.`edgelist`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`adjacency_matrix` ;
+DROP TABLE IF EXISTS `quantarch`.`edgelist` ;
 
-CREATE  TABLE IF NOT EXISTS `quantarch`.`adjacency_matrix` (
-  `adjacenceId` BIGINT NOT NULL ,
+CREATE  TABLE IF NOT EXISTS `quantarch`.`edgelist` (
+  `graphId` BIGINT NOT NULL ,
   `rowId` BIGINT NOT NULL ,
   `columnId` BIGINT NOT NULL ,
-  `value` DOUBLE NOT NULL ,
-  CONSTRAINT `adjacenceMatrix_adjacence`
-    FOREIGN KEY (`adjacenceId` )
-    REFERENCES `quantarch`.`adjacence` (`id` )
+  `weight` DOUBLE NOT NULL ,
+  CONSTRAINT `edgelist_graph`
+    FOREIGN KEY (`graphId` )
+    REFERENCES `quantarch`.`graph` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `adjacenceMatrix_person_row`
+  CONSTRAINT `edgelist_person_row`
     FOREIGN KEY (`rowId` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `adjacenceMatrix_person_column`
+  CONSTRAINT `edgeList_person_column`
     FOREIGN KEY (`columnId` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `pagerankMatrix_person_idx` ON `quantarch`.`adjacency_matrix` (`rowId` ASC) ;
+CREATE INDEX `edgelist_person_row_idx` ON `quantarch`.`edgelist` (`rowId` ASC) ;
 
-CREATE INDEX `adjacenceMatrix_adjacence_idx` ON `quantarch`.`adjacency_matrix` (`adjacenceId` ASC) ;
+CREATE INDEX `edgelist_graph_idx` ON `quantarch`.`edgelist` (`graphId` ASC) ;
 
-CREATE INDEX `adjacenceMatrix_person_column_idx` ON `quantarch`.`adjacency_matrix` (`columnId` ASC) ;
+CREATE INDEX `edgelist_person_column_idx` ON `quantarch`.`edgelist` (`columnId` ASC) ;
 
 USE `quantarch` ;
 
