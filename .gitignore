@@ -17,6 +17,7 @@ rep/
 res/
 testdat/
 .Rhistory
+.Rdata
 .DS_Store
 cluster/.Rhistory
 cluster/.DS_Store
