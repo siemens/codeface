@@ -67,12 +67,19 @@ query.projects <- function(con) {
 }
 
 ## Obtain all (db-internal) release range identifier for a project
-query.range.ids <- function(conf) {
-  dat <- dbGetQuery(conf$con, str_c("SELECT id FROM release_range where projectID=",
-                                    conf$pid))
+query.range.ids.con <- function(con, pid) {
+  dat <- dbGetQuery(con, str_c("SELECT id FROM release_range where projectID=",
+                                    pid))
 
   return(dat$id)
 }
+
+
+## Simple frontend when the conf object is available
+query.range.ids <- function(conf) {
+  return(query.range.ids.con(conf$con, conf$pid))
+}
+
 
 ## Obtain the per-release-range statistics
 get.range.stats <- function(con, range.id) {
