@@ -1027,7 +1027,7 @@ def emitStatisticalData(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
 
     Several files are created in outdir respectively the database:
     - Information about the commits proper (formerly commits.txt)
-    - Names/ID associations (ids.txt). This file also contains
+    - Names/ID associations (formerly ids.txt). This file also contains
       the per-author total of added/deleted/modified lines etc.
     - Per-Author information on relative per-subsys work distribution (id_subsys.txt)
     - Connection between the developers derived from commit tags (adjacencyMatrix.txt)"""
