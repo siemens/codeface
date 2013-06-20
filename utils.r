@@ -100,6 +100,20 @@ gen.weighted.edgelist <- function(edges) {
   return(do.call(rbind, edges.weighted))
 }
 
+## Give a cluster identifier, (re)construct an igraph object from the DB
+construct.cluster <- function(con, cluster.id) {
+  edges <- query.cluster.edges(con, cluster.id)
+  members <- query.cluster.members(con, cluster.id, prank=T)
+
+  if (!all(unique(c(edges$to, edges$to)) %in% members$person)) {
+    stop("Internal error: edges for non-existent persons in cluster ", cluster.id)
+  }
+
+  g <- graph.data.frame(edges, vertices=members)
+
+  return(g)
+}
+
 # The following method to produce a coloured recurrence plot is taken from 
 # http://zoonek2.free.fr/UNIX/48_R/15.html#11
 # The other functions are also from there
