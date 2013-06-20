@@ -147,6 +147,18 @@ query.cluster.members <- function(con, cluster.id, prank=F) {
     return(dat$person)
 }
 
+## Query an edgelist for a given cluster
+query.cluster.edges <- function(con, cluster.id) {
+  dat <- dbGetQuery(con, str_c("SELECT * FROM ",
+                               "cluster_edgelist WHERE clusterId=", cluster.id))
+
+  if (dim(dat)[1] > 0) {
+    return(dat[,c("from", "to", "weight")])
+  } else {
+    return(NULL)
+  }
+}
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
