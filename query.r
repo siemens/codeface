@@ -132,11 +132,19 @@ query.cluster.ids <- function(conf, range.id, cluster.method) {
 }
 
 ## Get all members (in terms of person id) of a cluster
-query.cluster.members <- function(conf, cluster.id) {
-  dat <- dbGetQuery(conf$con, str_c("SELECT person FROM cluster_user_mapping ",
-                                    "WHERE clusterId=", cluster.id))
+query.cluster.members <- function(con, cluster.id, prank=F) {
+  query <- "SELECT person"
+  if (prank) {
+    query <- str_c(query, ", prank")
+  }
+  query <- str_c(query, " FROM cluster_user_mapping WHERE clusterId=", cluster.id)
 
-  return(dat$person)
+  dat <- dbGetQuery(con, query)
+
+  if (prank)
+    return(dat)
+  else
+    return(dat$person)
 }
 
 ### General SQL helper functions
