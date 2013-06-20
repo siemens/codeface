@@ -969,7 +969,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   save.groups(conf, adjMatrix.connected.scaled, ids.connected,
               g.spin.community, pr.for.all.tr, outdir,
               "sg_tr_", elems.sg.more,
-              label="Spin Glass Community")
+              label="Spin Glass Community (tr)")
   
   ##--------------------
   ## Random walk
@@ -994,14 +994,14 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   save.groups(conf, adjMatrix.connected.scaled, ids.connected,
               g.walktrap.community, pr.for.all.tr, outdir,
               "wt_tr_big_", elems.wt.more,
-              label="(big) Random Walk Community")
+              label="(big) Random Walk Community (tr)")
   
   save.groups(conf, adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
               pr.for.all, outdir, "wt_reg_small_", elems.wt.less,
               label="(small) Random Walk Community")
   save.groups(conf, adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
               pr.for.all.tr, outdir, "wt_tr_small_", elems.wt.less,
-              label="(small) Random Walk Community")
+              label="(small) Random Walk Community (tr)")
 
   ##--------------------
   ## Community Quality
