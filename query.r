@@ -84,7 +84,7 @@ query.range.ids <- function(conf) {
 ## Obtain the per-release-range statistics
 get.range.stats <- function(con, range.id) {
   dat <- dbGetQuery(con, str_c("SELECT ID, Name, added, deleted, total, ",
-                               "numcommits from author_commit_stats_view ",
+                               "numcommits FROM author_commit_stats_view ",
                                "WHERE releaseRangeId=", range.id))
   dat$Name <- as.character(dat$Name)
   Encoding(dat$Name) <- "UTF-8"
