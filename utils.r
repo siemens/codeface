@@ -109,8 +109,12 @@ construct.cluster <- function(con, cluster.id) {
     stop("Internal error: edges for non-existent persons in cluster ", cluster.id)
   }
 
-  g <- graph.data.frame(edges, vertices=members)
+  if (is.null(edges)) {
+    cat("Duh: cluster without edges for id ", cluster.id, "?!\n")
+    return(NULL)
+  }
 
+  g <- graph.data.frame(edges, vertices=members)
   return(g)
 }
 
