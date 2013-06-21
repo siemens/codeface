@@ -792,7 +792,7 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics_view` (`'projectI
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`cluster_user_pagerank_view`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `quantarch`.`cluster_user_pagerank_view` (`id` INT, `personId` INT, `clusterId` INT, `technique` INT);
+CREATE TABLE IF NOT EXISTS `quantarch`.`cluster_user_pagerank_view` (`id` INT, `personId` INT, `clusterId` INT, `technique` INT, `rankValue` INT);
 
 -- -----------------------------------------------------
 -- View `quantarch`.`revisions_view`
@@ -874,7 +874,8 @@ select
 	cum.id, 
 	cum.personId,
 	c.id as clusterId, 
-	pr.technique
+	pr.technique,
+	prm.rankValue
 from  
 	((cluster_user_mapping cum join cluster c on cum.clusterId = c.id)
 	join pagerank pr on c.id = pr.clusterId)
