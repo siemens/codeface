@@ -856,7 +856,7 @@ select
 	sum(acs.numcommits) as 'numcommits',
 	avg(prm.rankValue) as 'prank'
 from (((((release_range rr join author_commit_stats acs on rr.id = acs.releaseRangeId)
-		join Person p on  p.id = acs.authorId)
+		join person p on  p.id = acs.authorId)
 		join cluster_user_mapping cum on cum.personId = p.id)
 		join cluster c on cum.clusterId = c.id)
 		join pagerank pr on pr.clusterId = c.id AND pr.releaseRangeId = rr.id)
