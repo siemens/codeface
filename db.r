@@ -133,6 +133,29 @@ get.cluster.id <- function(conf, range.id, method, num) {
   return(res$id)
 }
 
+## Obtain the ID of a per release-range, per technique pagerank table.
+## technique is by convention 0 for normal pagerank and 1 for transposed
+## pagerank
+get.pagerank.id <- function(conf, range.id, technique) {
+  if (technique != 0 && technique != 1) {
+    stop("Internal error: Invalid technique specified in get.pagerank.id")
+  }
+
+  res <- dbGetQuery(conf$con, str_c("SELECT id from pagerank ",
+                                    "WHERE releaseRangeId=", range.id,
+                                    " AND technique=", technique))
+
+  if (length(res) == 0) {
+    dbGetQuery(conf$con, str_c("INSERT INTO pagerank (releaseRangeId, technique)",
+                               " VALUES (", range.id, ", ", technique, ")"))
+    res <- dbGetQuery(conf$con, str_c("SELECT id from pagerank ",
+                                      "WHERE releaseRangeId=", range.id,
+                                      " AND technique=", technique))
+  }
+
+  return(res$clusterId)
+}
+
 ## Augment the configuration "object" with information that
 ## is of interest to several analysis passes/operations
 augment.conf <- function(conf) {
