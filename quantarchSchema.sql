@@ -690,7 +690,6 @@ DROP TABLE IF EXISTS `quantarch`.`pagerank` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `clusterId` BIGINT NOT NULL ,
   `releaseRangeId` BIGINT NOT NULL ,
   `technique` TINYINT NOT NULL ,
   `name` VARCHAR(45) NULL ,
@@ -699,17 +698,11 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank` (
     FOREIGN KEY (`releaseRangeId` )
     REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `pagerank_cluster`
-    FOREIGN KEY (`clusterId` )
-    REFERENCES `quantarch`.`cluster` (`id` )
-    ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `pagerank_releaserange_idx` ON `quantarch`.`pagerank` (`releaseRangeId` ASC) ;
 
-CREATE INDEX `pagerank_cluster_idx` ON `quantarch`.`pagerank` (`clusterId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -878,7 +871,7 @@ select
 	prm.rankValue
 from  
 	((cluster_user_mapping cum join cluster c on cum.clusterId = c.id)
-	join pagerank pr on c.id = pr.clusterId)
+	join pagerank pr on c.releaseRangeID = pr.releaseRangeId)
 	join pagerank_matrix prm on cum.personId = prm.personId;
 
 
