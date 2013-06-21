@@ -972,7 +972,7 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm):
         deleted = cmt_stat["deleted"]
         numcommits = cmt_stat["numcommits"]
         dbm.doExec("INSERT INTO author_commit_stats " +
-                   "(author, releaseRangeId, added, deleted, total, numcommits) "
+                   "(authorId, releaseRangeId, added, deleted, total, numcommits) "
                    + "VALUES (%s, %s, %s, %s, %s, %s)",
                    (id, releaseRangeID, cmt_stat["added"], cmt_stat["deleted"],
                     cmt_stat["added"] + cmt_stat["deleted"],

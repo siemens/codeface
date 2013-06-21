@@ -112,7 +112,7 @@ get.release.dates <- function(conf) {
 }
 
 get.cluster.id <- function(conf, range.id, method, num) {
-  res <- dbGetQuery(conf$con, str_c("SELECT clusterId from cluster ",
+  res <- dbGetQuery(conf$con, str_c("SELECT id from cluster ",
                                     "WHERE clusterMethod=", sq(method),
                                     " AND projectId=", conf$pid,
                                     " AND releaseRangeId=", range.id,
@@ -123,14 +123,14 @@ get.cluster.id <- function(conf, range.id, method, num) {
                                "releaseRangeId, clusterMethod) VALUES (",
                                conf$pid, ", ", num, ", ", range.id, ", ",
                                sq(method), ")"))
-    res <- dbGetQuery(conf$con, str_c("SELECT clusterId from cluster ",
+    res <- dbGetQuery(conf$con, str_c("SELECT id from cluster ",
                                       "WHERE clusterMethod=", sq(method),
                                       " AND projectId=", conf$pid,
                                       " AND releaseRangeId=", range.id,
                                       " AND clusterNumber=", num))
   }
 
-  return(res$clusterId)
+  return(res$id)
 }
 
 ## Augment the configuration "object" with information that

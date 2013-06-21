@@ -87,10 +87,10 @@ scale.data <- function(dat, .min=0, .max=1) {
 ## Given an igraph edge list (data frame with columns to and from), create
 ## a weighted edge list
 gen.weighted.edgelist <- function(edges) {
-  edges.weighted <- lapply(unique(edges$from), function(from.vertex) {
-    to.vertices <- edges[edges$from==from.vertex,]$to
+  edges.weighted <- lapply(unique(edges$fromId), function(from.vertex) {
+    to.vertices <- edges[edges$fromId==from.vertex,]$toId
     res <- do.call(rbind, lapply(unique(to.vertices), function(to.vertex) {
-      return(data.frame(from=from.vertex, to=to.vertex,
+      return(data.frame(fromId=from.vertex, toId=to.vertex,
                         weight=sum(to.vertices==to.vertex)))
     }))
 
@@ -100,12 +100,13 @@ gen.weighted.edgelist <- function(edges) {
   return(do.call(rbind, edges.weighted))
 }
 
-## Give a cluster identifier, (re)construct an igraph object from the DB
-construct.cluster <- function(con, cluster.id) {
+## Give a cluster identifier and (optionally) the page rank technique,
+## (re)construct an igraph object from the DB
+construct.cluster <- function(con, cluster.id, technique=0) {
   edges <- query.cluster.edges(con, cluster.id)
-  members <- query.cluster.members(con, cluster.id, prank=T)
+  members <- query.cluster.members(con, cluster.id, prank=T, technique=technique)
 
-  if (!all(unique(c(edges$to, edges$to)) %in% members$person)) {
+  if (!all(unique(c(edges$toId, edges$fromId)) %in% members$person)) {
     stop("Internal error: edges for non-existent persons in cluster ", cluster.id)
   }
 

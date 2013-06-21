@@ -132,28 +132,31 @@ query.cluster.ids <- function(conf, range.id, cluster.method) {
 }
 
 ## Get all members (in terms of person id) of a cluster
-query.cluster.members <- function(con, cluster.id, prank=F) {
-  query <- "SELECT person"
+## technique can be 0 for normal pagerank and 1 for pagerank based
+## on the transposed adjacency matrix
+query.cluster.members <- function(con, cluster.id, prank=F, technique=0) {
+  query <- "SELECT personId"
   if (prank) {
-    query <- str_c(query, ", prank")
+    query <- str_c(query, ", rankValue")
   }
-  query <- str_c(query, " FROM cluster_user_mapping WHERE clusterId=", cluster.id)
+  query <- str_c(query, " FROM cluster_user_pagerank_view WHERE clusterId=",
+                 cluster.id, " AND technique=", technique)
 
   dat <- dbGetQuery(con, query)
 
   if (prank)
     return(dat)
   else
-    return(dat$person)
+    return(dat$personId)
 }
 
 ## Query an edgelist for a given cluster
 query.cluster.edges <- function(con, cluster.id) {
   dat <- dbGetQuery(con, str_c("SELECT * FROM ",
-                               "cluster_edgelist WHERE clusterId=", cluster.id))
+                               "edgelist WHERE clusterId=", cluster.id))
 
   if (dim(dat)[1] > 0) {
-    return(dat[,c("from", "to", "weight")])
+    return(dat[,c("fromId", "toId", "weight")])
   } else {
     return(NULL)
   }

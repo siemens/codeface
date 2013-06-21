@@ -362,10 +362,8 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank, .basedir, .prefix, .w
       cluster.id <- get.cluster.id(conf, conf$range.id, baselabel, j)
 
       users.df <- lapply(idx, function(index.local) {
-        prank <- .prank$vector[index.local]
         person.id <- .iddb[index.local,]$ID.orig
-        return(data.frame(id=NA, person=person.id, clusterId=cluster.id,
-                          prank=prank))
+        return(data.frame(id=NA, personId=person.id, clusterId=cluster.id))
       })
       users.df <- do.call(rbind, users.df)
 
@@ -375,6 +373,7 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank, .basedir, .prefix, .w
 
       ## Construct a systematic representation of the graph for the data base
       edges <- get.data.frame(g, what="edges")
+      colnames(edges) <- c("fromId", "toId")
 
       ## NOTE: Index handling is somewhat complicated: idx contains a set
       ## of indices generated for the global graph. .iddx[index,]$ID.orig
@@ -384,15 +383,15 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank, .basedir, .prefix, .w
       ## to the graph-global ones, use idx[V(g)]. To convert these to in-DB
       ## indices, use .iddb[idx[V(g)]]$ID.org.
 
-      edges$to <- .iddb[idx[edges$to],]$ID.orig
-      edges$from <- .iddb[idx[edges$from],]$ID.orig
+      edges$toId <- .iddb[idx[edges$toId],]$ID.orig
+      edges$fromId <- .iddb[idx[edges$fromId],]$ID.orig
 
       ## Create a weighted edgelist, and associate it with the in-cluster
       ## database id
       edges <- gen.weighted.edgelist(edges)
       edges <- cbind(clusterId=cluster.id, edges)
 
-      dbWriteTable(conf$con, "cluster_edgelist", edges, append=T, row.names=F)
+      dbWriteTable(conf$con, "edgelist", edges, append=T, row.names=F)
 
       j <- j + 1
     }
