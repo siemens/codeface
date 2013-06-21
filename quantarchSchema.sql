@@ -406,34 +406,34 @@ CREATE INDEX `dependent_dependent_issue_idx` ON `quantarch`.`issue_dependencies`
 
 
 -- -----------------------------------------------------
--- Table `quantarch`.`user_commit_stats`
+-- Table `quantarch`.`author_commit_stats`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`user_commit_stats` ;
+DROP TABLE IF EXISTS `quantarch`.`author_commit_stats` ;
 
-CREATE  TABLE IF NOT EXISTS `quantarch`.`user_commit_stats` (
+CREATE  TABLE IF NOT EXISTS `quantarch`.`author_commit_stats` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `user` BIGINT NOT NULL ,
-  `release_timeline_id` BIGINT NOT NULL ,
+  `authorId` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT NOT NULL ,
   `added` INT NULL ,
   `deleted` INT NULL ,
   `total` INT NULL ,
-  `numCommits` INT NULL ,
+  `numcommits` INT NULL ,
   PRIMARY KEY (`id`) ,
-  CONSTRAINT `user_person_key`
-    FOREIGN KEY (`user` )
+  CONSTRAINT `author_person_key`
+    FOREIGN KEY (`authorId` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `release_timeline_key`
-    FOREIGN KEY (`release_timeline_id` )
-    REFERENCES `quantarch`.`release_timeline` (`id` )
+  CONSTRAINT `releaseRangeId_key`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `user_person_key_idx` ON `quantarch`.`user_commit_stats` (`user` ASC) ;
+CREATE INDEX `author_person_key_idx` ON `quantarch`.`author_commit_stats` (`authorId` ASC) ;
 
-CREATE INDEX `release_timeline_key_idx` ON `quantarch`.`user_commit_stats` (`release_timeline_id` ASC) ;
+CREATE INDEX `releaseRangeId_key_idx` ON `quantarch`.`author_commit_stats` (`releaseRangeId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -831,13 +831,21 @@ order by rr.id asc;
 DROP VIEW IF EXISTS `quantarch`.`author_commit_stats_view` ;
 DROP TABLE IF EXISTS `quantarch`.`author_commit_stats_view`;
 USE `quantarch`;
-CREATE  OR REPLACE VIEW `quantarch`.`author_commit_stats_view` AS 
-SELECT person.name as Name, author_commit_stats.author as ID, author_commit_stats.releaseRangeId, author_commit_stats.added, author_commit_stats.deleted, author_commit_stats.total, author_commit_stats.numcommits
-FROM author_commit_stats,person
-WHERE author IN (select distinct(author) FROM author_commit_stats) 
-      AND person.id=author_commit_stats.author
-GROUP BY author, releaseRangeId;
-;
+CREATE  OR REPLACE VIEW `quantarch`.`author_commit_stats_view` AS
+SELECT 
+	p.name as Name, 
+	s.user as ID, 
+	s.releaseRangeId, 
+	sum(s.added) as added, 
+	sum(s.deleted) as deleted, 
+	sum(s.total) as total, 
+	sum(s.numcommits) as numcommits
+FROM author_commit_stats s join person p on p.id = s.user
+WHERE 
+s.user IN 
+	(	select distinct(author) 
+		FROM author_commit_stats) 
+GROUP BY s.author, p.name, s.release_timeline_id;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
