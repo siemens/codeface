@@ -481,13 +481,14 @@ CREATE INDEX `plot_bin_plot_ref_idx` ON `quantarch`.`plot_bin` (`plotID` ASC) ;
 DROP TABLE IF EXISTS `quantarch`.`cluster` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster` (
-  `clusterId` BIGINT NOT NULL AUTO_INCREMENT ,
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `projectId` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT NOT NULL ,
   `clusterNumber` INT NULL ,
   `clusterMethod` VARCHAR(45) NULL ,
   `dot` BIGINT NULL ,
   `svg` BIGINT NULL ,
-  PRIMARY KEY (`clusterId`) ,
+  PRIMARY KEY (`id`) ,
   CONSTRAINT `project_cluster_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
@@ -502,6 +503,11 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster` (
     FOREIGN KEY (`svg` )
     REFERENCES `quantarch`.`plot_bin` (`plotID` )
     ON DELETE SET NULL
+    ON UPDATE CASCADE,
+  CONSTRAINT `cluster_releaseRange`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
+    ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
@@ -511,6 +517,8 @@ CREATE INDEX `dot_plot_bin_data_idx` ON `quantarch`.`cluster` (`dot` ASC) ;
 
 CREATE INDEX `svg_plot_bin_data_ref_idx` ON `quantarch`.`cluster` (`svg` ASC) ;
 
+CREATE INDEX `cluster_releaseRange_idx` ON `quantarch`.`cluster` (`releaseRangeId` ASC) ;
+
 
 -- -----------------------------------------------------
 -- Table `quantarch`.`cluster_user_mapping`
@@ -519,16 +527,16 @@ DROP TABLE IF EXISTS `quantarch`.`cluster_user_mapping` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster_user_mapping` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `person` BIGINT NOT NULL ,
+  `personId` BIGINT NOT NULL ,
   `clusterId` BIGINT NOT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `cluster_cluster_user_ref`
     FOREIGN KEY (`clusterId` )
-    REFERENCES `quantarch`.`cluster` (`clusterId` )
+    REFERENCES `quantarch`.`cluster` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `person_cluster_user_ref`
-    FOREIGN KEY (`person` )
+    FOREIGN KEY (`personId` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -536,7 +544,7 @@ ENGINE = InnoDB;
 
 CREATE INDEX `cluster_cluster_user_ref_idx` ON `quantarch`.`cluster_user_mapping` (`clusterId` ASC) ;
 
-CREATE INDEX `person_cluster_user_ref_idx` ON `quantarch`.`cluster_user_mapping` (`person` ASC) ;
+CREATE INDEX `person_cluster_user_ref_idx` ON `quantarch`.`cluster_user_mapping` (`personId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -684,7 +692,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `clusterId` BIGINT NOT NULL ,
   `releaseRangeId` BIGINT NOT NULL ,
-  `technique` VARCHAR(45) NULL ,
+  `technique` TINYINT NOT NULL ,
   `name` VARCHAR(45) NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `pagerank_releaserange`
@@ -694,7 +702,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank` (
     ON UPDATE CASCADE,
   CONSTRAINT `pagerank_cluster`
     FOREIGN KEY (`clusterId` )
-    REFERENCES `quantarch`.`cluster` (`clusterId` )
+    REFERENCES `quantarch`.`cluster` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
@@ -713,6 +721,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank_matrix` (
   `pageRankId` BIGINT NOT NULL ,
   `personID` BIGINT NOT NULL ,
   `rankValue` DOUBLE NOT NULL ,
+  PRIMARY KEY (`pageRankId`, `personID`) ,
   CONSTRAINT `pagerankMatrix_pagerank`
     FOREIGN KEY (`pageRankId` )
     REFERENCES `quantarch`.`pagerank` (`id` )
@@ -731,49 +740,15 @@ CREATE INDEX `pagerankMatrix_person_idx` ON `quantarch`.`pagerank_matrix` (`pers
 
 
 -- -----------------------------------------------------
--- Table `quantarch`.`graph`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`graph` ;
-
-CREATE  TABLE IF NOT EXISTS `quantarch`.`graph` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `clusterId` BIGINT NOT NULL ,
-  `releaseRangeId` BIGINT NOT NULL ,
-  `technique` VARCHAR(45) NULL ,
-  `name` VARCHAR(45) NULL ,
-  PRIMARY KEY (`id`) ,
-  CONSTRAINT `graph_releaserange`
-    FOREIGN KEY (`releaseRangeId` )
-    REFERENCES `quantarch`.`release_range` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `graph_cluster`
-    FOREIGN KEY (`clusterId` )
-    REFERENCES `quantarch`.`cluster` (`clusterId` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-CREATE INDEX `graph_releaserange_idx` ON `quantarch`.`graph` (`releaseRangeId` ASC) ;
-
-CREATE INDEX `graph_cluster_idx` ON `quantarch`.`graph` (`clusterId` ASC) ;
-
-
--- -----------------------------------------------------
 -- Table `quantarch`.`edgelist`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `quantarch`.`edgelist` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`edgelist` (
-  `graphId` BIGINT NOT NULL ,
+  `clusterId` BIGINT NOT NULL ,
   `fromId` BIGINT NOT NULL ,
   `toId` BIGINT NOT NULL ,
   `weight` DOUBLE NOT NULL ,
-  CONSTRAINT `edgelist_graph`
-    FOREIGN KEY (`graphId` )
-    REFERENCES `quantarch`.`graph` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
   CONSTRAINT `edgelist_person_from`
     FOREIGN KEY (`fromId` )
     REFERENCES `quantarch`.`person` (`id` )
@@ -783,21 +758,26 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`edgelist` (
     FOREIGN KEY (`toId` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `edgeList_cluster`
+    FOREIGN KEY (`clusterId` )
+    REFERENCES `quantarch`.`cluster` (`id` )
+    ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `edgelist_person_from_idx` ON `quantarch`.`edgelist` (`fromId` ASC) ;
 
-CREATE INDEX `edgelist_graph_idx` ON `quantarch`.`edgelist` (`graphId` ASC) ;
-
 CREATE INDEX `edgelist_person_to_idx` ON `quantarch`.`edgelist` (`toId` ASC) ;
+
+CREATE INDEX `edgeList_cluster_idx` ON `quantarch`.`edgelist` (`clusterId` ASC) ;
 
 USE `quantarch` ;
 
 -- -----------------------------------------------------
--- Placeholder table for view `quantarch`.`revisions`
+-- Placeholder table for view `quantarch`.`revisions_view`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `quantarch`.`revisions` (`projectId` INT, `date_start` INT, `date_end` INT, `date_rc_start` INT, `tag` INT, `cycle` INT);
+CREATE TABLE IF NOT EXISTS `quantarch`.`revisions_view` (`projectId` INT, `date_start` INT, `date_end` INT, `date_rc_start` INT, `tag` INT, `cycle` INT);
 
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`author_commit_stats_view`
@@ -805,17 +785,22 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`revisions` (`projectId` INT, `date_start
 CREATE TABLE IF NOT EXISTS `quantarch`.`author_commit_stats_view` (`Name` INT, `ID` INT, `releaseRangeId` INT, `added` INT, `deleted` INT, `total` INT, `numcommits` INT);
 
 -- -----------------------------------------------------
--- Placeholder table for view `quantarch`.`per_cluster_statistics`
+-- Placeholder table for view `quantarch`.`per_cluster_statistics_view`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics` (`'projectId'` INT, `'releaseRangeId'` INT, `'group'` INT, `'personId'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT, `'prank'` INT);
+CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'group'` INT, `'personId'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT, `'prank'` INT);
 
 -- -----------------------------------------------------
--- View `quantarch`.`revisions`
+-- Placeholder table for view `quantarch`.`cluster_user_pagerank_view`
 -- -----------------------------------------------------
-DROP VIEW IF EXISTS `quantarch`.`revisions` ;
-DROP TABLE IF EXISTS `quantarch`.`revisions`;
+CREATE TABLE IF NOT EXISTS `quantarch`.`cluster_user_pagerank_view` (`id` INT, `personId` INT, `clusterId` INT, `technique` INT);
+
+-- -----------------------------------------------------
+-- View `quantarch`.`revisions_view`
+-- -----------------------------------------------------
+DROP VIEW IF EXISTS `quantarch`.`revisions_view` ;
+DROP TABLE IF EXISTS `quantarch`.`revisions_view`;
 USE `quantarch`;
-CREATE  OR REPLACE VIEW `quantarch`.`revisions` AS
+CREATE  OR REPLACE VIEW `quantarch`.`revisions_view` AS
 SELECT 
 	p.id as projectId,
 	rt_s.date as date_start, 
@@ -854,16 +839,16 @@ s.authorId IN
 GROUP BY s.authorId, p.name, s.releaseRangeId;
 
 -- -----------------------------------------------------
--- View `quantarch`.`per_cluster_statistics`
+-- View `quantarch`.`per_cluster_statistics_view`
 -- -----------------------------------------------------
-DROP VIEW IF EXISTS `quantarch`.`per_cluster_statistics` ;
-DROP TABLE IF EXISTS `quantarch`.`per_cluster_statistics`;
+DROP VIEW IF EXISTS `quantarch`.`per_cluster_statistics_view` ;
+DROP TABLE IF EXISTS `quantarch`.`per_cluster_statistics_view`;
 USE `quantarch`;
-CREATE  OR REPLACE VIEW `quantarch`.`per_cluster_statistics` AS
+CREATE  OR REPLACE VIEW `quantarch`.`per_cluster_statistics_view` AS
 select
 	rr.projectId as 'projectId',
 	rr.id as 'releaseRangeId',
-	c.clusterId as 'group',
+	c.id as 'group',
 	p.id as 'personId',
 	sum(acs.added) as 'added',
 	sum(acs.deleted) as 'deleted',
@@ -872,11 +857,28 @@ select
 	avg(prm.rankValue) as 'prank'
 from (((((release_range rr join author_commit_stats acs on rr.id = acs.releaseRangeId)
 		join Person p on  p.id = acs.authorId)
-		join cluster_user_mapping cum on cum.person = p.id)
-		join cluster c on cum.clusterId = c.clusterId)
-		join pagerank pr on pr.clusterId = c.clusterId AND pr.releaseRangeId = rr.id)
+		join cluster_user_mapping cum on cum.personId = p.id)
+		join cluster c on cum.clusterId = c.id)
+		join pagerank pr on pr.clusterId = c.id AND pr.releaseRangeId = rr.id)
 		join pagerank_matrix prm on prm.pageRankId = pr.id AND p.id = prm.personId
-group by rr.projectId, rr.id, c.clusterId, p.id;
+group by rr.projectId, rr.id, c.id, p.id;
+
+-- -----------------------------------------------------
+-- View `quantarch`.`cluster_user_pagerank_view`
+-- -----------------------------------------------------
+DROP VIEW IF EXISTS `quantarch`.`cluster_user_pagerank_view` ;
+DROP TABLE IF EXISTS `quantarch`.`cluster_user_pagerank_view`;
+USE `quantarch`;
+CREATE  OR REPLACE VIEW `quantarch`.`cluster_user_pagerank_view` AS
+select 
+	cum.id, 
+	cum.personId,
+	c.id as clusterId, 
+	pr.technique
+from  
+	((cluster_user_mapping cum join cluster c on cum.clusterId = c.id)
+	join pagerank pr on c.id = pr.clusterId)
+	join pagerank_matrix prm on cum.personId = prm.personId;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
