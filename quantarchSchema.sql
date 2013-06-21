@@ -805,6 +805,11 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`revisions` (`projectId` INT, `date_start
 CREATE TABLE IF NOT EXISTS `quantarch`.`author_commit_stats_view` (`Name` INT, `ID` INT, `releaseRangeId` INT, `added` INT, `deleted` INT, `total` INT, `numcommits` INT);
 
 -- -----------------------------------------------------
+-- Placeholder table for view `quantarch`.`per_cluster_statistics`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics` (`'projectId'` INT, `'releaseRangeId'` INT, `'group'` INT, `'personId'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT, `'prank'` INT);
+
+-- -----------------------------------------------------
 -- View `quantarch`.`revisions`
 -- -----------------------------------------------------
 DROP VIEW IF EXISTS `quantarch`.`revisions` ;
@@ -847,6 +852,31 @@ s.authorId IN
 	(	select distinct(authorId) 
 		FROM author_commit_stats) 
 GROUP BY s.authorId, p.name, s.releaseRangeId;
+
+-- -----------------------------------------------------
+-- View `quantarch`.`per_cluster_statistics`
+-- -----------------------------------------------------
+DROP VIEW IF EXISTS `quantarch`.`per_cluster_statistics` ;
+DROP TABLE IF EXISTS `quantarch`.`per_cluster_statistics`;
+USE `quantarch`;
+CREATE  OR REPLACE VIEW `quantarch`.`per_cluster_statistics` AS
+select
+	rr.projectId as 'projectId',
+	rr.id as 'releaseRangeId',
+	c.clusterId as 'group',
+	p.id as 'personId',
+	sum(acs.added) as 'added',
+	sum(acs.deleted) as 'deleted',
+	sum(acs.total) as 'total',
+	sum(acs.numcommits) as 'numcommits',
+	avg(prm.rankValue) as 'prank'
+from (((((release_range rr join author_commit_stats acs on rr.id = acs.releaseRangeId)
+		join Person p on  p.id = acs.authorId)
+		join cluster_user_mapping cum on cum.person = p.id)
+		join cluster c on cum.clusterId = c.clusterId)
+		join pagerank pr on pr.clusterId = c.clusterId AND pr.releaseRangeId = rr.id)
+		join pagerank_matrix prm on prm.pageRankId = pr.id AND p.id = prm.personId
+group by rr.projectId, rr.id, c.clusterId, p.id;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
