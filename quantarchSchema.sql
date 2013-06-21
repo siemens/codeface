@@ -832,20 +832,21 @@ DROP VIEW IF EXISTS `quantarch`.`author_commit_stats_view` ;
 DROP TABLE IF EXISTS `quantarch`.`author_commit_stats_view`;
 USE `quantarch`;
 CREATE  OR REPLACE VIEW `quantarch`.`author_commit_stats_view` AS
+
 SELECT 
 	p.name as Name, 
-	s.user as ID, 
+	s.authorId as ID, 
 	s.releaseRangeId, 
 	sum(s.added) as added, 
 	sum(s.deleted) as deleted, 
 	sum(s.total) as total, 
 	sum(s.numcommits) as numcommits
-FROM author_commit_stats s join person p on p.id = s.user
+FROM author_commit_stats s join person p on p.id = s.authorId
 WHERE 
-s.user IN 
-	(	select distinct(author) 
+s.authorId IN 
+	(	select distinct(authorId) 
 		FROM author_commit_stats) 
-GROUP BY s.author, p.name, s.release_timeline_id;
+GROUP BY s.authorId, p.name, s.releaseRangeId;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
