@@ -153,7 +153,7 @@ get.pagerank.id <- function(conf, range.id, technique) {
                                       " AND technique=", technique))
   }
 
-  return(res$clusterId)
+  return(res$id)
 }
 
 ## Augment the configuration "object" with information that

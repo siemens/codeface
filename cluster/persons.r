@@ -793,24 +793,37 @@ influential.developers <- function(N, .ranks, .tags, .iddb) {
   return(res)
 }
 
-writePageRankData <- function(outdir, devs.by.pr, devs.by.pr.tr){
-  
-  ## Top 20 page rank (focus on giving tags)
-  write.table(devs.by.pr[1:20,], file=paste(outdir, "/top20.pr.txt", sep=""),
-              sep="\t", quote=FALSE, fileEncoding="UTF-8")
+store.pageranks <- function(conf, .iddb, devs.by.pr, range.id, technique) {
+  ## First, create an entry in table pagerank to get the DB internal
+  ## id for the releaseRangeId/technique tuple
+  prank.id <- get.pagerank.id(conf, range.id, technique)
 
-  ## xtable uses gsub without bytes=FALSE, which leads to breakage with
-  ## UTF-8 string. Temporarily switch to C to avoid these problems
+  dat <- devs.by.pr[,c("ID", "rank")]
+  colnames(dat) <- c("personId", "rankValue")
+  ## Convert personId to in-DB values from the local indices
+  dat$personId <- .iddb[dat$personId,]$ID.orig
+  dat$pageRankId <- prank.id
+
+  res <- dbWriteTable(conf$con, "pagerank_matrix", dat, append=T, row.names=F)
+  if (!res) {
+    stop("Internal error: Could not write pagerank matrix into database!")
+  }
+}
+
+writePageRankData <- function(conf, outdir, .iddb, devs.by.pr, devs.by.pr.tr) {
+  ## Top 20 page rank (focus on giving tags)
   print(xtable(devs.by.pr[1:20,]), type="latex", floating=FALSE,
         file=paste(outdir, "/top20.pr.tex", sep=""),
         sanitize.colnames.function=rotate.label.30)
 
   ## Top 20 page rank (focus on being tagged)
-  write.table(devs.by.pr.tr[1:20,], file=paste(outdir, "/top20.pr.tr.txt", sep=""), sep="\t",
-              quote=FALSE)
   print(xtable(devs.by.pr.tr[1:20,]), type="latex", floating=FALSE,
         file=paste(outdir, "/top20.pr.tr.tex", sep=""),
         sanitize.colnames.function=rotate.label.30)
+
+  ## Emit the results into the database
+  store.pageranks(conf, .iddb, devs.by.pr, range.id, 0)
+  store.pageranks(conf, .iddb, devs.by.pr.tr, range.id, 1)
 }
 
 #########################################################################
@@ -930,7 +943,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##-----------
   ##save data 
   ##-----------
-  writePageRankData(outdir, devs.by.pr, devs.by.pr.tr)
+  writePageRankData(conf, outdir, ids.connected, devs.by.pr, devs.by.pr.tr)
 
   status("Computing classical statistics")
   writeClassicalStatistics(outdir, ids.connected)
