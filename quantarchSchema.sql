@@ -682,7 +682,7 @@ DROP TABLE IF EXISTS `quantarch`.`pagerank` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `projectId` BIGINT NOT NULL ,
+  `clusterId` BIGINT NOT NULL ,
   `releaseRangeId` BIGINT NOT NULL ,
   `technique` VARCHAR(45) NULL ,
   `name` VARCHAR(45) NULL ,
@@ -692,16 +692,16 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank` (
     REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `pagerank_project`
-    FOREIGN KEY (`projectId` )
-    REFERENCES `quantarch`.`project` (`id` )
+  CONSTRAINT `pagerank_cluster`
+    FOREIGN KEY (`clusterId` )
+    REFERENCES `quantarch`.`cluster` (`clusterId` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 CREATE INDEX `pagerank_releaserange_idx` ON `quantarch`.`pagerank` (`releaseRangeId` ASC) ;
 
-CREATE INDEX `pagerank_project_idx` ON `quantarch`.`pagerank` (`projectId` ASC) ;
+CREATE INDEX `pagerank_cluster_idx` ON `quantarch`.`pagerank` (`clusterId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -766,31 +766,31 @@ DROP TABLE IF EXISTS `quantarch`.`edgelist` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`edgelist` (
   `graphId` BIGINT NOT NULL ,
-  `rowId` BIGINT NOT NULL ,
-  `columnId` BIGINT NOT NULL ,
+  `fromId` BIGINT NOT NULL ,
+  `toId` BIGINT NOT NULL ,
   `weight` DOUBLE NOT NULL ,
   CONSTRAINT `edgelist_graph`
     FOREIGN KEY (`graphId` )
     REFERENCES `quantarch`.`graph` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `edgelist_person_row`
-    FOREIGN KEY (`rowId` )
+  CONSTRAINT `edgelist_person_from`
+    FOREIGN KEY (`fromId` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `edgeList_person_column`
-    FOREIGN KEY (`columnId` )
+  CONSTRAINT `edgeList_person_to`
+    FOREIGN KEY (`toId` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `edgelist_person_row_idx` ON `quantarch`.`edgelist` (`rowId` ASC) ;
+CREATE INDEX `edgelist_person_from_idx` ON `quantarch`.`edgelist` (`fromId` ASC) ;
 
 CREATE INDEX `edgelist_graph_idx` ON `quantarch`.`edgelist` (`graphId` ASC) ;
 
-CREATE INDEX `edgelist_person_column_idx` ON `quantarch`.`edgelist` (`columnId` ASC) ;
+CREATE INDEX `edgelist_person_to_idx` ON `quantarch`.`edgelist` (`toId` ASC) ;
 
 USE `quantarch` ;
 
