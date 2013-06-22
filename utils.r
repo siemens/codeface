@@ -73,8 +73,8 @@ scale.data <- function(dat, .min=0, .max=1) {
   datMin <- min(dat)
   datMax <- max(dat)
 
-  if (datMin == datMax){
-    print("scale.data error, min=max")
+  if (datMin == datMax) {
+    dat <- .max
   }
   else {
     dat <- dat - min(dat)
