@@ -52,6 +52,66 @@ def executeCommand(cmd, dry_run, ignoreErrors=False):
                                                                     p2.returncode))
     return res
 
+def generate_cluster_graphs(resdir):
+    print("  -> Generating cluster graphs")
+    files = glob.glob(os.path.join(resdir, "*.dot"))
+    for file in files:
+        out = NamedTemporaryFile(mode="w")
+        out.writelines(convert_dot_file(file))
+        # Make sure the information does not stall in caches
+        # before dot hits the file
+        out.flush()
+
+        cmd = []
+        cmd.append("dot")
+        cmd.append("-Ksfdp")
+        cmd.append("-Tpdf")
+        cmd.append("-Gcharset=utf-8")
+        cmd.append("-o{0}.pdf".format(os.path.splitext(file)[0]))
+        cmd.append(out.name)
+        executeCommand(cmd, args.dry_run)
+
+        # NOTE: Only close the temporary file after the graph has
+        # been formatted -- the temp file is destroyed after close
+        out.close()
+
+def generate_report(revs, i, basedir, resdir, args):
+        print("  -> Generating report")
+        report_base = "report-{0}_{1}".format(revs[i], revs[i+1])
+        cmd = []
+        cmd.append(os.path.join(basedir, "cluster", "create_report.pl"))
+        cmd.append(resdir)
+        cmd.append("{0}--{1}".format(revs[i], revs[i+1]))
+
+        out = open(os.path.join(resdir, report_base + ".tex"), "w")
+        res = executeCommand(cmd, args.dry_run)
+        if not(args.dry_run):
+            out.write(res)
+
+        out.close()
+
+        # Compile report
+        cmd = []
+        cmd.append("lualatex")
+        cmd.append("-interaction=nonstopmode")
+        cmd.append(os.path.join(resdir, report_base + ".tex"))
+
+        # We run latex in a temporary directory so that it's easy to
+        # get rid of the log files etc. created during the run that are
+        # not relevant for the final result
+        orig_wd = os.getcwd()
+        tmpdir = mkdtemp()
+
+        os.chdir(tmpdir)
+        executeCommand(cmd, args.dry_run, ignoreErrors=True)
+        try:
+            shutil.copy(report_base + ".pdf", resdir)
+        except IOError:
+            print("Warning: Could not copy report PDF (missing input data?)")
+
+        os.chdir(orig_wd)
+        shutil.rmtree(tmpdir)
+
 
 def dispatchAnalysis(args):
     conf = load_config(args.conf)
@@ -168,67 +228,14 @@ def dispatchAnalysis(args):
 
         #########
         # STAGE 3: Generate cluster graphs
-        print("  -> Generating cluster graphs")
-        files = glob.glob(os.path.join(resdir, "*.dot"))
-        for file in files:
-            out = NamedTemporaryFile(mode="w")
-            out.writelines(convert_dot_file(file))
-            # Make sure the information does not stall in caches
-            # before dot hits the file
-            out.flush()
-
-            cmd = []
-            cmd.append("dot")
-            cmd.append("-Ksfdp")
-            cmd.append("-Tpdf")
-            cmd.append("-Gcharset=utf-8")
-            cmd.append("-o{0}.pdf".format(os.path.splitext(file)[0]))
-            cmd.append(out.name)
-            executeCommand(cmd, args.dry_run)
-
-            # NOTE: Only close the temporary file after the graph has
-            # been formatted -- the temp file is destroyed after close
-            out.close()
+        if (not(args.no_report)):
+            generate_cluster_graphs(resdir)
 
         #########
         # STAGE 4: Report generation
         # Stage 4.1: Report preparation
-        print("  -> Generating report")
-        report_base = "report-{0}_{1}".format(revs[i], revs[i+1])
-        cmd = []
-        cmd.append(os.path.join(basedir, "cluster", "create_report.pl"))
-        cmd.append(resdir)
-        cmd.append("{0}--{1}".format(revs[i], revs[i+1]))
-
-        out = open(os.path.join(resdir, report_base + ".tex"), "w")
-        res = executeCommand(cmd, args.dry_run)
-        if not(args.dry_run):
-            out.write(res)
-
-        out.close()
-
-        # Stage 4.2: Compile report
-        cmd = []
-        cmd.append("lualatex")
-        cmd.append("-interaction=nonstopmode")
-        cmd.append(os.path.join(resdir, report_base + ".tex"))
-
-        # We run latex in a temporary directory so that it's easy to
-        # get rid of the log files etc. created during the run that are
-        # not relevant for the final result
-        orig_wd = os.getcwd()
-        tmpdir = mkdtemp()
-
-        os.chdir(tmpdir)
-        executeCommand(cmd, args.dry_run, ignoreErrors=True)
-        try:
-            shutil.copy(report_base + ".pdf", resdir)
-        except IOError:
-            print("Warning: Could not copy report PDF (missing input data?)")
-
-        os.chdir(orig_wd)
-
-        shutil.rmtree(tmpdir)
+        if (not(args.no_report)):
+            generate_report(revs, i, basedir, resdir, args)
 
     #########
     # Global stage 1: Time series generation
@@ -279,6 +286,8 @@ if __name__ == "__main__":
                         help="Base directory where the prosoda infrastructure is found")
     parser.add_argument('--dry-run', action="store_true",
                         help="Just show the commands called, don't perform any work")
+    parser.add_argument('--no-report', action="store_true",
+                        help="Skip LaTeX report generation (and dot compilation)")
     # TODO: Use tag as argument here, not in the configuration file
     # (better include information about signed-off or not in the configuration
     # file)
