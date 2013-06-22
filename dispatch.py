@@ -34,7 +34,7 @@ def _abort(msg):
 
 def executeCommand(cmd, dry_run, ignoreErrors=False):
     if dry_run:
-        print("dry-run: {0}".format(" " .join(cmd)))
+        print("{0}".format(" " .join(cmd)))
         return
 
     try:
