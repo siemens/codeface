@@ -34,9 +34,12 @@ def _abort(msg):
 
 def executeCommand(cmd, args, ignoreErrors=False):
     dry_run = args.dry_run
+    show_cmds = args.show_cmds
+
+    if dry_run or show_cmds:
+        print("{0}".format(" " .join(cmd)))
 
     if dry_run:
-        print("{0}".format(" " .join(cmd)))
         return
 
     try:
@@ -288,6 +291,8 @@ if __name__ == "__main__":
                         help="Base directory where the prosoda infrastructure is found")
     parser.add_argument('--dry-run', action="store_true",
                         help="Just show the commands called, don't perform any work")
+    parser.add_argument('--show-cmds', action="store_true",
+                        help="Show commands before executing them")
     parser.add_argument('--no-report', action="store_true",
                         help="Skip LaTeX report generation (and dot compilation)")
     # TODO: Use tag as argument here, not in the configuration file
@@ -295,4 +300,9 @@ if __name__ == "__main__":
     # file)
 
     args = parser.parse_args()
+
+    if args.dry_run and args.show_cmds:
+        print "You specified --dry-run and --show-cmds; this does make no sense."
+        exit()
+
     dispatchAnalysis(args)
