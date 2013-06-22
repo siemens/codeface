@@ -347,18 +347,36 @@ save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label) {
   return(g)
 }
 
-save.groups <- function(conf, .tags, .iddb, .comm, .prank, .basedir, .prefix, .which,
-                        label) {
+
+## Iterate over all clusters in a community decomposition, create
+## a graphviz input file (via save.groups), and also store the
+## cluster into the database.
+## NOTE: The decomposition into clusters is identical for the
+## regular and transposed pagerank, only the vertex _attributes_ (but not
+## the vertices as such) differ. Edges are identical in all respects.
+## Consequently, we only need to write into tables cluster_user_mapping
+## and edgelist once.
+save.groups <- function(conf, .tags, .iddb, .comm, .prank.list, .basedir,
+                        .prefix, .which, label) {
   baselabel <- label
+  label.tr <- NA
   j <- 0
+
   for (i in .which) {
-    filename <- paste(.basedir, "/", .prefix, "group_", three.digit(i), ".dot", sep="")
-    ##		status(paste("Saving", filename))
+    filename.reg <- paste(.basedir, "/", .prefix, "reg_", "group_", three.digit(i),
+                          ".dot", sep="")
+    filename.tr <- paste(.basedir, "/", .prefix, "tr_", "group_", three.digit(i),
+                          ".dot", sep="")
+
     idx <- as.vector(which(.comm$membership==i))
     if (!is.na(baselabel)) {
       label <- paste(baselabel, i, sep=" ")
+      label.tr <- paste(baselabel, "(tr)", i, sep=" ")
     }
-    g <- save.group(conf, .tags, .iddb, idx, .prank, filename, label)
+    g.reg <- save.group(conf, .tags, .iddb, idx, .prank.list$reg,
+                        filename.reg, label)
+    g.tr <- save.group(conf, .tags, .iddb, idx, .prank.list$tr,
+                       filename.tr, label.tr)
 
     ## Store the cluster content into the database
     if (!is.na(baselabel)) {
@@ -372,10 +390,10 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank, .basedir, .prefix, .w
 
       dbWriteTable(conf$con, "cluster_user_mapping", users.df, append=T, row.names=F)
 
-      ## TODO: Insert the generated dot file into the database
+      ## TODO: Insert the generated dot files into the database
 
       ## Construct a systematic representation of the graph for the data base
-      edges <- get.data.frame(g, what="edges")
+      edges <- get.data.frame(g.reg, what="edges")
       colnames(edges) <- c("fromId", "toId")
 
       ## NOTE: Index handling is somewhat complicated: idx contains a set
@@ -973,18 +991,17 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   g.spin.community <- spinglass.community(g.connected)
   
   status("Writing community graph sources for spin glasses")
-  elems.sg.more <- select.communities.more(g.spin.community, 10)
+  ## TODO: The threshold is completely arbitrary and not very apt
+  ## for small projects. Better choose a value that only remove at
+  ## most a certain percentage (say, 5%) of all developers
+  elems.sg.more <- select.communities.more(g.spin.community, 1)
 
-  ## TODO: For the non-tagged analysis, use save.groups instead of
-  ## save.groups.NonTag (functions are of the same signature)
+  ## NOTE: The cluster decomposition is independent of the page
+  ## rank calculation technique -- only the edge strengths, but not the
+  ## page rank values influence the decomposition.
   save.groups(conf, adjMatrix.connected.scaled, ids.connected,
-              g.spin.community, pr.for.all, outdir,
-              "sg_reg_", elems.sg.more,
-              label="Spin Glass Community")
-  save.groups(conf, adjMatrix.connected.scaled, ids.connected,
-              g.spin.community, pr.for.all.tr, outdir,
-              "sg_tr_", elems.sg.more,
-              label="Spin Glass Community (tr)")
+              g.spin.community, list(reg=pr.for.all, tr=pr.for.all.tr),
+              outdir, "sg_", elems.sg.more, label="Spin Glass Community")
   
   ##--------------------
   ## Random walk
@@ -1003,20 +1020,13 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ## fail with the weights attribute true
   elems.wt.less <- select.communitiy.size.range(g.walktrap.community, 2, 10) #communities of size 2-10)
   save.groups(conf, adjMatrix.connected.scaled, ids.connected,
-              g.walktrap.community, pr.for.all, outdir,
-              "wt_reg_big_", elems.wt.more,
+              g.walktrap.community, list(reg=pr.for.all, tr=pr.for.all.tr),
+              outdir, "wt_big_", elems.wt.more,
               label="(big) Random Walk Community")
-  save.groups(conf, adjMatrix.connected.scaled, ids.connected,
-              g.walktrap.community, pr.for.all.tr, outdir,
-              "wt_tr_big_", elems.wt.more,
-              label="(big) Random Walk Community (tr)")
   
   save.groups(conf, adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
-              pr.for.all, outdir, "wt_reg_small_", elems.wt.less,
-              label="(small) Random Walk Community")
-  save.groups(conf, adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
-              pr.for.all.tr, outdir, "wt_tr_small_", elems.wt.less,
-              label="(small) Random Walk Community (tr)")
+              list(reg=pr.for.all, tr=pr.for.all.tr), outdir,
+              "wt_small_", elems.wt.less, label="(small) Random Walk Community")
 
   ##--------------------
   ## Community Quality
