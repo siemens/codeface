@@ -311,6 +311,9 @@ plot.group <- function(N, .tags, .iddb, .comm) {
 }
 
 
+## Given a single cluster of persons, construct an igraph object,
+## compute some attributes for proper visualisation, and export the
+## result as a graphviz dot format if a filename is provided.
 save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label) {
   g <- graph.adjacency(.tags[idx,idx], mode="directed")
   ## as.character is important. The igraph C export routines bark
