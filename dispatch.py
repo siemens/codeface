@@ -32,7 +32,9 @@ def _abort(msg):
     print(msg + "\n")
     sys.exit(-1)
 
-def executeCommand(cmd, dry_run, ignoreErrors=False):
+def executeCommand(cmd, args, ignoreErrors=False):
+    dry_run = args.dry_run
+
     if dry_run:
         print("{0}".format(" " .join(cmd)))
         return
@@ -69,7 +71,7 @@ def generate_cluster_graphs(resdir):
         cmd.append("-Gcharset=utf-8")
         cmd.append("-o{0}.pdf".format(os.path.splitext(file)[0]))
         cmd.append(out.name)
-        executeCommand(cmd, args.dry_run)
+        executeCommand(cmd, args)
 
         # NOTE: Only close the temporary file after the graph has
         # been formatted -- the temp file is destroyed after close
@@ -84,7 +86,7 @@ def generate_report(revs, i, basedir, resdir, args):
         cmd.append("{0}--{1}".format(revs[i], revs[i+1]))
 
         out = open(os.path.join(resdir, report_base + ".tex"), "w")
-        res = executeCommand(cmd, args.dry_run)
+        res = executeCommand(cmd, args)
         if not(args.dry_run):
             out.write(res)
 
@@ -103,7 +105,7 @@ def generate_report(revs, i, basedir, resdir, args):
         tmpdir = mkdtemp()
 
         os.chdir(tmpdir)
-        executeCommand(cmd, args.dry_run, ignoreErrors=True)
+        executeCommand(cmd, args, ignoreErrors=True)
         try:
             shutil.copy(report_base + ".pdf", resdir)
         except IOError:
@@ -214,7 +216,7 @@ def dispatchAnalysis(args):
         if (not(args.use_db)):
             cmd.append("--create_db")
 
-        executeCommand(cmd, args.dry_run)
+        executeCommand(cmd, args)
 
         #########
         # STAGE 2: Cluster analysis
@@ -224,7 +226,7 @@ def dispatchAnalysis(args):
         cmd.append(resdir)
         cmd.append(args.conf)
         cmd.append(releaseRangeIds[i])
-        executeCommand(cmd, args.dry_run)
+        executeCommand(cmd, args)
 
         #########
         # STAGE 3: Generate cluster graphs
@@ -245,7 +247,7 @@ def dispatchAnalysis(args):
     cmd.append(args.resdir)
     cmd.append(args.conf)
 
-    executeCommand(cmd, args.dry_run)
+    executeCommand(cmd, args)
 
     #########
     # Global stage 2: Time series analysis
@@ -255,7 +257,7 @@ def dispatchAnalysis(args):
     cmd.append(args.resdir)
     cmd.append(args.conf)
 
-    executeCommand(cmd, args.dry_run)
+    executeCommand(cmd, args)
 
 def check4ctags():
     # check if the appropriate ctags is installed on the system
