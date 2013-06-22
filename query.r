@@ -119,12 +119,12 @@ get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
 
 ## Get the IDs of all clusters for the given release range
 query.cluster.ids.con <- function(con, pid, range.id, cluster.method) {
-  dat <- dbGetQuery(con, str_c("SELECT clusterId FROM cluster WHERE ",
+  dat <- dbGetQuery(con, str_c("SELECT id FROM cluster WHERE ",
                                "projectId=", pid, " AND releaseRangeId=",
                                range.id, " AND clusterMethod=",
                                sq(cluster.method)))
 
-  return(dat$clusterId)
+  return(dat$id)
 }
 
 query.cluster.ids <- function(conf, range.id, cluster.method) {
