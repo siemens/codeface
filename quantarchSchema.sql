@@ -860,17 +860,19 @@ DROP VIEW IF EXISTS `quantarch`.`cluster_user_pagerank_view` ;
 DROP TABLE IF EXISTS `quantarch`.`cluster_user_pagerank_view`;
 USE `quantarch`;
 CREATE  OR REPLACE VIEW `quantarch`.`cluster_user_pagerank_view` AS
-select 
+SELECT
 	cum.id, 
 	cum.personId,
-	c.id as clusterId, 
+	cum.clusterId AS clusterId,
 	pr.technique,
 	prm.rankValue
-from  
-	((cluster_user_mapping cum join cluster c on cum.clusterId = c.id)
-	join pagerank pr on c.releaseRangeID = pr.releaseRangeId)
-	join pagerank_matrix prm on cum.personId = prm.personId;
-
+FROM
+	cluster_user_mapping cum
+	INNER JOIN (cluster c, pagerank_matrix prm, pagerank pr)
+	ON (cum.personId = prm.personId AND
+	    cum.clusterId = c.id AND
+	    prm.pageRankId = pr.id AND
+	    c.releaseRangeId = pr.releaseRangeId);
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
