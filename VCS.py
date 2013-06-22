@@ -846,13 +846,13 @@ class gitVCS (VCS):
         #capture old commits
         #-------------------------------
         '''
-         if the analysis of the git blame messages is focused 
+         If the analysis of the git blame messages is focused
          only on a temporal region (ie. not entire history) it 
          can be the case that commits not found during the git 
          log query (due to revision range) are present in the 
          git blame messages. We must query git again to get the 
          remaining commits otherwise we cannot reference them during 
-         the blame message anaysis.
+         the blame message analysis.
          '''
         
         if not(ignoreOldCmts):
@@ -935,7 +935,6 @@ class gitVCS (VCS):
         # and save it to a temporary location 
         srcFile = open(srcFn, 'w')
         for line in file_layout_src:
-            print(line)
             srcFile.write(line)
         srcFile.close()
             
