@@ -40,7 +40,7 @@ range.ids.list <- query.range.ids.con(conf$con, projects.list$id[[1]])
 #####
 
 annotate.cluster <- function(g) {
-  V(g)$size <- sqrt(V(g)$prank*5000)
+  V(g)$size <- sqrt(V(g)$rankValue*5000)
   E(g)$width <- sqrt(E(g)$weight)
 
   ## We store the global properties as attributes of the graph
@@ -57,7 +57,7 @@ annotate.cluster <- function(g) {
   g$strength <- round(g$strength/vcount(g), digits=3)
 
   ## Select the most important developers (as per page rank)
-  prank.sorted <- sort(V(g)$prank, index.return=T, decreasing=T)
+  prank.sorted <- sort(V(g)$rankValue, index.return=T, decreasing=T)
 
   ## We compute the degree for the three most important developers
   ## (for large graphs) or of the most important developer for
