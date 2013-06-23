@@ -117,12 +117,6 @@ def computeSubsysAuthorSimilarity(cmt_subsys, author):
     if  sim > 1:
         _abort("Internal error: Author/Subsystem similarity exceeds one.")
 
-    if sim == 0:
-        print("Zero similarity for {0}".format(author.getName()))
-        for (subsys_name, subsys_touched) in cmt_subsys.iteritems():
-            print("    {0}: {1}, {2}".format(subsys_name, subsys_touched,
-                                             asf[subsys_name]))
-
     return sim
 
 
