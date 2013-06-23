@@ -258,6 +258,62 @@ select.communitiy.size.range <- function(.comm, bound1, bound2) {
   
 }
 
+## Helper function for select.communities below: Determine the largest possible
+## community size that can be removed so that min.size contributors remain
+select.threshold <- function(cmts, min.size) {
+  cut.size <- 0
+
+  for (i in sort(unique(cmts$size))) {
+    tmp <- cmts[cmts$size > i,]$size.csum
+    if (length(tmp) > 0) {
+      remaining <- tmp[length(tmp)]
+
+      if (remaining < min.size) {
+        return(cut.size)
+      } else {
+        cut.size <- i
+      }
+    }
+    else {
+      ## The current cut would leave no contributors
+      return(cut.size)
+    }
+  }
+
+  return(cut.size)
+}
+
+## Remove small communities, but make sure that the fraction of
+## surviving contributors on the reduced set is as least min.fract.
+## Optionally, an upper bound on the community size that is deemed appropriate
+## to be removed can be specified.
+select.communities <- function(comm, min.fract=0.95, upper.bound=NA) {
+  ## This function needs to work with community objects generated
+  ## by walktrap and spinglass (the former does not produce a vsize
+  ## member, so we cannot use it)
+  min.size <- round(min.fract*comm$vcount)
+
+  comm.idx <- sort(unique(comm$membership))
+  ## Provide a mapping between community labels and their size
+  cmts <- data.frame(id=comm.idx,
+                     size=sapply(comm.idx, function(i) {
+                       sum(comm$membership==i)}))
+  ## ... and sort the communities by size (they are still identifiable
+  ## by their id)
+  cmts <- cmts[sort(cmts$size, index.return=T, decreasing=T)$ix,]
+
+  cmts$size.csum <- cumsum(cmts$size)
+
+  cut.size <- select.threshold(cmts, min.size)
+
+  if(!is.na(upper.bound)) {
+    if (cut.size > upper.bound)
+      cut.size <- upper.bound
+  }
+
+  return(cmts[cmts$size > cut.size,]$id)
+}
+
 
 ## Summarise in which subsystems the authors of a given community are active
 comm.subsys <- function(.comm, .id.subsys, N) {
