@@ -179,17 +179,10 @@ print gen_latex_iter("$basedir/sg_tr_group_", 2, "includegraphics");
 #########
 
 print "\\newpage\\section{Community Clusters (random walk)}\n";
-print "\\subsection{Cluster Contents (large clusters, regular page rank)}\n";
-print gen_latex_iter("$basedir/wt_big_reg_group_", 2, "includegraphics");
+print "\\subsection{Cluster Contents (regular page rank)}\n";
+print gen_latex_iter("$basedir/wt_reg_group_", 2, "includegraphics");
 
-print "\\newpage\\subsection{Cluster Contents (large clusters, transposed page rank)}\n";
-print gen_latex_iter("$basedir/wt_big_tr_group_", 2, "includegraphics");
-
-print "\\newpage\\subsection{Cluster Contents (small clusters, regular page rank)}\n";
-print gen_latex_iter("$basedir/wt_small_reg_group_", 4, "includegraphics");
-
-print "\\newpage\\subsection{Cluster Contents (small clusters, transposed page rank)}\n";
-print gen_latex_iter("$basedir/wt_small_tr_group_", 4, "includegraphics");
-
+print "\\newpage\\subsection{Cluster Contents (transposed page rank)}\n";
+print gen_latex_iter("$basedir/wt_tr_group_", 2, "includegraphics");
 
 print "\\end{document}\n"

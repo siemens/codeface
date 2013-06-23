@@ -951,8 +951,41 @@ writeClassicalStatistics <- function(outdir, ids.connected) {
         sanitize.colnames.function=rotate.label)
 }
 
-performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
+## Detect, visualise and save communities with clustering algorithm FUN
+## (for instance spinglass.communities or walktrap.communities)
+detect.communities <- function(g.connected, ids.connected,
+                               adjMatrix.connected.scaled, prank.list, outdir,
+                               prefix, label, min.fract, upper.bound, FUN) {
+  set.seed(42)
+  if (vcount(g.connected) == 1) {
+    ## If there is only one vertex in the graph (which can happen for
+    ## very short bug-fox cycles when a single contributor interacts
+    ## with the repo), it does not make sense to try detecting communities.
+    ## (besids, spinglass community detection would run into an infinite
+    ## loop in this case)
+    g.community <- NULL
+    elems.selected <- logical(0)
+  } else {
+    g.community <- FUN(g.connected)
+
+    ## Remove small communities, but make sure that at least min.fract of
+    ## the contributors remain in the final set, and that no communities
+    ## with more than upper.bound members are removed even if they
+    ## were admissible for deletion by the fraction criterion
+    elems.selected <- select.communities(g.community, min.fract, upper.bound)
+  }
   
+  status(str_c("Writing community graph sources for algorithm ", label))
+  ## NOTE: The cluster decomposition is independent of the page
+  ## rank calculation technique -- only the edge strengths, but not the
+  ## page rank values influence the decomposition.
+  save.groups(conf, adjMatrix.connected.scaled, ids.connected,
+              g.community, prank.list, outdir, prefix, elems.selected, label=label)
+  return(g.community)
+}
+
+
+performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##====================================
   ##     Find Connected Subgraphs
   ##====================================
@@ -1047,62 +1080,25 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##g.infomap.community <- infomap.community(g.connected)
   ##g.walktrap.community <- infomap.community(g.connected)
   
-  ##--------------------
-  ## spin-glass 
-  ##--------------------
   status("Inferring communities with spin glasses")
-  set.seed(42)
-  if (vcount(g.connected) == 1) {
-    ## If there is only one vertex in the graph (which can happen for
-    ## very short bug-fox cycles when a single contributor interacts
-    ## with the repo), it does not make sense to try detecting communities.
-    ## (besids, spinglass community detection would run into an infinite
-    ## loop in this case)
-    g.spin.community <- NULL
-    elems.sg.more <- logical(0)
-  } else {
-    g.spin.community <- spinglass.community(g.connected)
+  g.spin.community <- detect.communities(g.connected, ids.connected,
+                                         adjMatrix.connected.scaled,
+                                         list(reg=pr.for.all, tr=pr.for.all.tr),
+                                         outdir, "sg_", "Spin Glass Community",
+                                         MIN.CUT.FRACTION, MAX.CUT.SIZE,
+                                         spinglass.community)
 
-    ## Remove small communities, but make sure that at least MIN.CUT.FRACTION of
-    ## the contributors remain in the final set, and that no communities
-    ## with more than MAX.CUT.SIZE members are removed even if they
-    ## were admissible for deletion by the fraction criterion
-    elems.sg.more <- select.communities(g.spin.community, MIN.CUT.FRACTION,
-                                      MAX.CUT.SIZE)
-  }
-
-  status("Writing community graph sources for spin glasses")
-  ## NOTE: The cluster decomposition is independent of the page
-  ## rank calculation technique -- only the edge strengths, but not the
-  ## page rank values influence the decomposition.
-  save.groups(conf, adjMatrix.connected.scaled, ids.connected,
-              g.spin.community, list(reg=pr.for.all, tr=pr.for.all.tr),
-              outdir, "sg_", elems.sg.more, label="Spin Glass Community")
-  
-  ##--------------------
-  ## Random walk
-  ##--------------------
   status("Inferring communities with random walks")
-  set.seed(42)
-  g.walktrap.community <- walktrap.community(g.connected)
-  
-  status("Writing community graph sources for random walks")
-  ## TODO TODO: Make the smallest size of communities configurable,
-  ## or set it via some adaptive mechanism
+  g.walktrap.community <- detect.communities(g.connected, ids.connected,
+                                             adjMatrix.connected.scaled,
+                                             list(reg=pr.for.all, tr=pr.for.all.tr),
+                                             outdir, "wt_", "Random Walk Community",
+                                             MIN.CUT.FRACTION, MAX.CUT.SIZE,
+                                             walktrap.community)
 
-  elems.wt.more <- select.communities.more(g.walktrap.community, 10)
   ## When selecting elements lower than some value we must take care to
   ## no select communities with size 1 as the graph.adjacency function
   ## fail with the weights attribute true
-  elems.wt.less <- select.communitiy.size.range(g.walktrap.community, 2, 10) #communities of size 2-10)
-  save.groups(conf, adjMatrix.connected.scaled, ids.connected,
-              g.walktrap.community, list(reg=pr.for.all, tr=pr.for.all.tr),
-              outdir, "wt_big_", elems.wt.more,
-              label="(big) Random Walk Community")
-  
-  save.groups(conf, adjMatrix.connected.scaled, ids.connected, g.walktrap.community,
-              list(reg=pr.for.all, tr=pr.for.all.tr), outdir,
-              "wt_small_", elems.wt.less, label="(small) Random Walk Community")
 
   ##--------------------
   ## Community Quality
