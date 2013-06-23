@@ -33,8 +33,12 @@ def _abort(msg):
     sys.exit(-1)
 
 def executeCommand(cmd, args, ignoreErrors=False):
-    dry_run = args.dry_run
-    show_cmds = args.show_cmds
+    if args is not None:
+        dry_run = args.dry_run
+        show_cmds = args.show_cmds
+    else:
+        dry_run = False
+        show_cmds = False
 
     if dry_run or show_cmds:
         print("{0}".format(" " .join(cmd)))
