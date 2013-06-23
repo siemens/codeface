@@ -234,7 +234,7 @@ class gitVCS (VCS):
                                           for logstring in clist])
             
     def _getCommitIDsLL(self, dir_list, rev_start=None, rev_end=None,
-                        verbose=False):
+                        verbose=False, ignoreMerges=True):
         """Low-level routine to extract the commit list from the VCS.
 
         Must be implemented specifically for every VCS, and must
@@ -269,7 +269,9 @@ class gitVCS (VCS):
         # sequences)
         # Passing a simple formatted string and using getoutput() to
         # obtain the result is way nicer in python3.
-        cmd = 'git --git-dir={0} log --no-merges -M -C'.format(self.repo).split()
+        cmd = 'git --git-dir={0} log -M -C'.format(self.repo).split()
+        if ignoreMerges:
+            cmd.append('--no-merges')
         cmd.append('--pretty=format:%ct %H')
         cmd.append('--date=local')
         cmd.append(revrange)

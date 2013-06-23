@@ -83,7 +83,8 @@ def _compute_next_timestamp(time, last_time):
 def getCommitDate(vcs, id):
     rev_range = "{0}~1..{0}".format(id)
 
-    cmt = vcs._Logstring2Commit(vcs._getCommitIDsLL("", "{0}~1".format(id), id)[0])
+    cmt = vcs._Logstring2Commit(vcs._getCommitIDsLL("", "{0}~1".format(id), id,
+                                                    ignoreMerges=False)[0])
     return cmt.cdate
 
 
