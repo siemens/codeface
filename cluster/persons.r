@@ -1032,6 +1032,10 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##=======================
   ## Find Communities 
   ##=======================
+  ## NOTE: We don't use weighted graphs because not all clustering algorithms
+  ## support these; they weights are implicitly given by repeated edges in
+  ## any case.
+
   ## Scale the weight in the adjacency matrix for propers visualization
   ## graphviz requires integer edge weights adjMatrix.connected.scaled =
   ## round( scale.data(adjMatrix.connected, 0, 1000) )
