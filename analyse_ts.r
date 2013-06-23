@@ -441,14 +441,32 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
   ## Stage 2: Plot the complete commit information time series
   ts <- do.call(rbind, ts)
 
-  ts.molten <- melt(ts[c("revision", "date", subset)],
-                    id=c("revision", "inRC", "date"))
-  levels(ts.molten$inRC) <- c("No", "Yes")
+  ## Same test for RC cycles as before, but on the global data set
+  plot.types <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
+  has.tags <- (sum(ts$NumTags) > 0)
+  if (has.tags) {
+    ## The data do contain tagging information
+    plot.types <- c(plot.types, "NumTags")
+    id.types <- c("revision", "inRC", "date")
+  } else {
+    id.types <- c("revision", "date")
+  }
+
+  ts.molten <- melt(ts[c("revision", "date", plot.types)],
+                    id=id.types)
+  if (has.tags) {
+    levels(ts.molten$inRC) <- c("No", "Yes")
+  }
 
   ## TODO: Does not work when date is used instead of revision,
   ## which is the desirable alternative
-  g <- ggplot(data=ts.molten, aes(x=revision, y=value, colour=inRC)) +
-    geom_boxplot(fill="NA") + scale_y_log10() +
+  if (has.tags) {
+    g <- ggplot(data=ts.molten, aes(x=revision, y=value, colour=inRC))
+  } else {
+    g <- ggplot(data=ts.molten, aes(x=revision, y=value))
+  }
+
+  g <- g + geom_boxplot(fill="NA") + scale_y_log10() +
     facet_wrap(~variable, scales="free") + xlab("Revision") +
       ylab("Value (log. scale)") +
       scale_colour_discrete("Release\nCandidate")
@@ -474,16 +492,22 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     dat <- ts.molten[year(ts.molten$date)==year,]
 
     # Don't plot tagging information if there are no tags
-    if (length(unique(dat[dat$variable=="NumTags",]$value)) == 1) {
+    has.rcs <- (length(unique(dat[dat$variable=="NumTags",]$value)) == 1)
+
+    if (has.rcs) {
       dat <-  dat[dat$variable!="NumTags",]
     }
 
-    g <- ggplot(data=dat, aes(x=revision, y=value, colour=inRC)) +
-                  geom_boxplot(fill="NA") + scale_y_log10() +
-                  facet_wrap(~variable, scales="free") + xlab("Revision") +
-                  ylab("Value (log. scale)") +
-                  scale_colour_discrete("Release\nCandidate") +
-                  ggtitle(paste("Commit time series for year", year))
+    if (has.rcs) {
+      g <- ggplot(data=dat, aes(x=revision, y=value, colour=inRC))
+    } else {
+      g <- ggplot(data=dat, aes(x=revision, y=value))
+    }
+    g <- g + geom_boxplot(fill="NA") + scale_y_log10() +
+        facet_wrap(~variable, scales="free") + xlab("Revision") +
+        ylab("Value (log. scale)") +
+        scale_colour_discrete("Release\nCandidate") +
+        ggtitle(paste("Commit time series for year", year))
     ggsave(file.path(graphdir, paste("ts_commits_", year, ".pdf", sep="")),
            g, width=12, height=8)
     })
