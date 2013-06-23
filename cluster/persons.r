@@ -127,21 +127,24 @@ col.to.hex <- function(prefix="0x", r,g,b) {
 }
 
 
-largestConnectedSubgraphIndices <- function(graph) {
-  ## Returns the indecies of vertices that are in the largest connected subgraph
-  
+## Return indices of vertices that are in the largest connected subgraph
+largest.subgraph.idx <- function(graph) {
   ## Find all connected subgraphs
   g.clust <- clusters(graph)
-  # Get index of the largest connected cluster 
-  largestClustMembership = which(g.clust$csize == max(g.clust$csize))
-  ## Get all indecies of connected developers for the largest cluster
-  idx <- which(g.clust$membership==largestClustMembership) 
-  
+
+  ## Select the id of the largest cluster, and find all mathing indices
+  clusters <- data.frame(id=1:length(g.clust$csize), size=g.clust$csize)
+  clusters <- clusters[sort(clusters$size, index.return=T, decreasing=T)$ix,]
+  id.largest <- clusters$id[1]
+
+  ## Get all indices of connected developers for the largest cluster
+  idx <- which(g.clust$membership==id.largest)
+
   return(idx)
 } 
 
 
-largestConnectedSubgraph <- function(graph) {
+largest.subgraph <- function(graph) {
   ##############################################################################
   ## Returns a graph composed only of the largest connected component
   ## - Input - 
@@ -150,13 +153,9 @@ largestConnectedSubgraph <- function(graph) {
   ## graph.connected: igraph object, composed of the largest connected component
   ##                  provided by the input graph
   ##############################################################################
-  ## find all connected subgraphs
-  g.clust <- clusters(graph)
-  ## get index of the largest connected cluster 
-  largestClustMembership = which(g.clust$csize == max(g.clust$csize))
-  ## get all indecies of not connected to the largest cluster
-  idx <- which(g.clust$membership!=largestClustMembership) 
-  ## remove the vertices not in the largest connected component
+  idx <- largest.subgraph.idx(graph)
+
+  ## Remove all vertices that are not in the largest connected component
   graph.connected <- delete.vertices(graph,idx)
 		
   return(graph.connected)
@@ -755,7 +754,7 @@ communityStatSignificance <- function(graph, cluster.algo){
   ## p-value: the result of the statistical significance test
   ############################################################################
   ## extract largest connected component
-  graph.connected   <- largestConnectedSubgraph(graph)
+  graph.connected   <- largest.subgraph(graph)
   ## extract clusters
   graph.clusters <- cluster.algo(graph.connected)
   ## save communities that have more than 10 vertices
@@ -811,7 +810,7 @@ randomizedConductanceSamples <- function(graph, niter, cluster.algo) {
 	  
 	  ## rewire graph, randomize the graph while maintaining the degree distribution
 	  rw.graph <- rewire(graph, mode = rewire.mode, niter = 100)
-	  rw.graph.connected <- largestConnectedSubgraph(rw.graph)
+	  rw.graph.connected <- largest.subgraph(rw.graph)
 	  
 	  ## find clusters
 	  rw.graph.clusters <- cluster.algo(rw.graph.connected)
@@ -998,12 +997,12 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   status("Computing adjacency matrices")
   
   g <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
-  g.clust <- clusters(g)
-  
+
   ## Find the index of the largest connected cluster 
-  largestClustMembership = which(g.clust$csize == max(g.clust$csize))
-  ## Get all indices of connected developers for the largest cluster
-  idx <- which(g.clust$membership==largestClustMembership) 
+  ## TODO: This is likely bogous; what happens when there are
+  ## multiple large connected subclusters that can be further
+  ## decomposed? We should iterate over all of these.
+  idx <- largest.subgraph.idx(g)
   adjMatrix.connected <- as.matrix(adjMatrix[idx,idx])
   
   
@@ -1243,8 +1242,8 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2,
   g.Tag    <- graph.adjacency(tagAdjMatrix   , mode="directed")
   
   ## Get largest connected cluster
-  idx.nonTag.connected <- largestConnectedSubgraphIndices(g.nonTag)
-  idx.Tag.connected    <- largestConnectedSubgraphIndices(g.Tag   )
+  idx.nonTag.connected <- largest.subgraph.idx(g.nonTag)
+  idx.Tag.connected    <- largest.subgraph.idx(g.Tag   )
   ids.nonTag.connected <- ids1[idx.nonTag.connected,]
   ids.Tag.connected    <- ids2[idx.Tag.connected,]
   
