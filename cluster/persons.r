@@ -1024,7 +1024,11 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
 
   status("Computing classical statistics")
   writeClassicalStatistics(outdir, ids.connected)
-  
+
+  ## Parameters for removing too small communities; see select.communities
+  ## for details (TODO: Should we make this configurable?)
+  MIN.CUT.FRACTION <- 0.95
+  MAX.CUT.SIZE <- 10
   ##=======================
   ## Find Communities 
   ##=======================
@@ -1044,14 +1048,26 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##--------------------
   status("Inferring communities with spin glasses")
   set.seed(42)
-  g.spin.community <- spinglass.community(g.connected)
-  
-  status("Writing community graph sources for spin glasses")
-  ## TODO: The threshold is completely arbitrary and not very apt
-  ## for small projects. Better choose a value that only remove at
-  ## most a certain percentage (say, 5%) of all developers
-  elems.sg.more <- select.communities.more(g.spin.community, 1)
+  if (vcount(g.connected) == 1) {
+    ## If there is only one vertex in the graph (which can happen for
+    ## very short bug-fox cycles when a single contributor interacts
+    ## with the repo), it does not make sense to try detecting communities.
+    ## (besids, spinglass community detection would run into an infinite
+    ## loop in this case)
+    g.spin.community <- NULL
+    elems.sg.more <- logical(0)
+  } else {
+    g.spin.community <- spinglass.community(g.connected)
 
+    ## Remove small communities, but make sure that at least MIN.CUT.FRACTION of
+    ## the contributors remain in the final set, and that no communities
+    ## with more than MAX.CUT.SIZE members are removed even if they
+    ## were admissible for deletion by the fraction criterion
+    elems.sg.more <- select.communities(g.spin.community, MIN.CUT.FRACTION,
+                                      MAX.CUT.SIZE)
+  }
+
+  status("Writing community graph sources for spin glasses")
   ## NOTE: The cluster decomposition is independent of the page
   ## rank calculation technique -- only the edge strengths, but not the
   ## page rank values influence the decomposition.
