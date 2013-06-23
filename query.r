@@ -150,7 +150,8 @@ query.cluster.members <- function(con, cluster.id, prank=F, technique=0) {
     return(dat$personId)
 }
 
-## Query an edgelist for a given cluster
+## Query an edgelist for a given cluster. Note that for single-contributor
+## clusters, there are no edges, so we need to take this case into account.
 query.cluster.edges <- function(con, cluster.id) {
   dat <- dbGetQuery(con, str_c("SELECT * FROM ",
                                "edgelist WHERE clusterId=", cluster.id))

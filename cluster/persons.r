@@ -464,10 +464,13 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank.list, .basedir,
 
       ## Create a weighted edgelist, and associate it with the in-cluster
       ## database id
-      edges <- gen.weighted.edgelist(edges)
-      edges <- cbind(clusterId=cluster.id, edges)
+      if (dim(edges)[1] > 0) {
+        ## Only write an edge list if the cluster has any edges, actually
+        edges <- gen.weighted.edgelist(edges)
+        edges <- cbind(clusterId=cluster.id, edges)
 
-      dbWriteTable(conf$con, "edgelist", edges, append=T, row.names=F)
+        dbWriteTable(conf$con, "edgelist", edges, append=T, row.names=F)
+      }
 
       j <- j + 1
     }
