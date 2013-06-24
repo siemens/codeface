@@ -769,7 +769,7 @@ USE `quantarch` ;
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`revisions_view`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `quantarch`.`revisions_view` (`projectId` INT, `date_start` INT, `date_end` INT, `date_rc_start` INT, `tag` INT, `cycle` INT);
+CREATE TABLE IF NOT EXISTS `quantarch`.`revisions_view` (`projectId` INT, `releaseRangeID` INT, `date_start` INT, `date_end` INT, `date_rc_start` INT, `tag` INT, `cycle` INT);
 
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`author_commit_stats_view`
@@ -795,6 +795,7 @@ USE `quantarch`;
 CREATE  OR REPLACE VIEW `quantarch`.`revisions_view` AS
 SELECT 
 	p.id as projectId,
+	rr.id as releaseRangeID,
 	rt_s.date as date_start, 
 	rt_e.date as date_end, 
 	rt_rs.date as date_rc_start, 
