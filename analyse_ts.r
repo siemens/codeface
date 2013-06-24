@@ -448,11 +448,13 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     ## The data do contain tagging information
     plot.types <- c(plot.types, "NumTags")
     id.types <- c("revision", "inRC", "date")
+    subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
   } else {
     id.types <- c("revision", "date")
+    subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags")
   }
 
-  ts.molten <- melt(ts[c("revision", "date", plot.types)],
+  ts.molten <- melt(ts[c("revision", "date", subset)],
                     id=id.types)
   if (has.tags) {
     levels(ts.molten$inRC) <- c("No", "Yes")
