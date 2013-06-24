@@ -1,5 +1,6 @@
 library(zoo)
 library(xts)
+source("../prosoda/db.r")
 
 gen.forest <- function(conf, repo.path, data.path, doCompute) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
@@ -155,17 +156,41 @@ dispatch.all <- function(conf, repo.path, resdir, doCompute) {
   dates <- dates[!is.na(dates)]
   iter.weekly <- gen.iter.intervals(dates, 1)
   iter.4weekly <- gen.iter.intervals(dates, 4)
+
+  ## Compute a list of intervals for the project release cycles
+  tstamps <- get.release.dates(conf)
+
+  release.intervals <- list(dim(tstamps)[1]-1)
+  release.labels <- list(dim(tstamps)[1]-1)
+  for (i in 1:(dim(tstamps)[1]-1)) {
+    release.intervals[[i]] <- new_interval(tstamps$date[i],
+                                           tstamps$date[i+1])
+    release.labels[[i]] <- paste(tstamps$tag[i], tstamps$tag[i+1], sep="-")
+  }
+
+  ## The mailing list data may not cover the complete timeframe of
+  ## the repository, so remove any empty intervals
+  nonempty.release.intervals <- get.nonempty.intervals(dates, release.intervals)
+  release.intervals <- release.intervals[nonempty.release.intervals]
+  release.labels <- release.labels[nonempty.release.intervals]
   
   ## TODO: Find some measure (likely depending on the number of messages per
   ## time) to select suitable time intervals of interest. For many projects,
   ## weekly (and monthly) are much too short, and longer intervals need to
   ## be considered.
-  analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, resdir,
-                         "weekly", doCompute)
-  analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, resdir,
-                         "4weekly", doCompute)
+  periodic.analysis <- FALSE
+  if (periodic.analysis) {
+    analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, resdir,
+                          paste("weekly", 1:length(iter.weekly), sep=""),
+                          doCompute)
+    analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, resdir,
+                          paste("4weekly", 1:length(iter.4weekly), sep=""),
+                          doCompute)
+  }
 
-  
+  analyse.sub.sequences(conf, corp.base, release.intervals, repo.path, resdir,
+                        release.labels, doCompute)
+
   ## #######
   ## Global analysis
   ## NOTE: We only compute the forest for the complete interval to allow for creating
