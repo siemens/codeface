@@ -237,21 +237,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
       as.character(int_end(iter[[length(iter)]])), "\n")
   cat("=> Analysing ", conf$ml, "in", length(iter), "subsets\n")
 
-  lapply.cluster <- function(x, FUN, ...) {
-    snow::parLapply(getSetCluster(), x, FUN, ...)
-  }
-
-  if (tm::clusterAvailable() && length(iter) > 1) {
-    do.lapply <- lapply.cluster
-
-    ## NOTE: Exporting the global variable snatm.path is only required
-    ## as long as includes.r sources the modified snatm package manually.
-    clusterExport(getSetCluster(), "snatm.path")
-    clusterCall(getSetCluster(), function() { source("includes.r"); return(NULL) })
-  } else {
-    do.lapply <- lapply
-  }
-  res <- do.lapply(1:length(iter), function(i) {
+  res <- mclapply(1:length(iter), function(i) {
     ## Determine the corpus subset for the interval
     ## under consideration
     cat("Processing interval ", i, "\n");

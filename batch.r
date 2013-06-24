@@ -17,6 +17,7 @@
 ## All Rights Reserved.
 
 suppressPackageStartupMessages(library(optparse))
+library(parallel)
 # NOTE: The curious source()s from ../prosoda will vanish once
 # the code bases are merged together
 source("../prosoda/config.r")
@@ -84,15 +85,17 @@ snatm.path <- "../src.nntp/snatm/pkg/R"
 source("includes.r")
 set.seed(19101978) ## Fix the seed to make results of random algorithms reproducible
 
-## TODO: Make log file configurable
+if (packageVersion("tm") < "0.5.9") {
+  stop("tm needs to be available in version >= 0.5.9, please update.")
+}
+
 if (opts$nodes > 1) {
-  tm_startCluster(numCPUs=opts$nodes, outfile="/dev/tty")
+  options(mc.cores=opts$nodes)
+} else {
+  ## Setting mc.cores to 1 makes sure that a regular lapply is used.
+  options(mc.cores=1)
 }
 
 dispatch.all(conf, repo.path, resdir)
-
-if (opts$nodes > 1) {
-  tm_stopCluster()
-}
 
 
