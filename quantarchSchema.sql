@@ -704,7 +704,6 @@ ENGINE = InnoDB;
 CREATE INDEX `pagerank_releaserange_idx` ON `quantarch`.`pagerank` (`releaseRangeId` ASC) ;
 
 
-
 -- -----------------------------------------------------
 -- Table `quantarch`.`pagerank_matrix`
 -- -----------------------------------------------------
@@ -780,7 +779,7 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`author_commit_stats_view` (`Name` INT, `
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`per_cluster_statistics_view`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'group'` INT, `'personId'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT, `'prank'` INT);
+CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'group'` INT, `'personId'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT);
 
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`cluster_user_pagerank_view`
@@ -873,6 +872,7 @@ FROM
 	    cum.clusterId = c.id AND
 	    prm.pageRankId = pr.id AND
 	    c.releaseRangeId = pr.releaseRangeId);
+
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
