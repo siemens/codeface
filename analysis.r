@@ -2,9 +2,12 @@ library(zoo)
 library(xts)
 source("../prosoda/db.r")
 
-gen.forest <- function(conf, repo.path, data.path, doCompute) {
+gen.forest <- function(conf, repo.path, resdir) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
   ## lkml variant
+  corp.file <- file.path(resdir, "corp.base")
+  doCompute <- !(file.exists(corp.file))
+
   if (doCompute) {
     corp.base <- gen.corpus(conf$ml, repo.path, suffix=".mbox",
                             marks=c("^_{10,}", "^-{10,}", "^[*]{10,},",
@@ -20,9 +23,9 @@ gen.forest <- function(conf, repo.path, data.path, doCompute) {
                                    "^Signed-off-by", "^Acked-by", "CC:"),
                               encoding="UTF-8",
                               preprocess=linux.kernel.preprocess)
-    save(file=file.path(data.path, "corp.base"), corp.base)
+    save(file=corp.file, corp.base)
   } else {
-    load(file=file.path(data.path, "corp.base"))
+    load(file=corp.file)
   }
 
   return(corp.base)
@@ -144,7 +147,7 @@ timestamp <- function(text) {
 
 dispatch.all <- function(conf, repo.path, resdir, doCompute) {
   timestamp("start")
-  corp.base <- gen.forest(conf, repo.path, resdir, doCompute)
+  corp.base <- gen.forest(conf, repo.path, resdir)
   timestamp("corp.base finished")
 
   ## #######
