@@ -182,15 +182,17 @@ dispatch.all <- function(conf, repo.path, resdir, doCompute) {
 
 
 analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
-                                  data.path, data.prefix, doCompute) {
+                                  data.path, labels, doCompute) {
+  if (length(iter) != length(labels))
+    stop("Internal error: Iteration sequence and data prefix length must match!")
+
   timestamps <- do.call(c, lapply(seq_along(corp.base$corp),
                                   function(i) DateTimeStamp(corp.base$corp[[i]])))
   
   cat(length(corp.base$corp), "messages in corpus\n")
   cat("Date range is", as.character(int_start(iter[[1]])), "to",
       as.character(int_end(iter[[length(iter)]])), "\n")
-  cat("=> Analysing ", conf$ml, "in", length(iter), "subsets (granularity",
-      data.prefix, ")\n")
+  cat("=> Analysing ", conf$ml, "in", length(iter), "subsets\n")
 
   lapply.cluster <- function(x, FUN, ...) {
     snow::parLapply(getSetCluster(), x, FUN, ...)
@@ -210,6 +212,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     ## Determine the corpus subset for the interval
     ## under consideration
     cat("Processing interval ", i, "\n");
+
     curr.int <- iter[[i]]
     idx <- which(timestamps >= int_start(curr.int) & timestamps < int_end(curr.int))
     corp.sub <- corp.base$corp[idx]
@@ -219,12 +222,12 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
                             corp.orig=corp.base$corp.orig[idx])
     
     ## ... and perform all analysis steps
-    data.path.local <- file.path(data.path, paste(data.prefix, i, sep="."))
+    data.path.local <- file.path(data.path, labels[[i]])
     gen.dir(data.path.local)
     save(file=file.path(data.path.local, "forest.corp"), forest.corp.sub)
     
     dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub, doCompute)
-    cat(" -> Finished week ", i, "\n")
+    cat(" -> Finished interval ", i, "\n")
   })
 }
 
