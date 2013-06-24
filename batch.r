@@ -30,9 +30,6 @@ source("local.r")
 
 ######################### Dispatcher ###################################
 option_list <- list(
-                 make_option(c("", "--use_db"), action="store_true",
-                             default=FALSE,
-                             help="Use precomputed results"),
                  make_option(c("", "--basedir"), type="character", default="./",
                              help="Base directory for prosoda.nntp"),
                  make_option(c("-n", "--nodes"), type="integer", default=1,
@@ -92,7 +89,7 @@ if (opts$nodes > 1) {
   tm_startCluster(numCPUs=opts$nodes, outfile="/dev/tty")
 }
 
-dispatch.all(conf, repo.path, resdir, doCompute=!opts$use_db)
+dispatch.all(conf, repo.path, resdir)
 
 if (opts$nodes > 1) {
   tm_stopCluster()

@@ -32,7 +32,7 @@ gen.forest <- function(conf, repo.path, resdir) {
 }
 
 
-compute.doc.matrices <- function(forest.corp, data.path, doCompute) {
+compute.doc.matrices <- function(forest.corp, data.path) {
   ## NOTE: Stemming seems to have some encoding problem with UTF-8.
   ## And it takes some amount of time: About one hour for 10000 documents.
   ## TODO: Let this run in parallel (is this already supported by the MPI
@@ -40,6 +40,11 @@ compute.doc.matrices <- function(forest.corp, data.path, doCompute) {
   
   ## TODO: Should we set the minimal wordlength to something larger than 3?
   ## (see ?termFreq for possible options)
+  tdm.file <- file.path(data.path, "tdm")
+  dtm.file <- file.path(data.path, "dtm")
+
+  doCompute <- !(file.exists(tdm.file)) && !(file.exists(dtm.file))
+
   if (doCompute) {
     ## TODO: Any arguments against creating dtm as transpose of tdm?
     tdm <- TermDocumentMatrix(forest.corp$corp,
@@ -60,12 +65,12 @@ compute.doc.matrices <- function(forest.corp, data.path, doCompute) {
     ## though. For instance, use hclust. Albeit this is fairly pointless by
     ## now -- we need to find some criteria to cluster for.
 
-    save(file=file.path(data.path, "tdm"), tdm)
-    save(file=file.path(data.path, "dtm"), dtm)
+    save(file=tdm.file, tdm)
+    save(file=dtm.file, dtm)
     ##save(file=file.path(data.path, "diss"), diss)
   } else {
-    load(file=file.path(data.path, "tdm"))
-    load(file=file.path(data.path, "dtm"))
+    load(file=tdm.file)
+    load(file=dtm.file)
     ##load(file=file.path(data.path, "diss")
   }
 
@@ -73,12 +78,15 @@ compute.doc.matrices <- function(forest.corp, data.path, doCompute) {
 }
 
 
-compute.commnet <- function(forest.corp, data.path, doCompute) {
+compute.commnet <- function(forest.corp, data.path) {
+  commnet.file <- file.path(data.path, "commnet")
+  doCompute <- !(file.exists(commnet.file))
+
   if (doCompute) {
     commnet <- adjacency(createedges(forest.corp$forest))
-    save(file=file.path(data.path, "commnet"), commnet)
+    save(file=commnet.file, commnet)
   } else {
-    load(file=file.path(data.path, "commnet"))
+    load(file=commnet.file)
   }
   
   return(commnet)
@@ -89,8 +97,12 @@ compute.commnet <- function(forest.corp, data.path, doCompute) {
 ## basedir/<ml>/subject resp. /content
 ## Iterate over all terms in termfreq, and create the adjacency matrix
 ## for the communication network associated with each term
-extract.commnets <- function(forest, termfreq, repo.path, data.path,
-                             doCompute) {
+extract.commnets <- function(forest, termfreq, repo.path, data.path) {
+  cont.dir <- file.path(data.path, "commnet.terms", "content")
+  subj.dir <- file.path(data.path, "commnet.terms", "subject")
+
+  doCompute <- !(file.exists(cont.dir)) && !(file.exists(subj.dir))
+
   if (doCompute) {
     extract.commnet(forest, termfreq, "content", data.path)
     extract.commnet(forest, termfreq, "subject", data.path)
@@ -99,15 +111,20 @@ extract.commnets <- function(forest, termfreq, repo.path, data.path,
 
 
 compute.interest.networks <- function(termfreq, NUM.NET.SUBJECT, NUM.NET.CONTENT,
-                                      data.path, doCompute) {
+                                      data.path) {
+  subject.file <- file.path(data.path, "net.subject")
+  content.file <- file.path(data.path, "net.content")
+
+  doCompute <- !(file.exists(subject.file)) && !(file.exists(content.file))
+
   if (doCompute) {
     net.subject <- gen.net("subject", termfreq, data.path, NUM.NET.SUBJECT)
     net.content <- gen.net("content", termfreq, data.path, NUM.NET.CONTENT)
-    save(file=file.path(data.path, "net.subject"), net.subject)
-    save(file=file.path(data.path, "net.content"), net.content)
+    save(file=subject.file, net.subject)
+    save(file=content.file, net.content)
   } else {
-    load(file=file.path(data.path, "net.subject"))
-    load(file=file.path(data.path, "net.content"))
+    load(file=subject.file)
+    load(file=content.file)
   }
 
   return(list(subject=net.subject, content=net.content))
@@ -145,7 +162,7 @@ timestamp <- function(text) {
   cat (text, ": ", date(), "\n")
 }
 
-dispatch.all <- function(conf, repo.path, resdir, doCompute) {
+dispatch.all <- function(conf, repo.path, resdir) {
   timestamp("start")
   corp.base <- gen.forest(conf, repo.path, resdir)
   timestamp("corp.base finished")
@@ -184,15 +201,13 @@ dispatch.all <- function(conf, repo.path, resdir, doCompute) {
   periodic.analysis <- FALSE
   if (periodic.analysis) {
     analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, resdir,
-                          paste("weekly", 1:length(iter.weekly), sep=""),
-                          doCompute)
+                          paste("weekly", 1:length(iter.weekly), sep=""))
     analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, resdir,
-                          paste("4weekly", 1:length(iter.4weekly), sep=""),
-                          doCompute)
+                          paste("4weekly", 1:length(iter.4weekly), sep=""))
   }
 
   analyse.sub.sequences(conf, corp.base, release.intervals, repo.path, resdir,
-                        release.labels, doCompute)
+                        release.labels)
 
   ## #######
   ## Global analysis
@@ -210,7 +225,7 @@ dispatch.all <- function(conf, repo.path, resdir, doCompute) {
 
 
 analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
-                                  data.path, labels, doCompute) {
+                                  data.path, labels) {
   if (length(iter) != length(labels))
     stop("Internal error: Iteration sequence and data prefix length must match!")
 
@@ -254,7 +269,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     gen.dir(data.path.local)
     save(file=file.path(data.path.local, "forest.corp"), forest.corp.sub)
     
-    dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub, doCompute)
+    dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub)
     cat(" -> Finished interval ", i, "\n")
   })
 }
@@ -262,19 +277,19 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 ## User needs to make sure that data.path exists and is writeable
 ## dispatch.steps is called for every time interval that is considered
 ## in the analysis
-dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
+dispatch.steps <- function(conf, repo.path, data.path, forest.corp) {
   ## TODO: Check how we can speed up prepare.text. And think about if the
   ## function is really neccessary. With stemming activated, I doubt
   ## that it really pays off.
 ###prep <- prepare.text(forest, progress=TRUE)
 ####save(file=file.path(data.path, paste("prep", ml, sep=".")), prep)
-  communication.network <- compute.commnet(forest.corp, data.path, doCompute)
+  communication.network <- compute.commnet(forest.corp, data.path)
   timestamp("communication.network finished")
   
   ## Returns tdm and dtm
-  doc.matrices <- compute.doc.matrices(forest.corp, data.path, doCompute)
+  doc.matrices <- compute.doc.matrices(forest.corp, data.path)
   timestamp("doc.matrices finished")
-  
+
   ## TODO: Provide per-ml keyword collections for the exclusion words
   termfreq <- findHighFreq(doc.matrices$tdm, exclude.list=unique(c(terms.d,
                                                terms.coll, terms.c,
@@ -294,7 +309,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
   ## ... and then inspect the appropriate messages in corp.orig to see which additional
   ## filter needs to be applied
   
-  extract.commnets(forest.corp, termfreq, repo.path, data.path, doCompute)
+  extract.commnets(forest.corp, termfreq, repo.path, data.path)
   timestamp("extract.commnets finished")
   
   ## TODO: Find justifiable heuristics for these configurable parameters
@@ -302,7 +317,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, doCompute) {
   NUM.NET.CONTENT <- 50
   interest.networks <- compute.interest.networks(termfreq, NUM.NET.SUBJECT,
                                                  NUM.NET.CONTENT,
-                                                 data.path, doCompute)
+                                                 data.path)
   
   networks.dat <- analyse.networks(forest.corp$forest, interest.networks,
                                    communication.network)
