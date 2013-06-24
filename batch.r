@@ -74,7 +74,11 @@ resdir <- file.path(resdir, conf$project, "ml")
 gen.dir(resdir)
 
 ## Provide a frame dump in case of failure
-options(error = quote(dump.frames("error.dump", TRUE)))
+if (!interactive()) {
+  options(error = quote(dump.frames("error.dump", TRUE)))
+} else {
+  options(error=recover)
+}
 
 ## NOTE: This is _temporary_. After a proper package has been
 ## created, we can get rid of loading the files directly (includes.r
