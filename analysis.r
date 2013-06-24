@@ -176,7 +176,7 @@ dispatch.all <- function(conf, repo.path, resdir, doCompute) {
                       corp.orig=corp.base$corp.orig)
 
   resdir.complete <- file.path(resdir, "complete")
-  gen.dir(data.path.all)
+  gen.dir(resdir.complete)
   save(file=file.path(resdir.complete, "forest.corp"), forest.corp)
 }
 
