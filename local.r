@@ -309,7 +309,7 @@ get.nonempty.intervals <- function(dates, intervals.list) {
   ## This is the reason why not just the date boundaries, but a complete
   ## list of dates is required as input.
   MIN.NUM.MESSAGES <- 5
-  if (length(dates.cleaned) == 0)
+  if (length(dates) == 0)
     stop("Date list for interval generation is empty!")
 
   ## An archive can contain messages with bogous time stamps. Such
