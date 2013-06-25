@@ -1,6 +1,9 @@
 library(zoo)
 library(xts)
+library(lubridate)
 source("../prosoda/db.r")
+source("../prosoda/utils.r")
+source("../prosoda/query.r")
 
 gen.forest <- function(conf, repo.path, resdir) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
@@ -318,21 +321,27 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp) {
   ## Compute base data for time series analysis
   msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(DateTimeStamp(x)) })
   msgs <- do.call(c, msgs)
-  msgs.ts <- zoo(rep(1,length(msgs)), order.by=msgs)
 
-  ## ... and create smoothed variants
-  HOURS.SMOOTH <- c(24,28,72)
-  ts.df <- do.call(rbind, lapply(HOURS.SMOOTH,
-                              function(x) gen.agg.smooth.ts(msgs.ts, x)))
-  ts.df$smooth <- as.factor(ts.df$smooth)
+  series <- xts(rep(1,length(msgs)), order.by=msgs)
+  series.daily <- apply.daily(series, sum)
 
-  ## The exported table has three columns: date (obvious), value (smoothed
-  ## activity factor; roughly number of messages per day), and smooth (hours
-  ## used for smoothing window)
-  df.export <- ts.df
-  df.export$date <- as.numeric(df.export$date)
-  write.table(df.export,
-              file.path(data.path, "ts.txt"), row.names=F, sep = "\t", quote=F)
+  ## ... and store it into the data base
+  ts.df <- gen.df.from.ts(series.daily, "Mailing list activity")
+  plot.name <- str_c(conf$ml, " activity")
+  plot.id <- get.plot.id(conf, plot.name)
+
+  dat <- data.frame(time=as.character(ts.df$time),
+                    value=ts.df$value,
+                    value.scaled=ts.df$value.scaled,
+                    plotId=plot.id)
+
+  ## NOTE: We append new values to the existing content. This way,
+  ## we can plot arbitrary subsets of the series by selecting
+  ## subranges, without the need to concatenate parts together
+  res <- dbWriteTable(conf$con, "timeseries", dat, append=T, row.names=F)
+  if (!res) {
+    stop("Internal error: Could not write timeseries into database!")
+  }
 
   ## Compute descriptive statistics
   ## NOTE: forest needs to available in the defining scope for the
@@ -401,7 +410,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp) {
   res <- list(doc.matrices=doc.matrices, termfreq=termfreq,
               interest.networks=interest.networks,
               networks.dat=networks.dat,
-              ts.df=ts.df,
               thread.info=thread.info,
               thread.densities=thread.densities)
   save(file=file.path(data.path, "vis.data"), res)
@@ -453,13 +461,6 @@ create.network.plots <- function(conf, plots.path, res) {
   ggsave(file.path(plots.path, "init.response.pdf"), g)
 }
 
-create.ts.plots <- function(conf, plots.path, res) {
-  g <- ggplot(res$ts.df, aes(x=date, y=value, colour=smooth)) +
-    geom_line() + xlab("Date") + ylab("Mailing list activity") +
-    ggtitle(paste("Mailing list analysis for", conf$project))
-  ggsave(file.path(plots.path, "ts.pdf"), g)
-}
-
 create.descriptive.plots <- function(conf, plots.path, res) {
   ## How focused are discussions, respectively how does the number
   ## of authors scale with the number of messages per thread?
@@ -497,6 +498,5 @@ dispatch.plots <- function(conf, data.path, res) {
   gen.dir(plots.path)
 
   create.network.plots(conf, plots.path, res)
-  create.ts.plots(conf, plots.path, res)
   create.descriptive.plots(conf, plots.path, res)
 }
