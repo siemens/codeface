@@ -12,7 +12,27 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<jarFileName>bugExtractor</jarFileName>
 	</properties>
+
+	<repositories>
+		<repository>
+			<id>atlassian</id>
+			<name>Atlassian Public Repository</name>
+			<url>http://repository.atlassian.com/maven2</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>atlassian-public</id>
+			<name>Atlassian Public for client</name>
+			<url>https://maven.atlassian.com/content/repositories/atlassian-public/</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
 
 	<pluginRepositories>
 		<pluginRepository>
@@ -34,14 +54,16 @@
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
+					<appendAssemblyId>false</appendAssemblyId>
 					<archive>
 						<manifest>
-							<mainClass>de.siemens.quantarch.bugs.GenericBugzillaParser</mainClass>
+							<mainClass>de.siemens.quantarch.bugs.IssueTrackerParser</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>
 					</descriptorRefs>
+					<finalName>${jarFileName}</finalName>
 				</configuration>
 				<executions>
 					<execution>

@@ -8,7 +8,6 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
-import org.apache.log4j.Logger;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.core.support.JdbcDaoSupport;
@@ -19,15 +18,12 @@ import de.siemens.quantarch.bugs.history.BugHistory;
 import de.siemens.quantarch.bugs.utils.BugExtractorConfig;
 import de.siemens.quantarch.personService.PersonServiceClient;
 
-public class QuantArchBugzillaDAOImpl extends JdbcDaoSupport implements
-		QuantArchBugzillaDAO {
-
-	private static Logger log = Logger
-			.getLogger(QuantArchBugzillaDAOImpl.class);
+public class IssueTrackerDaoImpl extends JdbcDaoSupport implements
+		IssueTrackerDao {
 
 	private BugExtractorConfig projectConfig = null;
 
-	public QuantArchBugzillaDAOImpl(DataSource dataSource,
+	public IssueTrackerDaoImpl(DataSource dataSource,
 			BugExtractorConfig projectConfig) {
 		setDataSource(dataSource);
 		this.projectConfig = projectConfig;
@@ -36,16 +32,6 @@ public class QuantArchBugzillaDAOImpl extends JdbcDaoSupport implements
 	@Override
 	public long addIssue(Issue issue, long projectId,
 			List<BugHistory> bugHistoryList) {
-
-		// if the issue already exists in the database do not add it again.
-		// TODO : In the update scenario, we could delete the issue, cascade the
-		// effect and then update the details
-		long existingIssueId = checkIfIssueExists(issue.getId(), projectId);
-		if (-1 != existingIssueId) {
-			log.debug("The issue with Id:" + issue.getId() + " with project:"
-					+ projectId + " already exists");
-			return -1;
-		}
 
 		// Step 4: Add the users
 		// a> Created By
@@ -147,48 +133,15 @@ public class QuantArchBugzillaDAOImpl extends JdbcDaoSupport implements
 		insertPerson.executeAndReturnKey(parameters);
 	}
 
-	/**
-	 * Check if the issue already exists before adding, needed in case we are
-	 * running it again and again
-	 * 
-	 * @param bugId
-	 * @param projectId
-	 * @return
-	 */
-	private long checkIfIssueExists(String bugId, long projectId) {
-		long issueId = -1;
-		if (null != bugId) {
-			try {
-				issueId = getJdbcTemplate()
-						.queryForLong(
-								"SELECT id FROM issue where projectId = ? and bugId = ?",
-								new Object[] { projectId, bugId });
-			} catch (EmptyResultDataAccessException e) {
-			}
-		}
-		return issueId;
-	}
-
-	@Override
-	public long getIssue(String bugId) {
-		long issueId = -1;
-		try {
-			issueId = getJdbcTemplate().queryForLong(
-					"SELECT id FROM issue WHERE bugId = ?", bugId);
-		} catch (EmptyResultDataAccessException e) {
-
-		}
-		return issueId;
-	}
-
 	@Override
 	public long getProjectId(String name) {
 		long projectId = -1;
 		try {
-			projectId = getJdbcTemplate().queryForLong(
-					"SELECT id FROM project WHERE name = ?", name);
+			projectId = getJdbcTemplate().queryForObject(
+					"SELECT id FROM project WHERE name = ?",
+					new Object[] { name }, Long.class);
 		} catch (EmptyResultDataAccessException e) {
-
+			return -1;
 		}
 		return projectId;
 	}

@@ -12,8 +12,10 @@ public class BugExtractorConfig {
 	private String personServiceURL = null;
 
 	// Obtained from project properties
-	private String bugzillaURL = null;
+	private String issueTrackerType = "bugzilla";
+	private String issueTrackerURL = null;
 	private String projectName = null;
+	private long projectId = -1;
 	private boolean productAsProject = false;
 
 	public BugExtractorConfig() {
@@ -22,7 +24,7 @@ public class BugExtractorConfig {
 
 	public BugExtractorConfig(String dbHost, String dbName, String dbUser,
 			String dbPassword, String proxyHost, int proxyPort,
-			int sleepTimeOut, String personServiceURL, String bugzillaURL,
+			int sleepTimeOut, String personServiceURL, String issueTrackerURL,
 			String projectName, boolean productAsProject) {
 		super();
 		this.dbHost = dbHost;
@@ -33,7 +35,7 @@ public class BugExtractorConfig {
 		this.proxyPort = proxyPort;
 		this.sleepTimeOut = sleepTimeOut;
 		this.personServiceURL = personServiceURL;
-		this.bugzillaURL = bugzillaURL;
+		this.issueTrackerURL = issueTrackerURL;
 		this.projectName = projectName;
 		this.productAsProject = productAsProject;
 	}
@@ -129,21 +131,6 @@ public class BugExtractorConfig {
 	}
 
 	/**
-	 * @return the bugzillaURL
-	 */
-	public String getBugzillaURL() {
-		return bugzillaURL;
-	}
-
-	/**
-	 * @param bugzillaURL
-	 *            the bugzillaURL to set
-	 */
-	public void setBugzillaURL(String bugzillaURL) {
-		this.bugzillaURL = bugzillaURL;
-	}
-
-	/**
 	 * @return the projectName
 	 */
 	public String getProjectName() {
@@ -201,6 +188,51 @@ public class BugExtractorConfig {
 	 */
 	public void setPersonServiceURL(String personServiceURL) {
 		this.personServiceURL = personServiceURL;
+	}
+
+	/**
+	 * @return the issueTrackerURL
+	 */
+	public String getIssueTrackerURL() {
+		return issueTrackerURL;
+	}
+
+	/**
+	 * @param issueTrackerURL
+	 *            the issueTrackerURL to set
+	 */
+	public void setIssueTrackerURL(String issueTrackerURL) {
+		this.issueTrackerURL = issueTrackerURL;
+	}
+
+	/**
+	 * @return the projectId
+	 */
+	public long getProjectId() {
+		return projectId;
+	}
+
+	/**
+	 * @param projectId
+	 *            the projectId to set
+	 */
+	public void setProjectId(long projectId) {
+		this.projectId = projectId;
+	}
+
+	/**
+	 * @return the issueTrackerType
+	 */
+	public String getIssueTrackerType() {
+		return issueTrackerType;
+	}
+
+	/**
+	 * @param issueTrackerType
+	 *            the issueTrackerType to set
+	 */
+	public void setIssueTrackerType(String issueTrackerType) {
+		this.issueTrackerType = issueTrackerType;
 	}
 
 }
