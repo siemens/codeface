@@ -240,7 +240,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
   res <- mclapply(1:length(iter), function(i) {
     ## Determine the corpus subset for the interval
     ## under consideration
-    cat("Processing interval ", i, "\n");
+    cat("Processing interval ", i, ": ", labels[[i]], "\n")
 
     curr.int <- iter[[i]]
     idx <- which(timestamps >= int_start(curr.int) & timestamps < int_end(curr.int))
@@ -256,7 +256,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     save(file=file.path(data.path.local, "forest.corp"), forest.corp.sub)
     
     dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub)
-    cat(" -> Finished interval ", i, "\n")
+    cat(" -> Finished interval ", i, ": ", labels[[i]], "\n")
   })
 }
 
@@ -270,11 +270,9 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp) {
 ###prep <- prepare.text(forest, progress=TRUE)
 ####save(file=file.path(data.path, paste("prep", ml, sep=".")), prep)
   communication.network <- compute.commnet(forest.corp, data.path)
-  timestamp("communication.network finished")
   
   ## Returns tdm and dtm
   doc.matrices <- compute.doc.matrices(forest.corp, data.path)
-  timestamp("doc.matrices finished")
 
   ## TODO: Provide per-ml keyword collections for the exclusion words
   termfreq <- findHighFreq(doc.matrices$tdm, exclude.list=unique(c(terms.d,
@@ -284,7 +282,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp) {
                          count=as.numeric(attr(termfreq, "names"))),
               file=file.path(data.path, "termfreq.txt"), sep="\t",
               row.names=FALSE, quote=FALSE)
-  timestamp("termfreq finished")
 
   ## NOTE: For most projects, technical left-overs (like footers from majordomo
   ## etc.) will appear in the termfreq list. To find out which elements need
@@ -296,7 +293,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp) {
   ## filter needs to be applied
   
   extract.commnets(forest.corp, termfreq, repo.path, data.path)
-  timestamp("extract.commnets finished")
   
   ## TODO: Find justifiable heuristics for these configurable parameters
   NUM.NET.SUBJECT <- 25
@@ -307,7 +303,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp) {
   
   networks.dat <- analyse.networks(forest.corp$forest, interest.networks,
                                    communication.network)
-  timestamp("networks finished")
 
   ## Compute base data for time series analysis
   msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(DateTimeStamp(x)) })
