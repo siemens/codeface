@@ -486,7 +486,6 @@ app.getUserFromDB = function(name, email, projectID, response) {
 					connection.query('INSERT INTO person (projectId, name, email1) VALUES(\'' + projectID + '\',\'' + name + '\', \'' + email + '\');', function (error, info) { 
 						// UNLock table Person
 					    unlockTablePerson();
-						console.log('----------->  error: ' + JSON.stringify(error));
 						logger.log('info', 'new id: ' + info.insertId);
 						var id = { id : info.insertId};
 					    response.end(JSON.stringify(id)); 
