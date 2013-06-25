@@ -8,3 +8,5 @@ Time series stored in the database for each project
   the analysis time range. "small window" uses a rolling median with
   one day as window length; "large window" has one month as window size.
   Cumulative just adds up all values.
+- <mailing list name> activity
+  Raw activity on a given mailing list over time
