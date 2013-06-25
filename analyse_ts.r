@@ -119,14 +119,6 @@ gen.full.ts <- function(conf) {
   return (full.series)
 }
 
-## Convert a time series into a data frame
-gen.df.from.ts <- function(ts, type) {
-  df <- data.frame(time=index(ts), value=coredata(ts),
-                   value.scaled=scale.data(coredata(ts)), type=type)
-
-  return(df)
-}
-
 gen.rev.list <- function(revisions) {
  rev.list <- vector("list", length(revisions)-1)
 

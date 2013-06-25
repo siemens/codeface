@@ -59,6 +59,14 @@ generate_regular_ts <- function(raw, N, delta.t=NA) {
   return(tseries)
 }
 
+## Convert a time series into a data frame
+gen.df.from.ts <- function(ts, type) {
+  df <- data.frame(time=index(ts), value=coredata(ts),
+                   value.scaled=scale.data(coredata(ts)), type=type)
+
+  return(df)
+}
+
 can.read.file <- function(file) {
   return (file.access(file, mode=2) != -1)
 }
