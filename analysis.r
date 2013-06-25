@@ -166,34 +166,45 @@ dispatch.all <- function(conf, repo.path, resdir) {
   timestamp("start")
   corp.base <- gen.forest(conf, repo.path, resdir)
   timestamp("corp.base finished")
+  ## TODO: When we consider incremental updates, would it make sense
+  ## to just update the corpus, and let all other operations run
+  ## from scratch then? This would likely be the technically easiest
+  ## solution..
 
   ## #######
   ## Split the data into smaller chunks for time-resolved analysis
+  ## Get all message timestamps, and clean the invalid ones
   dates <- do.call(c,
                    lapply(seq_along(corp.base$corp),
                           function(i) as.POSIXct(DateTimeStamp(corp.base$corp[[i]])))
                    )
   dates <- dates[!is.na(dates)]
+
+  ## Select weekly and monthly intervals (TODO: With the new flexible
+  ## intervals in place, we could select proper monthly intervals)
   iter.weekly <- gen.iter.intervals(dates, 1)
   iter.4weekly <- gen.iter.intervals(dates, 4)
 
   ## Compute a list of intervals for the project release cycles
-  tstamps <- get.release.dates(conf)
+  cycles <- get.cycles(conf)
 
-  release.intervals <- list(dim(tstamps)[1]-1)
-  release.labels <- list(dim(tstamps)[1]-1)
-  for (i in 1:(dim(tstamps)[1]-1)) {
-    release.intervals[[i]] <- new_interval(tstamps$date[i],
-                                           tstamps$date[i+1])
-    release.labels[[i]] <- paste(tstamps$tag[i], tstamps$tag[i+1], sep="-")
+  ## NOTE: We store the lubridatye intervals in a list (instead of
+  ## simply appending them to the cycles data frame) because they
+  ## are coerced to numeric by the conversion to a data frame.
+  release.intervals <- list(dim(cycles)[1])
+  for (i in 1:(dim(cycles)[1])) {
+    release.intervals[[i]] <- new_interval(cycles$date.start[[i]],
+                                           cycles$date.end[[i]])
   }
+
+  release.labels <- as.list(cycles$cycle)
 
   ## The mailing list data may not cover the complete timeframe of
   ## the repository, so remove any empty intervals
   nonempty.release.intervals <- get.nonempty.intervals(dates, release.intervals)
   release.intervals <- release.intervals[nonempty.release.intervals]
   release.labels <- release.labels[nonempty.release.intervals]
-  
+
   ## TODO: Find some measure (likely depending on the number of messages per
   ## time) to select suitable time intervals of interest. For many projects,
   ## weekly (and monthly) are much too short, and longer intervals need to
