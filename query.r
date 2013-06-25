@@ -81,6 +81,23 @@ query.range.ids <- function(conf) {
 }
 
 
+## Obtain all release cycles of a project (date boundaries, internal ID,
+## cycle name)
+get.cycles.con <- function(con, pid) {
+  res <- dbGetQuery(con, str_c("SELECT releaseRangeId, date_start, date_end, ",
+                               "cycle FROM revisions_view WHERE projectId=", pid))
+  colnames(res) <- c("range.id", "date.start", "date.end", "cycle")
+
+  res$date.start <- ymd_hms(res$date.start, quiet=T)
+  res$date.end <- ymd_hms(res$date.end, quiet=T)
+
+  return(res)
+}
+
+get.cycles <- function(conf) {
+  return(get.cycles.con(conf$con, conf$pid))
+}
+
 ## Obtain the per-release-range statistics
 get.range.stats <- function(con, range.id) {
   dat <- dbGetQuery(con, str_c("SELECT ID, Name, added, deleted, total, ",
