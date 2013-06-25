@@ -20,14 +20,32 @@
 var express = require('express');
 var mysql = require('mysql');
 var yaml = require("js-yaml");
+var logger = require('./logger');
 
 // get property file name
 var fileName = process.argv[2];
 if(!fileName)
 {
-	console.log('Usage: node ' + process.argv[1] + ' FILENAME');
+	console.log('Usage: node ' + process.argv[1] + ' FILENAME' + ' [warn|error|info]');
 	process.exit(1);
 } 
+
+// set log level
+var logLevel = process.argv[3];
+if(logLevel == 'warn')
+{
+	logger.debugLevel = 'warn';
+} else if(logLevel == 'error' || !logLevel)
+{
+	logger.debugLevel = 'error';
+} else if(logLevel == 'info')
+{
+	logger.debugLevel = 'info';
+} else {
+	console.log('Usage: node ' + process.argv[1] + ' FILENAME' + ' [warn|error|info]');
+	process.exit(1);
+}
+console.log('LOG LEVEL: ' + logger.debugLevel);
 
 // read configuration file & parse the YAML
 var fs = require('fs');
@@ -53,14 +71,14 @@ app.configure(function () {
  * Returns: the list of users in JSON format
  */
 app.get('/getUsers', function (request, response) {
-	console.log("/getUsers");
+	logger.log('info', "/getUsers");
 	try {
 		connection.query('SELECT * FROM person;', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
 		});
-	 } catch (exeception) {
-        console.log(exeception.message);
-        response.send(exeception.message);
+	 } catch (exception) {
+        logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
 });
 
@@ -70,15 +88,15 @@ app.get('/getUsers', function (request, response) {
  * Returns: the user with the specified :id in a JSON format
  */
 app.get('/getUser/:id', function (request, response) {
-	console.log("/getUser/:id");
+	logger.log('info', "/getUser/:id");
     var taskId = request.params.id;
     try {
 	connection.query('SELECT * FROM person WHERE id=' + taskId + ';', function (error, rows, fields) { 
 	    response.end(JSON.stringify(rows)); 
 	});
-    } catch (exeception) {
-        console.log(exeception.message);
-        response.send(exeception.message);
+    } catch (exception) {
+        logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
     
 });
@@ -89,15 +107,15 @@ app.get('/getUser/:id', function (request, response) {
  * Returns: the list of ReleaseTimelines belonging to the given project in JSON format
  */
 app.get('/getReleaseTimelines/:projectID', function (request, response) {
-	console.log("/getReleaseTimelines/:projectID");
+	logger.log('info', '/getReleaseTimelines/:projectID');
 	var projectID = request.params.projectID;
 	try {
 		connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ';', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
 		});
-	} catch (exeception) {
-        console.log(exeception.message);
-        response.send(exeception.message);
+	} catch (exception) {
+        logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
 });
 
@@ -109,7 +127,7 @@ app.get('/getReleaseTimelines/:projectID', function (request, response) {
  * Returns: the list of ReleaseTimelines belonging to the given project in JSON format
  */
 app.get('/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp', function (request, response) {
-	console.log("/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp");
+	logger.log('info', '/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp');
 	var projectID = request.params.projectID;
 	var begin = request.params.startTimestamp;
 	var end = request.params.endTimestamp;
@@ -117,9 +135,9 @@ app.get('/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp', functio
 		connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ' and date >= \'' + begin + '\' and date <= \'' + end + '\';', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
 		});
-	} catch (exeception) {
-        console.log(exeception.message);
-        response.send(exeception.message);
+	} catch (exception) {
+        logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
 });
 
@@ -131,7 +149,7 @@ app.get('/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp', functio
  * Returns: the list of ReleaseTimelines belonging to the given project in JSON format
  */
 app.get('/getPlotBinData/:projectID/:plotName/:plotType', function (request, response) {
-	console.log("/getPlotBinData/:projectID/:plotName/:plotType");
+	logger.log('info', '/getPlotBinData/:projectID/:plotName/:plotType');
 	var projectID = request.params.projectID;
 	var plotName = request.params.plotName;
 	var plotType = request.params.plotType;
@@ -139,9 +157,9 @@ app.get('/getPlotBinData/:projectID/:plotName/:plotType', function (request, res
 		connection.query('select plotId, type, data from plot_bin, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName	+ '\' and type = \'' + plotType	+ '\';', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
 		});
-	} catch (exeception) {
-        console.log(exeception.message);
-        response.send(exeception.message);
+	} catch (exception) {
+        logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
 });
 
@@ -150,14 +168,14 @@ app.get('/getPlotBinData/:projectID/:plotName/:plotType', function (request, res
  * Returns: the list of projects in JSON format containing id, name, analysisMethod, analysisTime
  */
 app.get('/getProjects', function (request, response) {
-	console.log("/getProjects");
+	logger.log('info', '/getProjects');
 	try {
 		connection.query('SELECT * FROM project;', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
 		});
-	} catch (exeception) {
-        console.log(exeception.message);
-        response.send(exeception.message);
+	} catch (exception) {
+        logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
 });
 
@@ -167,15 +185,15 @@ app.get('/getProjects', function (request, response) {
  * Returns: the list of projects with that name in JSON format containing id, name, analysisMethod, analysisTime
  */
 app.get('/getProjectsByName/:name', function (request, response) {
-	console.log("/getProjectsByName/:name");
+	logger.log('info', '/getProjectsByName/:name');
 	var name = request.params.name;
 	try {
 		connection.query('SELECT * FROM project where name = \'' + name + '\';', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
 		});
-	} catch (exeception) {
-        console.log(exeception.message);
-        response.send(exeception.message);
+	} catch (exception) {
+        logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
 });
 
@@ -186,16 +204,16 @@ app.get('/getProjectsByName/:name', function (request, response) {
  * Returns: the list of projects with that name in JSON format containing id, name, analysisMethod, analysisTime
  */
 app.get('/getProjectsByNameAndMethod/:name/:method', function (request, response) {
-	console.log("/getProjectsByNameAndMethod/:name/:method");
+	logger.log('info', '/getProjectsByNameAndMethod/:name/:method');
 	var name = request.params.name;
 	var method = request.params.method;
 	try {
 		connection.query('SELECT * FROM project where name = \'' + name + '\' and analysisMethod = \'' + method + '\';', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
 		});
-	} catch (exeception) {
-        console.log(exeception.message);
-        response.send(exeception.message);
+	} catch (exception) {
+        logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
 });
 
@@ -206,16 +224,16 @@ app.get('/getProjectsByNameAndMethod/:name/:method', function (request, response
  * Returns: the list of data for that plot ordered ascending by time in JSON format containing plotid, time, value, value_scaled
  */
 app.get('/getTimeSeriesData/:projectID/:plotName', function (request, response) {
-	console.log("/getTimeSeriesData/:projectID/:plotName");
+	logger.log('info', '/getTimeSeriesData/:projectID/:plotName');
 	var projectID = request.params.projectID;
 	var plotName = request.params.plotName;
 	try {
 		connection.query('select plotId, time, value, value_scaled from timeseries, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName	+ '\' order by time asc;', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
 		});
-	} catch (exeception) {
-        console.log(exeception.message);
-        response.send(exeception.message);
+	} catch (exception) {
+        logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
 });
 
@@ -228,7 +246,7 @@ app.get('/getTimeSeriesData/:projectID/:plotName', function (request, response) 
  * Returns: the list of data existing in the given intervall for that plot ordered ascending by time in JSON format containing plotid, time, value, value_scaled
  */
 app.get('/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:endTimestamp', function (request, response) {
-	console.log("/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:endTimestamp");
+	logger.log('info', '/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:endTimestamp');
 	var projectID = request.params.projectID;
 	var plotName = request.params.plotName;
 	var begin = request.params.startTimestamp;
@@ -237,9 +255,9 @@ app.get('/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:end
 		connection.query('select plotId, time, value, value_scaled from timeseries, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName	+ '\' and time >= \'' + begin + '\'  and time <= \'' + end + '\' order by time asc;', function (error, rows, fields) { 
 			response.end(JSON.stringify(rows)); 
 		});
-	} catch (exeception) {
-        console.log(exeception.message);
-        response.send(exeception.message);
+	} catch (exception) {
+        logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
 });
 
@@ -247,8 +265,7 @@ app.get('/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:end
  * LOCK Person table
  */
 lockTablePerson = function() {
-	var log = { log : 'lockTablePerson'};
-    console.log(log);
+	logger.log('info', 'lockTablePerson');
     // Lock table Person
     connection.query('LOCK TABLE PERSON WRITE;', function (error, ret, fields) { 
 		//console.log(ret);
@@ -261,8 +278,7 @@ lockTablePerson = function() {
  * UNLOCK all tables
  */
 unlockTablePerson = function() {
-	var log = { log : 'unlockTablePerson'};
-    console.log(log);
+	logger.log('info', 'unlockTablePerson');
 	// Unlock table person
 	connection.query('UNLOCK TABLES;', function (error, ret, fields) { 
 		//console.log(ret);
@@ -276,19 +292,17 @@ unlockTablePerson = function() {
  * Synchronization is solved via LOCK/UNLOCK of DB table, Note: this has to be tested!!!!
  */
 app.getUserFromDB = function(name, email, projectID, response) {
-    console.log("getUserFromDB");
+    logger.log('info', 'getUserFromDB');
     try {
 	// name and email have been empty
 	if  (!projectID)
 	{
-	    var err = { err : 'input error: projectID missing'};
-	    console.log(err);
+	    logger.log('error', {error: 'input error: projectID missing'});
 	    response.end(JSON.stringify(err));
 	}
 	else if ((!name) && (!email))
 	{
-	    var err = { err : 'input error: name and email missing'};
-	    console.log(err);
+	    logger.log('error', {error: 'input error: name and email missing'});
 	    response.end(JSON.stringify(err));
 	}
 	else
@@ -316,8 +330,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
 		if (rows.length == 1){
 		    // UNLock table Person
 		    unlockTablePerson();
-			var log = { log : 'found id: ' + rows[0].id};
-			console.log(log);
+			logger.log('info', 'found id: ' + rows[0].id);
 		    // user found: return id
 		    response.end(JSON.stringify(rows[0]));			
 		} 
@@ -359,8 +372,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
 								    {
 										// email5 occupied, discard new email
 										unlockTablePerson();
-										var log = { log : 'id: ' +rows[0].id + ', email slots full, email discarded'};
-										console.log(log);
+										logger.log('info', 'id: ' +rows[0].id + ', email slots full, email discarded');
 								    }
 								    else
 								    {
@@ -371,8 +383,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
 											//console.log(ret);
 											//console.log(error);
 										});
-										var log = { log : 'id: ' +rows[0].id + ', email5 updated'};
-										console.log(log);
+										logger.log('info', 'id: ' +rows[0].id + ', email5 updated');
 								    }
 								});
 							    }
@@ -385,8 +396,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
 										//console.log(ret);
 										//console.log(error);
 									});
-									var log = { log : 'id: ' +rows[0].id + ', email4 updated'};
-									console.log(log);
+									logger.log('info', 'id: ' +rows[0].id + ', email4 updated');
 							    }
 							});
 						    }
@@ -399,8 +409,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
 									//console.log(ret);
 									//console.log(error);
 								});
-								var log = { log : 'id: ' +rows[0].id + ', email3 updated'};
-								console.log(log);
+								logger.log('info', 'id: ' +rows[0].id + ', email3 updated');
 						    }
 						});
 					    }
@@ -413,8 +422,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
 								//console.log(ret);
 								//console.log(error);
 							});
-							var log = { log : 'id: ' +rows[0].id + ', email2 updated'};
-							console.log(log);
+							logger.log('info', 'id: ' +rows[0].id + ', email2 updated');
 					    }
 					});
 				    }
@@ -427,8 +435,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
 							//console.log(ret);
 							//console.log(error);
 						});
-						var log = { log : 'id: ' +rows[0].id + ', email1 updated'};
-						console.log(log);
+						logger.log('info', 'id: ' +rows[0].id + ', email1 updated');
 				    }
 				});
 			    }
@@ -446,10 +453,10 @@ app.getUserFromDB = function(name, email, projectID, response) {
 				//console.log("row.length: " + rows.length)
 				if (rows.length >= 1){
 				    if (rows.length > 1) {
-						console.log("INCONSISTENCY WARNING: Multiple results for a single person!")
+						logger.log('warn', 'INCONSISTENCY WARNING: Multiple results for a single person!')
 
 						for (var count = 0; count < rows.length; count++) {
-							console.log("  -> ID: " + rows[count].id);
+							logger.log('warn', '  -> ID: ' + rows[count].id);
 						}
 					}
 				    // user found: 
@@ -462,8 +469,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
 							//console.log(error);
 						});
 				    }
-					var log = { log : 'id: ' +rows[0].id + ', name updated'};
-					console.log(log);
+					logger.log('info', 'id: ' +rows[0].id + ', name updated');
 				    
 				    //return id
 				    //console.log(rows);
@@ -480,8 +486,8 @@ app.getUserFromDB = function(name, email, projectID, response) {
 					connection.query('INSERT INTO person (projectId, name, email1) VALUES(\'' + projectID + '\',\'' + name + '\', \'' + email + '\');', function (error, info) { 
 						// UNLock table Person
 					    unlockTablePerson();
-						var log = { log : 'new id: ' + info.insertId};
-						console.log(log);
+						console.log('----------->  error: ' + JSON.stringify(error));
+						logger.log('info', 'new id: ' + info.insertId);
 						var id = { id : info.insertId};
 					    response.end(JSON.stringify(id)); 
 					});	
@@ -491,8 +497,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
 					connection.query('INSERT INTO person (projectId, email1) VALUES(\'' + projectID + '\', \'' + email + '\');', function (error, info) { 
 					    // UNLock table Person
 					    unlockTablePerson();
-					    var log = { log : 'new id: ' +info.insertId};
-						console.log(log);
+					    logger.log('info', 'new id: ' + info.insertId);
 						var id = { id : info.insertId};
 					    response.end(JSON.stringify(id)); 
 					});	
@@ -504,11 +509,11 @@ app.getUserFromDB = function(name, email, projectID, response) {
 		}
 	    });
 	}	
-    } catch (exeception) {
+    } catch (exception) {
 		// try to UNLock table Person
 		unlockTablePerson();
-		console.log(exeception.message);
-        response.send(exeception.message);
+		logger.log('error', {error: exception.message});
+        response.send(exception.message);
     }
 }
 
@@ -528,7 +533,7 @@ app.getUserID = function(request, response) {
  * POST USER ID
  */
 app.postUserID = function(request, response) {
-    console.log(request.body);
+    logger.log('info', request.body);
     var name = request.body.name;
     var email = request.body.email;
     var projectID = request.body.projectID;
