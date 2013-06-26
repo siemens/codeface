@@ -88,6 +88,9 @@ set.seed(19101978) ## Fix the seed to make results of random algorithms reproduc
 if (packageVersion("tm") < "0.5.9") {
   stop("tm needs to be available in version >= 0.5.9, please update.")
 }
+if (packageVersion("tm.plugin.mail") < "0.0.6") {
+  stop("tm.plugin.mail needs to be available in version >= 0.0.6, please update.")
+}
 
 if (opts$nodes > 1) {
   options(mc.cores=opts$nodes)
