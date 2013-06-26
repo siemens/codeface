@@ -627,12 +627,18 @@ DROP TABLE IF EXISTS `quantarch`.`freq_subjects` ;
 CREATE  TABLE IF NOT EXISTS `quantarch`.`freq_subjects` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `projectId` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT NOT NULL ,
   `subject` TEXT NOT NULL ,
   `count` INT NOT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `freq_subects_project_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `freq_subjects_release_range_ref`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
