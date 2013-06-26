@@ -371,20 +371,27 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
 
   ## Infer the larges threads as measured by the number of messages per thread
   largest.threads.msgs <- sort(thread.info$messages, decreasing=T, index.return=T)
+
   ## ... and determine the subjects that started the threads
-  ## TODO: Maybe the arbitrary constant 20 should be chosen by some
-  ## adaptive mechanism
   subjects.msgs <- sapply(largest.threads.msgs$ix, get.subject)
-  if (length(subjects.msgs) > 20) {
-    subjects.msgs <- subjects.msgs[1:20]
-    subjects.counts <- largest.threads.msgs$x[1:20]
+  subjects.counts <- largest.threads.msgs$x
+
+  MAX.SUBJECTS <- 200
+  ## We store at most 200 subjects. This should be plenty for all
+  ## reasonable purposes
+  if (length(subjects.msgs) > MAX.SUBJECTS) {
+    subjects.msgs <- subjects.msgs[1:MAX.SUBJECTS]
+    subjects.counts <- largest.threads.msgs$x[1:MAX.SUBJECTS]
   }
 
   ## freq_subjects stores the subjects that received the highest
   ## attention, at most 20 of them.
-  write.table(data.frame(count=subjects.counts, subject=subjects.msgs),
-              file=file.path(data.path, "freq_subjects.txt"), sep="\t",
-              row.names=FALSE, quote=FALSE, col.names=TRUE)
+  dat <-  data.frame(projectId=conf$pid, releaseRangeId=cycle$range.id,
+                     subject=subjects.msgs, count=subjects.counts)
+  res <- dbWriteTable(conf$con, "freq_subjects", dat, append=T, row.names=F)
+  if (!res) {
+    stop("Internal error: Could not write freq_subjects into database!")
+  }
 
   ## thread_info.txt stores the number of authors and messages
   ## per thread (each thread is identified with a unique tid)
