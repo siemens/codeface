@@ -34,6 +34,9 @@ public class GenericStatusFetcher implements StatusFetcher {
 				String value = elem.attr("value");
 				if (!StringUtils.isBlankOrNull(value)) {
 					products.add(value);
+				} else {
+					value = elem.text();
+					products.add(value);
 				}
 			}
 
