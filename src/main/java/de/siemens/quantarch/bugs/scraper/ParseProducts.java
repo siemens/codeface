@@ -22,17 +22,6 @@ public class ParseProducts {
 
 	private static Logger log = Logger.getLogger(GenericHistoryFetcher.class);
 
-	// set the proxy server
-	static {
-		System.setProperty("http.proxySet", "true");
-		System.setProperty("http.proxyHost", "proxyfarm.3dns.netz.sbs.de");
-		System.setProperty("http.proxyPort", "84");
-
-		System.setProperty("https.proxySet", "true");
-		System.setProperty("https.proxyHost", "proxyfarm.3dns.netz.sbs.de");
-		System.setProperty("https.proxyPort", "84");
-	}
-
 	public List<String> fetchProducts() {
 		List<String> products = new ArrayList<String>();
 		log.info("Fetching product details");
