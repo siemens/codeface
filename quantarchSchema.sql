@@ -844,20 +844,22 @@ DROP VIEW IF EXISTS `quantarch`.`per_cluster_statistics_view` ;
 DROP TABLE IF EXISTS `quantarch`.`per_cluster_statistics_view`;
 USE `quantarch`;
 CREATE  OR REPLACE VIEW `quantarch`.`per_cluster_statistics_view` AS
-select
-	rr.projectId as 'projectId',
-	rr.id as 'releaseRangeId',
-	c.id as 'group',
-	p.id as 'personId',
-	sum(acs.added) as 'added',
-	sum(acs.deleted) as 'deleted',
-	sum(acs.total) as 'total',
-	sum(acs.numcommits) as 'numcommits'
-from ((((release_range rr join author_commit_stats acs on rr.id = acs.releaseRangeId)
-		join person p on  p.id = acs.authorId)
-		join cluster_user_mapping cum on cum.personId = p.id)
-		join cluster c on cum.clusterId = c.id)
-group by rr.projectId, rr.id, c.id, p.id;
+select 
+    rr.projectId as 'projectId',
+    rr.id as 'releaseRangeId',
+    c.id as 'group',
+    p.id as 'personId',
+    sum(acs.added) as 'added',
+    sum(acs.deleted) as 'deleted',
+    sum(acs.total) as 'total',
+    sum(acs.numcommits) as 'numcommits'
+from release_range rr INNER JOIN (cluster c, cluster_user_mapping cum, person p, author_commit_stats acs)
+	ON (rr.id = c.releaseRangeId
+		AND c.id = cum.clusterId
+        AND cum.personId = p.id
+		AND rr.id = acs.releaseRangeId
+		AND p.id = acs.authorId)
+group by rr.projectId , rr.id , c.id , p.id;
 
 -- -----------------------------------------------------
 -- View `quantarch`.`cluster_user_pagerank_view`
