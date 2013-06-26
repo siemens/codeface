@@ -36,11 +36,6 @@ gen.forest <- function(conf, repo.path, resdir) {
 
 
 compute.doc.matrices <- function(forest.corp, data.path) {
-  ## NOTE: Stemming seems to have some encoding problem with UTF-8.
-  ## And it takes some amount of time: About one hour for 10000 documents.
-  ## TODO: Let this run in parallel (is this already supported by the MPI
-  ## methods of package tm?)
-  
   ## TODO: Should we set the minimal wordlength to something larger than 3?
   ## (see ?termFreq for possible options)
   tdm.file <- file.path(data.path, "tdm")
