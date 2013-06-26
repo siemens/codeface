@@ -45,10 +45,8 @@ class idManager:
         self.fixup_emailPattern = re.compile(r'([^<]+)\s+<([^>]+)>')
         self.commaNamePattern = re.compile(r'([^,\s]+),\s+(.+)')
 
-        # Initialise the REST connection to the id server
-        # TODO: The URL needs to be configurable and must not be hard-coded
-        self._idMgrServer = "localhost"
-        self._idMgrPort = 8080
+        self._idMgrServer = conf["nodejsHostname"]
+        self._idMgrPort = conf["nodejsPort"]
         self._conn = httplib.HTTPConnection(self._idMgrServer, self._idMgrPort)
 
         # Create a project ID

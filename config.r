@@ -24,6 +24,16 @@ load.config <- function(file) {
     stop("Malformed configuration: Specify project and repository!\n")
   }
   
+  if (is.null(conf$nodejsHostname)) {
+    conf$nodejsHostname <- "127.0.0.1"
+  }
+
+  if (is.null(conf$nodejsPort)) {
+    conf$nodejsPort <- 8080
+  } else {
+    conf$nodejsPort <- as.integer(conf$nodejsPort)
+  }
+
   if (conf$tagging != "tag" && conf$tagging != "committer2author" &&
       conf$tagging != "proximity") {
     stop("Malformed configuration: Invalid tagging mode specified!")
