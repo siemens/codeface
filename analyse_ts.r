@@ -33,6 +33,7 @@ source("plot.r")
 source("db.r")
 source("query.r")
 source("ts_utils.r")
+source("clusters.r")
 
 get.series.boundaries <- function(conn) {
   ## Read the first (comment) line of the time series connection,
@@ -190,9 +191,9 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
 
 ## Given a release range, compute a summary statistics for _all_ clusters
 ## in the release for a given clustering method and page rank technique
-compute.cluster.release.stats <- function(conf, range.id,
-                                          cluster.method=cluster.methods[1],
-                                          technique=0) {
+compute.release.clusters.stats <- function(conf, range.id,
+                                           cluster.method=cluster.methods[1],
+                                           technique=0) {
   if (!cluster.method.valid(cluster.method)) {
     stop("Internal error: Specify a supported clustering type!")
   }
@@ -202,7 +203,7 @@ compute.cluster.release.stats <- function(conf, range.id,
 ## Perform statistical analysis on the clusters.
 ## This pass is about computing descriptive cluster statistics
 do.cluster.analysis <- function(resdir, graphdir, conf,
-                                cluster.method=cluster.method[1]) {
+                                cluster.method=cluster.methods[1]) {
   if (!cluster.method.valid(cluster.method)) {
     stop("Internal error: Specify a supported clustering method!")
   }
