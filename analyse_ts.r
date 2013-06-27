@@ -188,14 +188,27 @@ plot.commit.info <- function(dat, plot.types, graphdir, revision) {
 }
 
 
-## Perform statistical analysis on the clusters. type can be "sg"
-## (spin glass), or "wg" (walktrap -- random walk analysis)
-do.cluster.analysis <- function(resdir, graphdir, conf, type="sg") {
-  if (type != "sg" && type != "wg") {
-    stop("Internal error: Specify 'wg' or 'sg' for clustering type!")
+## Given a release range, compute a summary statistics for _all_ clusters
+## in the release for a given clustering method and page rank technique
+compute.cluster.release.stats <- function(conf, range.id,
+                                          cluster.method=cluster.methods[1],
+                                          technique=0) {
+  if (!cluster.method.valid(cluster.method)) {
+    stop("Internal error: Specify a supported clustering type!")
   }
 
-  cluster.file.list <- gen.cluster.file.list(resdir, conf$revisions, type)
+  cluster.ids <- query.cluster.ids(conf, range.id, cluster.method)
+
+## Perform statistical analysis on the clusters.
+## This pass is about computing descriptive cluster statistics
+do.cluster.analysis <- function(resdir, graphdir, conf,
+                                cluster.method=cluster.method[1]) {
+  if (!cluster.method.valid(cluster.method)) {
+    stop("Internal error: Specify a supported clustering method!")
+  }
+
+  cluster.file.list <- gen.cluster.file.list(resdir, conf$revisions,
+                                             cluster.method)
 
   clusters <- vector("list", length(conf$revisions)-1)
   clusters.summary <- vector("list", length(conf$revisions)-1)
@@ -320,7 +333,10 @@ clusters.simple.similarity <- function(conf, c1.id, c2.id) {
 }
 
 ## Compute a mapping which clusters belong together across releases
-determine.cluster.mapping <- function(conf, type="sg") {
+determine.cluster.mapping <- function(conf, cluster.method=cluster.methods[1]) {
+  if (!cluster.method.valid(cluster.method)) {
+    stop("Internal error: Specify a supported clustering type!")
+  }
   ## Clusters that are classified to match across two releases
   ## are identified by the same numerical label.
 
