@@ -711,16 +711,16 @@ DROP TABLE IF EXISTS `quantarch`.`pagerank_matrix` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank_matrix` (
   `pageRankId` BIGINT NOT NULL ,
-  `personID` BIGINT NOT NULL ,
+  `personId` BIGINT NOT NULL ,
   `rankValue` DOUBLE NOT NULL ,
-  PRIMARY KEY (`pageRankId`, `personID`) ,
+  PRIMARY KEY (`pageRankId`, `personId`) ,
   CONSTRAINT `pagerankMatrix_pagerank`
     FOREIGN KEY (`pageRankId` )
     REFERENCES `quantarch`.`pagerank` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `pagerankMatrix_person`
-    FOREIGN KEY (`personID` )
+    FOREIGN KEY (`personId` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
@@ -728,7 +728,7 @@ ENGINE = InnoDB;
 
 CREATE INDEX `pagerankMatrix_pagerank_idx` ON `quantarch`.`pagerank_matrix` (`pageRankId` ASC) ;
 
-CREATE INDEX `pagerankMatrix_person_idx` ON `quantarch`.`pagerank_matrix` (`personID` ASC) ;
+CREATE INDEX `pagerankMatrix_person_idx` ON `quantarch`.`pagerank_matrix` (`personId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -779,7 +779,7 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`author_commit_stats_view` (`Name` INT, `
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`per_person_cluster_statistics_view`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `quantarch`.`per_person_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'clusterID '` INT, `'personId'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT);
+CREATE TABLE IF NOT EXISTS `quantarch`.`per_person_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'clusterId'` INT, `'personId'` INT, `'technique'` INT, `'pagerank'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT);
 
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`cluster_user_pagerank_view`
@@ -789,7 +789,7 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`cluster_user_pagerank_view` (`id` INT, `
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`per_cluster_statistics_view`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'clusterID '` INT, `'num_members'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT);
+CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'clusterId'` INT, `technique` INT, `'num_members'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT, `'pagerank average'` INT);
 
 -- -----------------------------------------------------
 -- View `quantarch`.`revisions_view`
@@ -846,19 +846,24 @@ CREATE  OR REPLACE VIEW `quantarch`.`per_person_cluster_statistics_view` AS
 select 
     rr.projectId as 'projectId',
     rr.id as 'releaseRangeId',
-    c.id as 'clusterID ',
+    c.id as 'clusterId',
     p.id as 'personId',
+	pr.technique as 'technique',
+	prm.rankValue as 'pagerank',
     sum(acs.added) as 'added',
     sum(acs.deleted) as 'deleted',
     sum(acs.total) as 'total',
     sum(acs.numcommits) as 'numcommits'
-from release_range rr INNER JOIN (cluster c, cluster_user_mapping cum, person p, author_commit_stats acs)
+from release_range rr INNER JOIN (cluster c, cluster_user_mapping cum, person p, author_commit_stats acs, pagerank pr, pagerank_matrix prm)
 	ON (rr.id = c.releaseRangeId
 		AND c.id = cum.clusterId
         AND cum.personId = p.id
 		AND rr.id = acs.releaseRangeId
-		AND p.id = acs.authorId)
-group by rr.projectId , rr.id , c.id , p.id;
+		AND p.id = acs.authorId
+		AND rr.id = pr.releaseRangeID
+		AND pr.id = prm.pageRankId
+		AND p.id = prm.personId)
+group by rr.projectId , rr.id , c.id , p.id, pr.technique, prm.rankValue;
 
 -- -----------------------------------------------------
 -- View `quantarch`.`cluster_user_pagerank_view`
@@ -891,19 +896,24 @@ CREATE  OR REPLACE VIEW `quantarch`.`per_cluster_statistics_view` AS
 select 
     rr.projectId as 'projectId',
     rr.id as 'releaseRangeId',
-    c.id as 'clusterID ',
+    c.id as 'clusterId',
+	pr.technique,
     count(p.id) as 'num_members',
     sum(acs.added) as 'added',
     sum(acs.deleted) as 'deleted',
     sum(acs.total) as 'total',
-    sum(acs.numcommits) as 'numcommits'
-from release_range rr INNER JOIN (cluster c, cluster_user_mapping cum, person p, author_commit_stats acs)
+    sum(acs.numcommits) as 'numcommits',
+	avg(prm.rankValue) as 'pagerank average'
+from release_range rr INNER JOIN (cluster c, cluster_user_mapping cum, person p, author_commit_stats acs, pagerank pr, pagerank_matrix prm)
 	ON (rr.id = c.releaseRangeId
 		AND c.id = cum.clusterId
         AND cum.personId = p.id
 		AND rr.id = acs.releaseRangeId
-		AND p.id = acs.authorId)
-group by rr.projectId , rr.id , c.id;
+		AND p.id = acs.authorId
+		AND rr.id = pr.releaseRangeID
+		AND pr.id = prm.pageRankId
+		AND p.id = prm.personId)
+group by rr.projectId , rr.id , c.id, pr.technique;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
