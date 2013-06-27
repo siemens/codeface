@@ -200,6 +200,57 @@ compute.release.clusters.stats <- function(conf, range.id,
 
   cluster.ids <- query.cluster.ids(conf, range.id, cluster.method)
 
+  ## NOTE: cluster.ids can be NULL when no clusters have been detected.
+  clusters.stats <- lapply(cluster.ids, function(cluster.id) {
+    ## We query the statistics resolved per-cluster, per-person,
+    ## and then average over all persons
+    cluster.stats <- query.cluster.person.stats(conf$con, cluster.id,
+                                                person.id=NULL)
+    num.members <- dim(cluster.stats)[1]
+    cluster.stats$num.members <- num.members
+
+    return(cluster.stats)
+  })
+
+  return(do.call(rbind, clusters.stats))
+}
+
+## Given statistics for all clusters of a cycle (i.e., the output of
+## compute.release.clusters.stats), compute a summarised version
+## that reduces each cluster to one single contributing row
+summarise.clusters.stats <- function(clusters.stats) {
+  ## Computing summaries for empty clusters is easy
+  if (is.null(clusters.stats)) {
+    return(NULL)
+  }
+
+  res <- ddply(clusters.stats, .(cluster.id, num.members), summarise,
+               prank.median=median(rankValue),
+               num.changes.median=median(total),
+               sum.changes=sum(total),
+               num.commits.median=median(numcommits),
+               sum.commits=sum(numcommits))
+
+  ## Scale the summary statistics for average statements per member
+  ## (pp = "per person")
+  res$sum.commits.pp <- res$sum.commits/res$num.members
+  res$sum.changes.pp <- res$sum.changes/res$num.members
+
+  return(res)
+}
+
+
+## Given a release range, compute a summary statistics for _all_ clusters
+## in the release for a given clustering method and page rank technique
+compute.release.clusters.stats <- function(conf, range.id,
+                                           cluster.method=cluster.methods[1],
+                                           technique=0) {
+  if (!cluster.method.valid(cluster.method)) {
+    stop("Internal error: Specify a supported clustering type!")
+  }
+
+  cluster.ids <- query.cluster.ids(conf, range.id, cluster.method)
+
 ## Perform statistical analysis on the clusters.
 ## This pass is about computing descriptive cluster statistics
 do.cluster.analysis <- function(resdir, graphdir, conf,

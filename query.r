@@ -180,6 +180,40 @@ query.cluster.edges <- function(con, cluster.id) {
   }
 }
 
+## Query the per-cluster, per-person statistics for a given cluster id
+query.cluster.person.stats <- function(con, cluster.id, person.id=NULL,
+                                       technique=0) {
+  query <- str_c("SELECT clusterId, personId, rankValue, added, deleted, total, ",
+                 "numcommits FROM per_person_cluster_statistics_view WHERE ",
+                 "clusterId=", cluster.id, " AND technique=", technique)
+  if (!is.null(person.id)) {
+    query <- str_c(query, " AND personId=", person.id)
+  }
+
+  dat <- dbGetQuery(con, query)
+
+  colnames(dat) <- c("cluster.id", "person.id", "rankValue", "added", "deleted",
+                     "total", "numcommits")
+  dat$cluster.id <- as.factor(dat$cluster.id)
+
+  return(dat)
+}
+
+## Query the per-cluster statistics for a given cluster id.
+## In contrast to query.cluster.person.stats, the data are cluster-global
+## and not resolved by person
+query.cluster.stats <- function(con, cluster.id, technique=0) {
+  dat <- dbGetQuery(con, str_c("SELECT num_members, added, deleted, total,
+                                       numcommits, prank_avg FROM ",
+                               "per_cluster_statistics_view WHERE ",
+                               "clusterId=", cluster.id, " AND technique=",
+                               technique))
+
+  colnames(dat) <- c("num.members", "added", "deleted", "total", "numcommits",
+                     "prank.avg")
+  return(dat)
+}
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
