@@ -130,18 +130,6 @@ gen.rev.list <- function(revisions) {
  return (rev.list)
 }
 
-gen.cluster.file.list <- function(resdir, revisions, type) {
-  file.list <- vector("list", length(revisions)-1)
-
-  revs <- gen.rev.list(revisions)
-  for (i in 1:length(revs)) {
-    file.list[[i]] <- paste(resdir, "/", revs[[i]], "/", type,
-                            "_cluster_stats.txt", sep="")
-  }
-
-  return(file.list)
-}
-
 ## NOTE: width is the width of the rolling window, so series.monthly
 ## does _not_ mean that there is one data point per month, but one
 ## month's worth of data points go into the calculation of one smoothed
@@ -240,71 +228,48 @@ summarise.clusters.stats <- function(clusters.stats) {
 }
 
 
-## Given a release range, compute a summary statistics for _all_ clusters
-## in the release for a given clustering method and page rank technique
-compute.release.clusters.stats <- function(conf, range.id,
-                                           cluster.method=cluster.methods[1],
-                                           technique=0) {
-  if (!cluster.method.valid(cluster.method)) {
-    stop("Internal error: Specify a supported clustering type!")
-  }
-
-  cluster.ids <- query.cluster.ids(conf, range.id, cluster.method)
-
-## Perform statistical analysis on the clusters.
-## This pass is about computing descriptive cluster statistics
+## Perform statistical analyses on the clusters.
+## This pass is about computing descriptive cluster statistics.
+## NOTE: The database operations are performed on views; the first
+## time selection currently takes a fairly long time. The side effect
+## of later speedups is, however, important because on-demand
+## queries in the web frontend will then proceed much faster.
 do.cluster.analysis <- function(resdir, graphdir, conf,
                                 cluster.method=cluster.methods[1]) {
   if (!cluster.method.valid(cluster.method)) {
     stop("Internal error: Specify a supported clustering method!")
   }
 
-  cluster.file.list <- gen.cluster.file.list(resdir, conf$revisions,
-                                             cluster.method)
-
-  clusters <- vector("list", length(conf$revisions)-1)
-  clusters.summary <- vector("list", length(conf$revisions)-1)
+  cycles <- get.cycles(conf)
+  clusters.all <- vector("list", dim(cycles)[1])
+  clusters.summary <- vector("list", dim(cycles)[1])
 
   ## Stage 1: Perform per-release operations
   status("Preparing per-release cluster plots")
-  for (i in 1:length(cluster.file.list)) {
-    ## Take into account that small cycles do not necessarily have clusters
-    if (!can.read.file(cluster.file.list[[i]])) {
-      next
-    }
-    clusters[[i]] <- read.table(cluster.file.list[[i]], header=TRUE, sep="\t")
-    ## Assign the date of date of the release in the cluster range
-    ## as cluster date (e.g., cluster v1..v2 gets the date of v2 assigned)
-    clusters[[i]] <- cbind(clusters[[i]], date=conf$boundaries$date.end[i])
-    clusters[[i]]$group <- as.factor(clusters[[i]]$group)
+  cycles <- get.cycles(conf)
+  for (i in seq_along(cycles$range.id)) {
+    range.id <- cycles$range.id[[i]]
 
-    ## Compute summary statistics for each cluster. The ddply query
-    ## determines median and sum values of interesting covariates
-    ## (e.g., number of commits, number of code changes) for all cluster members
-    clusters.summary[[i]] <- ddply(clusters[[i]], .(group, num.members, date),
-                                   summarise,
-                                   prank.median=median(prank),
-                                   num.changes.median=median(total),
-                                   sum.changes=sum(total),
-                                   num.commits.median=median(numcommits),
-                                   sum.commits=sum(numcommits))
-    ## Scale the summary statistics for average statements per member
-    # (pp = "per person")
-    clusters.summary[[i]]$sum.commits.pp <-
-      clusters.summary[[i]]$sum.commits/clusters.summary[[i]]$num.members
-    clusters.summary[[i]]$sum.changes.pp <-
-      clusters.summary[[i]]$sum.changes/clusters.summary[[i]]$num.members
+    clusters.stats <- compute.release.clusters.stats(conf, range.id, cluster.method)
+    if (is.null(clusters.stats))
+      next
+    clusters.stats$cycle <- cycles$cycle[[i]]
+    clusters.all[[i]] <- clusters.stats
+    clusters.summary[[i]] <- summarise.clusters.stats(clusters.stats)
 
     ## Create release-specific plots
-    g <- ggplot(clusters[[i]], aes(x=group, y=prank)) +
+    ## NOTE: We need to decide if it's statistically acceptable
+    ## to sqrt-transform a boxplot. Purists would deem it inappropriate,
+    ## but I'm not sure if we should just ignore these voices in our heads.
+    g <- ggplot(clusters.stats, aes(x=cluster.id, y=rankValue)) +
       geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
-        ylab("Page rank")
+        ylab("Page rank (median)")
     ggsave(file.path(graphdir, paste("cluster_prank_", conf$boundaries$tag[i],
                                      ".pdf", sep="")),
            g, width=7, height=7)
 
-    g <- ggplot(clusters[[i]], aes(x=group, y=total)) +
-      geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
+    g <- ggplot(clusters.stats, aes(x=cluster.id, y=total)) +
+      geom_boxplot(position="dodge") + scale_y_sqrt() + xlab("Cluster No.") +
         ylab("Amount of code changes (add+del)")
     ggsave(file.path(graphdir, paste("cluster_code_changes_",
                                      conf$boundaries$tag[i], ".pdf", sep="")),
@@ -316,48 +281,27 @@ do.cluster.analysis <- function(resdir, graphdir, conf,
   ## TODO: Augment the date labels with release specifications; additionally,
   ## sort the clusters by average page rank per release
   status("Preparing global cluster plots")
-  clusters.all <- do.call(rbind, clusters)
+  clusters.all <- do.call(rbind, clusters.all)
   clusters.summary.all <- do.call(rbind, clusters.summary)
-  clusters.all$date.factor <- as.factor(clusters.all$date)
-  clusters.summary.all$date.factor <- as.factor(clusters.summary.all$date)
 
-  g <- ggplot(clusters.all, aes(x=group, y=prank)) +
-    geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
-      ylab("Page rank") + facet_wrap(~date.factor)
-  ggsave(file.path(graphdir, "cluster_prank_ts.pdf"), g, width=12, height=8)
+  ## For very small projects, it can happen that there is not even a single
+  ## subcluster for all releases
+  if (!is.null(clusters.all)) {
+    g <- ggplot(clusters.all, aes(x=cluster.id, y=rankValue)) +
+      geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
+        ylab("Page rank") + facet_wrap(~cycle, scales="free_x")
+    ggsave(file.path(graphdir, "cluster_prank_ts.pdf"), g, width=12, height=8)
 
-  clusters.molten <- melt(clusters.all, id.vars=c("group", "date"),
-                          measure.vars=c("prank", "total", "numcommits"))
-  clusters.molten$date <- as.factor(clusters.molten$date)
+    clusters.molten <- melt(clusters.all, id.vars=c("cluster.id", "cycle"),
+                            measure.vars=c("rankValue", "total", "numcommits"))
+    clusters.molten$cycle <- as.factor(clusters.molten$cycle)
 
-  g <- ggplot(clusters.molten, aes(x=group, y=value)) +
-    geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
-      ylab("Magnitude of covariate") + facet_grid(variable~date, scales="free_y")
-  ggsave(file.path(graphdir, "cluster_comparison_ts.pdf"), g,
-         width=12, height=8)
-
-  ## Plots from scalars that range over all releases
-  ## That one, actually, is pretty pointless because the groups in
-  ## adjacent releases are not related to the previous groups by
-  ## just sharing the identifier. Continued groups should be
-  ## detected by similarity measures
-#  g <- ggplot(clusters.summary.all, aes(x=date, y=num.members)) +
-#    geom_point(aes(colour=group)) + geom_line(aes(colour=group))
-#  print(g)
-#  blub
-
-  ## TODO: Produce the following plots for each release.
-  ##  ggplot(dat, aes(x=group, y=added)) + geom_boxplot() + scale_y_log10()
-  ##  ggplot(dat, aes(x=group, y=members)) + geom_histogram(scale="identity") + scale_y_log10()
-
-  ## TODO: Create a time series that shows how the collective scalar
-  ## properties of all clusters propagate
-
-  ## TODO: It's most important to match clusters to see how stable the
-  ## communities are across time. For this, we will need the full time series
-  ## information, though. This allows us to generate more detailed time
-  ## series than is possible with simple all-cluster scalar properties,
-  ## for instance to detect variations within individual stable groups.
+    g <- ggplot(clusters.molten, aes(x=cluster.id, y=value)) +
+      geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
+        ylab("Magnitude of covariate") + facet_grid(variable~cycle, scales="free")
+    ggsave(file.path(graphdir, "cluster_comparison_ts.pdf"), g,
+           width=12, height=8)
+  }
 }
 
 
