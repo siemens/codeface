@@ -190,6 +190,33 @@ tags.given.norep <- function(.id, .tags) {
 ##========================================================================
 ##		Community Detection
 ##========================================================================
+link.community <- function(g){
+  #########################################
+  ## Description:
+  ##   Utilize linkcomm package to perform network decomposition
+  ##   provided with an igraph graph object
+  #########################################
+  ## construct a directed and weighted edge list
+  edge.list.dir.we <- data.frame( cbind(get.edgelist(g), E(g)$weight))
+  ## perform decomposition
+  link.communities <- getLinkCommunities(edge.list.dir.we, hcmethod="single",
+										 directed=T, plot=F, verbose=F)
+  ## create an igraph community object to return results in accordance with
+  ## existing infrastructure in handeling communities
+  node.clust <- link.communities$nodeclusters
+  num.clust <- link.communities$numbers[3]
+  membership <- list()
+  csize      <- c()
+  for (i in 1:num.clust) {
+    membership[[i]] <- as.numeric(as.character(node.clust[node.clust$cluster == i,1]))
+	csize[i] <- length(membership[[i]])
+  }
+  membership$csize <- csize
+  class(membership) <- "overlapComm"
+  return(membership)
+}
+
+
 ## Clique percolation. Stolen from http://igraph.wikidot.com/community-detection-in-
 ## Does not work on our graph. Maybe it works in an undirected version
 clique.community <- function(graph, k) {
