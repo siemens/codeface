@@ -296,6 +296,53 @@ spinglass.community.connected <- function(graph, spins=25) {
 }
 
 
+minCommGraph <- function(graph, comm, min=10){
+	## create a graph and the associated communities object only consisting of
+	## vertices that belong to communities large than a minimum size
+
+	## Args:
+	## 	graph: igraph graph object
+	## 	comm:  igraph communities object
+	## 	min: minimum number of vertices that must exist in a community to be
+	##      kept
+	##
+	## Returns:
+	## 	res$graph: resulting igraph graph object onces insignificant vertices
+	##						are removed
+	## 	res$community: resulting igraph communities object after small communities
+	##								have been removed
+	comm.idx <- which(comm$csize > min)
+	verts <- rle(unlist(sapply(comm.idx,
+					function(x) { return(which(comm$membership==x)) })))$values
+
+	V(graph)$key <- 1:vcount(graph)
+	graph.comm <- induced.subgraph(graph, verts)
+	## use the unique key to determine the mapping of community membership to the
+	## new graph index
+	comm$membership <- comm$membership[V(graph.comm)$key]
+	comm$csize <- sapply(1:length(comm.idx),
+			function(x) {return(length(which(comm$membership == comm.idx[x])))})
+	comm$membership <- remapConsecSeq(comm$membership)
+	res <- list(graph=graph.comm, community=comm)
+	return(res)
+}
+
+
+remapConsecSeq <- function(seq){
+	## maps an arbitrary number sequence to increase from 1
+	## eg. arbirtary sequence 2,2,2,3,3,4,3 is mapped to 1,1,1,2,2,3,2
+	mem.ids <- sort(unique(seq))
+	con.seq <- c()
+	count <- 1
+	for (i in 1:length(mem.ids)) {
+		indx <- which(seq == mem.ids[i])
+		con.seq[indx] <- count
+		count <- count + 1
+	}
+	return(con.seq)
+}
+
+
 ## Select communities with less or equal than .max members
 select.communities.less.equal <- function(.comm, .max) {
   N <- length(unique(.comm$membership))
