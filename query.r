@@ -214,6 +214,17 @@ query.cluster.stats <- function(con, cluster.id, technique=0) {
   return(dat)
 }
 
+## Map a systematic person ID to a proper name
+query.person.name <- function(con, person.id) {
+  dat <- dbGetQuery(con, str_c("SELECT name FROM person WHERE id=", person.id))
+
+  if (dim(dat)[1] > 0) {
+    return(dat$name)
+  }
+
+  return(NA)
+}
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
