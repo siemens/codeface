@@ -822,7 +822,7 @@ communityStatSignificance <- function(graph, cluster.algo){
   sd.conductance   <- sd  (rand.samps)
     
   ## perform t-test on test statistic
-  t.test.result <- t.test(rand.samps, cluster.conductance)
+  t.test.result <- t.test(rand.samps,  mu=mean(cluster.conductance))
 }
 
 randomizedConductanceSamples <- function(graph, niter, cluster.algo) {
