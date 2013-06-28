@@ -24,12 +24,26 @@ query.user.id.base <- function(host, port, pid, name, email) {
                   .params=list(projectID=pid, name=name, email=email),
                   style="post", binary=FALSE, .encoding="utf-8")
 
-  id <- fromJSON(rawToChar(blubb))$id
+  id <- fromJSON(rawToChar(res))$id
   return(id)
 }
-
 
 query.user.id <- function(conf, name, email) {
   return(query.user.id.base(conf$nodejsHostname, conf$nodejsPort, conf$pid,
                             name, email))
+}
+
+
+query.decompose.user.id.base <- function(host, port, pid, name.str) {
+  res <- postForm(str_c("http://", host, ":", port, "/post_decompose_user_id"),
+                  .params=list(projectID=pid, namestr=name.str),
+                  style="post", binary=FALSE, .encoding="utf-8")
+
+  id <- fromJSON(rawToChar(res))$id
+  return(id)
+}
+
+query.decompose.user.id <- function(conf, name.str) {
+  return(query.decompose.user.id.base(conf$nodejsHostname, conf$nodejsPort,
+                                      conf$pid, name.str))
 }
