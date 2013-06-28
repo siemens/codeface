@@ -213,11 +213,18 @@ clique.community <- function(graph, k) {
 
 ## Select communities with more than .min members
 select.communities.more <- function(.comm, .min) {
-  N <- length(unique(.comm$membership))
-  num.members <- sapply(1:(N),
-			function(x) { return(length(which(.comm$membership==x))) })
-  
-  elems <- which(num.members > .min)
+
+	if (class(.comm) == "communities"){
+		N <- length(unique(.comm$membership))
+		num.members <- sapply(1:(N),
+				function(x) { return(length(which(.comm$membership==x))) })
+		elems <- which(num.members > .min)
+	}
+	else if (class(.comm) == "overlapComm"){
+		N <- length(.comm$csize)
+		elems <- which(sapply(1:(N),
+						function(x) { return (length(.comm[[x]]) > .min)  }) == TRUE)
+	}
   
   return(elems)
 }
