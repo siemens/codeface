@@ -931,8 +931,9 @@ class gitVCS (VCS):
         fileExt = os.path.splitext(file_commit.filename)[1]
         
         # temporary file where we write transient data needed for ctags
-        srcFn = 'srcTmp' + fileExt
-        tagFn = 'tagTmp'
+        #TODO: use a unique id for the file
+        srcFn = self.rev_start + '_' + self.rev_end + 'srcTmp' + fileExt
+        tagFn = self.rev_start + '_' + self.rev_end + 'tagTmp'
         # generate a source code file from the file_layout_src dictionary 
         # and save it to a temporary location 
         srcFile = open(srcFn, 'w')
