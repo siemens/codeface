@@ -256,6 +256,46 @@ select.communities.more <- function(.comm, .min) {
   return(elems)
 }
 
+
+spinglass.community.connected <- function(graph, spins=25) {
+	## wrapper for spinglass clustering algorithm
+
+	## Description:
+	## 	Spinglass will detect clusters that are disjoint and place them in one
+	## 	cluster. Our definition of a community requires a connected graph. This
+	## 	wrapper splits a disjoint cluster into multiple communities
+	## Args:
+	## 	graph: igraph graph object
+	## Returns:
+	## 	comms.new: an igraph communities object with connected communities
+	comms.new <- list(membership=c(), csize=c(), modularity=0, no=0,
+			algorithm="spinglass")
+	class(comms.new) <- "communities"
+
+	## perform normal spinglass clustering
+	comms <- spinglass.community(graph, spins=spins)
+	## construct new communities instance
+	comms.new$modularity <- comms$modularity
+	## check if any communities are not disjoint
+	numComms <- length(comms$csize)
+	for (comm.indx in 1:numComms){
+		## get vertex set corresponding to the comm.indx-th cluster
+		vert.set  <- which(comms$membership == comm.indx)
+		g.induced <- induced.subgraph(graph, vert.set)
+		clust     <- clusters(g.induced, mode="weak")
+
+		## if more than one cluster is found we need to split into two communities
+		for (i in 1:clust$no) {
+			comms.new$no <- comms.new$no + 1
+			vert.set.sub <- which(clust$membership == i)
+			comms.new$membership[vert.set[vert.set.sub]] <- comms.new$no
+			comms.new$csize[comms.new$no] <- length(vert.set.sub)
+		}
+	}
+	return(comms.new)
+}
+
+
 ## Select communities with less or equal than .max members
 select.communities.less.equal <- function(.comm, .max) {
   N <- length(unique(.comm$membership))
