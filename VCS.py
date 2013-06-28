@@ -1028,8 +1028,10 @@ class gitVCS (VCS):
         #query git 
         output = self._sysCmd(cmd)
 
-        #filter results to only get implementation files (ie *.c) 
-        fileNames = [fileName for fileName in output if fileName.endswith(".c")]
+        #filter results to only get implementation files
+        fileExt = (".c", ".cc", ".cpp", ".cxx", ".cs", ".asmx", ".m", ".mm",
+                   ".js", ".java", ".j", ".jav", ".php",".py", ".sh")
+        fileNames = [fileName for fileName in output if fileName.endswith(fileExt)]
         
         self.setFileNames(fileNames)
         
