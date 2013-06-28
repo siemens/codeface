@@ -460,7 +460,7 @@ store.graph.db <- function(conf, baselabel, idx, .iddb, g.reg, g.tr, j) {
 ## Consequently, we only need to write into tables cluster_user_mapping
 ## and edgelist once.
 save.groups <- function(conf, .tags, .iddb, .comm, .prank.list, .basedir,
-                        .prefix, .which, label) {
+                        .prefix, .which, comm.quality, label) {
   baselabel <- label
   label.tr <- NA
   j <- 0
@@ -470,11 +470,17 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank.list, .basedir,
                           ".dot", sep="")
     filename.tr <- paste(.basedir, "/", .prefix, "tr_", "group_", three.digit(i),
                           ".dot", sep="")
-
-    idx <- as.vector(which(.comm$membership==i))
+	if (class(.comm) == "communities") {
+		idx <- as.vector(which(.comm$membership==i))
+	}
+	else if(class(.comm) == "overlapComm") {
+		idx <- as.vector(.comm[[i]])
+	}
     if (!is.na(baselabel)) {
-      label <- paste(baselabel, i, sep=" ")
-      label.tr <- paste(baselabel, "(tr)", i, sep=" ")
+      label <- paste(baselabel, i, "Community Quality = ", comm.quality[i],
+			         sep=" ")
+      label.tr <- paste(baselabel, "(tr)", i,  "Community Quality = ",
+			            comm.quality[i], sep=" ")
     }
     g.reg <- save.group(conf, .tags, .iddb, idx, .prank.list$reg,
                         filename.reg, label)
@@ -989,7 +995,9 @@ detect.communities <- function(g.connected, ids.connected,
     elems.selected <- logical(0)
   } else {
     g.community <- FUN(g.connected)
-
+    ## compute community quality
+    comm.quality <- compute.all.community.quality(g.connected, g.community,
+                                                  "conductance")
     ## Remove small communities, but make sure that at least min.fract of
     ## the contributors remain in the final set, and that no communities
     ## with more than upper.bound members are removed even if they
@@ -1002,7 +1010,8 @@ detect.communities <- function(g.connected, ids.connected,
   ## rank calculation technique -- only the edge strengths, but not the
   ## page rank values influence the decomposition.
   save.groups(conf, adjMatrix.connected.scaled, ids.connected,
-              g.community, prank.list, outdir, prefix, elems.selected, label=label)
+              g.community, prank.list, outdir, prefix, elems.selected,
+			  comm.quality, label=label)
   return(g.community)
 }
 
