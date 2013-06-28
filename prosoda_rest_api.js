@@ -21,6 +21,7 @@ var express = require('express');
 var mysql = require('mysql');
 var yaml = require("js-yaml");
 var logger = require('./logger');
+var addressparser = require("addressparser");
 
 // get property file name
 var fileName = process.argv[2];
@@ -541,6 +542,20 @@ app.postUserID = function(request, response) {
 }
 
 /**
+ * POST DECOMPOSE USER ID
+ * In contrast to postUserID, the name/email combination can be passed
+ * in one string and need not come decomposed into name and email parts.
+ */
+app.postDecomposeUserID = function(request, response) {
+    logger.log('info', request.body);
+    var namestr = request.body.namestr;
+    var projectID = request.body.projectID;
+    var parsed = addressparser(namestr)
+
+    app.getUserFromDB(parsed[0].name, parsed[0].address, projectID, response);
+}
+
+/**
  * HTTP GET /get_user_id/:projectID/:name/:email
  * to test it in the browser
  * Param: :projectID ist the id of the project the user belongs to
@@ -562,6 +577,19 @@ app.get('/get_user_id/:projectID/:name/:email', app.getUserID);
  * return example: {"id":15679}
  */
 app.post('/post_user_id', app.postUserID);
+
+/**
+ * HTTP POST /post_decompose_user_id/
+ * Param: :projectID ist the id of the project the user belongs to
+ * Param: :namestr is the combined name/email string
+ * JSON to POST, example with curl:
+ * curl -v -X POST -d "projectID=1&namestr="Zhang Rui <rui.zhang@intel.com>" http://localhost:8080/post_user_id
+ * Returns: the unique identifier (id) of the user with the given name and
+ * email in JSON format. If the user did not exist by now it is created
+ * (insertId). If no id is found and no new id can be generated an error is
+ * returned return example: {"id":15679}
+ */
+app.post('/post_decompose_user_id', app.postDecomposeUserID);
 
 /**
  * Start listening on port 8080
