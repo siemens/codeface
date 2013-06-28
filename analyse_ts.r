@@ -447,26 +447,31 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
 
   ## Same test for RC cycles as before, but on the global data set
   plot.types <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
+  id.types <- c("revision", "date")
+  subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
+
   has.tags <- (sum(ts$NumTags) > 0)
+  has.rcs <- (length(unique(ts$inRC)) > 1)
+
   if (has.tags) {
-    ## The data do contain tagging information
     plot.types <- c(plot.types, "NumTags")
-    id.types <- c("revision", "inRC", "date")
-    subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
-  } else {
-    id.types <- c("revision", "date")
-    subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags")
+    subset <- c(subset, "NumTags")
+  }
+
+  if (has.rcs) {
+    id.types <- c(id.types, "inRC")
+    subset <- c(subset, "inRC")
   }
 
   ts.molten <- melt(ts[c("revision", "date", subset)],
                     id=id.types)
-  if (has.tags) {
+  if (has.rcs) {
     levels(ts.molten$inRC) <- c("No", "Yes")
   }
 
   ## TODO: Does not work when date is used instead of revision,
   ## which is the desirable alternative
-  if (has.tags) {
+  if (has.rcs) {
     g <- ggplot(data=ts.molten, aes(x=revision, y=value, colour=inRC))
   } else {
     g <- ggplot(data=ts.molten, aes(x=revision, y=value))
@@ -498,10 +503,10 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
     dat <- ts.molten[year(ts.molten$date)==year,]
 
     # Don't plot tagging information if there are no tags
-    has.rcs <- (length(unique(dat[dat$variable=="NumTags",]$value)) == 1)
+    has.tags <- sum(dat[dat$variable=="NumTags",]$value)
 
-    if (has.rcs) {
-      dat <-  dat[dat$variable!="NumTags",]
+    if (!has.tags) {
+      dat <- dat[dat$variable!="NumTags",]
     }
 
     if (has.rcs) {
