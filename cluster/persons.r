@@ -688,12 +688,10 @@ community.quality.modularization <- function(graph, community.vertices, membersh
 }
 
 
-
-
 community.quality.conductance <- function(graph, community.vertices){
-#######################################
+  #######################################
   ## Finds the conductance of a cluster
-#######################################
+  #######################################
   ## Get graph composed solely of vertices belonging to the community
   subgraph <- induced.subgraph(graph, community.vertices)
   
@@ -717,18 +715,11 @@ community.quality.conductance <- function(graph, community.vertices){
   ## Sum of edges linking vertices where one vertex is in the cluster 
   ## and the second vertex is not in the cluster 
   ## measure the degree for inter-community edges 
-  f.1 <- community.vertices.degree.total - intra.degree.total 	
+  inter_edge_sum <- community.vertices.degree.total - intra.degree.total
   
-                                        # Mminium of sum of edges in cluster or rest of graph 
-  ## f.2 <- min(community.vertices.degree.total, not.community.vertices.degree.total) / 2
-  f.2 <- intra.degree.total / 2
+  intra_edge_sum <- intra.degree.total / 2
   
-  ## in some cases the community can be isolated
-  if (f.2 == 0){
-  	return(NaN)
-  }
-  
-  return(f.1/f.2)
+  return(inter_edge_sum / (inter_edge_sum + intra_edge_sum))
 }
 
 community.quality.wilcox <- function (graph, community.vertices){
