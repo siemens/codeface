@@ -1301,10 +1301,15 @@ compute.all.community.quality <- function(graph, community, test) {
 ########################################################################
   
   ## Get number of communities 
-  community.id <- unique(community$membership)
-  members <- sapply(community.id,
-                    function(x) { return(list(which(community$membership==x))) })
-  
+  if (class(community) == "communities"){
+	  community.id <- unique(community$membership)
+	  members <- sapply(community.id,
+			  function(x) { return(list(which(community$membership==x))) })
+  }
+  else if (class(community) == "overlapComm"){
+	  community.id <- 1:length(community$csize)
+	  members <- community
+  }
   if(test == "modularity") {
     quality.vec <- sapply(community.id,
                           function(x) {return(community.quality.modularity(graph, members[[x]]))})
@@ -1322,12 +1327,11 @@ compute.all.community.quality <- function(graph, community, test) {
     quality.vec <- sapply(community.id,
                           function(x) {return(community.quality.modularization(graph, members[[x]], community$membership))})
   }
-  
-  ## remove nan values that might be introduced by isolated communities or 
-  ## single communities 
-  quality.vec.rm.nan <- quality.vec[!is.nan(quality.vec)]
-  
-  return(quality.vec.rm.nan)
+  else if (test == "betweenness") {
+	  quality.vec <- sapply(community.id,
+			  function(x) {return (mean(betweenness(graph, members[[x]])))})
+  }
+  return(quality.vec)
 }
 
 
