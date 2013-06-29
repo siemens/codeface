@@ -445,10 +445,16 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`plots` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `name` VARCHAR(45) NOT NULL ,
   `projectId` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT DEFAULT NULL,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `plot_project_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `plot_releaseRangeId_ref`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
