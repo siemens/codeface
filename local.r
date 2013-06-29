@@ -270,26 +270,40 @@ gen.cmp.networks <- function(basenets, commnet) {
 
 
 ### Initiating threads vs. replying. Adapted from the snatm repository ###
+## network.red denotes the members of the network; cty.list is a list of
+## three vertex characteristics measures (Degree, Betweenness, Closeness)
+DEG.THRESHOLD <- 0.3 ## Threshold above which to mark vertices as highly central
 compute.initiate.respond <- function(forest, network.red, cty.list) {
   ir <- initiate.respond(forest)
-  deg <- cbind(rownames(network.red), cty.list[[1]])
-  cent <- c()
-  for (i in 1:nrow(deg)) {
-    cent <- rbind(cent,
-                  c(as.numeric(ir[deg[i,1]==ir[,1],2]),
-                    as.numeric(ir[deg[i,1]==ir[,1],3])))
+
+  cent <- na.omit(data.frame(name=rownames(network.red), responses=0,
+                             initiations=0, deg=cty.list$Degree,
+                             col="Low deg"))
+  cent$col <- factor(cent$col, levels=c("Low deg", "High deg"))
+  cent$name <- as.character(cent$name)
+
+  ## For each name that appears in network.red, select the fitting
+  ## entry from the initiate.respond list, and connect both per
+  ## person-statistics (number of initiations/responses and degree)
+  for (i  in seq_along(cent$name)) {
+    ir.idx <- which(ir$name == cent$name[i])
+
+    if (length(ir.idx) != 1) {
+      stop("Internal error: Name from communication network not in ",
+           "initiate.response list")
+    }
+
+    cent$responses[i] <- ir$responses[ir.idx]
+    cent$initiations[i] <- ir$initiations[ir.idx]
   }
-  cent <- cbind(cent,as.numeric(deg[,2]))
-  rownames(cent) <- deg[,1]
-  colnames(cent) <- c("Responses", "Initiations", "deg")
+
 
   ## TODO: Why does snatm want to construct an outlier here?! 
 ##  cent[dim(cent)[1],] <- c(max(cent[,1])+40, max(cent[,2])+100, 0)
-  deg <- normalize(cent[,3])
-  col <- rep("Low deg",dim(cent)[1])
-  col[deg>0.3] <- "High deg"
+  cent$deg <- normalize(cent$deg)
+  cent$col[cent$deg > DEG.THRESHOLD] <- "High deg"
 
-  return(data.frame(x=cent[,1], y=cent[,2], deg=deg, col=col))
+  return(cent)
 }
 
 construct.intervals <- function(date.start, date.end, interval.length) {
