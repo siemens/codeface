@@ -277,8 +277,8 @@ compute.initiate.respond <- function(forest, network.red, cty.list) {
   ir <- initiate.respond(forest)
 
   cent <- na.omit(data.frame(name=rownames(network.red), responses=0,
-                             initiations=0, deg=cty.list$Degree,
-                             col="Low deg"))
+                             initiations=0, responses.recveived=0,
+                             deg=cty.list$Degree, col="Low deg"))
   cent$col <- factor(cent$col, levels=c("Low deg", "High deg"))
   cent$name <- as.character(cent$name)
 
@@ -294,6 +294,7 @@ compute.initiate.respond <- function(forest, network.red, cty.list) {
     }
 
     cent$responses[i] <- ir$responses[ir.idx]
+    cent$responses.received[i] <- ir$responses.received[ir.idx]
     cent$initiations[i] <- ir$initiations[ir.idx]
   }
 
