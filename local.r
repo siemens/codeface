@@ -110,17 +110,13 @@ gen.net <- function(type, termfreq, data.path, max.terms) {
   return(list(res[[1]], net))
 }
 
+## When a mail without properly specified author is encountered, the
+## name is mapped to NA, which leads to NAs in several of the networks.
+## Get rid of these entries since they don't carry accurate information
 fixup.network <- function(.net) {
-  ## Replace NA entries with explicit NA strings
-  ## TODO: Under which circumstances can this happen?
-  if (any(is.na(rownames(.net)))){
-    for (i in 1:which(is.na(rownames(.net)))){
-      rownames(.net)[is.na(rownames(.net))][i] <-
-        colnames(.net)[is.na(rownames(.net))][i] <- paste("NA",i,sep="")
-    }
-  }
+  idx <- !is.na(colnames(.net))
 
-  return(.net)
+  return(.net[idx, idx])
 }
 
 ## Author name  normalisation (taken from the snatm repository)
