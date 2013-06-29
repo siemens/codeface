@@ -362,13 +362,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   thread.info <- data.frame(authors=num.authors, messages=num.messages,
                             tid=attr(num.messages, "names"))
 
-  d.auth <- density(thread.info$authors)
-  d.msg <- density(thread.info$messages)
-  thread.densities <- rbind(data.frame(num=d.auth$x, density=d.auth$y,
-                                       type="Authors"),
-                            data.frame(num=d.msg$x, density=d.msg$y,
-                                       type="Messages"))
-
   ## Infer the larges threads as measured by the number of messages per thread
   largest.threads.msgs <- sort(thread.info$messages, decreasing=T, index.return=T)
 
@@ -399,13 +392,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
               file=file.path(data.path, "thread_info.txt"), sep="\t",
               row.names=FALSE, quote=FALSE)
 
-  ## thread_densities.txt stores a density estimation of how many threads
-  ## there are with a given number of authors resp. threads. Plot
-  ## density~num|type
-  write.table(thread.densities,
-              file=file.path(data.path, "thread_densities.txt"), sep="\t",
-              row.names=FALSE, quote=FALSE)
-
   ## TODO: Can we classify the messages into content catgories, e.g., technical
   ## discussions, assistance (helping users), and code submissions?
 
@@ -413,8 +399,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   res <- list(doc.matrices=doc.matrices, termfreq=termfreq,
               interest.networks=interest.networks,
               networks.dat=networks.dat,
-              thread.info=thread.info,
-              thread.densities=thread.densities)
+              thread.info=thread.info)
   save(file=file.path(data.path, "vis.data"), res)
   
   ## ######### End of actual computation. Generate graphs etc. ##############
@@ -478,11 +463,6 @@ create.descriptive.plots <- function(conf, plots.path, res) {
     scale_y_log10() + xlab("Type") + ylab("Number per thread") +
     ggtitle(conf$project)
   ggsave(file.path(plots.path, "auth_msg_dist.pdf"), g)
-
-  g <- ggplot(res$thread.densities, aes(x=num, y=density)) + geom_line() +
-       scale_y_sqrt() + facet_grid(type~.) + xlab("Number per thread") +
-       ylab("Density") + ggtitle(conf$project)
-  ggsave(file.path(plots.path, "thread_densities.pdf"), g)
 
   thread.combined <- rbind(data.frame(num=res$thread.info$authors,
                                       type="Authors"),
