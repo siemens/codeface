@@ -36,15 +36,26 @@ get.project.id <- function(con, name) {
 
 ## Determine the ID of a given plot for a given project. Since
 ## plots are not created in parallel, we need no locking
-get.plot.id.con <- function(con, pid, plot.name) {
-  res <- dbGetQuery(con, str_c("SELECT id from plots WHERE name=",
-                               sq(plot.name), "AND projectId=", pid))
+get.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
+  query <- str_c("SELECT id from plots WHERE name=", sq(plot.name),
+                 " AND projectId=", pid)
+  if (!is.null(range.id)) {
+    query <- str_c(query, " AND releaseRangeId=", range.id)
+  }
+
+  res <- dbGetQuery(con, query)
 
   if (length(res) == 0) {
-    dbGetQuery(con, str_c("INSERT INTO plots (name, projectId) VALUES (",
-                               sq(plot.name), ", ", pid, ")"))
-    res <- dbGetQuery(con, str_c("SELECT id from plots WHERE name=",
-                                      sq(plot.name), "AND projectId=", pid))
+    if (is.null(range.id)) {
+      dbGetQuery(con, str_c("INSERT INTO plots (name, projectId) VALUES (",
+                            sq(plot.name), ", ", pid, ")"))
+    } else {
+      dbGetQuery(con, str_c("INSERT INTO plots (name, projectId, releaseRangeId) ",
+                            "VALUES (", sq(plot.name), ", ", pid, ", ",
+                            range.id, ")"))
+    }
+
+    res <- dbGetQuery(con, query)
   }
 
   if (length(res) != 1) {
@@ -55,8 +66,8 @@ get.plot.id.con <- function(con, pid, plot.name) {
   return(res$id)
 }
 
-get.plot.id <- function(conf, plot.name) {
-  return(get.plot.id.con(conf$con, conf$pid, plot.name))
+get.plot.id <- function(conf, plot.name, range.id=NULL) {
+  return(get.plot.id.con(conf$con, conf$pid, plot.name, range.id))
 }
 
 ## Determine the ID of a tag, given its textual form
