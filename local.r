@@ -119,17 +119,35 @@ fixup.network <- function(.net) {
   return(.net[idx, idx])
 }
 
-## Author name  normalisation (taken from the snatm repository)
-do.normalise <- function(authors) {
-  ## TODO: We apply similar techniques in the git analysis. This should be
-  ## unified.
-  authors <- normalizeauthors(authors)
-  authors <- sapply(authors,sortnames,USE.NAMES=FALSE)
-  authors <- sapply(authors,emailfirst,USE.NAMES=FALSE)
-  ## TODO: Use/generate project specific  replacement clusters
-  authors <- final(authors)
+## Fix some common problems that appear in mailing list author
+## specifications.
+fixup.authors <- function(authors) {
+  authors <- gsub(pattern='"', x=authors, replacement="")
+  authors <- gsub(pattern=" via [[:print:]]*>?|\\]?", x=authors,
+                  replacement="")
 
+  authors[authors==""] <- NA
   return(authors)
+}
+
+## Author name normalisation. Replace the name/email pairs found in
+## the messages with a decomposed name and a unique in-database ID
+do.normalise <- function(conf, authors) {
+  authors <- fixup.authors(authors)
+
+  authorIDs <- sapply(authors, function(namestr) {
+    if (is.na(namestr)) {
+      return(NA)
+    }
+
+    return(query.decompose.user.id(conf, namestr))
+  })
+
+  authors.names <- sapply(authorIDs, function(author.id) {
+    return(query.person.name(conf$con, author.id))
+  })
+
+  return(list(authorIDs=authorIDs, authors=authors.names))
 }
 
 ## Method is adapted from snatm. The function defined there seems wrong -- the
