@@ -231,6 +231,27 @@ query.person.name <- function(con, person.id) {
   return(NA)
 }
 
+## Query a two-mode edgelist (as used by the mailing list analysis in
+## author-interest graphs) from the database
+## type specifies the base data for the object, "subject" or "content"
+## ml gives the name of the mailing list
+query.twomode.edgelist <- function(con, type, ml, range.id) {
+  dat <- dbGetQuery(con, str_c("SELECT fromVert, toVert, weight FROM ",
+                               "twomode_edgelist WHERE releaseRangeId=", range.id,
+                               " AND source=", sq(type), " AND ml=", sq(ml)))
+
+  return(dat)
+}
+
+## Same as above for the vertex list
+query.twomode.vertices <- function(con, type, ml, range.id) {
+  dat <- dbGetQuery(con, str_c("SELECT name, degree, type FROM ",
+                               "twomode_vertices WHERE releaseRangeId=", range.id,
+                               " AND source=", sq(type), " AND ml=", sq(ml)))
+
+  return(dat)
+}
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
