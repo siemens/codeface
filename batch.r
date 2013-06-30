@@ -91,6 +91,9 @@ if (packageVersion("tm") < "0.5.9") {
 if (packageVersion("tm.plugin.mail") < "0.0.6") {
   stop("tm.plugin.mail needs to be available in version >= 0.0.6, please update.")
 }
+if (packageVersion("plyr") < "1.8.0") {
+  stop("plyr needs to be available in version >= 1.8.0, please update.")
+}
 
 if (opts$nodes > 1) {
   options(mc.cores=opts$nodes)

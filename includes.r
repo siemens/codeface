@@ -19,5 +19,6 @@ s(library(lubridate))
 s(library(xtable))
 s(library(reshape))
 s(library(parallel))
+s(library(plyr))
 
 rm(s)
