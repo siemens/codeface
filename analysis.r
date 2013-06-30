@@ -412,9 +412,13 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   ## TODO: Can we classify the messages into content catgories, e.g., technical
   ## discussions, assistance (helping users), and code submissions?
 
+  ## Compute the two-mode graphs linking users with their interests
+  twomode.graphs <- compute.twomode.graphs(conf, interest.networks)
+
   ## TODO: This should be represented by a class
   res <- list(doc.matrices=doc.matrices, termfreq=termfreq,
               interest.networks=interest.networks,
+              twomode.graphs=twomode.graphs,
               networks.dat=networks.dat,
               thread.info=thread.info)
   save(file=file.path(data.path, "vis.data"), res)
@@ -423,6 +427,25 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   dispatch.plots(conf, data.path, res)
 }
 
+compute.twomode.graphs <- function(conf, interest.networks) {
+  ## TODO: Should max.persons be made configurable? Better would
+  ## be to find a heuristic to compute a good value
+  g.subj <- construct.twomode.graph(interest.networks$subject$edgelist,
+                                    interest.networks$subject$adj.matrix,
+                                    NA, conf$con, max.persons=30)
+  g.cont <- construct.twomode.graph(interest.networks$content$edgelist,
+                                    interest.networks$content$adj.matrix,
+                                    NA, conf$con, max.persons=40)
+
+  return(list(subject=g.subj, content=g.cont))
+}
+
+store.twomode.graphs <- function(conf, twomode.graphs, range.id) {
+  store.twomode.graph(conf$con, twomode.graphs$subject, "subject",
+                      conf$ml, range.id)
+  store.twomode.graph(conf$con, twomode.graphs$content, "content",
+                      conf$ml, range.id)
+}
 
 create.network.plots <- function(conf, plots.path, res) {
   ## NOTE: The correlation threshold is quite critical.
@@ -431,14 +454,6 @@ create.network.plots <- function(conf, plots.path, res) {
   plot(res$doc.matrices$tdm, terms=res$termfreq, corThreshold=0.15, weighting=TRUE)
   dev.off()
 
-  ## NOTE: larger threshold -> less authors
-  gen.termplot(res$interest.networks$subject$edgelist,
-               res$interest.networks$subject$adj.matrix,
-               NA, file.path(plots.path, "termplot_subject.pdf"), max.persons=30)
-  gen.termplot(res$interest.networks$content$edgelist,
-               res$interest.networks$content$adj.matrix,
-               NA, file.path(plots.path, "termplot_content.pdf"), max.persons=40)
-  
   ## Visualise the correlation between communication network and interests
   ## (not sure if this is really the most useful piece of information)
   g <- ggplot(res$networks.dat$icc, aes(x=centrality, y=dist, colour=type)) +

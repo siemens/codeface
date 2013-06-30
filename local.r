@@ -16,15 +16,19 @@ gen.dir <- function(dir) {
   }
 }
 
-## Based on code from the snatm repository (numerical optimisation
-## was added by WM)
-gen.termplot <- function(edgelist, net, threshold, outfile, max.persons=NA,
-                         verbose=FALSE, exclude.list=list()) {
-  peoplelist <- edgelist[,1]
+
+## Initially based on snatm code, albeit only the basic outline has
+## survived by now.
+## Construct igraph objects for author-interest graphs
+construct.twomode.graph <- function(edgelist, adjmat.twomode, threshold, con,
+                                    max.persons=NA, verbose=FALSE,
+                                    exclude.list=list()) {
+  peoplelist <- edgelist[,1] ## First column of edgelist stores author names
   peoplelist <- peoplelist[!(peoplelist %in% exclude.list)]
 
-  twomode <- net
-  people <- which(is.element(rownames(twomode), unique(peoplelist)))
+  ## adjmat.twomode is an adjacency matrix that connects persons and terms
+  ## (row/column names first store the persons and then the terms)
+  people <- which(is.element(rownames(adjmat.twomode), unique(peoplelist)))
 
   if (!is.na(max.persons)) {
     ## Determine the optimal value of threshold so as to include at most
@@ -43,7 +47,7 @@ gen.termplot <- function(edgelist, net, threshold, outfile, max.persons=NA,
     ## we may end up with slightly more persons then desired, but this
     ## is of no concern.
     objective <- function(thresh) {
-      tmp <- twomode
+      tmp <- adjmat.twomode
       tmp[tmp < thresh] <- 0
       deg <- sna::degree(tmp, cmode="freeman")
       tmp <- tmp[,deg>0]
@@ -61,39 +65,72 @@ gen.termplot <- function(edgelist, net, threshold, outfile, max.persons=NA,
     threshold <- optimise(objective, c(0,1))
     if (verbose)
       cat("Found optimal threshold ", threshold$minimum)
-    twomode[twomode < threshold$minimum] <- 0
+    adjmat.twomode[adjmat.twomode < threshold$minimum] <- 0
   } else {
-    twomode[twomode < threshold] <- 0
+    adjmat.twomode[adjmat.twomode < threshold] <- 0
   }
 
-  deg <- sna::degree(twomode, cmode="freeman")
-  twomode <- twomode[,deg>0]
-  twomode <- twomode[deg>0,]
-  twomode <- sna::component.largest(twomode,connected="weak",result="graph")
-  deg <- sna::degree(twomode)
+  ## TODO: Document what we are doing here
+  deg <- sna::degree(adjmat.twomode, cmode="freeman")
+  adjmat.twomode <- adjmat.twomode[deg>0, deg>0]
+  adjmat.twomode <- sna::component.largest(adjmat.twomode, connected="weak",
+                                           result="graph")
 
-  labelcol <- rep(rgb(0,0,1,0.75),dim(twomode)[1])
+  ## Compute centrality values for both, persons and terms
+  deg <- sna::degree(adjmat.twomode)
   
   ## component.largest shrinks the adjacency matrix, so we need to recompute
   ## the people list indices
-  people <- which(is.element(rownames(twomode), unique(peoplelist)))
+  people <- which(is.element(rownames(adjmat.twomode), unique(peoplelist)))
 
-  labelcol[people] <- "red"
-  pdf(file=outfile)
-  par(mar=c(0,0,0,0))
-  gplot.snatm(twomode
-              ,gmode="graph"
-              ,vertex.col="white"
-              ,vertex.cex=1
-              ,label=rownames(twomode)
-              ,label.col=labelcol
-              ,label.cex=(deg^0.25)*0.35
-              ,label.pos=5
-              ,boxed.labels=FALSE
-              ,edge.lwd=0.1
-              ,vertex.border="white"
-              ,edge.col="grey")
-  dev.off()
+  ## Construct an igraph object with the essential pieces of information
+  ## (the other covariates can be restored from this basis)
+  g <- graph.adjacency(adjmat.twomode, mode="undirected", weighted=TRUE)
+  V(g)$degree <- deg
+  V(g)$type <- "keyword"
+  V(g)$type[people] <- "person"
+
+  return(g)
+}
+
+## Given an author-interest graph for mailing list ml, a given type
+## (subject or content), and a range id to which the graph belongs,
+## write the vertex and edge list into the database
+store.twomode.graph <- function(con, g, type, ml, range.id) {
+  if (!(type %in% c("subject", "content"))) {
+    stop("Internal error: Unsupported type for store.twomode.graph")
+  }
+
+  ## Store the graph into the database by decomposing it into a member
+  ## and edge list
+  vertices.df <- get.data.frame(g, what="vertices")
+
+  ## Vertex type encoding: 0 denotes person, 1 denotes keyword
+  vertices.df$type <- factor(vertices.df$type, levels=c("person", "keyword"),
+                             labels=c(0,1))
+  vertices.df <- cbind(releaseRangeId=range.id, source=type,
+                       ml=conf$ml, vertices.df)
+
+  ## Columns are now: releaseRangeId, source, ml, name, degree, type
+  res <- dbWriteTable(con, "twomode_vertices", vertices.df, append=T,
+                      row.names=F)
+  if (!res) {
+    stop("Internal error: Could not write two-mode vertex list!")
+  }
+
+  ## Avoid using SQL keynames as column labels
+  edges.df <- get.data.frame(g, what="edges")[,c("from", "to", "weight")]
+  colnames(edges.df) <- c("fromVert", "toVert", "weight")
+  edges.df$fromVert <- as.numeric(edges.df$fromVert)
+  edges.df <- cbind(releaseRangeId=range.id, source=type,
+                    ml=conf$ml, edges.df)
+
+  ## Columns are now: releaseRangeId, source, ml, fromVert, toVert, weight
+  res <- dbWriteTable(con, "twomode_edgelist", edges.df, append=T,
+                      row.names=F)
+  if (!res) {
+    stop("Internal error: Could not write two-mode edge list!")
+  }
 }
 
 ## TODO: Do something with the sizes output of edgelist (which describes the weight
