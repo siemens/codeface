@@ -428,14 +428,11 @@ create.network.plots <- function(conf, plots.path, res) {
   dev.off()
 
   ## NOTE: larger threshold -> less authors
-  ## edgelist is interest.networks$subject[[1]]
-  ## adjacency matrix (net in Bohn's notation) is interest.networks$subject[[2]]
-  ## respectively same elements in net.content
-  gen.termplot(res$interest.networks$subject[[1]],
-               res$interest.networks$subject[[2]],
+  gen.termplot(res$interest.networks$subject$edgelist,
+               res$interest.networks$subject$adj.matrix,
                NA, file.path(plots.path, "termplot_subject.pdf"), max.persons=30)
-  gen.termplot(res$interest.networks$content[[1]],
-               res$interest.networks$content[[2]],
+  gen.termplot(res$interest.networks$content$edgelist,
+               res$interest.networks$content$adj.matrix,
                NA, file.path(plots.path, "termplot_content.pdf"), max.persons=40)
   
   ## Visualise the correlation between communication network and interests

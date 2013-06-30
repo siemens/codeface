@@ -101,13 +101,14 @@ gen.termplot <- function(edgelist, net, threshold, outfile, max.persons=NA, verb
 ## of each keyword), for instance visualise the distribution as a sanity indicator
 gen.net <- function(type, termfreq, data.path, max.terms) {
   if (!(type %in% c("subject", "content"))) {
-    stop ("Please specify either 'subject' or 'content' for type")
+    stop ("Internal error: Unsupported type for gen.net!")
   }
+
   res <- centrality.edgelist(termfreq, type, data.path, max.terms)
-  net <- adjacency(res[[1]], mode="addvalues", directed=F)
+  adj.matrix <- adjacency(res$edgelist, mode="addvalues", directed=F)
   
 #  print(ggplot(data.frame(x=res[[2]]), aes(x=x)) + geom_histogram(binwidth=1))
-  return(list(res[[1]], net))
+  return(list(edgelist=res$edgelist, adj.matrix=adj.matrix))
 }
 
 ## When a mail without properly specified author is encountered, the
@@ -224,11 +225,13 @@ findHighFreq <- function(x, percentage=0.1, min.entries=-1, max.entries=50,
   return(rs)
 }
 
-## Compute the interest network (adapted from the snatm paper)
+## Combine interest and communication network (adapted from the snatm paper)
 ## TODO: Get rid of the indexing crap and use named lists
-gen.cmp.networks <- function(basenets, commnet) {
-  people <- which(is.element(rownames(basenets[[2]]), unique(basenets[[1]][,1])))
-  interestnet <- shrink(basenets[[2]], by="row", keep=people, values="min")
+gen.cmp.networks <- function(interest.network, commnet) {
+  people <- which(is.element(rownames(interest.network$adj.matrix),
+                             unique(interest.network$edgelist[,1])))
+  interestnet <- shrink(interest.network$adj.matrix, by="row", keep=people,
+                        values="min")
   
   commnet <- fixup.network(commnet)
   interestnet <- fixup.network(interestnet)
