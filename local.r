@@ -18,10 +18,9 @@ gen.dir <- function(dir) {
 
 ## Based on code from the snatm repository (numerical optimisation
 ## was added by WM)
-gen.termplot <- function(edgelist, net, threshold, outfile, max.persons=NA, verbose=FALSE) {
+gen.termplot <- function(edgelist, net, threshold, outfile, max.persons=NA,
+                         verbose=FALSE, exclude.list=list()) {
   peoplelist <- edgelist[,1]
-
-  exclude.list <- c() # TODO: Make this a function argument, and use it
   peoplelist <- peoplelist[!(peoplelist %in% exclude.list)]
 
   twomode <- net
