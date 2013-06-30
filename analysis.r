@@ -4,6 +4,7 @@ library(lubridate)
 source("../prosoda/db.r")
 source("../prosoda/utils.r")
 source("../prosoda/query.r")
+source("../prosoda/id_manager.r")
 
 gen.forest <- function(conf, repo.path, resdir) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
@@ -223,7 +224,12 @@ dispatch.all <- function(conf, repo.path, resdir) {
   ## NOTE: We only compute the forest for the complete interval to allow for creating
   ## descriptive statistics.
   corp <- corp.base$corp
-  forest.corp <- list(forest=make.forest(corp),
+
+  ## NOTE: conf must be present in the defining scope
+  do.normalise.bound <- function(authors) {
+    return(do.normalise(conf, authors))
+  }
+  forest.corp <- list(forest=make.forest(corp, do.normalise.bound),
                       corp=corp,
                       corp.orig=corp.base$corp.orig)
 
@@ -246,6 +252,13 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
       as.character(int_end(iter[[length(iter)]])), "\n")
   cat("=> Analysing ", conf$ml, "in", length(iter), "subsets\n")
 
+  ## Prepare a single-parameter version of do.normalise that does
+  ## not expose the conf object -- the concept is not known to snatm
+  ## NOTE: conf must be present in the defining scope
+  do.normalise.bound <- function(authors) {
+    return(do.normalise(conf, authors))
+  }
+
   res <- mclapply(1:length(iter), function(i) {
     ## Determine the corpus subset for the interval
     ## under consideration
@@ -255,7 +268,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     idx <- which(timestamps >= int_start(curr.int) & timestamps < int_end(curr.int))
     corp.sub <- corp.base$corp[idx]
     
-    forest.corp.sub <- list(forest=make.forest(corp.sub),
+    forest.corp.sub <- list(forest=make.forest(corp.sub, do.normalise.bound),
                             corp=corp.sub,
                             corp.orig=corp.base$corp.orig[idx])
     

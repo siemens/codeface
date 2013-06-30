@@ -143,11 +143,7 @@ do.normalise <- function(conf, authors) {
     return(query.decompose.user.id(conf, namestr))
   })
 
-  authors.names <- sapply(authorIDs, function(author.id) {
-    return(query.person.name(conf$con, author.id))
-  })
-
-  return(list(authorIDs=authorIDs, authors=authors.names))
+  return(authorIDs)
 }
 
 ## Method is adapted from snatm. The function defined there seems wrong -- the
