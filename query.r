@@ -215,7 +215,13 @@ query.cluster.stats <- function(con, cluster.id, technique=0) {
 }
 
 ## Map a systematic person ID to a proper name
+## We consider the caser person.id because this can eliminate the need for
+## special casing in the caller
 query.person.name <- function(con, person.id) {
+  if (is.na(person.id)) {
+    return(NA)
+  }
+
   dat <- dbGetQuery(con, str_c("SELECT name FROM person WHERE id=", person.id))
 
   if (dim(dat)[1] > 0) {
