@@ -152,20 +152,19 @@ do.normalise <- function(conf, authors) {
 ## part of the interval is populated, and the second part consists solely of NAs
 ## (because there are no persons of high centrality in the network)
 gen.networks.df <- function(networks) {
-  ## For each centrality measure, compute a mapping from centrality to correlation:
-  ## Given a desired centrality c, select only the adjacency matrix entrie that
-  ## exceed c from the interest and communication networks. Then, re-arrange the numbers
-  ## into a vector and compute the correlation between the vectors. If the
-  ## correlation is large, then the same authors appear in both facedes of the
-  ## networks
-  interestnet <- networks[[1]]
-  network.red <- networks[[2]]
-  cty.list <- networks[[3]]
+  ## For each centrality measure, compute a mapping from centrality to
+  ## correlation: Given a desired centrality c, select only the adjacency
+  ## matrix entrie that exceed c from the interest and communication
+  ## networks. Then, re-arrange the numbers into a vector and compute the
+  ## correlation between the vectors. If the correlation is large, then the
+  ## same authors appear in both facedes of the networks
+  interest.net <- networks$interest
+  communication.net <- networks$communication
+  centrality.list <- networks$centrality
   ret <- NULL
   
-  for (cty.idx in seq_along(cty.list)) {
-    ## NOTE: cty = centrality
-    cty.values <- seq(0, max(cty.list[[cty.idx]]), length.out=100)
+  for (cty.idx in seq_along(centrality.list)) {
+    centrality.values <- seq(0, max(centrality.list[[cty.idx]]), length.out=100)
 
     ## NOTE: The paper by Bohn et al. uses correlation as distance measure;
     ## since this can become negative, it does not seem to be the easiest to
@@ -176,15 +175,15 @@ gen.networks.df <- function(networks) {
     distfn <- cosine
     
     compute.similarity <- function(cty.minval) {
-      data.frame(dist=distfn(as.vector(interestnet[cty.list[[cty.idx]] >= cty.minval,
-                                                   cty.list[[cty.idx]] >= cty.minval]),
-                             as.vector(network.red[cty.list[[cty.idx]] >= cty.minval,
-                                                   cty.list[[cty.idx]] >= cty.minval])),
-                 centrality=cty.minval/max(cty.list[[cty.idx]]))
+      idx <- (centrality.list[[cty.idx]] >= cty.minval)
+      data.frame(dist=distfn(as.vector(interest.net[idx, idx]),
+                             as.vector(communication.net[idx, idx])),
+                 centrality=cty.minval/max(centrality.list[[cty.idx]]))
     }
 
-    tmp <- do.call(rbind, lapply(cty.values, compute.similarity))
-    ret <- rbind(ret, cbind(as.data.frame(tmp), type=names(cty.list[cty.idx])))
+    tmp <- do.call(rbind, lapply(centrality.values, compute.similarity))
+    ret <- rbind(ret, cbind(as.data.frame(tmp),
+                            type=names(centrality.list[cty.idx])))
   }
 
   ret$type <- as.factor(ret$type)
@@ -227,7 +226,7 @@ findHighFreq <- function(x, percentage=0.1, min.entries=-1, max.entries=50,
 
 ## Combine interest and communication network (adapted from the snatm paper)
 ## TODO: Get rid of the indexing crap and use named lists
-gen.cmp.networks <- function(interest.network, commnet) {
+gen.combined.network <- function(interest.network, commnet) {
   people <- which(is.element(rownames(interest.network$adj.matrix),
                              unique(interest.network$edgelist[,1])))
   interestnet <- shrink(interest.network$adj.matrix, by="row", keep=people,
@@ -264,7 +263,8 @@ gen.cmp.networks <- function(interest.network, commnet) {
   cty.list <- list(deg, betw, clo)
   names(cty.list) <- c("Degree", "Betweenness", "Closeness")
 
-  return(list(interestnet, network.red, cty.list))
+  return(list(interest=interestnet, communication=network.red,
+              centrality=cty.list))
 }
 
 
@@ -276,7 +276,7 @@ compute.initiate.respond <- function(forest, network.red, cty.list) {
   ir <- initiate.respond(forest)
 
   cent <- na.omit(data.frame(name=rownames(network.red), responses=0,
-                             initiations=0, responses.recveived=0,
+                             initiations=0, responses.received=0,
                              deg=cty.list$Degree, col="Low deg"))
   cent$col <- factor(cent$col, levels=c("Low deg", "High deg"))
   cent$name <- as.character(cent$name)

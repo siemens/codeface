@@ -133,8 +133,10 @@ compute.interest.networks <- function(termfreq, NUM.NET.SUBJECT, NUM.NET.CONTENT
 analyse.networks <- function(forest, interest.networks, communication.network) {
   ######### Analyse interest and communication (ICC) networks #######
   ## (very fast, no persistent storing necessary)
-  networks.subj <- gen.cmp.networks(interest.networks$subject, communication.network)
-  networks.cont <- gen.cmp.networks(interest.networks$content, communication.network)
+  networks.subj <- gen.combined.network(interest.networks$subject,
+                                        communication.network)
+  networks.cont <- gen.combined.network(interest.networks$content,
+                                        communication.network)
   dat.subj <- gen.networks.df(networks.subj)
   dat.cont <- gen.networks.df(networks.cont)
 
@@ -145,8 +147,10 @@ analyse.networks <- function(forest, interest.networks, communication.network) {
   ####### Initiation-response (IR) structure for the mailing list ######
   ## TODO: Determine if any extremal values are outliers
   ## (this plot seems to be quite informative. Compare for multiple projects)
-  dat.subj <- compute.initiate.respond(forest, networks.subj[[2]], networks.subj[[3]])
-  dat.cont <- compute.initiate.respond(forest, networks.cont[[2]], networks.cont[[3]])
+  dat.subj <- compute.initiate.respond(forest, networks.subj$communication,
+                                       networks.subj$centrality)
+  dat.cont <- compute.initiate.respond(forest, networks.cont$communication,
+                                       networks.cont$centrality)
   dat.ir <- data.frame(dat.subj, source="subject")
   dat.ir <- rbind(dat.ir, data.frame(dat.cont, source="content"))
   rm(dat.subj); rm(dat.cont)
