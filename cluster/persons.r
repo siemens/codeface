@@ -524,17 +524,6 @@ save.cluster.stats.subsys <- function(.comm, .id.subsys, .elems,
   }
 }
 
-## .comm is the decomposition into clusters
-## .iddb is the id-to-name database
-## .elems contains the cluster identifiers we're interested in
-## .pr contains the page ranks of the developers
-## Save information about all clusters.
-save.cluster.stats <- function(.comm, .iddb, .elems, .pr, .outdir, .basename) {
-  dat <- construct.group.info(.comm, .pr, .iddb, .elems)
-  write.table(dat, file=paste(.outdir, "/", .basename, "stats.txt", sep=""),
-              sep="\t")
-}
-
 save.all <- function(conf, .tags, .iddb, .prank, .comm, .filename=NULL,
                      label) {
   g.all <- save.group(conf, .tags, .iddb, .iddb$ID, .prank, .filename=NULL,
@@ -1153,31 +1142,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
     plot.comm.subsys(g.walktrap.community, id.subsys.connected,
                      paste(outdir, "/wt_comm_subsys_small.pdf", sep=""),
                      "random walk", elems=elems.wt.less)
-    
-    status("Saving raw per-cluster, per-subsystem statistical summaries")
-    save.cluster.stats.subsys(g.spin.community, id.subsys.connected,
-                              elems.sg.more, outdir, "sg_cluster_subsys_")
-    save.cluster.stats.subsys(g.walktrap.community, id.subsys.connected,
-                              elems.wt.more, outdir, "wt_cluster_subsys_")
-    save.cluster.stats.subsys(g.walktrap.community, id.subsys.connected,
-                              elems.wt.less, outdir, "wt_cluster_subsys_")
   }
-
-  status("Saving raw per-cluster statistical summaries")
-  save.cluster.stats(g.spin.community, ids.connected, elems.sg.more, pr.for.all,
-                     outdir, "sg_cluster_more_")
-  save.cluster.stats(g.walktrap.community, ids.connected, elems.wt.more, pr.for.all,
-                     outdir, "wt_cluster_more_")
-  save.cluster.stats(g.walktrap.community, ids.connected, elems.wt.less, pr.for.all,
-                     outdir, "wt_cluster_less_")
-
-  ## Also save the complete decomposition without removing any small communities
-  save.cluster.stats(g.spin.community, ids.connected,
-                     unique(g.spin.community$membership), pr.for.all,
-                     outdir, "sg_cluster_")
-  save.cluster.stats(g.walktrap.community, ids.connected,
-                     unique(g.walktrap.community$membership), pr.for.all,
-                     outdir, "wt_cluster_")
 }
 
 
