@@ -447,6 +447,22 @@ store.twomode.graphs <- function(conf, twomode.graphs, range.id) {
                       conf$ml, range.id)
 }
 
+store.initiate.response <- function(conf, ir, ml, range.id) {
+  dat <- cbind(releaseRangeId=range.id, ml=ml,
+               ir[,c("name", "responses", "initiations",
+                 "responses.received", "deg", "source")])
+  dat$source <- mapvalues(dat$source, from=c("subject", "content"), to=c(0,1))
+
+  ## Create SQL-compatible column names
+  colnames(dat) <- c("releaseRangeId", "ml", "personId", "responses",
+                     "initiations", "responses_received", "deg", "source")
+
+  res <- dbWriteTable(conf$con, "initiate_response", dat, append=T, row.names=F)
+  if (!res) {
+    stop("Internal error: Could not write thread.info into database!")
+  }
+}
+
 create.network.plots <- function(conf, plots.path, res) {
   ## NOTE: The correlation threshold is quite critical.
   ## TODO: Find some automatical means based on the maximal number of edges.
