@@ -359,6 +359,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   ## Compute descriptive statistics
   ## NOTE: forest needs to available in the defining scope for the
   ## following four helper functions
+  ## NOTE: Thread IDs are valid only locally (per release range and project)
   forest <- forest.corp$forest
   authors.per.thread <- function(i) {
     length(unique(forest[forest[,"threadID"]==i, "author"]))
@@ -372,45 +373,89 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   get.authors <- function(threadID) {
     unique(forest[forest[,"threadID"]==threadID, "author"])
   }
+  ## Get all email IDs of a thread
+  get.emailIDs <- function(threadID) {
+    forest[forest[,"threadID"]==threadID, "emailID"]
+  }
+  ## Get the email ID that started a thread
+  get.initial.emailID <- function(threadID) {
+    as.numeric(forest[forest[,"threadID"]==threadID, "emailID"][1])
+  }
+  get.timestamp <- function(mailID) {
+    DateTimeStamp(forest.corp$corp[[mailID]])
+  }
 
-  ## Determine authors and messages _per thread_
+  ## Determine authors and messages _per thread_, plus the thread id
   num.authors <- sapply(unique(forest[,"threadID"]), authors.per.thread)
   num.messages <- sapply(unique(forest[,"threadID"]), messages.per.thread)
   thread.info <- data.frame(authors=num.authors, messages=num.messages,
                             tid=attr(num.messages, "names"))
 
-  ## Infer the larges threads as measured by the number of messages per thread
-  largest.threads.msgs <- sort(thread.info$messages, decreasing=T, index.return=T)
 
-  ## ... and determine the subjects that started the threads
-  subjects.msgs <- sapply(largest.threads.msgs$ix, get.subject)
-  subjects.counts <- largest.threads.msgs$x
+  ## Infer the larges threads as measured by the number of messages per thread,
+  ## and sort thread.info accordingly
+  thread.info <- thread.info[order(thread.info$messages, decreasing=T),]
+
+  ## ... and determine the subjects that started the threads, together
+  ## with the IDs of the first email in the thread
+  subjects.msgs <- sapply(thread.info$tid, get.subject)
+  start.email.ids <- sapply(thread.info$tid, get.initial.emailID)
+  thread.info <- cbind(thread.info, subject=subjects.msgs,
+                       start.email.id=start.email.ids)
 
   MAX.SUBJECTS <- 200
   ## We store at most 200 subjects. This should be plenty for all
   ## reasonable purposes
-  if (length(subjects.msgs) > MAX.SUBJECTS) {
-    subjects.msgs <- subjects.msgs[1:MAX.SUBJECTS]
-    subjects.counts <- largest.threads.msgs$x[1:MAX.SUBJECTS]
+  ## TODO: Identical messages appear multiple times in the corpus. This
+  ## needs to be fixed. Grepping in the FS revealed that it seems to
+  ## be a problem of gmane -- identical messages are already present in
+  ## the data source (for instance, 01075 13718 16269 for openssl are identical,
+  ## only the time stamps differ slightly)
+  if (dim(thread.info)[1] > MAX.SUBJECTS) {
+    thread.info.cut <- thread.info[1:200,]
+  } else {
+    thread.info.cut <- thread.info
   }
 
   ## freq_subjects stores the subjects that received the highest
-  ## attention, at most 20 of them.
+  ## attention
   dat <-  data.frame(projectId=conf$pid, releaseRangeId=cycle$range.id,
-                     subject=subjects.msgs, count=subjects.counts)
+                     subject=thread.info.cut$subject, count=thread.info.cut$messages)
   res <- dbWriteTable(conf$con, "freq_subjects", dat, append=T, row.names=F)
   if (!res) {
     stop("Internal error: Could not write freq_subjects into database!")
   }
 
-  ## thread_info.txt stores the number of authors and messages
-  ## per thread (each thread is identified with a unique tid)
-  write.table(thread.info,
-              file=file.path(data.path, "thread_info.txt"), sep="\t",
-              row.names=FALSE, quote=FALSE)
-
   ## TODO: Can we classify the messages into content catgories, e.g., technical
   ## discussions, assistance (helping users), and code submissions?
+
+  ## Populate the database. First, create a new entry for each thread
+  ## TODO: Should we store the raw mails as such from the corpus?
+  ## NOTE: Unique in-DB author IDs are already in forest.corp$forest[,"author"].
+  ## These can be used to write data into the DB.
+
+  ## forest already provides the in-DB ids for the authors
+  ## The list is ordered by local mail id, so we can compute a mapping
+  ## between mail IDs and unique author ids. (NOTE: There can be NAs!)
+  mailID.to.authorID <- forest.corp$forest[,"author"]
+  authorIDs <- as.numeric(mailID.to.authorID[thread.info$start.email.id])
+
+  ## Obtaining the creation dates of thread initiator emails works similarly
+  creationDates <- sapply(thread.info$start.email.id,
+                          function(mail.id) {
+                            return(as.character(get.timestamp(mail.id)))
+                          })
+
+  dat <- data.frame(subject=thread.info$subject, createdBy=authorIDs,
+                    projectId=conf$pid, releaseRangeId=cycle$range.id,
+                    ml=conf$ml, mailThreadId=thread.info$tid,
+                    creationDate=creationDates,
+                    numberOfAuthors=thread.info$authors,
+                    numberOfMessages=thread.info$messages)
+  res <- dbWriteTable(conf$con, "mail_thread", dat, append=T, row.names=F)
+  if (!res) {
+    stop("Could not add to table mail_thread!")
+  }
 
   ## Compute the two-mode graphs linking users with their interests
   twomode.graphs <- compute.twomode.graphs(conf, interest.networks)
