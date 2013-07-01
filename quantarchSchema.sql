@@ -134,13 +134,23 @@ DROP TABLE IF EXISTS `quantarch`.`mail_thread` ;
 CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_thread` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `subject` VARCHAR(255) NULL ,
-  `createdBy` BIGINT NOT NULL ,
+  `createdBy` BIGINT , -- Can be NULL if we could not parse the author
   `projectId` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT NOT NULL ,
+  `ml` VARCHAR(255) NOT NULL ,
+  `mailThreadId` BIGINT NOT NULL , -- NOTE: id is local per release range/project
   `creationDate` DATETIME NULL ,
+  `numberOfAuthors` INT NOT NULL ,
+  `numberOfMessages` INT NOT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `mail_createdBy`
     FOREIGN KEY (`createdBy` )
     REFERENCES `quantarch`.`person` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `mail_release_range_key`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `mail_projectId`
@@ -644,27 +654,6 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`freq_subjects` (
 ENGINE = InnoDB;
 
 CREATE INDEX `freq_subects_project_ref_idx` ON `quantarch`.`freq_subjects` (`projectId` ASC) ;
-
-
--- -----------------------------------------------------
--- Table `quantarch`.`thread_info`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`thread_info` ;
-
-CREATE  TABLE IF NOT EXISTS `quantarch`.`thread_info` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `numberOfAuthors` INT NOT NULL ,
-  `numberOfMessages` INT NOT NULL ,
-  `mailThreadId` BIGINT NOT NULL ,
-  PRIMARY KEY (`id`) ,
-  CONSTRAINT `mailThread_thread_info_ref`
-    FOREIGN KEY (`mailThreadId` )
-    REFERENCES `quantarch`.`mail_thread` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-CREATE INDEX `mailThread_thread_info_ref_idx` ON `quantarch`.`thread_info` (`mailThreadId` ASC) ;
 
 
 -- -----------------------------------------------------
