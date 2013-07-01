@@ -828,7 +828,7 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`author_commit_stats_view` (`Name` INT, `
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`per_person_cluster_statistics_view`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `quantarch`.`per_person_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'clusterId'` INT, `'personId'` INT, `'technique'` INT, `'pagerank'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT);
+CREATE TABLE IF NOT EXISTS `quantarch`.`per_person_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'clusterId'` INT, `'personId'` INT, `'technique'` INT, `'rankValue'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT);
 
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`cluster_user_pagerank_view`
@@ -838,7 +838,7 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`cluster_user_pagerank_view` (`id` INT, `
 -- -----------------------------------------------------
 -- Placeholder table for view `quantarch`.`per_cluster_statistics_view`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'clusterId'` INT, `technique` INT, `'num_members'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT, `'pagerank average'` INT);
+CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'clusterId'` INT, `technique` INT, `'num_members'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT, `'prank_avg'` INT);
 
 -- -----------------------------------------------------
 -- View `quantarch`.`revisions_view`
@@ -869,7 +869,6 @@ DROP VIEW IF EXISTS `quantarch`.`author_commit_stats_view` ;
 DROP TABLE IF EXISTS `quantarch`.`author_commit_stats_view`;
 USE `quantarch`;
 CREATE  OR REPLACE VIEW `quantarch`.`author_commit_stats_view` AS
-
 SELECT 
 	p.name as Name, 
 	s.authorId as ID, 
@@ -882,7 +881,7 @@ FROM author_commit_stats s join person p on p.id = s.authorId
 WHERE 
 s.authorId IN 
 	(	select distinct(authorId) 
-		FROM author_commit_stats) 
+		FROM author_commit_stats)
 GROUP BY s.authorId, p.name, s.releaseRangeId;
 
 -- -----------------------------------------------------
@@ -898,7 +897,7 @@ select
     c.id as 'clusterId',
     p.id as 'personId',
 	pr.technique as 'technique',
-	prm.rankValue as 'pagerank',
+	prm.rankValue as 'rankValue',
     sum(acs.added) as 'added',
     sum(acs.deleted) as 'deleted',
     sum(acs.total) as 'total',
@@ -952,7 +951,7 @@ select
     sum(acs.deleted) as 'deleted',
     sum(acs.total) as 'total',
     sum(acs.numcommits) as 'numcommits',
-	avg(prm.rankValue) as 'pagerank average'
+	avg(prm.rankValue) as 'prank_avg'
 from release_range rr INNER JOIN (cluster c, cluster_user_mapping cum, person p, author_commit_stats acs, pagerank pr, pagerank_matrix prm)
 	ON (rr.id = c.releaseRangeId
 		AND c.id = cum.clusterId
