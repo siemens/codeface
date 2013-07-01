@@ -252,6 +252,34 @@ query.twomode.vertices <- function(con, type, ml, range.id) {
   return(dat)
 }
 
+query.initiate.response <- function(con, ml, range.id, type=NULL) {
+  if (!is.null(type) && !(type %in% c("subject", "content"))) {
+    stop("type in query.intiate.response must be NULL or subject or content!")
+  }
+
+  if (!is.null(type)) {
+    ## Convert human-readable type (subject, content) to in-DB encoding (0,1)
+    type <- which(type == c("subject", "content")) - 1
+  }
+
+  query <- str_c("SELECT responses, initiations, responses_received, deg, source ",
+                 "FROM initiate_response WHERE releaseRangeId=", range.id,
+                 " AND ml=", sq(ml))
+  if (!is.null(type)) {
+    query <- str_c(query, " AND source=", type)
+  }
+
+  dat <- dbGetQuery(con, query)
+
+  colnames(dat) <- c("responses", "initiations", "responses.received",
+                     "deg", "source")
+  dat$source <- mapvalues(dat$source, from=c(0,1), to=c("subject", "content"),
+                          warn_missing=FALSE)
+  dat$source <- as.factor(dat$source)
+
+  return(dat)
+}
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
