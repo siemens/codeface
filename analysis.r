@@ -476,22 +476,6 @@ create.network.plots <- function(conf, plots.path, res) {
     geom_line() +
       geom_point() + facet_grid(source~.)
   ggsave(file.path(plots.path, "interest.communication.correlation.pdf"), g)
-
-  ## TODO: It can happen that deg is NaN here. (in the worst case, all entries
-  ## are NaNs, leading to a ggplot2 fault). Check under which circumstances this
-  ## can happen.
-  g <- ggplot(res$networks.dat$ir, aes(x=responses, y=initiations)) +
-    geom_point(aes(size=deg, colour=col)) +
-      scale_x_log10() + scale_y_log10() + ggtitle(conf$project) +
-        facet_grid(source~.) +
-          xlab("Messages initiated (log. scale)") + ylab("Responses (log. scale)")
-  ggsave(file.path(plots.path, "init.response.log.pdf"), g)
-
-  ## TODO: Maybe we should jitter the points a little
-  g <- ggplot(res$networks.dat$ir, aes(x=responses, y=initiations)) +
-    geom_point(aes(size=deg, colour=col)) +
-      ggtitle(conf$project) + xlab("Messages initiated") + ylab("Responses")
-  ggsave(file.path(plots.path, "init.response.pdf"), g)
 }
 
 create.descriptive.plots <- function(conf, plots.path, res) {
