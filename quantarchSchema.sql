@@ -813,6 +813,32 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_vertices` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
+-- -----------------------------------------------------
+-- Table `quantarch`.`initiate_response`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`initiate_response` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`initiate_response` (
+  `releaseRangeId` BIGINT NOT NULL ,
+  `ml` VARCHAR(255) NOT NULL ,
+  `personId` BIGINT NOT NULL ,
+  `source` TINYINT NOT NULL , -- 0/1 for subject/content
+  `responses` INTEGER ,
+  `initiations` INTEGER ,
+  `responses_received` INTEGER ,
+  `deg` DOUBLE ,
+  CONSTRAINT `initiate_response_releaseRange`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `initiate_response_person`
+    FOREIGN KEY (`personId` )
+    REFERENCES `quantarch`.`person` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
 USE `quantarch` ;
 
 -- -----------------------------------------------------
