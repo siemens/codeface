@@ -452,6 +452,11 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
                     creationDate=creationDates,
                     numberOfAuthors=thread.info$authors,
                     numberOfMessages=thread.info$messages)
+
+  ## Remove tabs in subjects -- dbWriteTable cannot handle this properly
+  dat$subject <- as.character(dat$subject)
+  dat$subject <- gsub("\t", " ", dat$subject, fixed=TRUE, useBytes=TRUE)
+
   res <- dbWriteTable(conf$con, "mail_thread", dat, append=T, row.names=F)
   if (!res) {
     stop("Could not add to table mail_thread!")
