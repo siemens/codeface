@@ -770,6 +770,49 @@ CREATE INDEX `edgelist_person_to_idx` ON `quantarch`.`edgelist` (`toId` ASC) ;
 
 CREATE INDEX `edgeList_cluster_idx` ON `quantarch`.`edgelist` (`clusterId` ASC) ;
 
+-- -----------------------------------------------------
+-- Table `quantarch`.`twomode_edgelist`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`twomode_edgelist` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_edgelist` (
+  `releaseRangeId` BIGINT NOT NULL ,
+  `source` CHAR(7) NOT NULL , -- subject or content
+  `ml` VARCHAR(255) NOT NULL ,
+  `fromVert` BIGINT NOT NULL ,
+  `toVert` VARCHAR(255) NOT NULL ,
+  `weight` DOUBLE NOT NULL ,
+  CONSTRAINT `twomode_edgelist_releaseRange`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `twomode_edgelist_person`
+    FOREIGN KEY (`fromVert` )
+    REFERENCES `quantarch`.`person` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`twomode_vertices`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`twomode_vertices` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_vertices` (
+  `releaseRangeId` BIGINT NOT NULL ,
+  `source` CHAR(7) NOT NULL , -- subject or content
+  `ml` VARCHAR(255) NOT NULL ,
+  `name` VARCHAR(255) NOT NULL ,
+  `degree` DOUBLE NOT NULL ,
+  `type` SMALLINT NOT NULL ,
+  CONSTRAINT `twomode_vertices_releaseRange`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
 USE `quantarch` ;
 
 -- -----------------------------------------------------
