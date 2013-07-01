@@ -141,17 +141,12 @@ process.ts <- function(series) {
   ## We compute the window lengths based on natural time units
   ## to avoid dependencies on the lifetime of the project, or on the
   ## project's relative activity
-  ## Assume that a month has roughly 30 days.
-  width.monthly <- length(series)/as.numeric(duration/7)
-  width.daily <- length(series)/as.numeric(duration)
-  series.daily <- na.omit(rollapply(series, width=width.daily, median,
-                                    align="center"))
-  series.monthly <- na.omit(rollapply(series, width=width.monthly, median,
-                                      align="center"))
+  series.weekly <- na.omit(apply.weekly(series, median))
+  series.monthly <- na.omit(apply.monthly(series, median))
   series.cumulative <- cumsum(series)
 
   ## NOTE: R can only merge two data frames at once
-  series.merged <- merge(gen.df.from.ts(series.daily,
+  series.merged <- merge(gen.df.from.ts(series.weekly,
                                         type="Averaged (small window)"),
                          gen.df.from.ts(series.monthly,
                                         type="Averaged (large window)"), all=T)
