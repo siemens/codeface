@@ -280,6 +280,20 @@ query.initiate.response <- function(con, ml, range.id, type=NULL) {
   return(dat)
 }
 
+query.thread.info <- function(con, ml, range.id) {
+  dat <- dbGetQuery(con, str_c("SELECT subject, createdBy, mailThreadId, ",
+                               "creationDate, numberOfAuthors, numberOfMessages ",
+                               "FROM mail_thread WHERE releaseRangeId=", range.id,
+                               " AND ml=", sq(ml)))
+  if (!is.null(dat)) {
+    colnames(dat) <- c("subject", "createdBy", "tid", "creationDate", "authors",
+                       "messages")
+    dat$tid <- as.factor(dat$tid)
+  }
+
+  return(dat)
+}
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
