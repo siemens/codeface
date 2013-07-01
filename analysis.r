@@ -423,8 +423,9 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
               thread.info=thread.info)
   save(file=file.path(data.path, "vis.data"), res)
   
-  ## ######### End of actual computation. Generate graphs etc. ##############
+  ####### End of actual computation. Generate graphs and store data etc. #######
   dispatch.plots(conf, data.path, res)
+  store.data(conf, res, cycle$range.id)
 }
 
 compute.twomode.graphs <- function(conf, interest.networks) {
@@ -461,6 +462,12 @@ store.initiate.response <- function(conf, ir, ml, range.id) {
   if (!res) {
     stop("Internal error: Could not write thread.info into database!")
   }
+}
+
+## Dispatcher for all data storing functions above
+store.data <- function(conf, res, range.id) {
+  store.initiate.response(conf, res$networks.dat$ir, conf$ml, range.id)
+  store.twomode.graphs(conf, res$twomode.graphs, range.id)
 }
 
 create.network.plots <- function(conf, plots.path, res) {
