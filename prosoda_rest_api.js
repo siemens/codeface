@@ -75,7 +75,7 @@ app.get('/getUsers', function (request, response) {
 	logger.log('info', "/getUsers");
 	try {
 		connection.query('SELECT * FROM person;', function (error, rows, fields) { 
-			response.end(JSON.stringify(rows)); 
+			response.jsonp(rows);
 		});
 	 } catch (exception) {
         logger.log('error', {error: exception.message});
@@ -93,7 +93,7 @@ app.get('/getUser/:id', function (request, response) {
     var taskId = request.params.id;
     try {
 	connection.query('SELECT * FROM person WHERE id=' + taskId + ';', function (error, rows, fields) { 
-	    response.end(JSON.stringify(rows)); 
+		response.jsonp(rows);
 	});
     } catch (exception) {
         logger.log('error', {error: exception.message});
@@ -112,7 +112,7 @@ app.get('/getReleaseTimelines/:projectID', function (request, response) {
 	var projectID = request.params.projectID;
 	try {
 		connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ';', function (error, rows, fields) { 
-			response.end(JSON.stringify(rows)); 
+			response.jsonp(rows);
 		});
 	} catch (exception) {
         logger.log('error', {error: exception.message});
@@ -134,7 +134,7 @@ app.get('/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp', functio
 	var end = request.params.endTimestamp;
 	try {
 		connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ' and date >= \'' + begin + '\' and date <= \'' + end + '\';', function (error, rows, fields) { 
-			response.end(JSON.stringify(rows)); 
+			response.jsonp(rows);
 		});
 	} catch (exception) {
         logger.log('error', {error: exception.message});
@@ -156,7 +156,7 @@ app.get('/getPlotBinData/:projectID/:plotName/:plotType', function (request, res
 	var plotType = request.params.plotType;
 	try {
 		connection.query('select plotId, type, data from plot_bin, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName	+ '\' and type = \'' + plotType	+ '\';', function (error, rows, fields) { 
-			response.end(JSON.stringify(rows)); 
+			response.jsonp(rows);
 		});
 	} catch (exception) {
         logger.log('error', {error: exception.message});
@@ -172,7 +172,7 @@ app.get('/getProjects', function (request, response) {
 	logger.log('info', '/getProjects');
 	try {
 		connection.query('SELECT * FROM project;', function (error, rows, fields) { 
-			response.end(JSON.stringify(rows)); 
+			response.jsonp(rows);
 		});
 	} catch (exception) {
         logger.log('error', {error: exception.message});
@@ -190,7 +190,7 @@ app.get('/getProjectsByName/:name', function (request, response) {
 	var name = request.params.name;
 	try {
 		connection.query('SELECT * FROM project where name = \'' + name + '\';', function (error, rows, fields) { 
-			response.end(JSON.stringify(rows)); 
+			response.jsonp(rows);
 		});
 	} catch (exception) {
         logger.log('error', {error: exception.message});
@@ -230,7 +230,7 @@ app.get('/getTimeSeriesData/:projectID/:plotName', function (request, response) 
 	var plotName = request.params.plotName;
 	try {
 		connection.query('select plotId, time, value, value_scaled from timeseries, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName	+ '\' order by time asc;', function (error, rows, fields) { 
-			response.end(JSON.stringify(rows)); 
+			response.jsonp(rows);
 		});
 	} catch (exception) {
         logger.log('error', {error: exception.message});
@@ -254,7 +254,7 @@ app.get('/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:end
 	var end = request.params.endTimestamp;
 	try {
 		connection.query('select plotId, time, value, value_scaled from timeseries, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName	+ '\' and time >= \'' + begin + '\'  and time <= \'' + end + '\' order by time asc;', function (error, rows, fields) { 
-			response.end(JSON.stringify(rows)); 
+			response.jsonp(rows);
 		});
 	} catch (exception) {
         logger.log('error', {error: exception.message});
