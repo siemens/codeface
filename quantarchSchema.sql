@@ -3,7 +3,7 @@ SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
 
 DROP SCHEMA IF EXISTS `quantarch` ;
-CREATE SCHEMA IF NOT EXISTS `quantarch` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci ;
+CREATE SCHEMA IF NOT EXISTS `quantarch` DEFAULT CHARACTER SET utf8 ;
 USE `quantarch` ;
 
 -- -----------------------------------------------------
@@ -15,7 +15,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`project` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `name` VARCHAR(255) NOT NULL ,
   `analysisMethod` VARCHAR(45) NOT NULL ,
-  `analysisTime` DATETIME NULL ,
+  `analysisTime` DATETIME NULL DEFAULT NULL ,
   PRIMARY KEY (`id`) )
 ENGINE = InnoDB;
 
@@ -29,13 +29,13 @@ DROP TABLE IF EXISTS `quantarch`.`person` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`person` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `name` VARCHAR(255) NULL ,
+  `name` VARCHAR(255) NULL DEFAULT NULL ,
   `projectId` BIGINT NOT NULL ,
   `email1` VARCHAR(255) NOT NULL ,
-  `email2` VARCHAR(255) NULL ,
-  `email3` VARCHAR(255) NULL ,
-  `email4` VARCHAR(255) NULL ,
-  `email5` VARCHAR(255) NULL ,
+  `email2` VARCHAR(255) NULL DEFAULT NULL ,
+  `email3` VARCHAR(255) NULL DEFAULT NULL ,
+  `email4` VARCHAR(255) NULL DEFAULT NULL ,
+  `email5` VARCHAR(255) NULL DEFAULT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `person_projectId`
     FOREIGN KEY (`projectId` )
@@ -58,19 +58,19 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`issue` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `bugId` VARCHAR(45) NOT NULL ,
   `creationDate` DATETIME NOT NULL ,
-  `modifiedDate` DATETIME NULL ,
-  `url` VARCHAR(255) NULL ,
+  `modifiedDate` DATETIME NULL DEFAULT NULL ,
+  `url` VARCHAR(255) NULL DEFAULT NULL ,
   `isRegression` INT(1) NULL DEFAULT 0 ,
   `status` VARCHAR(45) NOT NULL ,
-  `resolution` VARCHAR(45) NULL ,
+  `resolution` VARCHAR(45) NULL DEFAULT NULL ,
   `priority` VARCHAR(45) NOT NULL ,
   `severity` VARCHAR(45) NOT NULL ,
   `createdBy` BIGINT NOT NULL ,
-  `assignedTo` BIGINT NULL ,
+  `assignedTo` BIGINT NULL DEFAULT NULL ,
   `projectId` BIGINT NOT NULL ,
-  `subComponent` VARCHAR(45) NULL ,
-  `subSubComponent` VARCHAR(45) NULL ,
-  `version` VARCHAR(45) NULL ,
+  `subComponent` VARCHAR(45) NULL DEFAULT NULL ,
+  `subSubComponent` VARCHAR(45) NULL DEFAULT NULL ,
+  `version` VARCHAR(45) NULL DEFAULT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `issue_createdBy`
     FOREIGN KEY (`createdBy` )
@@ -107,7 +107,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`issue_comment` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `who` BIGINT NOT NULL ,
   `fk_issueId` BIGINT NOT NULL ,
-  `commentDate` DATETIME NULL ,
+  `commentDate` DATETIME NULL DEFAULT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `fk_issueId`
     FOREIGN KEY (`fk_issueId` )
@@ -127,71 +127,6 @@ CREATE INDEX `issue_comment_who_idx` ON `quantarch`.`issue_comment` (`who` ASC) 
 
 
 -- -----------------------------------------------------
--- Table `quantarch`.`mail_thread`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`mail_thread` ;
-
-CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_thread` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT ,
-  `subject` VARCHAR(255) NULL ,
-  `createdBy` BIGINT , -- Can be NULL if we could not parse the author
-  `projectId` BIGINT NOT NULL ,
-  `releaseRangeId` BIGINT NOT NULL ,
-  `ml` VARCHAR(255) NOT NULL ,
-  `mailThreadId` BIGINT NOT NULL , -- NOTE: id is local per release range/project
-  `creationDate` DATETIME NULL ,
-  `numberOfAuthors` INT NOT NULL ,
-  `numberOfMessages` INT NOT NULL ,
-  PRIMARY KEY (`id`) ,
-  CONSTRAINT `mail_createdBy`
-    FOREIGN KEY (`createdBy` )
-    REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `mail_release_range_key`
-    FOREIGN KEY (`releaseRangeId` )
-    REFERENCES `quantarch`.`release_range` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `mail_projectId`
-    FOREIGN KEY (`projectId` )
-    REFERENCES `quantarch`.`project` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-CREATE INDEX `mail_createdBy_idx` ON `quantarch`.`mail_thread` (`createdBy` ASC) ;
-
-CREATE INDEX `mail_projectId_idx` ON `quantarch`.`mail_thread` (`projectId` ASC) ;
-
-
--- -----------------------------------------------------
--- Table `quantarch`.`mail_comments`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`mail_comments` ;
-
-CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_comments` (
-  `who` BIGINT NOT NULL ,
-  `mailThreadId` BIGINT NOT NULL ,
-  `commentDate` DATETIME NULL ,
-  CONSTRAINT `mail_comment_who`
-    FOREIGN KEY (`who` )
-    REFERENCES `quantarch`.`person` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `mailThreadId`
-    FOREIGN KEY (`mailThreadId` )
-    REFERENCES `quantarch`.`mail_thread` (`id` )
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-CREATE INDEX `mail_comment_who_idx` ON `quantarch`.`mail_comments` (`who` ASC) ;
-
-CREATE INDEX `mailThreadId_idx` ON `quantarch`.`mail_comments` (`mailThreadId` ASC) ;
-
-
--- -----------------------------------------------------
 -- Table `quantarch`.`release_timeline`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `quantarch`.`release_timeline` ;
@@ -200,7 +135,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`release_timeline` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `type` VARCHAR(45) NOT NULL ,
   `tag` VARCHAR(45) NOT NULL ,
-  `date` DATETIME NULL ,
+  `date` DATETIME NULL DEFAULT NULL ,
   `projectId` BIGINT NOT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `release_project_ref`
@@ -223,7 +158,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`release_range` (
   `releaseStartId` BIGINT NOT NULL ,
   `releaseEndId` BIGINT NOT NULL ,
   `projectId` BIGINT NOT NULL ,
-  `releaseRCStartId` BIGINT NULL ,
+  `releaseRCStartId` BIGINT NULL DEFAULT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `releaseRange_releaseStartId`
     FOREIGN KEY (`releaseStartId` )
@@ -254,6 +189,73 @@ CREATE INDEX `releaseRange_releaseEndId_idx` ON `quantarch`.`release_range` (`re
 CREATE INDEX `releaseRange_projectId_idx` ON `quantarch`.`release_range` (`projectId` ASC) ;
 
 CREATE INDEX `releaseRange_RCStartId_idx` ON `quantarch`.`release_range` (`releaseRCStartId` ASC) ;
+
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`mail_thread`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`mail_thread` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_thread` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
+  `subject` VARCHAR(255) NULL DEFAULT NULL ,
+  `createdBy` BIGINT NULL DEFAULT NULL ,
+  `projectId` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT NOT NULL ,
+  `ml` VARCHAR(255) NOT NULL ,
+  `mailThreadId` BIGINT NOT NULL ,
+  `creationDate` DATETIME NULL DEFAULT NULL ,
+  `numberOfAuthors` INT NOT NULL ,
+  `numberOfMessages` INT NOT NULL ,
+  PRIMARY KEY (`id`) ,
+  CONSTRAINT `mail_createdBy`
+    FOREIGN KEY (`createdBy` )
+    REFERENCES `quantarch`.`person` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `mail_release_range_key`
+    FOREIGN KEY (`releaseRangeId` )
+    REFERENCES `quantarch`.`release_range` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `mail_projectId`
+    FOREIGN KEY (`projectId` )
+    REFERENCES `quantarch`.`project` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE INDEX `mail_createdBy_idx` ON `quantarch`.`mail_thread` (`createdBy` ASC) ;
+
+CREATE INDEX `mail_projectId_idx` ON `quantarch`.`mail_thread` (`projectId` ASC) ;
+
+CREATE INDEX `mail_release_range_key` ON `quantarch`.`mail_thread` (`releaseRangeId` ASC) ;
+
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`mail_comments`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`mail_comments` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_comments` (
+  `who` BIGINT NOT NULL ,
+  `mailThreadId` BIGINT NOT NULL ,
+  `commentDate` DATETIME NULL DEFAULT NULL ,
+  CONSTRAINT `mail_comment_who`
+    FOREIGN KEY (`who` )
+    REFERENCES `quantarch`.`person` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `mailThreadId`
+    FOREIGN KEY (`mailThreadId` )
+    REFERENCES `quantarch`.`mail_thread` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE INDEX `mail_comment_who_idx` ON `quantarch`.`mail_comments` (`who` ASC) ;
+
+CREATE INDEX `mailThreadId_idx` ON `quantarch`.`mail_comments` (`mailThreadId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -292,22 +294,22 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`commit` (
   `commitDate` DATETIME NOT NULL ,
   `author` BIGINT NOT NULL ,
   `projectId` BIGINT NOT NULL ,
-  `ChangedFiles` INT NULL ,
-  `AddedLines` INT NULL ,
-  `DeletedLines` INT NULL ,
-  `DiffSize` INT NULL ,
-  `CmtMsgLines` INT NULL ,
-  `CmtMsgBytes` INT NULL ,
-  `NumSignedOffs` INT NULL ,
-  `NumTags` INT NULL ,
-  `general` INT NULL ,
-  `TotalSubsys` INT NULL ,
-  `Subsys` VARCHAR(45) NULL ,
-  `inRC` INT NULL ,
-  `AuthorSubsysSimilarity` FLOAT NULL ,
-  `AuthorTaggersSimilarity` FLOAT NULL ,
-  `TaggersSubsysSimilarity` FLOAT NULL ,
-  `releaseRangeId` BIGINT NULL ,
+  `ChangedFiles` INT NULL DEFAULT NULL ,
+  `AddedLines` INT NULL DEFAULT NULL ,
+  `DeletedLines` INT NULL DEFAULT NULL ,
+  `DiffSize` INT NULL DEFAULT NULL ,
+  `CmtMsgLines` INT NULL DEFAULT NULL ,
+  `CmtMsgBytes` INT NULL DEFAULT NULL ,
+  `NumSignedOffs` INT NULL DEFAULT NULL ,
+  `NumTags` INT NULL DEFAULT NULL ,
+  `general` INT NULL DEFAULT NULL ,
+  `TotalSubsys` INT NULL DEFAULT NULL ,
+  `Subsys` VARCHAR(45) NULL DEFAULT NULL ,
+  `inRC` INT NULL DEFAULT NULL ,
+  `AuthorSubsysSimilarity` FLOAT NULL DEFAULT NULL ,
+  `AuthorTaggersSimilarity` FLOAT NULL DEFAULT NULL ,
+  `TaggersSubsysSimilarity` FLOAT NULL DEFAULT NULL ,
+  `releaseRangeId` BIGINT NULL DEFAULT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `commit_person`
     FOREIGN KEY (`author` )
@@ -424,10 +426,10 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`author_commit_stats` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `authorId` BIGINT NOT NULL ,
   `releaseRangeId` BIGINT NOT NULL ,
-  `added` INT NULL ,
-  `deleted` INT NULL ,
-  `total` INT NULL ,
-  `numcommits` INT NULL ,
+  `added` INT NULL DEFAULT NULL ,
+  `deleted` INT NULL DEFAULT NULL ,
+  `total` INT NULL DEFAULT NULL ,
+  `numcommits` INT NULL DEFAULT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `author_person_key`
     FOREIGN KEY (`authorId` )
@@ -455,7 +457,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`plots` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `name` VARCHAR(45) NOT NULL ,
   `projectId` BIGINT NOT NULL ,
-  `releaseRangeId` BIGINT DEFAULT NULL,
+  `releaseRangeId` BIGINT NULL DEFAULT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `plot_project_ref`
     FOREIGN KEY (`projectId` )
@@ -470,6 +472,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`plots` (
 ENGINE = InnoDB;
 
 CREATE INDEX `plot_project_ref_idx` ON `quantarch`.`plots` (`projectId` ASC) ;
+
+CREATE INDEX `plot_releaseRangeId_ref` ON `quantarch`.`plots` (`releaseRangeId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -500,10 +504,10 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`cluster` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `projectId` BIGINT NOT NULL ,
   `releaseRangeId` BIGINT NOT NULL ,
-  `clusterNumber` INT NULL ,
-  `clusterMethod` VARCHAR(45) NULL ,
-  `dot` BIGINT NULL ,
-  `svg` BIGINT NULL ,
+  `clusterNumber` INT NULL DEFAULT NULL ,
+  `clusterMethod` VARCHAR(45) NULL DEFAULT NULL ,
+  `dot` BIGINT NULL DEFAULT NULL ,
+  `svg` BIGINT NULL DEFAULT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `project_cluster_ref`
     FOREIGN KEY (`projectId` )
@@ -572,8 +576,8 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`issue_history` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `changeDate` DATETIME NOT NULL ,
   `field` VARCHAR(45) NOT NULL ,
-  `oldValue` VARCHAR(45) NULL ,
-  `newValue` VARCHAR(45) NULL ,
+  `oldValue` VARCHAR(45) NULL DEFAULT NULL ,
+  `newValue` VARCHAR(45) NULL DEFAULT NULL ,
   `who` BIGINT NOT NULL ,
   `issueId` BIGINT NOT NULL ,
   PRIMARY KEY (`id`) ,
@@ -624,7 +628,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`timeseries` (
   `plotId` BIGINT NOT NULL ,
   `time` DATETIME NOT NULL ,
   `value` DOUBLE NOT NULL ,
-  `value_scaled` DOUBLE NULL ,
+  `value_scaled` DOUBLE NULL DEFAULT NULL ,
   CONSTRAINT `plot_time_double_plot_ref`
     FOREIGN KEY (`plotId` )
     REFERENCES `quantarch`.`plots` (`id` )
@@ -661,6 +665,8 @@ ENGINE = InnoDB;
 
 CREATE INDEX `freq_subects_project_ref_idx` ON `quantarch`.`freq_subjects` (`projectId` ASC) ;
 
+CREATE INDEX `freq_subjects_release_range_ref` ON `quantarch`.`freq_subjects` (`releaseRangeId` ASC) ;
+
 
 -- -----------------------------------------------------
 -- Table `quantarch`.`thread_density`
@@ -693,7 +699,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`pagerank` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `releaseRangeId` BIGINT NOT NULL ,
   `technique` TINYINT NOT NULL ,
-  `name` VARCHAR(45) NULL ,
+  `name` VARCHAR(45) NULL DEFAULT NULL ,
   PRIMARY KEY (`id`) ,
   CONSTRAINT `pagerank_releaserange`
     FOREIGN KEY (`releaseRangeId` )
@@ -765,6 +771,7 @@ CREATE INDEX `edgelist_person_to_idx` ON `quantarch`.`edgelist` (`toId` ASC) ;
 
 CREATE INDEX `edgeList_cluster_idx` ON `quantarch`.`edgelist` (`clusterId` ASC) ;
 
+
 -- -----------------------------------------------------
 -- Table `quantarch`.`twomode_edgelist`
 -- -----------------------------------------------------
@@ -772,7 +779,7 @@ DROP TABLE IF EXISTS `quantarch`.`twomode_edgelist` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_edgelist` (
   `releaseRangeId` BIGINT NOT NULL ,
-  `source` CHAR(7) NOT NULL , -- subject or content
+  `source` CHAR(7) NOT NULL ,
   `ml` VARCHAR(255) NOT NULL ,
   `fromVert` BIGINT NOT NULL ,
   `toVert` VARCHAR(255) NOT NULL ,
@@ -789,6 +796,11 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_edgelist` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
+CREATE INDEX `twomode_edgelist_releaseRange` ON `quantarch`.`twomode_edgelist` (`releaseRangeId` ASC) ;
+
+CREATE INDEX `twomode_edgelist_person` ON `quantarch`.`twomode_edgelist` (`fromVert` ASC) ;
+
+
 -- -----------------------------------------------------
 -- Table `quantarch`.`twomode_vertices`
 -- -----------------------------------------------------
@@ -796,7 +808,7 @@ DROP TABLE IF EXISTS `quantarch`.`twomode_vertices` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_vertices` (
   `releaseRangeId` BIGINT NOT NULL ,
-  `source` CHAR(7) NOT NULL , -- subject or content
+  `source` CHAR(7) NOT NULL ,
   `ml` VARCHAR(255) NOT NULL ,
   `name` VARCHAR(255) NOT NULL ,
   `degree` DOUBLE NOT NULL ,
@@ -808,6 +820,9 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_vertices` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
+CREATE INDEX `twomode_vertices_releaseRange` ON `quantarch`.`twomode_vertices` (`releaseRangeId` ASC) ;
+
+
 -- -----------------------------------------------------
 -- Table `quantarch`.`initiate_response`
 -- -----------------------------------------------------
@@ -817,11 +832,11 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`initiate_response` (
   `releaseRangeId` BIGINT NOT NULL ,
   `ml` VARCHAR(255) NOT NULL ,
   `personId` BIGINT NOT NULL ,
-  `source` TINYINT NOT NULL , -- 0/1 for subject/content
-  `responses` INTEGER ,
-  `initiations` INTEGER ,
-  `responses_received` INTEGER ,
-  `deg` DOUBLE ,
+  `source` TINYINT NOT NULL ,
+  `responses` INT NULL DEFAULT NULL ,
+  `initiations` INT NULL DEFAULT NULL ,
+  `responses_received` INT NULL DEFAULT NULL ,
+  `deg` DOUBLE NULL DEFAULT NULL ,
   CONSTRAINT `initiate_response_releaseRange`
     FOREIGN KEY (`releaseRangeId` )
     REFERENCES `quantarch`.`release_range` (`id` )
@@ -833,6 +848,10 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`initiate_response` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
+
+CREATE INDEX `initiate_response_releaseRange` ON `quantarch`.`initiate_response` (`releaseRangeId` ASC) ;
+
+CREATE INDEX `initiate_response_person` ON `quantarch`.`initiate_response` (`personId` ASC) ;
 
 USE `quantarch` ;
 
