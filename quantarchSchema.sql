@@ -874,6 +874,25 @@ ENGINE = InnoDB;
 
 CREATE INDEX `mailing_lists_projectid_idx` ON `quantarch`.`mailing_list` (`projectId` ASC) ;
 
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`per_cluster_statistics`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`per_cluster_statistics` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics` (
+  `projectId` BIGINT NOT NULL ,
+  `releaseRangeId` BIGINT NOT NULL ,
+  `clusterId` BIGINT NOT NULL ,
+  `technique` TINYINT NOT NULL ,
+  `num_members` INT(11) NOT NULL ,
+  `added` INT(11) NOT NULL ,
+  `deleted` INT(11) NOT NULL ,
+  `total` INT(11) NOT NULL ,
+  `numcommits` INT(11) NOT NULL ,
+  `prank_avg` DOUBLE NOT NULL )
+ENGINE = InnoDB;
+
 USE `quantarch` ;
 
 -- -----------------------------------------------------
@@ -900,6 +919,23 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`cluster_user_pagerank_view` (`id` INT, `
 -- Placeholder table for view `quantarch`.`per_cluster_statistics_view`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics_view` (`'projectId'` INT, `'releaseRangeId'` INT, `'clusterId'` INT, `technique` INT, `'num_members'` INT, `'added'` INT, `'deleted'` INT, `'total'` INT, `'numcommits'` INT, `'prank_avg'` INT);
+
+-- -----------------------------------------------------
+-- procedure update_per_cluster_statistics
+-- -----------------------------------------------------
+
+USE `quantarch`;
+DROP procedure IF EXISTS `quantarch`.`update_per_cluster_statistics`;
+
+DELIMITER $$
+USE `quantarch`$$
+CREATE PROCEDURE `quantarch`.`update_per_cluster_statistics` ()
+BEGIN
+	TRUNCATE per_cluster_statistics;
+	INSERT INTO per_cluster_statistics SELECT * FROM per_cluster_statistics_view;
+END$$
+
+DELIMITER ;
 
 -- -----------------------------------------------------
 -- View `quantarch`.`revisions_view`
