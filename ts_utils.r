@@ -69,6 +69,13 @@ compute.ts.distance <- function(series1, series2) {
     series2 <- sample(series2, MAX.POINTS)
   }
 
+  ## Handle pathological cases of zero-length time series
+  if (xor(length(series1) == 0, length(series2) == 0)) {
+    return(1)
+  } else if (length(series1) == 0 && length(series2) == 0) {
+    return(0)
+  }
+
   return(dtw(series1, series2)$normalizedDistance)
 }
 
