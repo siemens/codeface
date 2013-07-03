@@ -1,0 +1,9 @@
+*~
+repos/
+*.Rout
+.*
+wordnet/
+error.dump.rda
+*.txt
+*.pdf
+\#*\#
