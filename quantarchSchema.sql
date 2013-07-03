@@ -853,6 +853,27 @@ CREATE INDEX `initiate_response_releaseRange` ON `quantarch`.`initiate_response`
 
 CREATE INDEX `initiate_response_person` ON `quantarch`.`initiate_response` (`personId` ASC) ;
 
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`mailing_list`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`mailing_list` ;
+
+CREATE  TABLE IF NOT EXISTS `quantarch`.`mailing_list` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT ,
+  `projectId` BIGINT NOT NULL ,
+  `name` VARCHAR(128) NOT NULL ,
+  `description` VARCHAR(255) NULL ,
+  PRIMARY KEY (`id`) ,
+  CONSTRAINT `mailing_lists_projectid`
+    FOREIGN KEY (`projectId` )
+    REFERENCES `quantarch`.`project` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE INDEX `mailing_lists_projectid_idx` ON `quantarch`.`mailing_list` (`projectId` ASC) ;
+
 USE `quantarch` ;
 
 -- -----------------------------------------------------
