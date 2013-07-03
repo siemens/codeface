@@ -98,6 +98,12 @@ if (packageVersion("plyr") < "1.8.0") {
   stop("plyr needs to be available in version >= 1.8.0, please update.")
 }
 
+if (Sys.getenv("http_proxy") != "") {
+  cat("WARNING: http_proxy is set!\n")
+  cat("This is often unintended for local communication with the ID service.\n")
+  cat("Are you shure this setup is correct? Continuing nevertheless.\n")
+}
+
 if (opts$nodes > 1) {
   options(mc.cores=opts$nodes)
 } else {
