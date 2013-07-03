@@ -96,15 +96,15 @@ compute.commnet <- function(forest.corp, data.path) {
 ## basedir/<ml>/subject resp. /content
 ## Iterate over all terms in termfreq, and create the adjacency matrix
 ## for the communication network associated with each term
-extract.commnets <- function(forest, termfreq, repo.path, data.path) {
+extract.commnets <- function(forest.corp, termfreq, repo.path, data.path) {
   cont.dir <- file.path(data.path, "commnet.terms", "content")
   subj.dir <- file.path(data.path, "commnet.terms", "subject")
 
   doCompute <- !(file.exists(cont.dir)) && !(file.exists(subj.dir))
 
   if (doCompute) {
-    extract.commnet(forest, termfreq, "content", data.path)
-    extract.commnet(forest, termfreq, "subject", data.path)
+    extract.commnet(forest.corp, termfreq, "content", data.path)
+    extract.commnet(forest.corp, termfreq, "subject", data.path)
   }
 }
 
