@@ -1,10 +1,10 @@
 library(zoo)
 library(xts)
 library(lubridate)
-source("../prosoda/db.r")
-source("../prosoda/utils.r")
-source("../prosoda/query.r")
-source("../prosoda/id_manager.r")
+source("db.r")
+source("utils.r")
+source("query.r")
+source("id_manager.r")
 
 gen.forest <- function(conf, repo.path, resdir) {
   ## TODO: Use apt ML specific preprocessing functions, not always the

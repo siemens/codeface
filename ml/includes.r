@@ -2,10 +2,9 @@
 ## we can use the list on cluster nodes
 s <- suppressPackageStartupMessages
 
-s(source("local.r"))
-s(source("analysis.r"))
-s(source("project.spec.r"))
-s(source("keyword.list.r"))
+s(source("ml/analysis.r"))
+s(source("ml/project.spec.r"))
+s(source("ml/keyword.list.r"))
 s(source.files(snatm.path))
 
 s(library(tm))

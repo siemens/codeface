@@ -16,13 +16,14 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+## NOTE: The dispatcher is supposed to be called from the main prosoda
+## directory; otherwise, we run into trouble with source()ed filed
+
 suppressPackageStartupMessages(library(optparse))
 library(parallel)
-# NOTE: The curious source()s from ../prosoda will vanish once
-# the code bases are merged together
-source("../prosoda/config.r")
-source("../prosoda/db.r")
-source("local.r")
+source("config.r")
+source("db.r")
+source("ml/local.r")
 
 ## TODO: Filter out spam. There's an incredible amount in some gmane archives
 ## TODO: (this should also include filtering out non-english messages)
@@ -32,7 +33,7 @@ source("local.r")
 ######################### Dispatcher ###################################
 option_list <- list(
                  make_option(c("", "--basedir"), type="character", default="./",
-                             help="Base directory for prosoda.nntp"),
+                             help="Base directory for prosoda"),
                  make_option(c("-n", "--nodes"), type="integer", default=1,
                              help=paste("Number of nodes for cluster analysis",
                                "(1 means local processing)"))
@@ -57,9 +58,11 @@ if (length(arguments$args) != 3) {
 }
 
 conf <- load.config(config.file)
-# NOTE: Loading the global config via three corners will go away once
-# the code bases are merged
-global.conf <- load.global.config("../prosoda/prosoda.conf")
+
+if (!(file.exists("prosoda.conf"))) {
+  stop("prosoda.conf not found in current directory!")
+}
+global.conf <- load.global.config("prosoda.conf")
 
 conf <- init.db(conf, global.conf)
 
@@ -82,7 +85,7 @@ if (!interactive()) {
 ## created, we can get rid of loading the files directly (includes.r
 ## load snatm via snatm.path)
 snatm.path <- "../src.nntp/snatm/pkg/R"
-source("includes.r")
+source("ml/includes.r")
 set.seed(19101978) ## Fix the seed to make results of random algorithms reproducible
 
 if (packageVersion("tm") < "0.5.9") {
