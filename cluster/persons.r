@@ -529,30 +529,45 @@ save.cluster.stats.subsys <- function(.comm, .id.subsys, .elems,
   }
 }
 
-save.all <- function(conf, .tags, .iddb, .prank, .comm, .filename=NULL,
+save.all <- function(conf, .tags, .iddb, .prank.list, .comm, .filename.base=NULL,
                      label) {
-  g.all <- save.group(conf, .tags, .iddb, .iddb$ID, .prank, .filename=NULL,
-                      label=NA)
-  V(g.all)$label <- .iddb$ID
-  V(g.all)$pencolor <- V(g.all)$fillcolor
+  g.all.reg <- save.group(conf, .tags, .iddb, .iddb$ID, .prank.list$reg,
+                          .filename=NULL, label=NA)
+  g.all.tr <- save.group(conf, .tags, .iddb, .iddb$ID, .prank.list$tr,
+                         .filename=NULL, label=NA)
+
+  ## NOTE: The all-in-one graphs get a different suffix (ldot for "large
+  ## dot") so that we can easily skip them when batch-processing graphviz
+  ## images -- they take a long while to compute
+
+  V(g.all.reg)$label <- .iddb$ID
+  V(g.all.reg)$pencolor <- V(g.all.reg)$fillcolor
+
+  V(g.all.tr)$label <- .iddb$ID
+  V(g.all.tr)$pencolor <- V(g.all.reg)$fillcolor
   
-  elems <- select.communities.more(.comm, 10) # Communities with at least 11 members
+  elems <- unique(.comm$membership)
   red <- as.integer(scale.data(0:(length(elems)+1), 0, 255))
   ##  grey <- as.integer(scale.data(0:(length(elems)+1), 0, 99))
   for (i in elems) {
     idx <- as.vector(which(.comm$membership==i))
-    V(g.all)[idx]$fillcolor <- col.to.hex("#", red[i+1], 0, 0)
+
+    V(g.all.reg)[idx]$fillcolor <- col.to.hex("#", red[i+1], 0, 0)
+    V(g.all.tr)[idx]$fillcolor <- col.to.hex("#", red[i+1], 0, 0)
   }
   
   if (!is.na(label)) {
-    g.all$label = label
+    g.all.reg$label = label
+    g.all.tr$label = label
   }
   
-  if (!is.null(.filename)) {
-    write.graph(g.all, .filename, format="dot")
+  if (!is.null(.filename.base)) {
+    filename.reg <- paste(.filename.base, "reg_all.ldot", sep="")
+    filename.tr <- paste(.filename.base, "tr_all.ldot", sep="")
+
+    write.graph(g.all.reg, filename.reg, format="dot")
+    write.graph(g.all.tr, filename.tr, format="dot")
   }
-  
-  return(g.all)
 }
 
 
@@ -1114,25 +1129,16 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##-----------------
   status("Writing the all-developers graph sources")
   
-  ## NOTE: The all-in-one graphs get a different suffix (ldot for "large
-  ## dot") so that we can easily skip them when batch-processing graphviz
-  ## images -- they take a long while to compute
-  g.all <- save.all(conf, adjMatrix.connected.scaled, ids.connected, pr.for.all,
-                    g.spin.community,
-                    paste(outdir, "/sg_reg_all.ldot", sep=""),
-                    label="Spin glass, regular page rank")
-  g.all <- save.all(conf, adjMatrix.connected.scaled, ids.connected,
-                    pr.for.all.tr, g.spin.community,
-                    paste(outdir, "/sg_tr_all.ldot", sep=""),
-                    label="Spin glass, transposed page rank")
-  g.all <- save.all(conf, adjMatrix.connected.scaled, ids.connected, pr.for.all,
-                    g.walktrap.community,
-                    paste(outdir, "/wt_reg_all.ldot", sep=""),
-                    label="Random walk, regular page rank")
-  g.all <- save.all(conf, adjMatrix.connected.scaled, ids.connected, pr.for.all.tr,
-                    g.walktrap.community,
-                    paste(outdir, "/wt_tr_all.ldot", sep=""),
-                    label="Random walk, transposed page rank")
+  save.all(conf, adjMatrix.connected.scaled, ids.connected,
+           list(reg=pr.for.all, tr=pr.for.all.tr),
+           g.spin.community,
+           paste(outdir, "/sg_", sep=""),
+           label="Spin Glass Community")
+  save.all(conf, adjMatrix.connected.scaled, ids.connected,
+           list(reg=pr.for.all, tr=pr.for.all.tr),
+           g.walktrap.community,
+           paste(outdir, "wt_", sep=""),
+           label="Random Walk Community")
 
   if (!is.null(id.subsys)) {
     status("Plotting per-cluster subsystem distribution")
