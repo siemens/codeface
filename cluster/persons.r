@@ -403,6 +403,47 @@ save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label) {
 }
 
 
+## Write clusters into the database
+store.graph.db <- function(conf, baselabel, idx, .iddb, g.reg, g.tr, j) {
+  cluster.id <- get.cluster.id(conf, conf$range.id, baselabel, j)
+
+  users.df <- lapply(idx, function(index.local) {
+    person.id <- .iddb[index.local,]$ID.orig
+    return(data.frame(id=NA, personId=person.id, clusterId=cluster.id))
+  })
+  users.df <- do.call(rbind, users.df)
+
+  dbWriteTable(conf$con, "cluster_user_mapping", users.df, append=T, row.names=F)
+
+  ## TODO: Insert the generated dot files into the database
+
+  ## Construct a systematic representation of the graph for the data base
+  edges <- get.data.frame(g.reg, what="edges")
+  colnames(edges) <- c("fromId", "toId")
+
+  ## NOTE: Index handling is somewhat complicated: idx contains a set
+  ## of indices generated for the global graph. .iddx[index,]$ID.orig
+  ## maps these back to the in-DB indices.
+  ## V(g) for the current graph uses another different indexing system:
+  ## indices ar 1..|V(g)|. To convert from the graph-local indices
+  ## to the graph-global ones, use idx[V(g)]. To convert these to in-DB
+  ## indices, use .iddb[idx[V(g)]]$ID.org.
+
+  edges$toId <- .iddb[idx[edges$toId],]$ID.orig
+  edges$fromId <- .iddb[idx[edges$fromId],]$ID.orig
+
+  ## Create a weighted edgelist, and associate it with the in-cluster
+  ## database id
+  if (dim(edges)[1] > 0) {
+    ## Only write an edge list if the cluster has any edges, actually
+    edges <- gen.weighted.edgelist(edges)
+    edges <- cbind(clusterId=cluster.id, edges)
+
+    dbWriteTable(conf$con, "edgelist", edges, append=T, row.names=F)
+  }
+}
+
+
 ## Iterate over all clusters in a community decomposition, create
 ## a graphviz input file (via save.groups), and also store the
 ## cluster into the database.
@@ -435,43 +476,7 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank.list, .basedir,
 
     ## Store the cluster content into the database
     if (!is.na(baselabel)) {
-      cluster.id <- get.cluster.id(conf, conf$range.id, baselabel, j)
-
-      users.df <- lapply(idx, function(index.local) {
-        person.id <- .iddb[index.local,]$ID.orig
-        return(data.frame(id=NA, personId=person.id, clusterId=cluster.id))
-      })
-      users.df <- do.call(rbind, users.df)
-
-      dbWriteTable(conf$con, "cluster_user_mapping", users.df, append=T, row.names=F)
-
-      ## TODO: Insert the generated dot files into the database
-
-      ## Construct a systematic representation of the graph for the data base
-      edges <- get.data.frame(g.reg, what="edges")
-      colnames(edges) <- c("fromId", "toId")
-
-      ## NOTE: Index handling is somewhat complicated: idx contains a set
-      ## of indices generated for the global graph. .iddx[index,]$ID.orig
-      ## maps these back to the in-DB indices.
-      ## V(g) for the current graph uses another different indexing system:
-      ## indices ar 1..|V(g)|. To convert from the graph-local indices
-      ## to the graph-global ones, use idx[V(g)]. To convert these to in-DB
-      ## indices, use .iddb[idx[V(g)]]$ID.org.
-
-      edges$toId <- .iddb[idx[edges$toId],]$ID.orig
-      edges$fromId <- .iddb[idx[edges$fromId],]$ID.orig
-
-      ## Create a weighted edgelist, and associate it with the in-cluster
-      ## database id
-      if (dim(edges)[1] > 0) {
-        ## Only write an edge list if the cluster has any edges, actually
-        edges <- gen.weighted.edgelist(edges)
-        edges <- cbind(clusterId=cluster.id, edges)
-
-        dbWriteTable(conf$con, "edgelist", edges, append=T, row.names=F)
-      }
-
+      store.graph.db(conf, baselabel, idx, .iddb, g.reg, g.tr, j)
       j <- j + 1
     }
   }
