@@ -559,6 +559,10 @@ save.all <- function(conf, .tags, .iddb, .prank.list, .comm, .filename.base=NULL
   if (!is.na(label)) {
     g.all.reg$label = label
     g.all.tr$label = label
+
+    ## The global graph gets community index -1
+    idx <- 1:length(.iddb$ID) ## Select all elements
+    store.graph.db(conf, label, idx, .iddb, g.all.reg, g.all.tr, -1)
   }
   
   if (!is.null(.filename.base)) {
