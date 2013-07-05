@@ -169,11 +169,14 @@ get.pagerank.id <- function(conf, range.id, technique) {
 
 ## Augment the configuration "object" with information that
 ## is of interest to several analysis passes/operations
-augment.conf <- function(conf) {
+augment.conf <- function(conf, global.conf) {
   conf$tstamps.release <- get.release.dates(conf)
   conf$tstamps.all <- get.release.rc.dates(conf)
 
   conf$boundaries <- prepare.release.boundaries(conf)
+
+  conf$nodejsHostname <- global.conf$nodejsHostname
+  conf$nodejsPort <- global.conf$nodejsPort
 
   return(conf)
 }
@@ -193,7 +196,7 @@ init.db <- function(conf, global.conf) {
          "(Did you not run the VCS analysis before the ml analysis?)\n")
   }
 
-  conf <- augment.conf(conf)
+  conf <- augment.conf(conf, global.conf)
 
   return(conf)
 }

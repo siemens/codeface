@@ -46,14 +46,6 @@ def load_config(file):
     if (not(conf.has_key("rcs"))):
         conf["rcs"] = [None for x in range(len(conf["revisions"]))]
 
-    if (not(conf.has_key("nodejsHostname"))):
-        conf["nodejsHostname"] = "127.0.0.1"
-
-    if (not(conf.has_key("nodejsPort"))):
-        conf["nodejsPort"] = 8080
-    else:
-        conf["nodejsPort"] = int(conf["nodejsPort"])
-
     if (len(conf["rcs"]) > 0) & (len(conf["revisions"]) != len(conf["rcs"])):
         print("Malformed configuration: revision and rcs list lengths differ!")
         print("Found {0} revisions and {1} release candidates.".
@@ -74,5 +66,13 @@ def load_global_config(file):
             not(conf.has_key("dbuser")) or not(conf.has_key("dbpwd")):
         print("Malformed configuration: Database information missing!")
         sys.exit(-1)
+
+    if (not(conf.has_key("nodejsHostname"))):
+        conf["nodejsHostname"] = "127.0.0.1"
+
+    if (not(conf.has_key("nodejsPort"))):
+        conf["nodejsPort"] = 8080
+    else:
+        conf["nodejsPort"] = int(conf["nodejsPort"])
 
     return conf

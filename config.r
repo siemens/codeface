@@ -24,16 +24,6 @@ load.config <- function(file) {
     stop("Malformed configuration: Specify project and repository!\n")
   }
   
-  if (is.null(conf$nodejsHostname)) {
-    conf$nodejsHostname <- "127.0.0.1"
-  }
-
-  if (is.null(conf$nodejsPort)) {
-    conf$nodejsPort <- 8080
-  } else {
-    conf$nodejsPort <- as.integer(conf$nodejsPort)
-  }
-
   if (conf$tagging != "tag" && conf$tagging != "committer2author" &&
       conf$tagging != "proximity") {
     stop("Malformed configuration: Invalid tagging mode specified!")
@@ -56,6 +46,16 @@ load.global.config <- function(file) {
   if (is.null(conf$dbhost) || is.null(conf$dbname) ||
       is.null(conf$dbuser) || is.null(conf$dbpwd)) {
     stop("Malformed global configuration: Database information is incomplete!\n")
+  }
+
+  if (is.null(conf$nodejsHostname)) {
+    conf$nodejsHostname <- "127.0.0.1"
+  }
+
+  if (is.null(conf$nodejsPort)) {
+    conf$nodejsPort <- 8080
+  } else {
+    conf$nodejsPort <- as.integer(conf$nodejsPort)
   }
 
   return(conf)

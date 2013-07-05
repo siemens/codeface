@@ -45,12 +45,12 @@ class idManager:
         self.fixup_emailPattern = re.compile(r'([^<]+)\s+<([^>]+)>')
         self.commaNamePattern = re.compile(r'([^,\s]+),\s+(.+)')
 
-        self._idMgrServer = conf["nodejsHostname"]
-        self._idMgrPort = conf["nodejsPort"]
+        glob_conf = load_global_config("prosoda.conf")
+        self._idMgrServer = glob_conf["nodejsHostname"]
+        self._idMgrPort = glob_conf["nodejsPort"]
         self._conn = httplib.HTTPConnection(self._idMgrServer, self._idMgrPort)
 
         # Create a project ID
-        glob_conf = load_global_config("prosoda.conf")
         self._dbm = dbManager(glob_conf)
         # TODO: Pass the analysis method to idManager via the configuration
         # file. However, the method should not influence the id scheme so
