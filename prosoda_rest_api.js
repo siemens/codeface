@@ -32,24 +32,18 @@ if (!fileName)
 
 // set log level
 var logLevel = process.argv[3];
-if (logLevel == 'warn')
-{
-    logger.debugLevel = 'warn';
-}
-else if (logLevel == 'error' || !logLevel)
-{
+if (logLevel == 'error') {
     logger.debugLevel = 'error';
-}
-else if (logLevel == 'info')
-{
+} else if (logLevel == 'warn') {
+    logger.debugLevel = 'warn';
+} else if (logLevel == 'info' || !logLevel) {
     logger.debugLevel = 'info';
-}
-else
-{
+} else {
     console.log('Usage: node ' + process.argv[1] + ' FILENAME' + ' [warn|error|info]');
     process.exit(1);
 }
-console.log('LOG LEVEL: ' + logger.debugLevel);
+
+console.log('Starting REST Service with logging level "' + logger.debugLevel + '"');
 
 // read configuration file & parse the YAML
 var fs = require('fs');
@@ -58,6 +52,7 @@ var config = yaml.load(file);
 
 // initilize the express module and the connection to mysql
 var app = express();
+logger.log('info', 'Connecting to MySQL at ' + config.dbuser + '@' + config.dbhost + ' database ' + config.dbname)
 var connection = mysql.createConnection(
 {
     host: config.dbhost,
@@ -716,4 +711,5 @@ app.post('/post_decompose_user_id', app.postDecomposeUserID);
 /**
  * Start listening on port 8080
  */
+logger.log('info', 'Starting to listen on ' + config.nodejsHostname + ':' + config.nodejsPort)
 app.listen(config.nodejsPort, config.nodejsHostname); //to port & hostname on which the express server listen
