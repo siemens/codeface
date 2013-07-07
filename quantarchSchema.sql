@@ -229,7 +229,7 @@ CREATE INDEX `mail_createdBy_idx` ON `quantarch`.`mail_thread` (`createdBy` ASC)
 
 CREATE INDEX `mail_projectId_idx` ON `quantarch`.`mail_thread` (`projectId` ASC) ;
 
-CREATE INDEX `mail_release_range_key` ON `quantarch`.`mail_thread` (`releaseRangeId` ASC) ;
+CREATE INDEX `mail_release_range_key_idx` ON `quantarch`.`mail_thread` (`releaseRangeId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -473,7 +473,7 @@ ENGINE = InnoDB;
 
 CREATE INDEX `plot_project_ref_idx` ON `quantarch`.`plots` (`projectId` ASC) ;
 
-CREATE INDEX `plot_releaseRangeId_ref` ON `quantarch`.`plots` (`releaseRangeId` ASC) ;
+CREATE INDEX `plot_releaseRangeId_ref_idx` ON `quantarch`.`plots` (`releaseRangeId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -665,7 +665,7 @@ ENGINE = InnoDB;
 
 CREATE INDEX `freq_subects_project_ref_idx` ON `quantarch`.`freq_subjects` (`projectId` ASC) ;
 
-CREATE INDEX `freq_subjects_release_range_ref` ON `quantarch`.`freq_subjects` (`releaseRangeId` ASC) ;
+CREATE INDEX `freq_subjects_release_range_ref_idx` ON `quantarch`.`freq_subjects` (`releaseRangeId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -796,9 +796,9 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_edgelist` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `twomode_edgelist_releaseRange` ON `quantarch`.`twomode_edgelist` (`releaseRangeId` ASC) ;
+CREATE INDEX `twomode_edgelist_releaseRange_idx` ON `quantarch`.`twomode_edgelist` (`releaseRangeId` ASC) ;
 
-CREATE INDEX `twomode_edgelist_person` ON `quantarch`.`twomode_edgelist` (`fromVert` ASC) ;
+CREATE INDEX `twomode_edgelist_person_idx` ON `quantarch`.`twomode_edgelist` (`fromVert` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -820,7 +820,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_vertices` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `twomode_vertices_releaseRange` ON `quantarch`.`twomode_vertices` (`releaseRangeId` ASC) ;
+CREATE INDEX `twomode_vertices_releaseRange_idx` ON `quantarch`.`twomode_vertices` (`releaseRangeId` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -849,9 +849,9 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`initiate_response` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `initiate_response_releaseRange` ON `quantarch`.`initiate_response` (`releaseRangeId` ASC) ;
+CREATE INDEX `initiate_response_releaseRange_idx` ON `quantarch`.`initiate_response` (`releaseRangeId` ASC) ;
 
-CREATE INDEX `initiate_response_person` ON `quantarch`.`initiate_response` (`personId` ASC) ;
+CREATE INDEX `initiate_response_person_idx` ON `quantarch`.`initiate_response` (`personId` ASC) ;
 
 
 -- -----------------------------------------------------
