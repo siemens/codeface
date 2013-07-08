@@ -983,7 +983,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
                                          list(reg=pr.for.all, tr=pr.for.all.tr),
                                          outdir, "sg_", "Spin Glass Community",
                                          MIN.CUT.FRACTION, MAX.CUT.SIZE,
-                                         spinglass.community)
+                                         spinglass.community.connected)
 
   status("Inferring communities with random walks")
   g.walktrap.community <- detect.communities(g.connected, ids.connected,
@@ -992,10 +992,6 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
                                              outdir, "wt_", "Random Walk Community",
                                              MIN.CUT.FRACTION, MAX.CUT.SIZE,
                                              walktrap.community)
-
-  ## When selecting elements lower than some value we must take care to
-  ## no select communities with size 1 as the graph.adjacency function
-  ## fail with the weights attribute true
 
   ##--------------------
   ## Community Quality
