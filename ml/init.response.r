@@ -16,6 +16,7 @@
 
 ## Helper functions to process/visualise initiation-response structures stored
 ## in the database
+suppressPackageStartupMessages(library(ggplot2))
 
 ## ir needs to be obtained by query.initiate.response
 ## Assign colours to persons depending on their relative
@@ -28,20 +29,26 @@ prepare.initiate.response <- function(ir, threshold1=0.25, threshold2=0.5) {
   return(ir)
 }
 
-plot.init.response <- function(ir) {
+plot.init.response <- function(ir, title=NULL) {
   g1 <- ggplot(ir, aes(x=initiations, y=responses)) +
     geom_point(aes(size=deg, colour=col)) +
-    scale_x_sqrt() + scale_y_sqrt() + ggtitle(conf$project) +
+    scale_x_sqrt() + scale_y_sqrt() +
     facet_grid(source~.) +
     xlab("Messages initiated (sqrt scale)") +
     ylab("Responses given (sqrt scale)")
+  if (!is.null(title)) {
+    g1 <- g1 + ggtitle(title)
+  }
 
   g2 <- ggplot(ir, aes(x=initiations, y=responses.received)) +
     geom_point(aes(size=deg, colour=col)) +
-    scale_x_sqrt() + scale_y_sqrt() + ggtitle(conf$project) +
+    scale_x_sqrt() + scale_y_sqrt() +
     facet_grid(source~.) +
     xlab("Messages initiated (sqrt scale)") +
     ylab("Responses received (sqrt scale)")
+  if (!is.null(title)) {
+    g2 <- g2 + ggtitle(title)
+  }
 
   return(list(g1, g2))
 }
