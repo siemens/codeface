@@ -426,7 +426,7 @@ select.communities <- function(comm, min.fract=0.95, upper.bound=NA) {
   ## This function needs to work with community objects generated
   ## by walktrap and spinglass (the former does not produce a vsize
   ## member, so we cannot use it)
-  min.size <- round(min.fract*comm$vcount)
+  min.size <- round(min.fract*length(comm$membership))
 
   comm.idx <- sort(unique(comm$membership))
   ## Provide a mapping between community labels and their size
