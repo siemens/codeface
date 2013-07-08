@@ -40,6 +40,7 @@ library(xtable)
 suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(plyr))
 source("utils.r")
 source("config.r")
 source("db.r")
@@ -337,24 +338,17 @@ minCommGraph <- function(graph, comm, min=10){
 	comm$membership <- comm$membership[V(graph.comm)$key]
 	comm$csize <- sapply(1:length(comm.idx),
 			function(x) {return(length(which(comm$membership == comm.idx[x])))})
-	comm$membership <- remapConsecSeq(comm$membership)
+	comm$membership <- remap.consec.seq(comm$membership)
 	res <- list(graph=graph.comm, community=comm)
 	return(res)
 }
 
 
-remapConsecSeq <- function(seq){
-	## maps an arbitrary number sequence to increase from 1
-	## eg. arbirtary sequence 2,2,2,3,3,4,3 is mapped to 1,1,1,2,2,3,2
-	mem.ids <- sort(unique(seq))
-	con.seq <- c()
-	count <- 1
-	for (i in 1:length(mem.ids)) {
-		indx <- which(seq == mem.ids[i])
-		con.seq[indx] <- count
-		count <- count + 1
-	}
-	return(con.seq)
+remap.consec.seq <- function(values) {
+  ## Map an arbitrary number sequence to increase from 1
+  ## For instance, map the sequence 2,2,2,3,3,4,3 to 1,1,1,2,2,3,2
+
+  return(mapvalues(values, unique(values), 1:length(unique(values))))
 }
 
 
