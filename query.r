@@ -139,7 +139,7 @@ query.cluster.ids.con <- function(con, pid, range.id, cluster.method) {
   dat <- dbGetQuery(con, str_c("SELECT id FROM cluster WHERE ",
                                "projectId=", pid, " AND releaseRangeId=",
                                range.id, " AND clusterMethod=",
-                               sq(cluster.method)))
+                               sq(cluster.method), " AND clusterNumber >= 0"))
 
   return(dat$id)
 }
