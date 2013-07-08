@@ -20,6 +20,7 @@
 
 suppressPackageStartupMessages(library(RMySQL))
 suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(plyr))
 
 ## Obtain the series.merged object constructed in do.ts.analysis
 query.series.merged <- function(conf, subset=NULL) {
