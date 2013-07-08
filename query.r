@@ -149,6 +149,21 @@ query.cluster.ids <- function(conf, range.id, cluster.method) {
   return(query.cluster.ids.con(conf$con, conf$pid, range.id, cluster.method))
 }
 
+## Cluster -1 is not a proper cluster, but contains the global
+## collaboration structure
+query.global.collab.con <- function(con, pid, range.id, cluster.method) {
+  dat <- dbGetQuery(con, str_c("SELECT id FROM cluster WHERE ",
+                               "projectId=", pid, " AND releaseRangeId=",
+                               range.id, " AND clusterMethod=",
+                               sq(cluster.method), " AND clusterNumber=-1"))
+
+  return(dat$id)
+}
+
+query.global.collab <- function(conf, range.id, cluster.method) {
+ return(query.global.collab.con(conf$con, conf$pid, range.id, cluster.method))
+}
+
 ## Get all members (in terms of person id) of a cluster
 ## technique can be 0 for normal pagerank and 1 for pagerank based
 ## on the transposed adjacency matrix
