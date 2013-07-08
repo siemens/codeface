@@ -258,7 +258,21 @@ select.communities.more <- function(.comm, .min) {
 }
 
 
-spinglass.community.connected <- function(graph, spins=25) {
+## For large projects like the Linux kernel, the default setting of
+## 25 communities necessarily leads to some very large contributions.
+## Compute a more reasonable upper bound that gives the algorithm a
+## change to detect reasonably small communities
+compute.num.spins <- function(g) {
+  AVG.SIZE <- 5
+
+  num.spins <- as.integer(vcount(g)/AVG.SIZE)
+  if (num.spins < 25)
+    num.spins <- 25
+
+  return(num.spins)
+}
+
+spinglass.community.connected <- function(graph, spins=compute.num.spins(graph)) {
 	## wrapper for spinglass clustering algorithm
 
 	## Description:
