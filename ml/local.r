@@ -1,6 +1,7 @@
 ## Some local helper functions for QuantArch
 
 ## Source all r files in a given path
+## NOTE: This is adapted from the example in the source help page
 source.files <- function(path) {
   for (nm in list.files(path, pattern = "\\.[Rr]$")) {
     source(file.path(path, nm))
@@ -232,7 +233,7 @@ gen.networks.df <- function(networks) {
 ## If min.entries is =! -1, this many terms are collected if possible
 ## exclude.list specifies a list of generic keywords that are not supposed to
 ## be considered.
-findHighFreq <- function(x, percentage=0.1, min.entries=-1, max.entries=50,
+find.high.freq <- function(x, percentage=0.1, min.entries=-1, max.entries=50,
                          exclude.list=list()) {
   if (inherits(x, "DocumentTermMatrix")) 
         x <- t(x)

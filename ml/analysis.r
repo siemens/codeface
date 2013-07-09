@@ -302,9 +302,9 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   doc.matrices <- compute.doc.matrices(forest.corp, data.path)
 
   ## TODO: Provide per-ml keyword collections for the exclusion words
-  termfreq <- findHighFreq(doc.matrices$tdm, exclude.list=unique(c(terms.d,
-                                               terms.coll, terms.c,
-                                               terms.programming)))
+  termfreq <- find.high.freq(doc.matrices$tdm, exclude.list=unique(c(terms.d,
+                                                 terms.coll, terms.c,
+                                                 terms.programming)))
   write.table(data.frame(term=as.character(termfreq),
                          count=as.numeric(attr(termfreq, "names"))),
               file=file.path(data.path, "termfreq.txt"), sep="\t",
