@@ -26,7 +26,6 @@ suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(yaml))
 suppressPackageStartupMessages(library(lubridate))
-suppressPackageStartupMessages(library(gridExtra))
 source("utils.r")
 source("config.r")
 source("plot.r")
@@ -34,6 +33,7 @@ source("db.r")
 source("query.r")
 source("ts_utils.r")
 source("clusters.r")
+source("commits.r")
 
 get.series.boundaries <- function(conn) {
   ## Read the first (comment) line of the time series connection,
@@ -155,20 +155,6 @@ process.ts <- function(series) {
                                         type="Cumulative"), all=T)
 
   return(series.merged)
-}
-
-plot.commit.info <- function(dat, plot.types, graphdir, revision) {
-  MIN.COMMITS <- 10
-  if (dim(dat)[1] < MIN.COMMITS) {
-    cat("NOTE: Revision", revision, " contains less than",
-        MIN.COMMITS, "commits. Skipping.\n")
-  } else {
-    plot.list <- plot.splom(plot.types, dat)
-    pdf(file.path(graphdir, paste("commits_", revision, ".pdf", sep="")))
-    do.call(grid.arrange, c(plot.list, list(nrow=length(plot.types),
-                                            ncol=length(plot.types))))
-    dev.off()
-  }
 }
 
 
@@ -417,27 +403,11 @@ determine.cluster.mapping <- function(conf, cluster.method=cluster.methods[1]) {
 }
 
 do.commit.analysis <- function(resdir, graphdir, conf) {
-  ## Stage 1: Prepare summary statistics for each release cycle,
-  ## and prepare the time series en passant
-  tstamps <- conf$tstamps.release
-
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
   ts <- get.commits.by.ranges(conf, subset, normalise.commit.dat)
 
-  for (i in 1:(length(ts))) {
-    status(paste("Plotting commit information for revision",
-                 conf$revisions[[i+1]]))
-    plot.types <- c("CmtMsgBytes", "ChangedFiles", "DiffSize")
-    if (sum(ts[[i]]$NumTags) > 0) {
-      ## The data do contain tagging information
-      plot.types <- c(plot.types, "NumTags")
-    }
-
-    plot.commit.info(ts[[i]], plot.types, graphdir, tstamps$tag[[i+1]])
-  }
-
   status("Plotting the commit information time series")
-  ## Stage 2: Plot the complete commit information time series
+  ## Stage 1: Plot the complete commit information time series
   ts <- do.call(rbind, ts)
 
   ## Same test for RC cycles as before, but on the global data set
@@ -485,7 +455,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
   file.remove(file.path(graphdir, "ts_commits.svg"))
 
 
-  ## Stage 3: Plot annual versions of the commit time series
+  ## Stage 2: Plot annual versions of the commit time series
   min.year <- year(min(ts.molten$date))
   max.year <- year(max(ts.molten$date))
 

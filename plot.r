@@ -17,30 +17,6 @@
 
 ## Some utility functions for plotting
 
-normalise.commit.dat <- function(dat, subset=NULL) {
-  if (is.null(subset)) {
-    subset <- colnames(dat)
-  }
-  dat.subset <- dat[subset]
-
-  ## The size of a diff and the number of changed files can be 0, which
-  ## is obviously problematic for the logarithm. Replace these cases
-  ## with NA
-  dat.subset$LogChangedFiles <- log(dat.subset$ChangedFiles)
-  dat.subset$LogDiffSize <- log(dat.subset$DiffSize)
-  dat.subset$LogDiffSize[dat.subset$LogDiffSize==-Inf]=0
-  dat.subset$LogChangedFiles[dat.subset$LogChangedFiles==-Inf]=0
-  dat.subset$LogCmtMsgBytes <- log(dat.subset$CmtMsgBytes)
-  dat.subset$LogCmtMsgBytes[dat.subset$LogCmtMsgBytes==-Inf]=0 #NA
-  dat.subset$inRC <- as.factor(dat.subset$inRC)
-  
-  ## Remove extreme outliers in the non-logged version
-  dat.subset$DiffSize <- removeOutliers(dat.subset$DiffSize)
-  dat.subset$ChangedFiles <- removeOutliers(dat.subset$ChangedFiles)
-
-  return(dat.subset)
-}
-
 ## Remove outliers (statistically dubious, but when used with great
 ## care _and THREE iterations_ of think about why we actually did
 ## apply great care, it can be admissible)

@@ -110,20 +110,16 @@ get.range.stats <- function(con, range.id) {
   return(dat)
 }
 
+## Obtain commit information for all cycles of a project
 get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
   ts <- vector("list", length(conf$revisions)-1)
   tstamps <- conf$tstamps.release
 
   for (i in 1:(dim(tstamps)[1]-1)) {
     range.id <- get.range.id(conf, tstamps$tag[i], tstamps$tag[i+1])
-    dat <- dbGetQuery(conf$con, str_c("SELECT * FROM commit where projectId=",
-                                      conf$pid, " AND releaseRangeId=", range.id))
+    dat <- get.commits.by.range(conf, range.id, subset, FUN)
 
-    if (!is.null(FUN)) {
-      dat <- FUN(dat, subset)
-    }
-
-    if (dim(dat)[1] == 0) {
+    if (is.null(dat)) {
       cat("Skipping empty cycle", tstamps$tag[i], "..", tstamps$tag[i+1])
       next
     }
@@ -133,6 +129,26 @@ get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
   }
 
   return(ts)
+}
+
+## Obtain commit information for a specific cycle of a project
+get.commits.by.range.con <- function(con, pid, range.id, subset=NULL, FUN=NULL) {
+  dat <- dbGetQuery(con, str_c("SELECT * FROM commit where projectId=",
+                               pid, " AND releaseRangeId=", range.id))
+
+  if (!is.null(FUN)) {
+    dat <- FUN(dat, subset)
+  }
+
+  if (dim(dat)[1] == 0) {
+    return(NULL)
+  }
+
+  return(dat)
+}
+
+get.commits.by.range <- function(conf, range.id, subset=NULL, FUN=NULL) {
+  return(get.commits.by.range.con(conf$con, conf$pid, range.id, subset, FUN))
 }
 
 ## Get the IDs of all clusters for the given release range
