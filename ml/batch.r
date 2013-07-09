@@ -23,7 +23,7 @@ suppressPackageStartupMessages(library(optparse))
 library(parallel)
 source("config.r")
 source("db.r")
-source("ml/local.r")
+source("ml/ml_utils.r")
 
 ## TODO: Filter out spam. There's an incredible amount in some gmane archives
 ## TODO: (this should also include filtering out non-english messages)
