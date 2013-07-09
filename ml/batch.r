@@ -19,11 +19,35 @@
 ## NOTE: The dispatcher is supposed to be called from the main prosoda
 ## directory; otherwise, we run into trouble with source()ed filed
 
-suppressPackageStartupMessages(library(optparse))
-library(parallel)
+s <- suppressPackageStartupMessages
 source("config.r")
 source("db.r")
 source("ml/ml_utils.r")
+s(source("ml/analysis.r"))
+s(source("ml/project.spec.r"))
+s(source("ml/keyword.list.r"))
+
+s(library(tm))
+s(library(parallel))
+s(library(tm.plugin.mail))
+s(library(sna))
+s(library(ggplot2))
+s(library(igraph))
+s(library(lsa))
+s(library(Rgraphviz)) # Available on bioconductor
+s(library(lubridate))
+s(library(optparse))
+s(library(xtable))
+s(library(reshape))
+s(library(parallel))
+s(library(plyr))
+rm(s)
+
+## NOTE: This is _temporary_. After the changes to snatm are upstreamed,
+## we can get rid of loading the files directly.
+snatm.path <- "../src.nntp/snatm/pkg/R"
+s(source.files(snatm.path))
+
 
 ## TODO: Filter out spam. There's an incredible amount in some gmane archives
 ## TODO: (this should also include filtering out non-english messages)
@@ -81,11 +105,6 @@ if (!interactive()) {
   options(error=recover)
 }
 
-## NOTE: This is _temporary_. After a proper package has been
-## created, we can get rid of loading the files directly (includes.r
-## load snatm via snatm.path)
-snatm.path <- "../src.nntp/snatm/pkg/R"
-source("ml/includes.r")
 set.seed(19101978) ## Fix the seed to make results of random algorithms reproducible
 
 if (packageVersion("tm") < "0.5.9") {
