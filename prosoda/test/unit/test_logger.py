@@ -17,8 +17,8 @@ import unittest
 import logging
 
 from StringIO import StringIO
-from prosoda.logger import (insert_seqs, remove_seqs, ColoredFormatter,
-        loglevel_from_string, get_log_handler, console_handler, log)
+from prosoda.logger import (_insert_seqs, _remove_seqs,
+        _loglevel_from_string, _get_log_handler, console_handler, log)
 
 def get_test_record(level, msg):
     return logging.LogRecord("packagename", level, "/fake/path", 42,
@@ -31,8 +31,8 @@ class TestLogger(unittest.TestCase):
         '''Check that the internal insertSeqs function works as expected'''
         # null hypothesis test
         for s in ['Goo$fooStr\nBoo', '$RESTFUL $TEST']:
-            self.assertEqual(insert_seqs(s), s)
-            self.assertEqual(remove_seqs(s), s)
+            self.assertEqual(_insert_seqs(s), s)
+            self.assertEqual(_remove_seqs(s), s)
         # positive test
         RESET_SEQ = "\033[0m"
         COLOR_SEQ = "\033[1;%dm"
@@ -41,13 +41,13 @@ class TestLogger(unittest.TestCase):
         expected_ins = "Go\n\033[1mProsoda\033[0m And do stuff"
         expected_rem = "Go\nProsoda And do stuff"
         # Repeat the string five times to test repeated replacements
-        self.assertEqual(insert_seqs(s*5), expected_ins*5)
-        self.assertEqual(remove_seqs(s*5), expected_rem*5)
+        self.assertEqual(_insert_seqs(s*5), expected_ins*5)
+        self.assertEqual(_remove_seqs(s*5), expected_rem*5)
 
 
     def testColoredFormatter(self):
         io = StringIO()
-        handler = get_log_handler(io)
+        handler = _get_log_handler(io)
         handler.setLevel(10)
         handler.emit(get_test_record(10, "Test Message"))
         handler.flush()
