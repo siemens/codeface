@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+'''
+Run script for the prosoda command line interface.
+Passes the command line parameters to the prosoda module for parsing.
+'''
+from sys import argv
+from prosoda.cli import run
+run(argv)
