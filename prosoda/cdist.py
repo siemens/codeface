@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# Analyse a given source code repository and 
+# Analyse a given source code repository and
 # store the resulting data structure using serialisation
 
 # This file is part of prosoda.  prosoda is free software: you can
@@ -54,4 +54,3 @@ print("Obtained a list with {0} commits".format(len(res)))
 for i in range(0,10):
     print("{0}: {1}, {2}".format(res[i]["commit"].cdate, res[i]["value"][0],
                                  res[i]["commit"].getCommitMessageLines()))
-

@@ -127,17 +127,17 @@ construct.cluster <- function(con, cluster.id, technique=0) {
   return(g)
 }
 
-# The following method to produce a coloured recurrence plot is taken from 
+# The following method to produce a coloured recurrence plot is taken from
 # http://zoonek2.free.fr/UNIX/48_R/15.html#11
 # The other functions are also from there
 recurrence_plot <- function (
-  x, 
+  x,
   m=1,           # Dimension of the embedding
   t=1,           # Lag used to define this embedding
   epsilon=NULL,  # If non-NULL, threshold
   box=TRUE, ...
 ) {
-  stopifnot( length(m) == 1, m >= 1, m == floor(m), 
+  stopifnot( length(m) == 1, m >= 1, m == floor(m),
              length(t) == 1, t >= 1, t == floor(t),
              is.null(epsilon) || (
                length(epsilon) == 1 && epsilon > 0 ) )
@@ -165,7 +165,7 @@ recurrence_plot <- function (
     # TODO: Check this...
     res <- res[ - (1:(t*(m-1))), ] [ , - (1:(t*(m-1))) ]
   }
-  image(res, ...)        
+  image(res, ...)
   if (box) {
     box()
   }
@@ -173,17 +173,17 @@ recurrence_plot <- function (
 
 
 phase_plane_plot <- function (
-  x, 
-  col=rainbow(length(x)-1), 
-  xlab = "x", ylab = "dx/dt", 
+  x,
+  col=rainbow(length(x)-1),
+  xlab = "x", ylab = "dx/dt",
   ...) {
-  plot( x[-1], diff(x), col = col, 
+  plot( x[-1], diff(x), col = col,
         xlab = xlab, ylab = ylab, ... )
 }
 
 # TODO: We could make the span for spectrum parametrisable (spans=N)
 signal.and.spectrum <- function (x, main="") {
-  op <- par(mfrow=c(2,1), 
+  op <- par(mfrow=c(2,1),
             mar=c(2,4,2,2)+.1,
             oma=c(0,0,2,0))
   plot(x, type="l", main="", ylab="Signal")

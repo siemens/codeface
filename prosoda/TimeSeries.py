@@ -21,7 +21,7 @@ class TimeSeries:
     about start end end date of the series. It's not sufficient to take
     the first end final list element for this purpose because there may
     be data points outside the intended range."""
-    
+
     def __init__(self, subsys_names = [], ID=None, name="", email=""):
         self.series = []
         self.start = -1

@@ -18,8 +18,6 @@
 import re
 from email.Utils import parseaddr
 from PersonInfo import PersonInfo
-from dbManager import dbManager
-from config import load_global_config
 import httplib
 import urllib
 import json
@@ -32,7 +30,7 @@ class idManager:
     This class provides an interface to the REST id server. Heuristics to
     detect developers who operate under multiple identities are included
     in the server."""
-    def __init__(self, conf):
+    def __init__(self, dbm, conf):
         self.subsys_names = []
 
         # Map IDs to an instance of PersonInfo
@@ -45,13 +43,12 @@ class idManager:
         self.fixup_emailPattern = re.compile(r'([^<]+)\s+<([^>]+)>')
         self.commaNamePattern = re.compile(r'([^,\s]+),\s+(.+)')
 
-        glob_conf = load_global_config("prosoda.conf")
-        self._idMgrServer = glob_conf["nodejsHostname"]
-        self._idMgrPort = glob_conf["nodejsPort"]
+        self._idMgrServer = conf["nodejsHostname"]
+        self._idMgrPort = conf["nodejsPort"]
         self._conn = httplib.HTTPConnection(self._idMgrServer, self._idMgrPort)
 
         # Create a project ID
-        self._dbm = dbManager(glob_conf)
+        self._dbm = dbm
         # TODO: Pass the analysis method to idManager via the configuration
         # file. However, the method should not influence the id scheme so
         # that the results are easily comparable.
@@ -143,7 +140,7 @@ class idManager:
 
     def getPI(self, ID):
         return self.persons[ID]
-    
+
     def _cleanName(self, name):
         # Remove or replace characters in names that are known
         # to cause parsing problems in later stages

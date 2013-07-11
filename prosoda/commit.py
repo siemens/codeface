@@ -1,4 +1,4 @@
-# Class to represent a commit (which may be composed of multiple diffs). 
+# Class to represent a commit (which may be composed of multiple diffs).
 # Since this class is serialised, it should be changed as little
 # as possible.
 
@@ -20,7 +20,7 @@
 
 class Commit:
     def __init__(self):
-        # Base characteristics: uniqiue id (typically a hash value) and 
+        # Base characteristics: uniqiue id (typically a hash value) and
         # time stamp (commiter time) of the commit
         self.id = None
         self.cdate = None
@@ -28,10 +28,10 @@ class Commit:
         self.author_pi  = None   # PersonInfo instance for author
         self.committer = None    # Committer name
         self.committer_pi = None # PersonInfo instance for committer
-        
+
         # Contains a tuple (added, deleted, changed)
         # for each diff type.
-        self.diff_info = [] 
+        self.diff_info = []
 
         # First entry is number of lines, second number of characters
         self.commit_msg_info = (None, None)
@@ -60,16 +60,16 @@ class Commit:
 
         # ... and for taggers and subsystems
         self.taggers_subsys_similarity = None
-        
+
 
     # The following methods replace hard-coded constants
     # with reasonable names
     def getCdate(self):
         return self.cdate
-    
+
     def setCdate(self,cdate):
         self.cdate = cdate
-        
+
     def getAddedLines(self, difftype):
         return self.diff_info[difftype][1]
 
@@ -102,13 +102,13 @@ class Commit:
 
     def setAuthorPI(self, author_pi):
         self.author_pi = author_pi
-    
+
     def getCommitterName(self):
         return self.committer
-    
+
     def getCommitterPI(self):
         return self.committer_pi
-    
+
     def setCommitterPI(self, committer_pi):
         self.committer_pi = committer_pi
 

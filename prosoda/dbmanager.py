@@ -20,21 +20,35 @@
 import MySQLdb as mdb
 import sys
 from datetime import datetime
+from logging import getLogger; log = getLogger(__name__)
+from contextlib import contextmanager
 
-class dbManager:
+@contextmanager
+def _log_db_error(action):
+    try:
+        yield
+    except mdb.Error as e:
+        log.critical('MySQL error {e[0]} during "{action}": {e[1]}'
+                ''.format(e=e.args, action=action))
+        raise
+
+class DBManager:
     """This class provides an interface to the prosoda sql database."""
 
-    def __init__(self, global_conf):
+    def __init__(self, conf):
         try:
             self.con = None
-            self.con = mdb.Connection(host=global_conf["dbhost"],
-                                      user=global_conf["dbuser"],
-                                      passwd=global_conf["dbpwd"],
-                                      db=global_conf["dbname"])
-        except mdb.Error, e:
-            print "Could not initialise database connection: %s (%d)" % \
-                    (e.args[1], e.args[0])
-            sys.exit(-1)
+            self.con = mdb.Connection(host=conf["dbhost"],
+                                      user=conf["dbuser"],
+                                      passwd=conf["dbpwd"],
+                                      db=conf["dbname"])
+            log.debug("Establishing MySQL connection to {c[dbuser]}@{c[dbhost]}"
+                    ", DB '{c[dbname]}'".format(c=conf))
+        except mdb.Error as e:
+            log.critical("Failed to establish MySQL connection to "
+                    "{c[dbuser]}@{c[dbhost]}, DB '{c[dbname]}': {e[1]} ({e[0]})"
+                    "".format(c=conf, e=e.args))
+            raise
         self.cur = self.con.cursor()
 
     def __del__(self):
@@ -42,28 +56,16 @@ class dbManager:
             self.con.close()
 
     def doExec(self, stmt, args=None):
-        try:
-            return(self.cur.execute(stmt, args))
-        except mdb.Error, e:
-            print "Encountered mysql error %d during statement %s: %s" % \
-                    (e.args[0], stmt, e.args[1])
-            sys.exit(-1)
+        with _log_db_error(stmt):
+            return self.cur.execute(stmt, args)
 
     def doFetchAll(self):
-        try:
-            return(self.cur.fetchall())
-        except mdb.Error, e:
-            print "Encountered mysql error %d during fetchall: %s" % \
-                    (e.args[0], e.args[1])
-            sys.exit(-1)
+        with _log_db_error("fetchall"):
+            return self.cur.fetchall()
 
     def doCommit(self):
-        try: 
-            return(self.con.commit())
-        except mdb.Error, e:
-            print "Encountered mysql error %d during commit: %s" % \
-                (e.args[0], e.args[1])
-            sys.exit(-1)
+        with _log_db_error("commit"):
+            return self.con.commit()
 
     def doExecCommit(self, stmt, args=None):
         self.doExec(stmt, args)
@@ -84,7 +86,7 @@ class dbManager:
             self.doExec("SELECT id FROM project WHERE name=%s;", name)
 
         res = self.doFetchAll()[0]
-        return(res[0])
+        return res[0]
 
     def getTagID(self, projectID, tag, type):
         """Determine the ID of a tag, given its textual form and the type"""
@@ -112,13 +114,3 @@ class dbManager:
 def tstamp_to_sql(tstamp):
     """Convert a Unix timestamp into an SQL compatible DateTime string"""
     return(datetime.utcfromtimestamp(tstamp).strftime("%Y-%m-%d %H:%M:%S"))
-
-
-##### Test cases #####
-if __name__ == "__main__":
-    import config
-    conf = config.load_global_config("prosoda.conf")
-    dbman = dbManager(conf)
-    project="Twitter Bootstrap2"
-    print("Found ID {0} for {1}\n".format(dbman.getProjectID(project, "tag"),
-                                          project))

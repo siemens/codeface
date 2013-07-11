@@ -106,7 +106,7 @@ gen.full.ts <- function(conf) {
   if (dim(boundaries)[1] != length(ts)) {
     stop("Internal error: Release boundaries don't match ts list length")
   }
-  
+
   for (i in 1:length(ts)) {
     ts[[i]]$ChangedLines <- ts[[i]]$AddedLines + ts[[i]]$DeletedLines
     full.series[[i]] <- na.omit(xts(ts[[i]]$ChangedLines,
@@ -116,7 +116,7 @@ gen.full.ts <- function(conf) {
   }
 
   full.series <- do.call(c, full.series)
-  
+
   return (full.series)
 }
 
@@ -494,14 +494,14 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   ## algorithms
   full.ts <- gen.full.ts(conf)
   series.merged <- process.ts(full.ts)
-  
+
   ## Prepare y ranges for the different graph types
   ## Compute min/max value per type, and prepare a special
   ## version of boundaries used for plotting which includes
   ## the boundaries
   ranges <- ddply(series.merged, .(type), summarise,
                   ymin=min(value), ymax=max(value))
-  
+
   num.types <- length(unique(ranges$type))
   res <- vector("list", num.types)
   for (i in 1:num.types) {
@@ -596,20 +596,21 @@ do.release.analysis <- function(resdir, graphdir, conf) {
 
 
 ######################### Dispatcher ###################################
-parser <- OptionParser(usage = "%prog resdir config")
+parser <- OptionParser(usage = "%prog resdir prosodaconfig projectconfig")
 arguments <- parse_args(parser, positional_arguments = TRUE)
 
-if (length(arguments$args) != 2) {
-  cat("Please specify result directory and configuration file\n")
+if (length(arguments$args) != 3) {
+  cat("Please specify result directory and configuration files\n")
   print_help(parser)
   stop()
 } else {
   resdir <- arguments$args[1]
-  config.file <- arguments$args[2]
+  config.prosoda <- arguments$args[2]
+  config.project <- arguments$args[3]
 }
 
-conf <- load.config(config.file)
-global.conf <- load.global.config("prosoda.conf")
+conf <- load.config(config.project)
+global.conf <- load.global.config(config.prosoda)
 resdir <- file.path(resdir, conf$project, conf$tagging)
 graphdir <- file.path(resdir, "graphs")
 dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)

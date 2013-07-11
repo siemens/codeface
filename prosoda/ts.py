@@ -18,19 +18,19 @@
 
 # Create time series from a sequence of VCS objects
 
-from VCS import gitVCS
-from commit_analysis import createCumulativeSeries, createSeries, \
-    writeToFile, getSeriesDuration
+import yaml
+import sys
 import os.path
-from subprocess import *
-from datetime import datetime
 import kerninfo
 import pickle
 import argparse
-from config import load_config, load_global_config
-from dbManager import dbManager, tstamp_to_sql;
-import yaml
-import sys
+from subprocess import *
+from datetime import datetime
+
+from .VCS import gitVCS
+from .commit_analysis import createCumulativeSeries, createSeries, \
+    writeToFile, getSeriesDuration
+from .dbmanager import tstamp_to_sql
 
 def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
     pkl_file = open(dbfilename, 'rb')
@@ -44,7 +44,7 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
 
     res = createSeries(vcs, "__main__", revrange, rc_start)
     return res
-    
+
 def writeReleases(dbm, tstamps, conf):
     pid = dbm.getProjectID(conf["project"], conf["tagging"])
 
@@ -54,11 +54,7 @@ def writeReleases(dbm, tstamps, conf):
                    (tstamp_to_sql(int(tstamp[2])), pid, tstamp[0], tstamp[1]))
     dbm.doCommit()
 
-def dispatch_ts_analysis(resdir, conf_file):
-    conf = load_config(conf_file)
-    global_conf = load_global_config("prosoda.conf")
-
-    dbm = dbManager(global_conf)
+def dispatch_ts_analysis(resdir, dbm, conf):
     dbpath = os.path.join(resdir, conf["project"], conf["tagging"])
     destdir = os.path.join(dbpath, "ts")
 
@@ -75,7 +71,7 @@ def dispatch_ts_analysis(resdir, conf_file):
         dbfilename = os.path.join(dbpath, "{0}-{1}".format(conf["revisions"][i-1],
                                                            conf["revisions"][i]),
                                   "vcs_analysis.db")
-        
+
         ts = doAnalysis(dbfilename, destdir,
                         revrange=[conf["revisions"][i-1], conf["revisions"][i]],
                         rc_start=conf["rcs"][i])
@@ -96,6 +92,5 @@ if __name__ == "__main__":
     parser.add_argument('resdir')
     parser.add_argument('conf_file')
     args = parser.parse_args()
-    
-    dispatch_ts_analysis(args.resdir, args.conf_file)
 
+    dispatch_ts_analysis(args.resdir, args.conf_file)

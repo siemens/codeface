@@ -43,4 +43,3 @@ prepare.release.boundaries <- function(conf) {
   res <- do.call(rbind, res)
   return(res)
 }
-

@@ -23,7 +23,7 @@ load.config <- function(file) {
   if (is.null(conf$project) || is.null(conf$repo)) {
     stop("Malformed configuration: Specify project and repository!\n")
   }
-  
+
   if (conf$tagging != "tag" && conf$tagging != "committer2author" &&
       conf$tagging != "proximity") {
     stop("Malformed configuration: Invalid tagging mode specified!")

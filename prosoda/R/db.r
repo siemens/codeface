@@ -30,7 +30,7 @@ sq <- function(string) {
 
 get.project.id <- function(con, name) {
   res <- dbGetQuery(con, str_c("SELECT id FROM project WHERE name=", sq(name)))
-  
+
   return(res$id)
 }
 

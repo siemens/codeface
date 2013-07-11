@@ -1,5 +1,5 @@
-# Analysis methods to operate on lists of commits, and the associated 
-# helper functions 
+# Analysis methods to operate on lists of commits, and the associated
+# helper functions
 
 # NOTE: These could be included into the object, but this is not
 # desirable: This way, we can change the definition of the analysis
@@ -65,11 +65,11 @@ def _compute_next_timestamp(time, last_time):
     # temporal committance distance. So we cannot just use
     # the timestamp difference between this and the last event,
     # but add one.
-    
+
     # Correct for identical dates
     if time == last_time:
         time += 1
-	
+
     # Correct for negative time differences (can arise from multiple
     # consecutive identical time stamps)
     if time < last_time:
@@ -93,9 +93,9 @@ def createCumulativeSeries(vcs, subsys="__main__", revrange=None):
     Create a cumulative diff history by summing up the diff sizes.
 
     Returns a list with one dictionary per commit. The dictionary
-    contains two items: 
-    
-    commit -- A list with one entry per diff type of the cumulative value of 
+    contains two items:
+
+    commit -- A list with one entry per diff type of the cumulative value of
            diff size up to (and including) the commit.
     cdate -- Unix timestamp of the committer date.
     """
@@ -131,9 +131,9 @@ def createSeries(vcs, subsys="__main__", revrange=None, rc_start=None):
     Create the list of all diffs (time/value pairs) for subsystem subsys.
 
     Returns a list with one dictionary per commit. The dictionary
-    contains two items: 
-    
-    commit -- A list with one entry per diff type of the diff size of 
+    contains two items:
+
+    commit -- A list with one entry per diff type of the diff size of
               the commit.
     cdate -- Unix timestamp of the committer date.
     """
@@ -161,7 +161,7 @@ def createSeries(vcs, subsys="__main__", revrange=None, rc_start=None):
             csize = _commit_size_ub(cmt.getAddedLines(difftype),
                                     cmt.getDeletedLines(difftype))
 
-            entry["value"][difftype] = csize 
+            entry["value"][difftype] = csize
 
         res.series.append(entry)
 
@@ -184,7 +184,7 @@ def getInvolvedPersons(cmt, categories):
 
     if (not(type(categories) == list)):
         categories = [categories]
-    
+
     tag_names_list = cmt.getTagNames()
     for key in categories:
         if key in tag_names_list.keys():
@@ -219,7 +219,7 @@ def writeToFile(res, name, uniqueTS=True):
 
     res -- TimeSeries object obtained by createSeries etc.
     name -- Name of the output file.
-    uniqueTS -- Transform the date indices into a strictly monotonic 
+    uniqueTS -- Transform the date indices into a strictly monotonic
                 series if true."""
     FILE=open(name, "w")
     last_timestamp = 0
@@ -252,4 +252,3 @@ def writeToFile(res, name, uniqueTS=True):
                           getSignoffCount(cmt),
                           getSignoffEtcCount(cmt)))
     FILE.close()
-

@@ -15,12 +15,12 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-from commit_analysis import tag_types, active_tag_types, proximity_relation \
+from prosoda.commit_analysis import tag_types, active_tag_types, proximity_relation \
 , committer2author_relation, all_link_types
 
 class PersonInfo:
     """ Information about a commiter, and his relation to other commiters"""
-    
+
     def __init__(self, subsys_names = [], ID=None, name="", email=""):
         self.ID = ID
         self.name = name
@@ -37,7 +37,7 @@ class PersonInfo:
         self.tagged_commits = {}
         for link_type in all_link_types + ["author"]:
             self.inv_associations[link_type] = {}
-        
+
         # See computeTagStats()
         for tag in tag_types + ["author"]:
             self.tagged_commits[tag] = []
@@ -59,7 +59,7 @@ class PersonInfo:
         # the generic tag role list.
         for link_type in all_link_types + ["author"]:
             self.subsys_touched[link_type] = {}
-            
+
             # General is used if the commit does not touch any well-defined
             # subsystem(s), for instance when a generic header is modified.
             for subsys in subsys_names + ["general"]:
@@ -81,8 +81,8 @@ class PersonInfo:
         #count how many links based on the proximity metric were received by
         #a given ID
         self.proximity_links_recieved_by_id = {}
-        
-        #count how many links based on committer -> author were received by 
+
+        #count how many links based on committer -> author were received by
         #a given ID
         self.committer_links_recieved_by_id = {}
 
@@ -117,7 +117,7 @@ class PersonInfo:
 
     def getActiveTagsReceivedByID(self, ID):
         return self._getLinksReceivedByID(self.active_tags_received_by_id, ID)
-    
+
     def getLinksReceivedByID(self, ID, link_type):
         if link_type == proximity_relation:
             return self._getLinksReceivedByID(self.proximity_links_recieved_by_id, ID)
@@ -125,8 +125,8 @@ class PersonInfo:
             return self._getLinksReceivedByID(self.committer_links_recieved_by_id, ID)
 
     def getAllTagsReceivedByID(self, ID):
-        return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)  
-    
+        return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)
+
     def addRelation(self, relation_type, ID, assoc, weight=1):
         """State that the person has received or given a tag from/to ID.
 
@@ -137,7 +137,7 @@ class PersonInfo:
             assoc[relation_type][ID] += weight
         else:
             assoc[relation_type][ID] = weight
-    
+
     def addReceiveRelation(self, relation_type, ID, weight=1):
         '''
         add a one directional relation from the person identified by
@@ -145,33 +145,33 @@ class PersonInfo:
         eg. ID ----> self
         the weight parameter specified the edge strength
         '''
-        
+
         self.addRelation(relation_type, ID, self.associations, weight)
- 
+
     def addSendRelation(self, relation_type, ID, cmt, weight=1):
         '''
-        add a one directional relation from the person instance 
+        add a one directional relation from the person instance
         (ie. self) and the person identified by ID
-        eg. self ----> ID 
+        eg. self ----> ID
         the weight parameter specified the edge strength
         '''
-        
+
         self.addRelation(relation_type, ID, self.inv_associations)
-        
+
         if relation_type in tag_types:
             self.tagged_commits[relation_type].append(cmt.id)
-        
+
         self.linksPerformed +=1
         self.addCmt2Subsys(cmt, relation_type)
 
     def addCmt2Subsys(self, cmt, relation_type):
-        '''record which subsystem the commit was made to and what type of 
+        '''record which subsystem the commit was made to and what type of
         link was performed (proximity, tag, committed)'''
-        
+
         cmt_subsys = cmt.getSubsystemsTouched()
         for subsys in cmt_subsys:
             self.subsys_touched[relation_type][subsys] += cmt_subsys[subsys]
-    
+
     def getPerformTagRelations(self, relation_type):
         return self.inv_associations[relation_type]
 
@@ -185,20 +185,20 @@ class PersonInfo:
                 rcv_by_id_hash[ID] += self.associations[relation_type][ID]
             else:
                 rcv_by_id_hash[ID] = self.associations[relation_type][ID]
-    
+
     def computeStats(self, link_type):
-        
+
         #computer tag specific stats
         if link_type == "Tag":
             self.computeTagStats()
-        
+
         #determine fraction of relation types
         #for each subsystem
         self.computeSubsysFraction()
-        
+
         #sum over the relation types
         self.computeRelationSums()
-    
+
     def computeTagStats(self):
         """Compute statistics inferred from the tag information.
 
@@ -219,11 +219,11 @@ class PersonInfo:
             self.tag_fraction[tag] = \
                 len(self.tagged_commits[tag])/float(self.linksPerformed)
 
-        
+
     def computeSubsysFraction(self):
-        
+
         total_links = 0
-        # Summarise over all different link variants 
+        # Summarise over all different link variants
         for subsys in self.subsys_names + ["general"]:
             self.subsys_fraction[subsys] = 0
 
@@ -248,12 +248,12 @@ class PersonInfo:
         # be issued without the second party's consent
         for tag in active_tag_types:
             self._sum_relations(tag, self.active_tags_received_by_id)
-        
+
         #sum other possible link types
         self._sum_relations(proximity_relation,        self.proximity_links_recieved_by_id)
-        self._sum_relations(committer2author_relation, self.committer_links_recieved_by_id)    
-       
-            
+        self._sum_relations(committer2author_relation, self.committer_links_recieved_by_id)
+
+
     def getTagStats(self):
         return self.tag_fraction
 
@@ -274,7 +274,7 @@ class PersonInfo:
         self.commit_stats["added"] = 0
         self.commit_stats["deleted"] = 0
         self.commit_stats["numcommits"] = len(self.commit_list)
-        
+
         # NOTE: We use only a single difftype although the information
         # from multiple is available
         for cmt in self.commit_list:
@@ -286,7 +286,7 @@ class PersonInfo:
 
     def getCommitStats(self):
         return self.commit_stats
-            
+
 
 ############################ Test cases #########################
 if __name__ == "__main__":

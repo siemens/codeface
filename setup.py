@@ -9,5 +9,5 @@ setup(name='prosoda',
       author_email='wolfgang.mauerer@siemens.com',
       url='https://github.com/wolfgangmauerer/prosoda',
       packages=['prosoda', 'prosoda.cluster'],
-      package_data={'prosoda': ['R/*.r', 'R/cluster/*.r']},
+      package_data={'prosoda': ['R/*.r', 'R/cluster/*.r', 'perl/*.pl']},
      )

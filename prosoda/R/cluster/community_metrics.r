@@ -24,9 +24,9 @@ edge.weight.to.multi <- function(g) {
   ##	g: igraph graph object
   ## Returns:
   ##	g.multi: igraph graph object with multiple edges and non-weighted edges
-  mult.edges <- c() 
-  mult.edges <-unlist(mapply(function(x.1,x.2,w) rep(c(x.1,x.2), times=w-1), 
-                      get.edgelist(g)[,1], get.edgelist(g)[,2], 
+  mult.edges <- c()
+  mult.edges <-unlist(mapply(function(x.1,x.2,w) rep(c(x.1,x.2), times=w-1),
+                      get.edgelist(g)[,1], get.edgelist(g)[,2],
                       E(g)$weight))
   g.multi <- add.edges(g, mult.edges)
   return(g.multi)
@@ -104,8 +104,8 @@ community.quality.conductance <- function(graph, community.vertices) {
   intra.degree <- graph.strength(cluster.subgraph, mode="all")
 
   ## degree of vertices in community
-  community.vertices.degree <- graph.strength(graph, community.vertices, 
-		  									  mode="all")
+  community.vertices.degree <- graph.strength(graph, community.vertices,
+											  mode="all")
 
   ## sum all degrees from vertices
   community.vertices.degree.total  <- sum(community.vertices.degree)
@@ -113,7 +113,7 @@ community.quality.conductance <- function(graph, community.vertices) {
 
   ## edge sum of edges that cross
   inter.edge.sum <- community.vertices.degree.total - intra.degree.total
-  
+
   return(inter.edge.sum / community.vertices.degree.total)
 }
 

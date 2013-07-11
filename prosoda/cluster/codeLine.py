@@ -14,33 +14,44 @@
 # Copyright 2013, Siemens AG, Mitchell Joblin <mitchell.joblin.ext@siemens.com>
 # All Rights Reserved.
 
-import codeLine
+class codeLine:
 
-class codeBlock:
-    '''
-    A code block is a contiguous set of lines of code from a single 
-    commit
-    '''
-    
-    
     #===========================
     # Constructors
     #===========================
-    
-    def __init__(self, start=None, end=None, authorId=None, committerId=None, cmtHash=None):
-        
-        self.start       = start #start of the code block
-        self.end         = end   #end of the code block
-        self.authorId    = authorId 
-        self.committerId = committerId 
+    def __init__(self, lineNum=None, cmtHash=None, authorId=None, committerId=None):
+
+        self.lineNum     = lineNum
         self.cmtHash     = cmtHash
+        self.authorId    = authorId
+        self.committerId = committerId
+
+
     #===========================
     # Accessors and Modifiers
     #===========================
-    
-    def get_codeLines(self):
-        return self.codeLines
-    
-    
-    def add_codeLine(self, lineNum, cmtHash, authorId, committerId):
-        self.codeLines.append( codeLine.codeLine(lineNum, cmtHash, authorId, committerId) )
+
+    def get_lineNum(self):
+        return self.lineNum
+
+    def set_lineNum(self,lineNum):
+        self.lineNum = lineNum
+
+    def get_cmtHash(self):
+        return self.cmtHash
+
+    def set_cmtHash(self, cmtHash):
+        self.cmtHash = cmtHash
+
+    def get_authorId(self):
+        return self.authorId
+
+    def set_authorId(self, authorId):
+        self.authorId = authorId
+
+    def get_committerId(self):
+        return self.committerId
+
+    def set_commiterId(self, committerId):
+        self.committerId = committerId
+
