@@ -3,6 +3,6 @@
 Run script for the prosoda command line interface.
 Passes the command line parameters to the prosoda module for parsing.
 '''
-from sys import argv
+from sys import argv, exit
 from prosoda.cli import run
-run(argv)
+exit(run(argv))

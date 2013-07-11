@@ -65,21 +65,32 @@ def cmd_run(args):
     print("TODO")
 
 def cmd_test(args):
+    '''Sub-command handler for the ``test`` command.'''
     unit_only=args.unit
     pattern=args.pattern
     del args
-    '''Sub-command handler for the ``test`` command.'''
     test_path = os.path.join(os.path.dirname(__file__), 'test')
     print('\n===== running unittests =====\n')
     tests = unittest.TestLoader().discover(os.path.join(test_path, 'unit'),
         pattern='test_{}.py'.format(pattern), top_level_dir=test_path)
-    unittest.TextTestRunner(verbosity=1).run(tests)
+    unit_result = unittest.TextTestRunner(verbosity=1).run(tests)
+    unit_success = not (unit_result.failures or unit_result.errors)
     if unit_only:
-        return
+        if unit_success:
+            print('\n===== unit tests succeeded :) =====')
+        else:
+            print('\n===== unit tests failed :( =====')
+        return 0 if unit_success else 1
     print('\n===== running integration tests =====\n')
     tests = unittest.TestLoader().discover(os.path.join(test_path, 'integration'),
         pattern='test_{}.py'.format(pattern), top_level_dir=test_path)
-    unittest.TextTestRunner(verbosity=2).run(tests)
+    int_result = unittest.TextTestRunner(verbosity=2).run(tests)
+    int_success = not (int_result.failures or int_result.errors)
+    if unit_success and int_success:
+            print('\n===== all tests succeeded :) =====')
+    else:
+            print('\n===== some tests failed :( =====')
+    return 0 if unit_success and int_success else 1
 
 def run(argv):
     parser = get_parser()
@@ -88,4 +99,4 @@ def run(argv):
     set_log_level(args.loglevel)
     if args.logfile:
         start_logfile(args.logfile, 'debug')
-    args.func(args)
+    return args.func(args)
