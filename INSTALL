@@ -1,0 +1,14 @@
+Development Installation
+========================
+
+To get a development installation of prosoda which reflects all changes you
+make in the code, run:
+
+  python setup.py develop --user
+
+After making sure that $HOME/.local/bin is in the PATH, you should have a
+prosoda executable on the command line. Type
+
+  prosoda --help
+
+for more information.

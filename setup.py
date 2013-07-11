@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='prosoda',
       version='0.2.0',
@@ -10,4 +10,5 @@ setup(name='prosoda',
       url='https://github.com/wolfgangmauerer/prosoda',
       packages=['prosoda', 'prosoda.cluster'],
       package_data={'prosoda': ['R/*.r', 'R/cluster/*.r', 'perl/*.pl']},
+      entry_points={'console_scripts': ['prosoda = prosoda.cli:main']}
      )

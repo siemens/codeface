@@ -33,7 +33,7 @@ from .util import (execute_command, generate_report, layout_all_graphs,
 from .ts import dispatch_ts_analysis
 
 def get_parser():
-    parser = argparse.ArgumentParser(prog='prosoda-run',
+    parser = argparse.ArgumentParser(prog='prosoda',
                 description='Program for Social Data Analysis')
     parser.add_argument('--loglevel', help='Choose the logging level',
                 choices=['debug', 'info', 'warning', 'error'],
@@ -229,3 +229,7 @@ def run(argv):
     if args.logfile:
         start_logfile(args.logfile, 'debug')
     return args.func(args)
+
+def main():
+    import sys
+    run(sys.argv)
