@@ -40,9 +40,9 @@ class TestConfiguration(unittest.TestCase):
 ---
 # Fake Database access information
 dbhost: remotehost
-dbuser: theuser
+dbuser: 'theuser'
 dbpwd: thepassword
-dbname: thedb
+dbname: 'thedb'
 # intermediate comment
 nodejsPort: 4242
 nodejsHostname: foohost
@@ -61,9 +61,9 @@ revisions: [ "v1", "v2", "v3",
             "v4",
             "v5"]
 rcs : ["v1rc0", "v2rc0", "v3rc0", "v4rc0",
-
 "v5rc0"
 ]
+new_tag: newvalue
 tagging: tag
 """)
         project_conf.close()
@@ -81,15 +81,23 @@ tagging: tag
         self.assertEqual(c["revisions"], ["v1", "v2", "v3", "v4", "v5"])
         self.assertEqual(c["rcs"],  ["v1rc0", "v2rc0", "v3rc0", "v4rc0", "v5rc0"])
         self.assertEqual(c["tagging"], "tag")
+        self.assertEqual(c["new_tag"], "newvalue")
         os.unlink(global_conf.name)
         os.unlink(project_conf.name)
-
+        # Check that the configuration is valid YAML
+        yaml_conf = NamedTemporaryFile(delete=False)
+        yaml_conf.write(str(c))
+        yaml_conf.close()
+        c2 = Configuration.load(yaml_conf.name)
+        self.assertEqual(dict(c), dict(c2))
+        os.unlink(yaml_conf.name)
 
     def testDict(self):
         '''Quick test if a Configuration object behaves like a dict'''
         c = Configuration()
         expected_keys = set(("nodejsPort", "nodejsHostname"))
         self.assertEqual(set(c.keys()), expected_keys)
+        print(str(c))
         for k in c:
             self.assertIn(k, expected_keys)
             c[k]
