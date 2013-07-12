@@ -17,10 +17,14 @@
 ## All Rights Reserved.
 
 ## Create overviews about the types of collaboration graphs appearing in
-## projects. Intended as interactive worksheet.
+## projects.
 
-suppressPackageStartupMessages(library(shiny))
-library(igraph)
+s <- suppressPackageStartupMessages
+s(library(shiny))
+s(library(igraph))
+s(library(logging))
+s(library(corrgram))
+rm(s)
 source("config.r")
 source("db.r")
 source("utils.r")
@@ -32,9 +36,6 @@ source("vis.ports.r")
 conf <- load.global.config("prosoda.conf")
 conf <- init.db.global(conf)
 projects.list <- query.projects(conf$con)
-
-## Temporary hack: restrict to known working projects
-#projects.list <- projects.list[projects.list$name%in%c("qemu","git"),]
 
 ## Use the release ranges for the first project in the list
 ## as initial values
@@ -124,6 +125,13 @@ vis.clusters.server <- function(input, output, clientData, session) {
     do.cluster.plots(cluster.list())
   }, height=1024, width=2048)
 
+  output$correlationPlot <- renderPlot({
+    dat <- {gen.cluster.summary(cluster.list())}
+    dat <- dat[,c("Reciprocity", "Strength", "Degree", "Size")]
+    corrgram(dat, order=FALSE, lower.panel=panel.shade, upper.panel=panel.pie,
+              text.panel=panel.txt, main="")
+  })
+
   output$clustersSummary <- renderTable({gen.cluster.summary(cluster.list())})
 }
 
@@ -139,8 +147,11 @@ vis.clusters.ui <- pageWithSidebar(
                            ),
 
                          mainPanel(
-                           tableOutput("clustersSummary"),
-                           plotOutput("clustersPlot")
+                           tabsetPanel(
+                             tabPanel("Clusters", plotOutput("clustersPlot")),
+                             tabPanel("Correlations", plotOutput("correlationPlot")),
+                             tabPanel("Numeric", tableOutput("clustersSummary"))
+                             )
                            )
                          )
 
