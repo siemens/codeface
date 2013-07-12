@@ -352,6 +352,42 @@ query.thread.info <- function(con, ml, range.id) {
   return(dat)
 }
 
+query.pagerank <- function(con, prank.id, limit=20) {
+  dat <- dbGetQuery(con, str_c("SELECT authorId, name, rankValue FROM ",
+                               "pagerank_view WHERE pageRankID=", prank.id,
+                               " ORDER BY rankValue DESC LIMIT ", limit))
+
+  if (!is.null(dat)) {
+    colnames(dat) <- c("person.id", "name", "prank")
+  }
+
+  return(dat)
+}
+
+query.top.contributors.commits <- function(con, range.id, limit=20) {
+  dat <- dbGetQuery(con, str_c("SELECT Name, numcommits ",
+                               "FROM author_commit_stats_view WHERE ",
+                               "releaseRangeId=", range.id,
+                               " ORDER BY numcommits DESC LIMIT ", limit))
+  if (!is.null(dat)) {
+    colnames(dat) <- c("name", "numcommits")
+  }
+
+  return(dat)
+}
+
+query.top.contributors.changes <- function(con, range.id, limit=20) {
+  dat <- dbGetQuery(con, str_c("SELECT Name, added, deleted, total ",
+                               "FROM author_commit_stats_view WHERE ",
+                               "releaseRangeId=", range.id,
+                               " ORDER BY total DESC LIMIT ", limit))
+  if (!is.null(dat)) {
+    colnames(dat) <- c("name", "added", "deleted", "total")
+  }
+
+  return(dat)
+}
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
