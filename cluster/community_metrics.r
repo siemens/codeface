@@ -86,33 +86,23 @@ community.quality.modularization <- function(graph, community.vertices,
 #######################################
 community.quality.conductance <- function(graph, community.vertices) {
   ## Get graph composed solely of vertices belonging to the community
-  subgraph <- induced.subgraph(graph, community.vertices)
+  cluster.subgraph <- induced.subgraph(graph, community.vertices)
 
-  ## Get all vertices not belonging to the community
-  not.community.vertices <- setdiff(V(graph), community.vertices)
+  ## get weighted degree for subgraphs
+  intra.degree <- graph.strength(cluster.subgraph, mode="all")
 
-  ## Measure the degree for intra-community edges
-  intra.degree <- degree(subgraph)
+  ## degree of vertices in community
+  community.vertices.degree <- graph.strength(graph, community.vertices, 
+		  									  mode="all")
 
-  ## Degree of vertices in community
-  community.vertices.degree <- degree(graph, community.vertices)
+  ## sum all degrees from vertices
+  community.vertices.degree.total  <- sum(community.vertices.degree)
+  intra.degree.total               <- sum(intra.degree)
 
-  ## Degree of vertices external to community
-  not.community.vertices.degree <- degree(graph, not.community.vertices)
-
-  ## Sum all degrees from vertices
-  community.vertices.degree.total     <- sum(community.vertices.degree)
-  intra.degree.total                  <- sum(intra.degree)
-  not.community.vertices.degree.total <- sum(not.community.vertices.degree)
-
-  ## Sum of edges linking vertices where one vertex is in the cluster
-  ## and the second vertex is not in the cluster
-  ## measure the degree for inter-community edges
-  inter_edge_sum <- community.vertices.degree.total - intra.degree.total
-
-  intra_edge_sum <- intra.degree.total / 2
-
-  return(inter_edge_sum / (inter_edge_sum + intra_edge_sum))
+  ## edge sum of edges that cross
+  inter.edge.sum <- community.vertices.degree.total - intra.degree.total
+  
+  return(inter.edge.sum / community.vertices.degree.total)
 }
 
 community.quality.wilcox <- function (graph, community.vertices) {
