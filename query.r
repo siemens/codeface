@@ -151,6 +151,32 @@ get.commits.by.range <- function(conf, range.id, subset=NULL, FUN=NULL) {
   return(get.commits.by.range.con(conf$con, conf$pid, range.id, subset, FUN))
 }
 
+## Get scaled commit infos for all cycles of pid
+## This is similar to get.commits.by.ranges, but does not require
+## a full conf object
+get.cmt.info.list <- function(con, pid, subset, scale=TRUE) {
+  range.ids.list <- query.range.ids.con(con, pid)
+  cycles <- get.cycles.con(con, pid)
+
+  res <- lapply(range.ids.list, function(range.id) {
+    cmt.info <- get.commits.by.range.con(con, pid, range.id,
+                                         c(subset, "inRC"),
+                                         normalise.commit.dat)
+    if (scale) {
+      cmt.info.scaled <- scale(cmt.info[, subset])
+    } else {
+      cmt.info.scaled <- cmt.info[, subset]
+    }
+    cmt.info.scaled <- data.frame(cmt.info.scaled,
+                                  inRC=mapvalues(cmt.info$inRC, c(0,1),
+                                    c("Regular", "RC"), warn_missing=FALSE),
+                                  cycle=cycles$cycle[cycles$range.id==range.id])
+    return(cmt.info.scaled)
+  })
+
+  return(res)
+}
+
 ## Get the IDs of all clusters for the given release range
 query.cluster.ids.con <- function(con, pid, range.id, cluster.method) {
   dat <- dbGetQuery(con, str_c("SELECT id FROM cluster WHERE ",
