@@ -56,6 +56,43 @@ source("community_metrics.r")
 ##========================================================================
 ##		Utility
 ##========================================================================
+read.oslom <- function(input.file){
+  ## reads a file created by the oslom clustering program
+  con   	 <- file(input.file, open='r')
+  comms 	 <- list() 
+  membership <- c()
+  csize      <- c()
+  res		 <- list()
+  while(length(line <- readLines(con, n=1, warn=FALSE)) > 0) {
+    if ( "#" == substring(line,1,1)) {
+	  next
+	}
+	else{
+      comm.str <- (strsplit(line, " "))
+      comm.int <- list(as.numeric(comm.str[[1]]))
+      comms    <- c(comms,comm.int)
+	}
+  }
+  close(con)  
+
+  ##TODO: change this to support overlapping communities, ATM nodes split
+  ##			between two clusters end up arbitrarily in one
+  ## create a igraph communities style object
+  for (i in 1:length(comms)){
+    verts <- comms[[i]]
+    membership[verts] <- i
+  }
+  membership.conseq <- remapConsecSeq(membership)
+  for (i in 1:length(unique(membership.conseq))) {
+    csize[i] <- length(which(membership.conseq == i))
+  }
+  class(res)     <- "communities"
+  res$membership <- membership.conseq 
+  res$csize	     <- csize
+  res$algorithm  <- "OSLOM"
+  return(res)
+}
+
 
 ## Given an eMail address like "Name N. Surname <name.surname@domain.com>",
 ## extract the person name without the electronic address
@@ -193,6 +230,32 @@ tags.given.norep <- function(.id, .tags) {
 ##========================================================================
 ##		Community Detection
 ##========================================================================
+oslom.community <- function(g) {
+  ## uses the OSLOM progam to generate an igraph-like communities object
+  ## Args:
+  ##  g: igraph graph object
+  ## Returns:
+  ##  community: igraph-like communities object
+  ##TODO: we need to figure out how to set this up better w.r.t. where the
+  ##      OSLOM program files should be stored
+  prog.loc <- getwd()
+  file.name <- paste(prog.loc, "/oslom.dat", sep="")
+  ## write graph to file
+  g.frame <- get.data.frame(g, what="edges")
+  g.frame["weight"] <- E(g)$weight
+  write.table(g.frame, file.name, sep="\t", row.names=FALSE, col.names=FALSE)
+
+  ## make system call to oslom
+  oslom.prog <- paste(prog.loc, "/oslom_undir -w -t 1.0 -cp 1.0 -copra 10 -infomap 10 -f", sep="")
+  cmd <- paste(oslom.prog, file.name, sep=" ")
+  system(cmd, ignore.stdout=TRUE)
+
+  ## read output file
+  community <- read.oslom(paste(file.name, "_oslo_files/tp_without_singletons", sep=""))
+  return (community)
+}
+
+
 link.community <- function(g){
   #########################################
   ## Description:
