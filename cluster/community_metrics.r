@@ -18,7 +18,19 @@
 ##  Various measures and test for the significance and quality of a community
 ##  or cluster in a graph structure
 
-
+edge.weight.to.multi <- function(g) {
+  ## Converters an edge weight to multiple edges between the connected nodes
+  ## Args:
+  ##	g: igraph graph object
+  ## Returns:
+  ##	g.multi: igraph graph object with multiple edges and non-weighted edges
+  mult.edges <- c() 
+  mult.edges <-unlist(mapply(function(x.1,x.2,w) rep(c(x.1,x.2), times=w-1), 
+                      get.edgelist(g)[,1], get.edgelist(g)[,2], 
+                      E(g)$weight))
+  g.multi <- add.edges(g, mult.edges)
+  return(g.multi)
+}
 ##############################################
 ## Based on the idea of modularization
 ## Reference: Social network clustering and visualization using hierarchical
@@ -228,16 +240,17 @@ randomised.conductance.samples <- function(graph, niter, cluster.algo) {
 
   ## Perform iterations
   conduct.vec <- vector()
+  graph.multi <- edge.weight.to.multi(graph)
   pb <- txtProgressBar(min = 0, max = niter, style = 3)
   for (i in 1:niter) {
     ## Update progress bar
     setTxtProgressBar(pb, i)
 
     ## Rewire graph, randomize the graph while maintaining the degree distribution
-    weights <- E(graph)$weight
-    rw.graph <- rewire(graph, mode = rewire.mode, niter = 10000)
-    E(rw.graph)$weight <- weights
-    rw.graph.connected <- largest.subgraph(rw.graph)
+    rw.graph <- rewire(graph.multi, mode = rewire.mode,
+                       niter = 10*ecount(graph.multi))
+    E(rw.graph)$weight <- 1
+    rw.graph <- simplify(rw.graph, remove.loops=FALSE)
 
     ## Find clusters
     rw.graph.clusters <- cluster.algo(rw.graph.connected)
