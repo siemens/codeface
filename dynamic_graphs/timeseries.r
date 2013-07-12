@@ -28,6 +28,7 @@ source("config.r")
 source("db.r")
 source("query.r")
 source("ts_utils.r")
+source("vis.ports.r")
 
 ## Global variables
 conf <- load.global.config("prosoda.conf")
@@ -142,4 +143,5 @@ ml.timeseries.ui <- pageWithSidebar(
                          )
 
 ## Dispatch the shiny server
-runApp(list(ui=ml.timeseries.ui, server=ml.timeseries.server), port=8102)
+runApp(list(ui=ml.timeseries.ui, server=ml.timeseries.server),
+       port=PORT.TIMESERIES.ML)

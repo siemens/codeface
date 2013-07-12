@@ -26,6 +26,7 @@ source("config.r")
 source("db.r")
 source("query.r")
 source("ts_utils.r")
+source("vis.ports.r")
 
 ## Global variables
 conf <- load.global.config("prosoda.conf")
@@ -96,4 +97,5 @@ release.distance.ui <- pageWithSidebar(
                          )
 
 ## Dispatch the shiny server
-runApp(list(ui=release.distance.ui, server=release.distance.server), port=8100)
+runApp(list(ui=release.distance.ui, server=release.distance.server),
+       port=PORT.RELEASE.DISTANCE)

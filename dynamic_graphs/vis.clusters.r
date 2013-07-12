@@ -26,6 +26,7 @@ source("db.r")
 source("utils.r")
 source("query.r")
 source("clusters.r")
+source("vis.ports.r")
 
 ## Global variables
 conf <- load.global.config("prosoda.conf")
@@ -135,4 +136,6 @@ vis.clusters.ui <- pageWithSidebar(
                          )
 
 ## Dispatch the shiny server
-runApp(list(ui=vis.clusters.ui, server=vis.clusters.server), port=8101)
+basicConfig()
+runApp(list(ui=vis.clusters.ui, server=vis.clusters.server),
+       port=PORT.VIS.CLUSTERS)
