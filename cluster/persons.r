@@ -289,7 +289,7 @@ spinglass.community.connected <- function(graph, spins=compute.num.spins(graph))
 	class(comms.new) <- "communities"
 
 	## perform normal spinglass clustering
-	comms <- spinglass.community(graph, spins=spins)
+	comms <- spinglass.community(graph, spins=spins, update.rule="config")
 	## construct new communities instance
 	comms.new$modularity <- comms$modularity
 	## check if any communities are not disjoint
