@@ -44,6 +44,15 @@ range.ids.list <- query.range.ids.con(conf$con, projects.list$id[[1]])
 gen.clusters.list <- function(l, con) {
   clusters.list <- lapply(1:length(l), function(i) {
     g <- construct.cluster(con, l[[i]])
+
+    ## Self-loops in the proximity analysis can become very strong;
+    ## the resulting edges then typically destroy the visualisation
+    ## completely. Get rid of them, thus.
+    ## NOTE: simplify must be called before the cluster is annotated
+    ## because the function
+    g <- simplify(g, remove.loops=TRUE)
+
+    return(g)
   })
 
   ## Remove empty clusters
