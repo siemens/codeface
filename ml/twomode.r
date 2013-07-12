@@ -54,7 +54,6 @@ gen.twomode.dot <- function(con, g, outfile) {
 ## Given the id of a two-mode graph, query vertices and edge list from
 ## the database, and construct an igraph object
 get.twomode.graph <- function(con, type, ml, range.id) {
-  ## TOOD: Load edges and vertices from the database
   vertices.df <- query.twomode.vertices(con, type, ml, range.id)
   edges.df <- query.twomode.edgelist(con, type, ml, range.id)
 
