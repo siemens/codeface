@@ -152,28 +152,20 @@ community.quality.modularity <- function(graph, community.vertices) {
   subgraph <- induced.subgraph(graph, community.vertices)
 
   ## Number of edges interal to community
-  community.num.edges = ecount(subgraph)
+  community.num.edges = sum(graph.strength(subgraph, mode="all")) / 2
   ## Total number of edge is graph
-  m = ecount(graph)
+  m = sum(graph.strength(graph, mode="all")) / 2
 
   ## Measure the degree for intra-community edges
   intra.degree <- degree(subgraph)
 
   ## Degree of vertices in community
-  community.vertices.degree <- degree(graph, community.vertices)
+  community.vertices.degree <- graph.strength(graph, community.vertices, mode="all")
 
-  ## Measure the degree for inter-community edges
-  inter.degree <- community.vertices.degree - intra.degree
-
-                                        # Calculate final result
+  ## Calculate final result
   f.1 <- community.num.edges / m
   f.2 <- (sum(community.vertices.degree) / (2*m) )^2
   quality  <- f.1 - f.2
-
-  ##f.1 <- sum(intra.degree)
-  ##f.2 <- (sum(community.vertices.degree) / (2*m))^2
-  ##quality <- (f.1 - f.1*f.2) / ((f.1 - f.1*f.2) + sum(inter.degree))
-
   return(quality)
 }
 
