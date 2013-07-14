@@ -1031,6 +1031,21 @@ FROM
 	    prm.pageRankId = pr.id AND
 	    c.releaseRangeId = pr.releaseRangeId);
 
+
+-- -----------------------------------------------------
+-- View `quantarch`.`pagerank_view`
+-- -----------------------------------------------------
+DROP VIEW IF EXISTS `quantarch`.`pagerank_view`;
+DROP TABLE IF EXISTS `quantarch`.`pagerank_view`;
+CREATE VIEW `quantarch`.`pagerank_view` AS
+SELECT
+	prm.pageRankId as pageRankId,
+	p.id as authorId,
+	p.name AS name,
+        prm.rankValue AS rankValue
+FROM pagerank_matrix prm JOIN person p ON p.id=prm.personId;
+
+
 -- -----------------------------------------------------
 -- View `quantarch`.`per_cluster_statistics_view`
 -- -----------------------------------------------------
