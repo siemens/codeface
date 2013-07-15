@@ -280,7 +280,7 @@ randomised.conductance.samples <- function(graph, niter, cluster.algo) {
 compute.all.community.quality <- function(graph, community, test) {
   ## Get number of communities
   if (class(community) == "communities") {
-    community.id <- unique(community$membership)
+    community.id <- sort(unique(community$membership))
     members <- sapply(community.id,
                       function(x) {
                         return(list(which(community$membership==x)))
