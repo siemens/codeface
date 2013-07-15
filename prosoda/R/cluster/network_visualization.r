@@ -258,40 +258,152 @@ membership2markGroup <- function(membership) {
   }
   return (groups)
 }
+
+
+compute.subgraph.list <- function (g, comm){
+  ## Builds a list of subgraphs from a given community membership
+  ## Args:
+  ##  g: Rgraphviz graph object
+  ##	comm: igraph communities object
+  ## Returns:
+  ##  subgraph.list: list of Rgraphviz subgraph objects
+  community.id <- sort(unique(comm$membership))
+  subgraphL <- list()
+  subgraphL <- lapply(community.id,
+    function(x) { 
+      return(list(graph=subGraph(as.character(which(comm$membership==x)), g)))
+	})
+	return(subgraphL)
+}
+
+
+format.color.weight <- function(colorL, weightL) {
+  ## constructs a vector of strings that contain the color and weight data
+  ## for the pie chart style node. The graphviz library demands the following
+  ## color format WC:WC:WC:WC where WC = color;weight
+
+  ## interlace color and weight
+  color.weight.list <- mapply(
+    function(colors, weights) 
+      as.vector(rbind(as.character(paste(colors,";",sep="")),
+					  as.character(paste(weights,":",sep="")))),
+    colorL, weightL)
+
+  ## collapse vector to single strings
+  color.weight.vector <- sapply(color.weight.list, 
+		                        function(x) paste(x,collapse=""))
+  return (color.weight.vector)
+}
 ################################################################################
 ## High Level Functions
 ################################################################################
-plotPieGraph <- function(g, comm) {
-  ## plot a community graph structure using pie chart style vertex visualization
-
+save.graph.igraph <- function(g, comm, filename, plot.size=7, format="png") {
+  ## Generate a community graph structure using pie chart style vertex visualization
   ## Args:
-  ##	g: igraph graph object
-  ##	comm: igraph communities object
-  ## Returns:
-  ## 	igraph plot of the graphs community structure
+  ##  g: igraph graph object
+  ##  comm: igraph communities object
+  ##  filename: output filename to store graph image
+  ##  plot.size: string that specifies the size in inch of the resulting image
+  ##             if not specified the 7x7 inch is used
+  ##  format: One of the supported output formats of base graphics
+  ## Output:
+  ##  igraph plot of the graphs community structure
   cluster.conductance <- compute.all.community.quality(g, comm, "conductance")
   pie.vertex      <- assignCommCol(g, comm)
+  g               <- min.edge.count(g, comm, page.rank(g))
   g               <- simplify(g, remove.multiple=TRUE,remove.loops=TRUE)
   comm.domain.col <- mapCommSig2Color(cluster.conductance)$value
+  comm.layout     <- layoutCommunity(g,comm,FALSE)
+  edge.width      <- scale.data(log(E(g)$weight),1,3)
 
+  formats <- c(bmp, jpeg, png, tiff)
+  names(formats) <- c("bmp", "jpeg", "png", "tiff")
+
+  if (!(format %in% names(formats))) {
+    format <- "png"
+  }
+
+  formats[format](filename=filename, width=size, height=size,
+                  units="in", res=320)
   plot(g,
        mark.group        = membership2markGroup(comm$membership),
-       layout            = layoutCommunity(g,comm,TRUE),
+       layout            = comm.layout,
        vertex.size       = 2 ,
        vertex.label      = NA,
        edge.width        = 0.02,
        edge.arrow.size   = 0.05,
-       edge.color			   = c("black","red")[crossing(comm,g)+1],
-       mark.expand			 = 2,
-       mark.shape			   = 1,
-       mark.col				   = comm.domain.col,
-       mark.border			 = pie.vertex$comm.col,
-       vertex.shape		   = "pie",
+       edge.color        = c("black","red")[crossing(comm,g)+1],
+       mark.expand       = 2,
+       mark.shape        = 1,
+       mark.col          = comm.domain.col,
+       mark.border       = pie.vertex$comm.col,
+       vertex.shape      = "pie",
        vertex.pie        = pie.vertex$fracs,
        vertex.pie.color  = pie.vertex$colors,
        vertex.pie.border = pie.vertex$vert.comm.col,
        vertex.pie.lty    = 0)
+  dev.off()
 }
-################################################################################
-## Executed
-################################################################################
+
+
+save.graph.graphviz <- function(g, comm, filename, plot.size=7){
+  ## Generate pie graph plot using graphviz package
+  ## Args:
+  ## 	g: igraph graph object
+  ## 	comm: igraph communities object
+  ##  filename: output filename to store graph image
+  ##  plot.size: string that specifies the size in inches of the resulting image 
+  ##             if not specified the default 7x7 inches is used
+  ## Output:
+  ##   saves an SVG image of the graph to the specified filename
+  cluster.conductance <- compute.all.community.quality(g, comm, "conductance")
+  g.min      <- min.edge.count(g, comm, page.rank(g))
+  g.min.simp <- simplify(g.min, remove.multiple=TRUE,remove.loops=TRUE)
+
+  ## Convert to Rgraph object via graph object
+  From    <- as.character(get.edgelist(g.min.simp)[,1])
+  To      <- as.character(get.edgelist(g.min.simp)[,2])
+  edgeL   <- cbind(From, To)
+  weights <- E(g.min.simp)$weight
+  g.NEL <- ftM2graphNEL(edgeL, weights, edgemode="directed")
+  subgraph.list <- compute.subgraph.list(g.NEL, comm)
+  g.viz <- agopen(g.NEL, "pieGraph", subGList=subgraph.list)
+  
+  ## Compute graph node and cluster colors
+  pie.vertex  <- assignCommCol(g, comm)
+  comm.col    <- mapCommSig2Color(cluster.conductance)$value
+
+  ## Cluster Attributes
+  cluster.id <- sort(unique(comm$membership))-1
+  clusterData(g.viz, cluster.id,"bgcolor") <- comm.col
+  clusterData(g.viz, cluster.id, "style") <- "bold"
+  clusterData(g.viz, cluster.id, "color") <- pie.vertex$comm.col
+
+  ## Node Attributes
+  n.idx <-  as.character(1:vcount(g))
+  nodeDataDefaults(g.viz, c("style","shape")) <- c("wedged", "ellipse")
+  nodeData(g.viz, n.idx, "label")     <- ""
+  nodeData(g.viz, n.idx, "fillcolor") <- 
+    format.color.weight(pie.vertex$color, pie.vertex$fracs) 
+
+  ## Edge Attributes 
+  ## Color inter-community edges a different color 
+  from.comm  <- as.character(
+                get.edgelist(g.min.simp)[crossing(comm,g.min.simp),1])
+  to.comm    <- as.character(
+                get.edgelist(g.min.simp)[crossing(comm,g.min.simp),2])
+  g.viz.edges <- !is.na(as.character(
+                        edgeData(g.viz, from.comm, to.comm, "color")))
+  from.comm.viz <- from.comm[g.viz.edges]
+  to.comm.viz   <- to.comm[g.viz.edges]
+  edgeData(g.viz, from=from.comm.viz, to=to.comm.viz, "color") <- "red"
+  edgeData(g.viz, from=from.comm.viz, to=to.comm.viz, "style") <- "bold"
+
+  ## Graph attributes
+  graphDataDefaults(g.viz, "size") <- plot.size
+  graphDataDefaults(g.viz, "overlap") <- "prism"
+
+  ## Write image file
+  toFile(g.viz, layoutType="fdp", filename, "svg")
+}
+
