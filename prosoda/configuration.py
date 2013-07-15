@@ -20,7 +20,6 @@ Encapsulates a configuration as an immutable dict
 '''
 
 import yaml
-import sys
 from collections import Mapping
 from logging import getLogger; log = getLogger(__name__)
 

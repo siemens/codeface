@@ -18,7 +18,6 @@
 # Thin sql database wrapper
 
 import MySQLdb as mdb
-import sys
 from datetime import datetime
 from logging import getLogger; log = getLogger(__name__)
 from contextlib import contextmanager

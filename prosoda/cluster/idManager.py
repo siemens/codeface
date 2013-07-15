@@ -18,10 +18,10 @@
 import re
 from email.Utils import parseaddr
 from PersonInfo import PersonInfo
+from logging import getLogger; log = getLogger(__name__)
 import httplib
 import urllib
 import json
-import sys
 import string
 
 class idManager:
@@ -107,8 +107,8 @@ class idManager:
             self._conn.request("POST", "/post_user_id", params, headers)
             res = self._conn.getresponse()
         except:
-            print("Could not reach ID service. Is the server running?\n")
-            sys.exit(-1)
+            log.exception("Could not reach ID service. Is the server running?\n")
+            raise
 
         # TODO: We should handle errors by throwing an exception instead
         # of silently ignoring them

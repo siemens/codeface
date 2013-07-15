@@ -19,7 +19,6 @@
 # Create time series from a sequence of VCS objects
 
 import yaml
-import sys
 import os.path
 import kerninfo
 import pickle

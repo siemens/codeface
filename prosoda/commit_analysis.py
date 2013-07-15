@@ -22,7 +22,7 @@
 # All Rights Reserved.
 
 from TimeSeries import TimeSeries
-import sys
+from logging import getLogger; log = getLogger(__name__)
 
 tag_types = [ "Signed-off-by", "Acked-by", "CC", "Reviewed-by",
              "Reported-by", "Tested-by" ]
@@ -236,8 +236,8 @@ def writeToFile(res, name, uniqueTS=True):
                 timestamp = _compute_next_timestamp(int(cmt.cdate),
                                                     last_timestamp)
             except ValueError:
-                print("Internal error: Could not determine timestamp " +
-                      "for commit {0}, skipping it.".format(cmt.id))
+                logger.warning("Could not determine timestamp for commit "
+                        "{}, skipping it.".format(cmt.id))
                 continue
             last_timestamp = int(timestamp)
         else:

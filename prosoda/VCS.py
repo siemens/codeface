@@ -40,10 +40,10 @@ from progressbar import *
 import commit
 import fileCommit
 import re
-import sys
 import os
 import ctags
 from ctags import CTags, TagEntry
+from logging import getLogger; log = getLogger(__name__)
 
 class Error(Exception):
     """Base class for exceptions in this module."""
@@ -60,11 +60,6 @@ class ParseError(Error):
     def __init__(self, line, id):
         self.line = line
         self.id = id
-
-def _abort(msg):
-    print(msg + "\n")
-    sys.exit(-1)
-
 
 class VCS:
     """
@@ -200,7 +195,8 @@ class gitVCS (VCS):
         project including all subsystems) is stored under "__main__".
         """
         if self.repo == None:
-            _abort("Internal error: Can't do anything without repo")
+            logger.critical("Repository unset in Git VCS")
+            raise Error("Can't do anything without repo")
 
         # Start with the global list for the whole project
         self._prepareGlobalCommitList()
@@ -234,7 +230,7 @@ class gitVCS (VCS):
                                           for logstring in clist])
 
     def _getCommitIDsLL(self, dir_list, rev_start=None, rev_end=None,
-                        verbose=False, ignoreMerges=True):
+                        ignoreMerges=True):
         """Low-level routine to extract the commit list from the VCS.
 
         Must be implemented specifically for every VCS, and must
@@ -243,7 +239,8 @@ class gitVCS (VCS):
         in the subsystem described by the directory list dir_list."""
 
         if rev_start == None and rev_end != None:
-            _abort("Internal error: Bogous range!")
+            log.critical("Range start revision is None, but end revision specified.")
+            raise Error("Bogus range!")
 
         revrange = ""
         if rev_start:
@@ -280,14 +277,14 @@ class gitVCS (VCS):
             for dir in dir_list:
                 cmd.append(dir)
 
-        if verbose:
-            print("About to call {0}".format(" " .join(cmd)))
+        log.debug("Calling '{0}'".format(" " .join(cmd)))
         try:
             p2 = Popen(cmd, stdout=PIPE)
             clist = p2.communicate()[0].splitlines()
         except OSError:
-            _abort("Internal error: Could not spawn command '{0}'".
+            log.exception("Could not spawn command '{0}'".
                    format(" ".join(cmd)))
+            raise
 
         # Remember the comment about monotonically increasing time sequences
         # above? True in principle, but unfortunately, a very small number
@@ -368,7 +365,8 @@ class gitVCS (VCS):
             p2 = Popen(cmd, stdout=PIPE)
             output = p2.communicate()[0].splitlines()
         except OSError:
-            _abort("Internal error: OS command failure")
+            log.exception("Exception running '{}'".format(" ".join(cmd)))
+            raise
 
         return output
 
@@ -403,9 +401,8 @@ class gitVCS (VCS):
         """Extract the commit ID from a log string."""
         match = self.logPattern.search(str)
         if not(match):
-            # TODO: Throw an exception
-            print("Internal error: _Logstring2ID could not parse log string!")
-            sys.exit(-1)
+            log.critical("_Logstring2ID could not parse log string!")
+            raise Error("_Logstring2ID could not parse log string!")
 
         return match.group(2)
 
@@ -417,9 +414,8 @@ class gitVCS (VCS):
 
         match = self.logPattern.search(str)
         if not(match):
-            # TODO: Throw an exception
-            print("Internal error: _Logstring2Commit could not parse log string!")
-            sys.exit(-1)
+            log.critical("_Logstring2Commit could not parse log string!")
+            raise Error("_Logstring2Commit could not parse log string!")
 
         cmt = commit.Commit()
         cmt.cdate = match.group(1)
@@ -452,8 +448,8 @@ class gitVCS (VCS):
                 matched = True
 
         except IndexError:
-            print("Blubb?!")
-            print(msg)
+            log.critical("Empty commit?! Commit <id {}> is: '{}'".
+                    format(cmt.id, msg))
             raise ParseError("Empty commit?", cmt.id)
 
         if not(matched):
@@ -509,17 +505,20 @@ class gitVCS (VCS):
                     # seems to stem from a faulty encoding. Just
                     # ignore the commit
                     cmt.diff_info.append((0,0,0))
+                    log.warning("Ignoring commit {} due to unicode error.".
+                            format(pe.id))
                 except ParseError as pe:
                     # Since the diff format is very easy to parse,
                     # this most likely stems from a malformed diff
                     # that can be ignored. Nevertheless, report the
                     # line and the commit id
-                    print("Could not parse diffstat for {0}!".
+                    log.error("Could not parse diffstat for {0}!".
                           format(pe.id))
-                    print("{0}".format(pe.line))
+                    log.error("{0}".format(pe.line))
                     cmt.diff_info.append((0,0,0))
                 except OSError:
-                    _abort("Internal error: Could not spawn git")
+                    log.exception("Could not spawn git")
+                    raise
 
             # The commit message is independent of the diff type, so we
             # can re-use the information in msg
@@ -562,15 +561,15 @@ class gitVCS (VCS):
             if parts[i].startswith("commit "):
                 break
             elif i == len(parts)-1:
-                # TODO: This should be made an exception, and we
-                # should exit gracefully. On some occasions, this
+                # On some occasions, this
                 # error is triggered although the commit in question
                 # (e.g., 9d32c30542f9ec) can be parsed
                 # fine when viewed within a different range...?!
                 # Perhaps this is also a pypy issue. For the commit
                 # mentioned before, the problem was only detected with
                 # pypy, not with cpython.
-                _abort("Cannot find metadata start in commit message!")
+                log.critical("Cannot find metadata start in commit message!")
+                raise Error("Cannot find metadata start in commit message!")
 
         commit_index = i
         descr_index = i+1
@@ -633,8 +632,8 @@ class gitVCS (VCS):
                 else:
                     tag_names_list[key] = [value]
             else:
-                print("Warning: Could not parse Signed-off like line:")
-                print('{0}'.format(entry))
+                log.warning("Could not parse Signed-off like line:")
+                log.warning('{0}'.format(entry))
 
     def extractCommitDataRange(self, revrange, subsys="__main__"):
         """
@@ -648,7 +647,8 @@ class gitVCS (VCS):
         """
 
         if (len(revrange) != 2):
-            _abort("Internal error: Bogous range")
+            log.critical("Bogus range")
+            raise Error("Bogus range")
 
         globData = self.extractCommitData(subsys)
 
@@ -666,13 +666,14 @@ class gitVCS (VCS):
 
     def extractCommitData(self, subsys="__main__", blameAnalysis=False):
         if not(self._subsysIsValid(subsys)):
-            _abort("Subsys specification invalid: {0}\n".format(subsys))
+            log.critical("Subsys specification invalid: {0}\n".format(subsys))
+            raise Error("Invalid subsystem specification.")
 
         # If we've already computed the result, make use of it
         # (shelved objects can therefore provide a significant
         # performance advantage)
         if self._commit_list_dict:
-            print("Using cached data")
+            log.info("Using cached data to extract commit information")
             return self._commit_list_dict[subsys]
 
         self._prepareCommitLists()
@@ -949,8 +950,8 @@ class gitVCS (VCS):
         try:
             tagFile = CTags(tagFn)
         except:
-            _abort("Error: failure to load ctags file")
-            sys.exit(1)
+            log.critical("failure to load ctags file")
+            raise Error("failure to load ctags file")
 
         # locate function line numbers and names
         entry = TagEntry()

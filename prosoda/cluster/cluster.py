@@ -29,6 +29,7 @@ import codeLine
 import math
 import random
 from progressbar import *
+from logging import getLogger; log = getLogger(__name__)
 
 from prosoda import kerninfo
 from prosoda.commit_analysis import *
@@ -46,11 +47,6 @@ class LinkType:
     tag              = "tag"
     proximity        = "proximity"
     committer2author = "committer2author"
-
-
-def _abort(msg):
-    print(msg + "\n")
-    sys.exit(-1)
 
 
 def createDB(filename, git_repo, revrange, subsys_descr, link_type, rcranges=None):
@@ -79,11 +75,11 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type, rcranges=Non
     #------------------------
     #save data
     #------------------------
-    print("Shelfing the VCS object")
+    log.info("Shelving the VCS object")
     output = open(filename, 'wb')
     pickle.dump(git, output, -1)
     output.close()
-    print("Finished with pickle")
+    log.info("Finished shelving the VCS object")
 
 
 def readDB(filename):
@@ -110,7 +106,8 @@ def computeSubsysAuthorSimilarity(cmt_subsys, author):
         sim = max(sim, asf[subsys_name]*subsys_touched)
 
     if  sim > 1:
-        _abort("Internal error: Author/Subsystem similarity exceeds one.")
+        log.critical("Author/Subsystem similarity exceeds one.")
+        raise Exception("Author/Subsystem similarity exceeds one.")
 
     return sim
 
@@ -136,7 +133,8 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
         sim /= float(2*count)
 
     if  sim > 1:
-        _abort("Internal error: Author/Author similarity exceeds one.")
+        log.critical("Author/Subsystem similarity exceeds one.")
+        raise Exception("Author/Subsystem similarity exceeds one.")
 
     return sim
 
@@ -917,28 +915,21 @@ def writeSubsysPerAuthorData2File(id_mgr, outdir):
     '''
     per-author subsystem information is written to the outdir location
     '''
-
-
     # Export per-author subsystem information (could be included in ids.txt,
     # but since the information is basically orthogonal, we use two files.)
-    out = open(os.path.join(outdir, "id_subsys.txt"), 'wb')
-
     header = "ID\t"
     header += "\t".join(id_mgr.getSubsysNames() + ["general"])
-    print >>out, header
-
+    lines = [header]
     for id in sorted(id_mgr.getPersons().keys()):
         outstr = "{0}\t".format(id)
         pi = id_mgr.getPI(id)
         subsys_fraction = pi.getSubsysFraction()
-
         for subsys in id_mgr.getSubsysNames() + ["general"]:
             outstr += "\t{0}".format(subsys_fraction[subsys])
-
-        print >>out, outstr
-
+        lines.append(outstr)
+    out = open(os.path.join(outdir, "id_subsys.txt"), 'wb')
+    out.writelines(lines)
     out.close()
-
 
 def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
     '''
@@ -1223,8 +1214,8 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     link_type = conf["tagging"]
 
     if create_db == True:
-        print("Creating data base for {0}..{1}").format(revrange[0],
-                                                        revrange[1])
+        log.info("Creating data base for {0}..{1}".format(revrange[0],
+                                                        revrange[1]))
         createDB(dbfilename, git_repo, revrange, subsys_descr, \
                  link_type, rcranges)
 
@@ -1233,7 +1224,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
                    dbm.getRevisionID(projectID, revrange[1]))
     releaseRangeID = dbm.getReleaseRange(projectID, revisionIDs)
 
-    print("Reading from data base {0}...".format(dbfilename))
+    log.info("Reading from data base {0}...".format(dbfilename))
     git = readDB(dbfilename)
     cmtlist = git.extractCommitData("__main__")
     cmtdict = git.getCommitDict()
@@ -1286,9 +1277,9 @@ def doProjectAnalysis(conf, dbm, from_rev, to_rev, rc_start, outdir,
         try:
             os.makedirs(outdir)
         except os.error as e:
-            print("Could not create output dir {0}: {1}".format(outdir,
-                                                                e.strerror))
-            sys.exit(-1)
+            log.exception("Could not create output dir {0}: {1}".
+                    format(outdir, e.strerror))
+            raise
 
     if rc_start != None:
         rc_range = [[rc_start, to_rev]]
@@ -1369,7 +1360,6 @@ if __name__ == "__main__":
     dbm = dbManager(global_conf)
     doProjectAnalysis(conf, dbm, args.from_rev, args.to_rev, args.rc_start,
                       args.outdir, args.repo, args.create_db, limit_history)
-    exit(0)
 
 #git_repo = "/Users/wolfgang/git-repos/linux/.git"
 #outbase = "/Users/wolfgang/papers/csd/cluster/res/"

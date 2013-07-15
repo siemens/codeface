@@ -15,6 +15,7 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
+from logging import getLogger; log = getLogger(__name__)
 from prosoda.commit_analysis import tag_types, active_tag_types, proximity_relation \
 , committer2author_relation, all_link_types
 
@@ -206,7 +207,7 @@ class PersonInfo:
         only once all link data have been collected."""
 
         if self.linksPerformed == 0:
-            print("Warning: {0} did not perform any links?!".
+            log.warning("{0} did not perform any links?!".
                   format(self.getName()))
             return
 
