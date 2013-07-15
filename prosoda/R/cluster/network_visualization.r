@@ -21,10 +21,60 @@
 ## 	Functions are responsible for handling the visualization of network based
 ##	structures. These function make extensive use of igraph and persons.r
 ##  to support the heavy manipulation as a precursor to visualization.
-source("persons.r")
+library(Rgraphviz)
 ################################################################################
 ## Low Level Functions
 ################################################################################
+
+## Reduces a graph to single edges between them most important edge in a
+## a community according to a rank
+
+## Args:
+##  g: igraph graph object
+##  comm: igraph communities object
+##  rank: vector of values indicating a rank value of each vertex in the graph
+##          eg. page rank, betweenness centrality
+## Returns:
+##  g.min.edges: igraph graph object with only single weighted edges between
+##               communities
+min.edge.count <- function(g, comm, rank) {
+  ## Determine the most single most vertex in a community
+  community.idx <- sort(unique(comm$membership))
+  important.comm.verts <- sapply(community.idx,
+                                 function(comm.idx) {
+                                   which(rank ==
+                                         max(rank[which(comm$membership == comm.idx)]))[1]
+                                 })
+
+  ## Find all edges that cross communities and remove them
+  cross.comm.edges     <- E(g)[crossing(comm,g)]
+  g.inter.comm.removed <- delete.edges(g, cross.comm.edges)
+
+  ## Find edge weight of combined cross community edges, the multiple edges
+  ## between communities are summed by the simplify(..) function
+  g.contracted <- simplify(contract.vertices(g, comm$membership))
+
+  ## Assign the edge weight between the important people of each community
+  num.comms <- vcount(g.contracted)
+  for (i in 1:num.comms) {
+    vert.1 <- important.comm.verts[i]
+    for(j in 1:num.comms) { 
+      vert.2 <- important.comm.verts[j]
+      out.edge  <- g.contracted[i, j]
+      in.edge   <- g.contracted[j, i]
+      if(out.edge != 0) {
+        g.inter.comm.removed[vert.1, vert.2] <- out.edge
+      }
+      if(in.edge != 0) {
+        g.inter.comm.removed[vert.2, vert.1] <- in.edge
+      }
+    }
+  }
+
+  return(g.inter.comm.removed)
+}
+
+
 layoutCommunity <- function(g, comm, grid.layout=FALSE) {
   ## calculates a layout that collectes nodes belonging to a community into
   ## a consolodated region
