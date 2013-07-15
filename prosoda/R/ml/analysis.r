@@ -103,7 +103,7 @@ compute.commnet <- function(forest.corp, data.path) {
   } else {
     load(file=commnet.file)
   }
-  
+
   return(commnet)
 }
 
@@ -266,7 +266,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 
   timestamps <- do.call(c, lapply(seq_along(corp.base$corp),
                                   function(i) DateTimeStamp(corp.base$corp[[i]])))
-  
+
   cat(length(corp.base$corp), "messages in corpus\n")
   cat("Date range is", as.character(int_start(iter[[1]])), "to",
       as.character(int_end(iter[[length(iter)]])), "\n")
@@ -287,16 +287,16 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     curr.int <- iter[[i]]
     idx <- which(timestamps >= int_start(curr.int) & timestamps < int_end(curr.int))
     corp.sub <- corp.base$corp[idx]
-    
+
     forest.corp.sub <- list(forest=make.forest(corp.sub, do.normalise.bound),
                             corp=corp.sub,
                             corp.orig=corp.base$corp.orig[idx])
-    
+
     ## ... and perform all analysis steps
     data.path.local <- file.path(data.path, labels[[i]])
     gen.dir(data.path.local)
     save(file=file.path(data.path.local, "forest.corp"), forest.corp.sub)
-    
+
     cycles <- get.cycles(conf)
     dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub, cycles[i,])
     cat(" -> Finished interval ", i, ": ", labels[[i]], "\n")
@@ -313,7 +313,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
 ###prep <- prepare.text(forest, progress=TRUE)
 ####save(file=file.path(data.path, paste("prep", ml, sep=".")), prep)
   communication.network <- compute.commnet(forest.corp, data.path)
-  
+
   ## Returns tdm and dtm
   doc.matrices <- compute.doc.matrices(forest.corp, data.path)
 
@@ -334,16 +334,16 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   ## grep("keyword", text)
   ## ... and then inspect the appropriate messages in corp.orig to see which additional
   ## filter needs to be applied
-  
+
   extract.commnets(forest.corp, termfreq, repo.path, data.path)
-  
+
   ## TODO: Find justifiable heuristics for these configurable parameters
   NUM.NET.SUBJECT <- 25
   NUM.NET.CONTENT <- 50
   interest.networks <- compute.interest.networks(termfreq, NUM.NET.SUBJECT,
                                                  NUM.NET.CONTENT,
                                                  data.path)
-  
+
   networks.dat <- analyse.networks(forest.corp$forest, interest.networks,
                                    communication.network)
 
@@ -488,7 +488,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
               networks.dat=networks.dat,
               thread.info=thread.info)
   save(file=file.path(data.path, "vis.data"), res)
-  
+
   ####### End of actual computation. Generate graphs and store data etc. #######
   dispatch.plots(conf, data.path, res)
   store.data(conf, res, cycle$range.id)

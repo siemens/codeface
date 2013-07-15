@@ -93,7 +93,7 @@ construct.twomode.graph <- function(edgelist, adjmat.twomode, threshold, con,
 
   ## Compute centrality values for both, persons and terms
   deg <- sna::degree(adjmat.twomode)
-  
+
   ## component.largest shrinks the adjacency matrix, so we need to recompute
   ## the people list indices
   people <- which(is.element(rownames(adjmat.twomode), unique(peoplelist)))
@@ -157,7 +157,7 @@ gen.net <- function(type, termfreq, data.path, max.terms) {
 
   res <- centrality.edgelist(termfreq, type, data.path, max.terms)
   adj.matrix <- adjacency(res$edgelist, mode="addvalues", directed=F)
-  
+
 #  print(ggplot(data.frame(x=res[[2]]), aes(x=x)) + geom_histogram(binwidth=1))
   return(list(edgelist=res$edgelist, adj.matrix=adj.matrix))
 }
@@ -213,7 +213,7 @@ gen.networks.df <- function(networks) {
   communication.net <- networks$communication
   centrality.list <- networks$centrality
   ret <- NULL
-  
+
   for (cty.idx in seq_along(centrality.list)) {
     centrality.values <- seq(0, max(centrality.list[[cty.idx]]), length.out=100)
 
@@ -224,7 +224,7 @@ gen.networks.df <- function(networks) {
     ## measures)
 #    distfn <- cor
     distfn <- cosine
-    
+
     compute.similarity <- function(cty.minval) {
       idx <- (centrality.list[[cty.idx]] >= cty.minval)
       data.frame(dist=distfn(as.vector(interest.net[idx, idx]),
@@ -249,7 +249,7 @@ gen.networks.df <- function(networks) {
 ## be considered.
 find.high.freq <- function(x, percentage=0.1, min.entries=-1, max.entries=50,
                          exclude.list=list()) {
-  if (inherits(x, "DocumentTermMatrix")) 
+  if (inherits(x, "DocumentTermMatrix"))
         x <- t(x)
   tmp <- sort(slam::row_sums(x), decreasing=T)
 
@@ -282,7 +282,7 @@ gen.combined.network <- function(interest.network, commnet) {
                              unique(interest.network$edgelist[,1])))
   interestnet <- shrink(interest.network$adj.matrix, by="row", keep=people,
                         values="min")
-  
+
   commnet <- fixup.network(commnet)
   interestnet <- fixup.network(interestnet)
 
@@ -349,7 +349,7 @@ compute.initiate.respond <- function(forest, network.red, cty.list) {
   }
 
 
-  ## TODO: Why does snatm want to construct an outlier here?! 
+  ## TODO: Why does snatm want to construct an outlier here?!
 ##  cent[dim(cent)[1],] <- c(max(cent[,1])+40, max(cent[,2])+100, 0)
   cent$deg <- normalize(cent$deg)
   cent$col[cent$deg > DEG.THRESHOLD] <- "High deg"

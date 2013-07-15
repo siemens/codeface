@@ -130,5 +130,3 @@ if (opts$nodes > 1) {
 }
 
 dispatch.all(conf, repo.path, resdir)
-
-

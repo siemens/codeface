@@ -58,7 +58,7 @@ num.messages.fromdate <- function(msglist, from.date) {
 
 download.mbox <- function(ml, start.date, outfile) {
   dat <- get.postings(ml)
-  num <- num.messages.fromdate(dat, start.date)  
+  num <- num.messages.fromdate(dat, start.date)
 
   ## Execute the command to fetch the messages into an mbox file in
   ## the current directory. Note that this can require a considerable amount
