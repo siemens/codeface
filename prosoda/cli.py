@@ -60,6 +60,11 @@ def get_parser():
     run_parser.add_argument('conf', help="Project specific configuration file")
     run_parser.add_argument('--no-report', action="store_true",
                         help="Skip LaTeX report generation (and dot compilation)")
+
+    run_parser = sub_parser.add_parser('dynamic', help='Start R server for a dynamic graph')
+    run_parser.set_defaults(func=cmd_dynamic)
+    run_parser.add_argument('graph', help="graph to show", default=None, nargs='?')
+    run_parser.add_argument('-l', '--list', action="store_true", help="list available graphs")
     return parser
 
 
@@ -191,7 +196,27 @@ def cmd_run(args):
     cmd.append(project_conf)
     cwd = resource_filename(__name__, "R")
     execute_command(cmd, cwd=cwd)
+    log.info("prosoda run complete.")
     return 0
+
+def cmd_dynamic(args):
+    r_directory = resource_filename(__name__, "R")
+    dyn_directory = resource_filename(__name__, "R/dynamic_graphs")
+    if args.list or args.graph is None:
+        if args.graph is None:
+            log.critical("No dynamic graph given!")
+        print('List of possible dynamic graphs:')
+        for s in sorted(os.listdir(dyn_directory)):
+            if s.endswith('.r'):
+                print(" * " + s[:-len('.r')])
+        return 1
+
+    fn = os.path.join(dyn_directory, args.graph + ".r")
+    if not os.path.exists(fn):
+        log.critical('File "{}" not found!'.format(fn))
+        return 1
+    os.chdir(r_directory)
+    os.system("Rscript '{}'".format(fn))
 
 def cmd_test(args):
     '''Sub-command handler for the ``test`` command.'''
@@ -232,4 +257,4 @@ def run(argv):
 
 def main():
     import sys
-    run(sys.argv)
+    return run(sys.argv)
