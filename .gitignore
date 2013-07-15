@@ -27,4 +27,4 @@ cluster/.RData
 *.tar.bz2
 cluster/res/
 error.dump.rda
-
+prosoda.egg-info/
