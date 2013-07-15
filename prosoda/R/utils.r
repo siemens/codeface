@@ -74,8 +74,7 @@ can.read.file <- function(file) {
 }
 
 status <- function(str) {
-	cat(paste("\r", paste(rep(" ", 75), collapse=''), sep=""))
-	cat(paste("\r", str, sep=""))
+	loginfo(str)
 }
 
 ## Scale a given data set to the range [min,max]
