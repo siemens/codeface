@@ -24,16 +24,15 @@ s(library(logging))
 s(library(corrgram))
 s(library(ggplot2))
 rm(s)
-source("config.r")
-source("db.r")
+source("dyngraph.r")
+
 source("utils.r")
 source("query.r")
 source("commits.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- load.global.config("prosoda.conf")
-conf <- init.db.global(conf)
+conf <- dyngraph.config()
 projects.list <- query.projects(conf$con)
 
 ## Use the release ranges for the first project in the list

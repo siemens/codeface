@@ -24,15 +24,13 @@ s(library(ggplot2))
 s(library(scales))
 s(library(shiny))
 s(library(xts))
-source("config.r")
-source("db.r")
+source("dyngraph.r")
 source("query.r")
 source("ts_utils.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- load.global.config("prosoda.conf")
-conf <- init.db.global(conf)
+conf <- dyngraph.config()
 ###########
 
 get.ts.data <- function(con, pid) {

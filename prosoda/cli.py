@@ -61,10 +61,12 @@ def get_parser():
     run_parser.add_argument('--no-report', action="store_true",
                         help="Skip LaTeX report generation (and dot compilation)")
 
-    run_parser = sub_parser.add_parser('dynamic', help='Start R server for a dynamic graph')
-    run_parser.set_defaults(func=cmd_dynamic)
-    run_parser.add_argument('graph', help="graph to show", default=None, nargs='?')
-    run_parser.add_argument('-l', '--list', action="store_true", help="list available graphs")
+    dyn_parser = sub_parser.add_parser('dynamic', help='Start R server for a dynamic graph')
+    dyn_parser.set_defaults(func=cmd_dynamic)
+    dyn_parser.add_argument('-c', '--config', help="Prosoda configuration file",
+                default='prosoda.conf')
+    dyn_parser.add_argument('graph', help="graph to show", default=None, nargs='?')
+    dyn_parser.add_argument('-l', '--list', action="store_true", help="list available graphs")
     return parser
 
 
@@ -212,11 +214,12 @@ def cmd_dynamic(args):
         return 1
 
     fn = os.path.join(dyn_directory, args.graph + ".r")
+    cfg = os.path.abspath(args.config)
     if not os.path.exists(fn):
         log.critical('File "{}" not found!'.format(fn))
         return 1
     os.chdir(r_directory)
-    os.system("Rscript '{}'".format(fn))
+    os.system("Rscript '{}' '{}'".format(fn, cfg))
 
 def cmd_test(args):
     '''Sub-command handler for the ``test`` command.'''
