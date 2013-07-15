@@ -21,6 +21,7 @@ PORT.TIMESERIES.ML <- 8102
 PORT.COMMIT.INFO <- 8103
 PORT.PUNCHCARD <- 8104
 PORT.CONTRIBUTORS <- 8105
+PORT.CONTRIBUTIONS <- 8106
 
 
 ## Features that are experimental get port numbers >= 9000
