@@ -25,14 +25,23 @@ source("db.r")
 ## present, the prosoda configuration file. It then creates a conf object and
 ## amends it with a database connection.
 dyngraph.config <- function() {
-    parser <- OptionParser(usage = "%prog prosodaconfig")
-    arguments <- parse_args(parser, positional_arguments = TRUE)
-    if (length(arguments$args) != 1) {
-        cat("Please specify configuration file\n")
-        print_help(parser)
-        stop()
+  parser <- OptionParser(usage = "%prog prosodaconfig")
+  arguments <- parse_args(parser, positional_arguments = TRUE)
+  if (length(arguments$args) != 1) {
+    ## To make debugging easier, try the default location of prosoda.conf
+    if (file.exists("../../prosoda.conf")) {
+      cat("NOTE: No config file specified, using default ../../prosoda.conf\n")
+      config.file <- "../../prosoda.conf"
+    } else {
+      cat("Please specify configuration file\n")
+      print_help(parser)
+      stop()
     }
-    conf <- load.global.config(arguments$args[1])
-    conf <- init.db.global(conf)
-    return(conf)
+  } else {
+    config.file <- arguments$args[1]
+  }
+
+  conf <- load.global.config(config.file)
+  conf <- init.db.global(conf)
+  return(conf)
 }
