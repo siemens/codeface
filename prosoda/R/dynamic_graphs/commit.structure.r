@@ -25,14 +25,14 @@ s(library(shiny))
 s(library(logging))
 s(library(stats))
 rm(s)
-source("dyngraph.r")
+source("config.r")
 source("utils.r")
 source("query.r")
 source("commits.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- dyngraph.config()
+conf <- config.from.args()
 projects.list <- query.projects(conf$con)
 #####
 
@@ -125,6 +125,6 @@ vis.commit.structure.ui <- pageWithSidebar(
                          )
 
 ## Dispatch the shiny server
-basicConfig()
+
 runApp(list(ui=vis.commit.structure.ui, server=vis.commit.structure.server),
        port=PORT.COMMIT.STRUCTURE)

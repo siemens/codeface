@@ -195,24 +195,24 @@ gen.ml.id <- function(conf, ml) {
 
 ## Augment the configuration "object" with information that
 ## is of interest to several analysis passes/operations
-augment.conf <- function(conf, global.conf) {
+augment.conf <- function(conf) {
   conf$tstamps.release <- get.release.dates(conf)
   conf$tstamps.all <- get.release.rc.dates(conf)
 
   conf$boundaries <- prepare.release.boundaries(conf)
 
-  conf$nodejsHostname <- global.conf$nodejsHostname
-  conf$nodejsPort <- global.conf$nodejsPort
+  conf$nodejsHostname <- conf$nodejsHostname
+  conf$nodejsPort <- conf$nodejsPort
 
   return(conf)
 }
 
 ## Establish the connection and store the relevant configuration
 ## parameters in the project specific configuration structure
-init.db <- function(conf, global.conf) {
+init.db <- function(conf) {
   drv <- dbDriver("MySQL")
-  con <- dbConnect(drv, host=global.conf$dbhost, user=global.conf$dbuser,
-                   password=global.conf$dbpwd, dbname=global.conf$dbname)
+  con <- dbConnect(drv, host=conf$dbhost, user=conf$dbuser,
+                   password=conf$dbpwd, dbname=conf$dbname)
   conf$pid <- get.project.id(con, conf$project)
   conf$con <- con
   dbGetQuery(con, "SET NAMES utf8")
@@ -222,18 +222,18 @@ init.db <- function(conf, global.conf) {
          "(Did you not run the VCS analysis before the ml analysis?)\n")
   }
 
-  conf <- augment.conf(conf, global.conf)
+  conf <- augment.conf(conf)
 
   return(conf)
 }
 
 ## Same in blue for use cases when no single project is considered.
-## We augment the global configuration with the con object in this case.
-init.db.global <- function(global.conf) {
+## We augment the configuration with the con object in this case.
+init.db.global <- function(conf) {
   drv <- dbDriver("MySQL")
-  con <- dbConnect(drv, host=global.conf$dbhost, user=global.conf$dbuser,
-                   password=global.conf$dbpwd, dbname=global.conf$dbname)
-  global.conf$con <- con
+  con <- dbConnect(drv, host=conf$dbhost, user=conf$dbuser,
+                   password=conf$dbpwd, dbname=conf$dbname)
+  conf$con <- con
   dbGetQuery(con, "SET NAMES utf8")
-  return(global.conf)
+  return(conf)
 }

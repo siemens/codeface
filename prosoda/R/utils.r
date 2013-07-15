@@ -17,6 +17,8 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
+library(logging)
+
 tstamp_to_date <- function(z) as.POSIXct(as.integer(z), origin="1970-01-01")
 
 shannon.entropy <- function(p)
@@ -119,7 +121,7 @@ construct.cluster <- function(con, cluster.id, technique=0) {
   }
 
   if (is.null(edges)) {
-    cat("Duh: cluster without edges for id ", cluster.id, "?!\n")
+    logwarn(paste("Duh: cluster without edges for id ", cluster.id, "?!\n"))
     return(NULL)
   }
 

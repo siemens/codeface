@@ -53,11 +53,12 @@ def get_parser():
     run_parser.set_defaults(func=cmd_run)
     run_parser.add_argument('-c', '--config', help="Prosoda configuration file",
                 default='prosoda.conf')
+    run_parser.add_argument('-p', '--project', help="Project configuration file",
+                required=True)
     run_parser.add_argument('resdir',
                         help="Directory to store analysis results in")
     run_parser.add_argument('gitdir',
                         help="Directory for git repositories")
-    run_parser.add_argument('conf', help="Project specific configuration file")
     run_parser.add_argument('--no-report', action="store_true",
                         help="Skip LaTeX report generation (and dot compilation)")
 
@@ -74,7 +75,7 @@ def cmd_run(args):
     '''Dispatch the ``run`` command.'''
     # First make all the args absolute
     resdir, gitdir = map(os.path.abspath, (args.resdir, args.gitdir))
-    prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.conf))
+    prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
     no_report = args.no_report
     del args
 
@@ -165,9 +166,9 @@ def cmd_run(args):
         log.info("  -> Detecting clusters")
         cmd = []
         cmd.append(resource_filename(__name__, "R/cluster/persons.r"))
+        cmd.extend(("-c", prosoda_conf))
+        cmd.extend(("-p", project_conf))
         cmd.append(rev_resdir)
-        cmd.append(prosoda_conf)
-        cmd.append(project_conf)
         cmd.append(releaseRangeIds[i])
         cwd = resource_filename(__name__, "R")
         execute_command(cmd, cwd=cwd)
@@ -193,9 +194,9 @@ def cmd_run(args):
     log.info("=> Analysing time series")
     cmd = []
     cmd.append(resource_filename(__name__, "R/analyse_ts.r"))
+    cmd.extend(("-c", prosoda_conf))
+    cmd.extend(("-p", project_conf))
     cmd.append(resdir)
-    cmd.append(prosoda_conf)
-    cmd.append(project_conf)
     cwd = resource_filename(__name__, "R")
     execute_command(cmd, cwd=cwd)
     log.info("prosoda run complete.")
@@ -219,7 +220,9 @@ def cmd_dynamic(args):
         log.critical('File "{}" not found!'.format(fn))
         return 1
     os.chdir(r_directory)
-    os.system("Rscript '{}' '{}'".format(fn, cfg))
+    cmd = "Rscript '{}' -c '{}'".format(fn, cfg)
+    log.debug("Running command '{}'".format(cmd))
+    os.system(cmd)
 
 def cmd_test(args):
     '''Sub-command handler for the ``test`` command.'''

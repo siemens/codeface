@@ -24,15 +24,14 @@ s(library(logging))
 s(library(corrgram))
 s(library(ggplot2))
 rm(s)
-source("dyngraph.r")
-
+source("config.r")
 source("utils.r")
 source("query.r")
 source("commits.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- dyngraph.config()
+conf <- config.from.args()
 projects.list <- query.projects(conf$con)
 
 ## Use the release ranges for the first project in the list
@@ -81,6 +80,5 @@ vis.clusters.ui <- pageWithSidebar(
                          )
 
 ## Dispatch the shiny server
-basicConfig()
 runApp(list(ui=vis.clusters.ui, server=vis.clusters.server),
        port=PORT.COMMIT.INFO)

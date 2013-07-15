@@ -177,14 +177,11 @@ analyse.networks <- function(forest, interest.networks, communication.network) {
 
 ## ################### Analysis dispatcher ######################
 ## ################### Let the above rip ########################
-timestamp <- function(text) {
-  cat (text, ": ", date(), "\n")
-}
 
 dispatch.all <- function(conf, repo.path, resdir) {
-  timestamp("start")
+  loginfo("starting mailinglist analysis")
   corp.base <- gen.forest(conf, repo.path, resdir)
-  timestamp("corp.base finished")
+  loginfo("corp.base finished")
   ## TODO: When we consider incremental updates, would it make sense
   ## to just update the corpus, and let all other operations run
   ## from scratch then? This would likely be the technically easiest
@@ -267,10 +264,10 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
   timestamps <- do.call(c, lapply(seq_along(corp.base$corp),
                                   function(i) DateTimeStamp(corp.base$corp[[i]])))
 
-  cat(length(corp.base$corp), "messages in corpus\n")
-  cat("Date range is", as.character(int_start(iter[[1]])), "to",
-      as.character(int_end(iter[[length(iter)]])), "\n")
-  cat("=> Analysing ", conf$ml, "in", length(iter), "subsets\n")
+  loginfo(paste(length(corp.base$corp), "messages in corpus"))
+  loginfo(paste("Date range is", as.character(int_start(iter[[1]])), "to",
+      as.character(int_end(iter[[length(iter)]]))))
+  loginfo(paste("=> Analysing ", conf$ml, "in", length(iter), "subsets"))
 
   ## Prepare a single-parameter version of do.normalise that does
   ## not expose the conf object -- the concept is not known to snatm
@@ -282,7 +279,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
   res <- mclapply(1:length(iter), function(i) {
     ## Determine the corpus subset for the interval
     ## under consideration
-    cat("Processing interval ", i, ": ", labels[[i]], "\n")
+    loginfo(paste("Processing interval ", i, ": ", labels[[i]]))
 
     curr.int <- iter[[i]]
     idx <- which(timestamps >= int_start(curr.int) & timestamps < int_end(curr.int))
@@ -299,7 +296,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 
     cycles <- get.cycles(conf)
     dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub, cycles[i,])
-    cat(" -> Finished interval ", i, ": ", labels[[i]], "\n")
+    loginfo(paste(" -> Finished interval ", i, ": ", labels[[i]]))
   })
 }
 
@@ -530,10 +527,10 @@ compute.twomode.graphs <- function(conf, interest.networks) {
   ## be to find a heuristic to compute a good value
   g.subj <- construct.twomode.graph(interest.networks$subject$edgelist,
                                     interest.networks$subject$adj.matrix,
-                                    NA, conf$con, max.persons=30)
+                                    NA, max.persons=30)
   g.cont <- construct.twomode.graph(interest.networks$content$edgelist,
                                     interest.networks$content$adj.matrix,
-                                    NA, conf$con, max.persons=40)
+                                    NA, max.persons=40)
 
   return(list(subject=g.subj, content=g.cont))
 }

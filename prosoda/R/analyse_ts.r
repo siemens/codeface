@@ -26,10 +26,11 @@ suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(yaml))
 suppressPackageStartupMessages(library(lubridate))
+library(logging)
+
 source("utils.r")
 source("config.r")
 source("plot.r")
-source("db.r")
 source("query.r")
 source("ts_utils.r")
 source("clusters.r")
@@ -347,7 +348,7 @@ determine.cluster.mapping <- function(conf, cluster.method=cluster.methods[1]) {
   ## Compute similarities between all clusters in range i and the
   ## clusters in range i+1.
   for (i in 1:(length(res)-1)) {
-    cat("Computing for range ", i, "\n")
+    loginfo(paste("Computing for range", i))
     clust.sim <- expand.grid(c1=res[[i]]$cluster.id,
                              c2=res[[i+1]]$cluster.id)
     clust.sim$sim <- sapply(1:dim(clust.sim)[1], function(j) {
@@ -594,40 +595,19 @@ do.release.analysis <- function(resdir, graphdir, conf) {
   ## per-determined, desirable shape of the release curve.
 }
 
-
 ######################### Dispatcher ###################################
-parser <- OptionParser(usage = "%prog resdir prosodaconfig projectconfig")
-arguments <- parse_args(parser, positional_arguments = TRUE)
+{
+    conf <- config.from.args(positional_args=list("resdir"))
+    if(is.null(conf)) stop("No configuration.")
+    resdir <- conf$resdir
+    graphdir <- file.path(resdir, "graphs")
+    loginfo(paste("graphdir is", graphdir))
+    dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
-if (length(arguments$args) != 3) {
-  cat("Please specify result directory and configuration files\n")
-  print_help(parser)
-  stop()
-} else {
-  resdir <- arguments$args[1]
-  config.prosoda <- arguments$args[2]
-  config.project <- arguments$args[3]
+    do.ts.analysis(resdir, graphdir, conf)
+    ## NOTE: The processed (smoothed, cumulated) time series are available in the
+    ## database only after do.ts.analysis()
+    do.commit.analysis(resdir, graphdir, conf)
+    do.cluster.analysis(resdir, graphdir, conf)
+    do.release.analysis(resdir, graphdir, conf)
 }
-
-conf <- load.config(config.project)
-global.conf <- load.global.config(config.prosoda)
-resdir <- file.path(resdir, conf$project, conf$tagging)
-graphdir <- file.path(resdir, "graphs")
-dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
-
-conf <- init.db(conf, global.conf)
-
-## TODO: Turn this into a proper pipeline, or some plugin-based
-## analysis mechanism?
-if (!interactive()) {
-  options(error = quote(dump.frames("error.dump", TRUE)))
-} else {
-  options(error=recover)
-}
-
-do.ts.analysis(resdir, graphdir, conf)
-## NOTE: The processed (smoothed, cumulated) time series are available in the
-## database only after do.ts.analysis()
-do.commit.analysis(resdir, graphdir, conf)
-do.cluster.analysis(resdir, graphdir, conf)
-do.release.analysis(resdir, graphdir, conf)

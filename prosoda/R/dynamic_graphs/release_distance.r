@@ -22,13 +22,13 @@
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(shiny))
-source("dyngraph.r")
+source("config.r")
 source("query.r")
 source("ts_utils.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- dyngraph.config()
+conf <- config.from.args()
 conf <- init.db.global(conf)
 projects.list <- query.projects(conf$con)
 ###########

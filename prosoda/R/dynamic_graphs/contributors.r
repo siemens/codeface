@@ -23,13 +23,13 @@ s(library(ggplot2))
 s(library(shiny))
 s(library(logging))
 rm(s)
-source("dyngraph.r")
+source("config.r")
 source("utils.r")
 source("query.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- dyngraph.config()
+conf <- config.from.args()
 projects.list <- query.projects(conf$con)
 
 ## Use the release ranges for the first project in the list
@@ -116,6 +116,6 @@ vis.descriptive.ui <-
     )
 
 ## Dispatch the shiny server
-basicConfig()
+
 runApp(list(ui=vis.descriptive.ui, server=vis.descriptive.server),
        port=PORT.CONTRIBUTORS)

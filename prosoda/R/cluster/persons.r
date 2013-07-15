@@ -37,6 +37,7 @@
 library(igraph)
 library(stringr)
 library(xtable)
+library(logging)
 suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(optparse))
@@ -1418,10 +1419,10 @@ test.community.quality <- function() {
   igraph.modularity.result <- modularity(g, g.spincommunity$membership)
   modularity.result        <- sum(compute.all.community.quality(g, g.spincommunity, "modularity"))
   if( !(igraph.modularity.result == modularity.result)){
-    print("Error: modularity test failed")
+    logerror("modularity test failed")
   }
   else{
-    print("Success: modularity test passed")
+    loginfo("Success: modularity test passed")
   }
 }
 
@@ -1458,33 +1459,9 @@ test.community.quality.modularity <- function() {
 ##----------------------------
 ## Parse commandline arguments
 ##----------------------------
-parser <- OptionParser(usage = "%prog resdir prosodaconfig projectconfig rangeid")
-arguments <- parse_args(parser, positional_arguments = TRUE)
-
-if(length(arguments$args) != 4) {
-  cat("Error: Please specify result directory and configuration files!\n\n")
-  print_help(parser)
-  stop()
-
-} else {
-  resdir <- arguments$args[1]
-  config.prosoda <- arguments$args[2]
-  config.project <- arguments$args[3]
-  range.id <- arguments$args[4]
+{
+    conf <- config.from.args(positional_args=list("resdir", "range.id"))
+    if(is.null(conf)) stop("No configuration.")
+    resdir <- conf$resdir
+    performAnalysis(resdir, conf)
 }
-
-##------------------------------
-## Perform appropriate analysis
-##------------------------------
-if (!interactive()) {
-  options(error = quote(dump.frames("error.dump", TRUE)))
-} else {
-  options(error=recover)
-}
-
-conf <- load.config(config.project)
-global.conf <- load.global.config(config.prosoda)
-conf <- init.db(conf, global.conf)
-conf$range.id <- range.id
-
-performAnalysis(resdir, conf)

@@ -116,11 +116,13 @@ def _get_log_handler(stream=None):
     is a TTY, since stderr could have been redirected into a file.
     '''
     handler = logging.StreamHandler(stream=stream)
-    FORMAT = "[$BOLD%(name)-20s$RESET][%(levelname)-19s] %(message)s"
+    FORMAT = "%(asctime)s [$BOLD%(name)s$RESET] %(levelname)s: %(message)s"
+    datefmt = '%Y-%m-%d %H:%M:%S'
+
     if hasattr(handler.stream, "fileno") and os.isatty(handler.stream.fileno()):
-        handler.setFormatter(_ColoredFormatter(_insert_seqs(FORMAT)))
+        handler.setFormatter(_ColoredFormatter(_insert_seqs(FORMAT), datefmt=datefmt))
     else:
-        handler.setFormatter(logging.Formatter(_remove_seqs(FORMAT)))
+        handler.setFormatter(logging.Formatter(_remove_seqs(FORMAT), datefmt=datefmt))
     return handler
 
 # Initialize the logger that prints to the console.

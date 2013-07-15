@@ -24,13 +24,13 @@ s(library(ggplot2))
 s(library(scales))
 s(library(shiny))
 s(library(xts))
-source("dyngraph.r")
+source("config.r")
 source("query.r")
 source("ts_utils.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- dyngraph.config()
+conf <- config.from.args()
 ###########
 
 get.ts.data <- function(con, pid) {

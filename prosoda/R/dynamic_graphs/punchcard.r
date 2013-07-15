@@ -25,14 +25,14 @@ s(library(logging))
 s(library(lubridate))
 s(library(xts))
 rm(s)
-source("dyngraph.r")
+source("config.r")
 source("utils.r")
 source("query.r")
 source("commits.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- dyngraph.config()
+conf <- config.from.args()
 projects.list <- query.projects(conf$con)
 #####
 
@@ -89,6 +89,6 @@ vis.punchcard.ui <- pageWithSidebar(
                       )
 
 ## Dispatch the shiny server
-basicConfig()
+
 runApp(list(ui=vis.punchcard.ui, server=vis.punchcard.server),
        port=PORT.PUNCHCARD)

@@ -37,8 +37,7 @@ gen.dir <- function(dir) {
 ## survived by now.
 ## Construct igraph objects for author-interest graphs
 construct.twomode.graph <- function(edgelist, adjmat.twomode, threshold, con,
-                                    max.persons=NA, verbose=FALSE,
-                                    exclude.list=list()) {
+                                    max.persons=NA, exclude.list=list()) {
   peoplelist <- edgelist[,1] ## First column of edgelist stores author names
   peoplelist <- peoplelist[!(peoplelist %in% exclude.list)]
 
@@ -72,15 +71,13 @@ construct.twomode.graph <- function(edgelist, adjmat.twomode, threshold, con,
 
       ## tmp can have shrunk (a lot) after applying component.largest,
       people <- which(is.element(rownames(tmp), unique(peoplelist)))
-      if (verbose)
-        cat("Result for threshold ", thresh, ": ", length(people), "\n")
+      logdebug(paste("Result for threshold ", thresh, ": ", length(people)))
       return (abs(max.persons - length(people)))
     }
 
     ## Found the optimal threshold, adapt the network accordingly
     threshold <- optimise(objective, c(0,1))
-    if (verbose)
-      cat("Found optimal threshold ", threshold$minimum)
+    logdebug(paste("Found optimal threshold ", threshold$minimum))
     adjmat.twomode[adjmat.twomode < threshold$minimum] <- 0
   } else {
     adjmat.twomode[adjmat.twomode < threshold] <- 0

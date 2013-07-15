@@ -27,6 +27,7 @@ s(source("ml/analysis.r"))
 s(source("ml/project.spec.r"))
 s(source("ml/keyword.list.r"))
 
+library(logging)
 s(library(tm))
 s(library(parallel))
 s(library(tm.plugin.mail))
@@ -50,86 +51,59 @@ if (!file.exists(snatm.path)) {
 s(source.files(snatm.path))
 rm(s)
 
-
 ## TODO: Filter out spam. There's an incredible amount in some gmane archives
 ## TODO: (this should also include filtering out non-english messages)
 ## The easiest thing would be to let SpamAssassin run over the mbox
 ## file, and then delete all messages marked as SPAM.
 
 ######################### Dispatcher ###################################
-option_list <- list(
-                 make_option(c("", "--basedir"), type="character", default="./",
-                             help="Base directory for prosoda"),
-                 make_option(c("-n", "--nodes"), type="integer", default=1,
-                             help=paste("Number of nodes for cluster analysis",
-                               "(1 means local processing)"))
-                 )
-parser <- OptionParser(usage = "%prog [options] <resdir> <mldir> <config>",
-                       option_list=option_list)
-arguments <- parse_args(parser, positional_arguments = TRUE)
-opts <- arguments$options
+{
+    option_list <- list(
+                    make_option(c("", "--basedir"), type="character", default="./",
+                                help="Base directory for prosoda"),
+                    make_option(c("-n", "--nodes"), type="integer", default=1,
+                                help=paste("Number of nodes for cluster analysis",
+                                "(1 means local processing)"))
+                    )
+    positional_args <- list("resdir", "mldir")
 
-if (length(arguments$args) != 3) {
-  print_help(parser)
+    conf <- config.from.args(positional_args=positional_args, extra_args=option_list)
+    if (is.null(conf)) {
+        stop("No configuration.")
+    }
 
-  cat("Mandatory positional arguments:\n")
-  cat("   <resdir>: Base directory for result outputs\n")
-  cat("   <mldir>: Base directory for mailing list inputs\n")
-  cat("   <config>: Project-specific configuration file\n\n")
-  stop()
-} else {
-  resdir <- arguments$args[1]
-  repo.path <- arguments$args[2]
-  config.file <- arguments$args[3]
+    if (is.null(conf$ml)) {
+      logerror("No mailing list repository available for project, skipping analysis")
+      stop()
+    }
+
+    resdir <- file.path(conf$resdir, conf$project, "ml")
+    gen.dir(resdir)
+
+    set.seed(19101978) ## Fix the seed to make results of random algorithms reproducible
+
+    if (packageVersion("tm") < "0.5.9") {
+      stop("tm needs to be available in version >= 0.5.9, please update.")
+    }
+    if (packageVersion("tm.plugin.mail") < "0.0.6") {
+      stop("tm.plugin.mail needs to be available in version >= 0.0.6, please update.")
+    }
+    if (packageVersion("plyr") < "1.8.0") {
+      stop("plyr needs to be available in version >= 1.8.0, please update.")
+    }
+
+    if (Sys.getenv("http_proxy") != "") {
+      logwarn("WARNING: http_proxy is set!")
+      logwarn("This is often unintended for local communication with the ID service.")
+      logwarn("Are you shure this setup is correct? Continuing nevertheless.")
+    }
+
+    if (opts$nodes > 1) {
+      options(mc.cores=opts$nodes)
+    } else {
+      ## Setting mc.cores to 1 makes sure that a regular lapply is used.
+      options(mc.cores=1)
+    }
+
+    dispatch.all(conf, repo.path, resdir)
 }
-
-conf <- load.config(config.file)
-
-if (!(file.exists("prosoda.conf"))) {
-  stop("prosoda.conf not found in current directory!")
-}
-global.conf <- load.global.config("prosoda.conf")
-
-conf <- init.db(conf, global.conf)
-
-if (is.null(conf$ml)) {
-  cat("No mailing list repository available for project, skipping analysis\n")
-  stop()
-}
-
-resdir <- file.path(resdir, conf$project, "ml")
-gen.dir(resdir)
-
-## Provide a frame dump in case of failure
-if (!interactive()) {
-  options(error = quote(dump.frames("error.dump", TRUE)))
-} else {
-  options(error=recover)
-}
-
-set.seed(19101978) ## Fix the seed to make results of random algorithms reproducible
-
-if (packageVersion("tm") < "0.5.9") {
-  stop("tm needs to be available in version >= 0.5.9, please update.")
-}
-if (packageVersion("tm.plugin.mail") < "0.0.6") {
-  stop("tm.plugin.mail needs to be available in version >= 0.0.6, please update.")
-}
-if (packageVersion("plyr") < "1.8.0") {
-  stop("plyr needs to be available in version >= 1.8.0, please update.")
-}
-
-if (Sys.getenv("http_proxy") != "") {
-  cat("WARNING: http_proxy is set!\n")
-  cat("This is often unintended for local communication with the ID service.\n")
-  cat("Are you sure this setup is correct? Continuing nevertheless.\n")
-}
-
-if (opts$nodes > 1) {
-  options(mc.cores=opts$nodes)
-} else {
-  ## Setting mc.cores to 1 makes sure that a regular lapply is used.
-  options(mc.cores=1)
-}
-
-dispatch.all(conf, repo.path, resdir)
