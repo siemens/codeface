@@ -388,6 +388,42 @@ query.top.contributors.changes <- function(con, range.id, limit=20) {
   return(dat)
 }
 
+## Distributions for commit statistics
+query.contributions.stats.range <- function(con, range.id, include.id=FALSE) {
+  if (include.id) {
+    query <- "SELECT authorId, "
+  } else {
+    query <- "SELECT "
+  }
+
+  query <- str_c(query, "numcommits, total FROM author_commit_stats ",
+                 "WHERE releaseRangeId=", range.id)
+  dat <- dbGetQuery(con, query)
+
+  return(dat)
+}
+
+query.contributions.stats.project <- function(con, pid) {
+  range.ids.list <- query.range.ids.con(con, pid)
+
+  dat <- lapply(range.ids.list, function(range.id) {
+    res <- query.contributions.stats.range(con, range.id, include.id=TRUE)
+    res <- cbind(range.id=range.id, res)
+
+    return(res)
+  })
+
+  dat <- do.call(rbind, dat)
+
+  if (!is.null(dat)) {
+    colnames(dat) <- c("range.id", "author.id", "numcommits", "total")
+  }
+
+  dat$range.id <- as.factor(dat$range.id)
+  dat$author.id <- as.factor(dat$author.id)
+  return(dat)
+}
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
