@@ -76,6 +76,7 @@ def cmd_run(args):
     resdir, gitdir = map(os.path.abspath, (args.resdir, args.gitdir))
     prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
     no_report = args.no_report
+    loglevel = args.loglevel
     del args
 
     conf = Configuration.load(prosoda_conf, project_conf)
@@ -165,6 +166,7 @@ def cmd_run(args):
         log.info("  -> Detecting clusters")
         cmd = []
         cmd.append(resource_filename(__name__, "R/cluster/persons.r"))
+        cmd.extend(("--loglevel", loglevel))
         cmd.extend(("-c", prosoda_conf))
         cmd.extend(("-p", project_conf))
         cmd.append(rev_resdir)
@@ -198,6 +200,7 @@ def cmd_run(args):
     log.info("=> Analysing time series")
     cmd = []
     cmd.append(resource_filename(__name__, "R/analyse_ts.r"))
+    cmd.extend(("--loglevel", loglevel))
     cmd.extend(("-c", prosoda_conf))
     cmd.extend(("-p", project_conf))
     cmd.append(resdir)
