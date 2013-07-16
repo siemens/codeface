@@ -40,12 +40,15 @@ s(library(optparse))
 s(library(xtable))
 s(library(reshape))
 s(library(plyr))
-rm(s)
 
 ## NOTE: This is _temporary_. After the changes to snatm are upstreamed,
 ## we can get rid of loading the files directly.
-snatm.path <- "../src.nntp/snatm/pkg/R"
+snatm.path <- "../../../src.nntp/snatm/pkg/R"
+if (!file.exists(snatm.path)) {
+  stop("Could not find local snatm library, aborting!")
+}
 s(source.files(snatm.path))
+rm(s)
 
 
 ## TODO: Filter out spam. There's an incredible amount in some gmane archives
