@@ -177,7 +177,6 @@ config.script.run <- function(expr) {
         dump.frames("error.dump")
         n <- length(error.dump)
         calls <- names(error.dump)
-        logfatal(e$message)
         trace <- "Traceback:\n"
         for (i in 2L:n-2) {
           trace <- paste(trace, formatC(i, width=3), ": ",
@@ -185,6 +184,7 @@ config.script.run <- function(expr) {
                          sep="")
         }
         loginfo(trace)
+        logfatal(e$message)
         # Save the dump to file for later analysis
         save("error.dump", file="error.dump.rda")
         loginfo("Error dump was written to 'error.dump.rda'.")

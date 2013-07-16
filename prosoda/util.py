@@ -51,12 +51,13 @@ def execute_command(cmd, ignore_errors=False, direct_io=False, cwd=None):
             log.warning("Command '{}' failed with exit code {}. Ignored.".
                     format(jcmd, pipe.returncode))
         else:
-            log.info("Command '{}' stdout:".format(jcmd))
-            for line in stdout.splitlines():
-                log.info(line)
-            log.info("Command '{}' stderr:".format(jcmd))
-            for line in stderr.splitlines():
-                log.info(line)
+            if not direct_io:
+                log.info("Command '{}' stdout:".format(jcmd))
+                for line in stdout.splitlines():
+                    log.info(line)
+                log.info("Command '{}' stderr:".format(jcmd))
+                for line in stderr.splitlines():
+                    log.info(line)
             log.error("Command '{}' failed with exit code {}.".
                     format(jcmd, pipe.returncode))
             raise Exception("Command '{}' failed with exit code {}.".
