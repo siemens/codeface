@@ -28,7 +28,7 @@ source("ts_utils.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- config.from.args()
+conf <- config.from.args(require_project=F)
 conf <- init.db.global(conf)
 projects.list <- query.projects(conf$con)
 ###########

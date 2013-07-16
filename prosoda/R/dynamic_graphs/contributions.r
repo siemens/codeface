@@ -25,13 +25,13 @@ s(library(logging))
 s(library(plyr))
 s(library(reshape))
 rm(s)
-source("dyngraph.r")
+source("config.r")
 source("utils.r")
 source("query.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- dyngraph.config()
+conf <- config.from.args(require_project=F)
 projects.list <- query.projects(conf$con)
 #####
 

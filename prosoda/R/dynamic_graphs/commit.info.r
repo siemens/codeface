@@ -31,7 +31,7 @@ source("commits.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- config.from.args()
+conf <- config.from.args(require_project=F)
 projects.list <- query.projects(conf$con)
 
 ## Use the release ranges for the first project in the list
