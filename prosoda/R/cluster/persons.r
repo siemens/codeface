@@ -473,8 +473,8 @@ plot.comm.subsys <- function(.comm, .id.subsys, filename, .alg,
          ggplot(comb, aes(Subsystem, Fraction)) + geom_boxplot(outlier.colour="blue",
                                                                outlier.size=1.5, alpha=0.5) +
          facet_wrap(~Community) + geom_jitter(size=1, alpha=0.5) +
-         opts(axis.text.x=theme_text(angle=-90, hjust=0),
-              title=paste("Subsystem distribution for community clusters (algorithm: ", .alg,
+         theme(axis.text.x=element_text(angle=-90, hjust=0)) +
+         labs(title=paste("Subsystem distribution for community clusters (algorithm: ", .alg,
                 ")", sep="")),
          height=.height, width=.width)
 }
