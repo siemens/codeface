@@ -132,17 +132,18 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
 ## Setup the logging package given the log level string and an optional logfile
 config.logging <- function(level, logfile) {
   logReset()
-  setLevel(loglevels[toupper(level)], getLogger())
+  setLevel(loglevels["DEBUG"], getLogger())
   addHandler(writeToConsole, level=loglevels[toupper(level)], formatter=config.logging.formatter)
   logdebug(paste("Set log level to '", toString(level), "' == ", loglevels[toupper(level)], sep=""),
            logger="config")
   if (!is.null(logfile)) {
-    loginfo(paste("Opening log file '", logfile, "'", sep=""))
-    addHandler(writeToFile, file=logfile, formatter=config.logging.formatter)
+    logdevinfo(paste("Opening log file '", logfile, "'", sep=""), logger="config")
+    addHandler(writeToFile, level=loglevels["DEBUG"], file=logfile, formatter=config.logging.formatter)
   }
 }
 
-DEVINFO_LEVEL <- 15
+loglevels["DEVINFO"] <- 15
+loglevels["FATAL"] <- 50
 
 ## A new logging formatter that is similar to the python formatter
 config.logging.formatter <- function(record) {
@@ -151,16 +152,23 @@ config.logging.formatter <- function(record) {
   } else {
     from <- paste("[prosoda.R.", record$logger, "]", sep="")
   }
-  if (record$level == DEVINFO_LEVEL) {
+  if (record$level == loglevels["DEVINFO"]) {
     record$levelname <- "DEVINFO"
   }
   text <- paste(record$timestamp, from, paste(record$levelname, ": ", record$msg, sep=''))
 }
-# Add logging for the devinfo log level
-loglevels["DEVINFO"] <- DEVINFO_LEVEL
-logdevinfo <- function(msg, ..., logger="") { levellog(DEVINFO_LEVEL, msg, ..., logger) }
-# Log really fatal errors at higher priority than logerror
-logfatal <- function(msg, ..., logger="") { levellog(50, msg, ..., logger) }
+
+# Add own functions that set the default log level to DEBUG, so that the handlers can filter out messages
+logdebug <- function(msg, ..., logger="") { mylevellog(loglevels["DEBUG"], msg, ..., logger=logger) }
+logdevinfo <- function(msg, ..., logger="") { mylevellog(loglevels["DEVINFO"], msg, ..., logger=logger) }
+loginfo <- function(msg, ..., logger="") { mylevellog(loglevels["INFO"], msg, ..., logger=logger) }
+logwarning <- function(msg, ..., logger="") { mylevellog(loglevels["WARNING"], msg, ..., logger=logger) }
+logerror <- function(msg, ..., logger="") { mylevellog(loglevels["ERROR"], msg, ..., logger=logger) }
+logfatal <- function(msg, ..., logger="") { mylevellog(loglevels["FATAL"], msg, ..., logger=logger) }
+mylevellog <- function(lvl, msg, ..., logger="") {
+  setLevel(loglevels["DEBUG"], getLogger(logger))
+  levellog(lvl, msg, ..., logger=logger)
+}
 
 ## Run a script in a tryCatch environment that catches errors and either terminates
 ## the script with an error code, or in an interactive environment calls stop() again
