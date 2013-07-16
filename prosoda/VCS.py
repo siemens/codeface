@@ -35,15 +35,15 @@
 # TODO: Unify range handling. Either a range is always a list, or always
 # represented by two parameters.
 
-from subprocess import *
-from progressbar import *
 import commit
 import fileCommit
 import re
 import os
 import ctags
+from progressbar import ProgressBar, Percentage, Bar, ETA
 from ctags import CTags, TagEntry
 from logging import getLogger; log = getLogger(__name__)
+from .util import execute_command
 
 class Error(Exception):
     """Base class for exceptions in this module."""
@@ -277,14 +277,7 @@ class gitVCS (VCS):
             for dir in dir_list:
                 cmd.append(dir)
 
-        log.debug("Calling '{0}'".format(" " .join(cmd)))
-        try:
-            p2 = Popen(cmd, stdout=PIPE)
-            clist = p2.communicate()[0].splitlines()
-        except OSError:
-            log.exception("Could not spawn command '{0}'".
-                   format(" ".join(cmd)))
-            raise
+        clist = execute_command(cmd).splitlines()
 
         # Remember the comment about monotonically increasing time sequences
         # above? True in principle, but unfortunately, a very small number
@@ -309,7 +302,7 @@ class gitVCS (VCS):
         cmd.append('--date=local')
 
         #submit query to git
-        logMsg = self._sysCmd(cmd)
+        logMsg = execute_command(cmd)
 
         return logMsg
 
@@ -343,7 +336,7 @@ class gitVCS (VCS):
 
 
         #submit query command
-        clist = self._sysCmd(cmd)
+        clist = execute_command(cmd)
 
         # Remember the comment about monotonically increasing time sequences
         # above? True in principle, but unfortunately, a very small number
@@ -355,21 +348,6 @@ class gitVCS (VCS):
         # Then, obtain the first and last commit in the desired range
         # and extract the desired subrange
         return clist
-
-
-    def _sysCmd(self, cmd):
-        '''low level routine to submit a command to the system and return the
-        output'''
-
-        try:
-            p2 = Popen(cmd, stdout=PIPE)
-            output = p2.communicate()[0].splitlines()
-        except OSError:
-            log.exception("Exception running '{}'".format(" ".join(cmd)))
-            raise
-
-        return output
-
 
     def _prepareGlobalCommitList(self):
         """Prepare the list of all commits for the complete project.
@@ -496,8 +474,7 @@ class gitVCS (VCS):
                                                       whitespace, cmt.id)).split()
                 try:
                     # print("About to call " + " ".join(cmd))
-                    p2 = Popen(cmd, stdout=PIPE)
-                    msg = p2.communicate()[0]
+                    msg = execute_command(cmd)
                     self._analyseDiffStat(msg, cmt)
                 except UnicodeDecodeError:
                     # Since we work in utf8 (which git returns and
@@ -724,7 +701,7 @@ class gitVCS (VCS):
         cmd.append(fileName)
 
         #query git repository
-        blameMsg = self._sysCmd(cmd)
+        blameMsg = execute_command(cmd)
 
         return blameMsg
 
@@ -944,7 +921,7 @@ class gitVCS (VCS):
 
         # run ctags analysis on the file to create a tags file
         cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tagFn, srcFn).split()
-        output = self._sysCmd(cmd)
+        output = execute_command(cmd)
 
         # parse ctags generated file for the function line numbers
         try:
@@ -1027,7 +1004,7 @@ class gitVCS (VCS):
         cmd.append(revrange)
 
         #query git
-        output = self._sysCmd(cmd)
+        output = execute_command(cmd)
 
         #filter results to only get implementation files
         fileExt = (".c", ".cc", ".cpp", ".cxx", ".cs", ".asmx", ".m", ".mm",

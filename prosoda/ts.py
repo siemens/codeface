@@ -23,7 +23,6 @@ import os.path
 import kerninfo
 import pickle
 import argparse
-from subprocess import *
 from datetime import datetime
 
 from .VCS import gitVCS

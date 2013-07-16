@@ -26,17 +26,21 @@ from subprocess import Popen, PIPE
 from pkg_resources import resource_filename
 from tempfile import NamedTemporaryFile, mkdtemp
 
-def execute_command(cmd, ignore_errors=False, cwd=None):
+def execute_command(cmd, ignore_errors=False, direct_io=False, cwd=None):
     '''
     Execute the command `cmd` specified as a list of ['program', 'arg', ...]
     If ignore_errors is true, a non-zero exit code will be ignored, otherwise
     an exception is raised.
+    If direct_io is True, do not capture the stdin and stdout of the command
     Returns the stdout of the command.
     '''
     jcmd = " ".join(cmd)
-    log.debug(jcmd)
+    log.debug("Running command: {}".format(jcmd))
     try:
-        pipe = Popen(cmd, stdout=PIPE, stderr=PIPE, cwd=cwd)
+        if direct_io:
+            pipe = Popen(cmd, cwd=cwd)
+        else:
+            pipe = Popen(cmd, stdout=PIPE, stderr=PIPE, cwd=cwd)
         stdout, stderr = pipe.communicate()
     except OSError:
         log.error("Error executing command {}!".format(jcmd))

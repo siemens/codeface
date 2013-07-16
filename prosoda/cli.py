@@ -28,7 +28,8 @@ from .logger import set_log_level, start_logfile, log
 from .configuration import Configuration
 from .dbmanager import DBManager
 from .cluster.cluster import doProjectAnalysis
-from .util import generate_report, layout_all_graphs, check4ctags
+from .util import (execute_command, generate_report, layout_all_graphs,
+        check4ctags)
 from .ts import dispatch_ts_analysis
 
 def get_parser():
@@ -172,12 +173,7 @@ def cmd_run(args):
         cmd.append(rev_resdir)
         cmd.append(releaseRangeIds[i])
         cwd = resource_filename(__name__, "R")
-        old_cwd = os.getcwd()
-        os.chdir(cwd)
-        if os.system(" ".join(cmd)) != 0:
-            log.critical("Error running R script '{}'".format(" ".join(cmd)))
-            return 1
-        os.chdir(old_cwd)
+        execute_command(cmd, direct_io=True, cwd=cwd)
 
         #########
         # STAGE 3: Generate cluster graphs
@@ -205,12 +201,7 @@ def cmd_run(args):
     cmd.extend(("-p", project_conf))
     cmd.append(resdir)
     cwd = resource_filename(__name__, "R")
-    old_cwd = os.getcwd()
-    os.chdir(cwd)
-    if os.system(" ".join(cmd)) != 0:
-        log.critical("Error running R script '{}'".format(" ".join(cmd)))
-        return 1
-    os.chdir(old_cwd)
+    execute_command(cmd, direct_io=True, cwd=cwd)
     log.info("prosoda run complete.")
     return 0
 
@@ -231,10 +222,8 @@ def cmd_dynamic(args):
     if not os.path.exists(fn):
         log.critical('File "{}" not found!'.format(fn))
         return 1
-    os.chdir(r_directory)
-    cmd = "Rscript '{}' -c '{}'".format(fn, cfg)
-    log.debug("Running command '{}'".format(cmd))
-    os.system(cmd)
+    cmd = ["Rscript", fn, "-c", cfg]
+    execute_command(cmd, direct_io=True, cwd=r_directory)
 
 def cmd_test(args):
     '''Sub-command handler for the ``test`` command.'''
