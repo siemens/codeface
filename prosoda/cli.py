@@ -36,7 +36,7 @@ def get_parser():
     parser = argparse.ArgumentParser(prog='prosoda',
                 description='Program for Social Data Analysis')
     parser.add_argument('--loglevel', help='Choose the logging level',
-                choices=['debug', 'info', 'warning', 'error'],
+                choices=['debug', 'devinfo', 'info', 'warning', 'error'],
                 default='info')
     parser.add_argument('--logfile', help='Save all debug logging into the'
                 ' given log file')

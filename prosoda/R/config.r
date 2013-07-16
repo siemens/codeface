@@ -86,7 +86,7 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
                              require_project=T) {
   option_list <- c(list(
     make_option(c("-l", "--loglevel"), default="info",
-                help="logging level (debug, info, warning or error) [%default]"),
+                help="logging level (debug, devinfo, info, warning or error) [%default]"),
     make_option(c("-f", "--logfile"), help="logfile"),
     make_option(c("-c", "--config"), default="prosoda.conf",
                 help="global prosoda configuration file [%default]"),
@@ -133,14 +133,16 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
 ## Setup the logging package given the log level string and an optional logfile
 config.logging <- function(level, logfile) {
   logReset()
-  setLevel(toupper(level), getLogger())
-  addHandler(writeToConsole, level=toupper(level), formatter=config.logging.formatter)
+  setLevel(loglevels[toupper(level)], getLogger())
+  addHandler(writeToConsole, level=loglevels[toupper(level)], formatter=config.logging.formatter)
   logdebug(paste("Set log level to '", toString(level), "' == ", loglevels[toupper(level)], sep=""))
   if (!is.null(logfile)) {
     loginfo(paste("Opening log file '", logfile, "'", sep=""))
     addHandler(writeToFile, file=logfile, formatter=config.logging.formatter)
   }
 }
+
+DEVINFO_LEVEL <- 15
 
 ## A new logging formatter that is similar to the python formatter
 config.logging.formatter <- function(record) {
@@ -149,8 +151,14 @@ config.logging.formatter <- function(record) {
   } else {
     from <- paste("[prosoda.R.", record$logger, "]", sep="")
   }
+  if (record$level == DEVINFO_LEVEL) {
+    record$levelname <- "DEVINFO"
+  }
   text <- paste(record$timestamp, from, paste(record$levelname, ": ", record$msg, sep=''))
 }
+# Add logging for the devinfo log level
+loglevels["DEVINFO"] <- DEVINFO_LEVEL
+logdevinfo <- function(msg, ..., logger="") { levellog(DEVINFO_LEVEL, msg, ..., logger) }
 # Log really fatal errors at higher priority than logerror
 logfatal <- function(msg, ..., logger="") { levellog(50, msg, ..., logger) }
 

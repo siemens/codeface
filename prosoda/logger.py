@@ -28,6 +28,10 @@ import logging
 import os
 from copy import copy
 
+DEVINFO_LEVEL = 15
+logging.DEVINFO = DEVINFO_LEVEL
+logging.addLevelName(DEVINFO_LEVEL, "DEVINFO")
+
 def set_log_level(level_string):
     '''
     Change the log level of the console logger to the level given in
@@ -65,12 +69,13 @@ BOLD_SEQ = "\033[1m"
 # ANSI colour number offsets.
 # The background is set with 40 plus the number of the colour,
 # the foreground with 30 plus the number of the colour.
-RED, YELLOW, BLUE, WHITE = 1, 3, 4, 7
+RED, GREEN, YELLOW, BLUE, WHITE = 1, 2, 3, 4, 7
 
 # Colours which are used for the respective log levels.
 COLORS = {
     'DEBUG' : BLUE,
-    'INFO' : WHITE,
+    'DEVINFO' : WHITE,
+    'INFO' : GREEN,
     'WARNING' : YELLOW,
     'ERROR' : RED,
     'CRITICAL' : RED,
@@ -133,6 +138,10 @@ console_handler.setLevel(logging.DEBUG)
 # Initialize root prosoda logger
 # Note that the Level is set to 1, so all logging messages will be passed to
 # the handlers, which will then apply their log level.
+class DevInfoLogger(logging.getLoggerClass()):
+    def devinfo(self, *args):
+        return self.log(DEVINFO_LEVEL, *args)
+logging.setLoggerClass(DevInfoLogger)
 log = logging.getLogger("prosoda")
 log.addHandler(console_handler)
 log.setLevel(1) # pass all messages to the handlers
