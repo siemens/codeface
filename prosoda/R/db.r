@@ -172,6 +172,27 @@ get.pagerank.id <- function(conf, range.id, technique) {
   return(get.pagerank.id.con(conf$con, range.id, technique))
 }
 
+## Obtain a unique ID for mailing list, given name of the list and project id.
+gen.ml.id.con <- function(con, ml, pid) {
+  res <- dbGetQuery(con, str_c("SELECT id from mailing_list ",
+                               "WHERE projectId=", pid,
+                               " AND name=", sq(ml)))
+
+  if (length(res) == 0) {
+    dbGetQuery(con, str_c("INSERT INTO mailing_list (projectID, name)",
+                          " VALUES (", pid, ", ", sq(ml), ")"))
+    res <- dbGetQuery(con, str_c("SELECT id from mailing_list ",
+                                 "WHERE projectId=", pid,
+                                 " AND name=", sq(ml)))
+  }
+
+  return(res$id)
+}
+
+gen.ml.id <- function(conf, ml) {
+  return(gen.ml.id(conf$con, ml, conf$pid))
+}
+
 ## Augment the configuration "object" with information that
 ## is of interest to several analysis passes/operations
 augment.conf <- function(conf, global.conf) {
