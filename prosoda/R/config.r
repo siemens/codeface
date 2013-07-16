@@ -17,8 +17,8 @@
 suppressPackageStartupMessages(library(optparse))
 library(yaml)
 library(logging)
+# set up the basic logging config in case logging is called at source() level
 basicConfig()
-
 
 source("db.r")
 
@@ -140,6 +140,7 @@ config.logging <- function(level, logfile) {
     }
 }
 
+## A new logging formatter that is similar to the python formatter
 config.logging.formatter <- function(record) {
     if (is.null(record$logger) || record$logger == "") {
         from <- "[prosoda.R]"
@@ -148,7 +149,7 @@ config.logging.formatter <- function(record) {
     }
     text <- paste(record$timestamp, from, paste(record$levelname, ": ", record$msg, sep=''))
 }
-
+# Log really fatal errors at higher priority than logerror
 logfatal <- function(msg, ..., logger="") { levellog(50, msg, ..., logger) }
 
 ## Run a script in a tryCatch environment that catches errors and either terminates
@@ -158,10 +159,24 @@ config.script.run <- function(expr) {
     # http://www.mail-archive.com/r-help@stat.math.ethz.ch/msg21676.html
     withCallingHandlers(expr,
         error=function(e) {
+            # In a noninteractive shell, try to give as much useful information
+            # about the error as possible to ease error reporting
             if (!interactive()) {
+                # Extract information from the frames
+                # (see also code of R builtin debugger function)
+                dump.frames("error.dump")
+                n <- length(error.dump)
+                calls <- names(error.dump)
                 logfatal(e$message)
-
-                dump.frames("error.dump", to.file=TRUE)
+                trace <- "Traceback:\n"
+                for (i in 2L:n-2) {
+                    trace <- paste(trace, formatC(i, width=3), ": ",
+                                   gsub("\n","\n     ", calls[i]), "\n",
+                                   sep="")
+                }
+                loginfo(trace)
+                # Save the dump to file for later analysis
+                save("error.dump", file="error.dump.rda")
                 loginfo("Error dump was written to 'error.dump.rda'.")
                 loginfo("To debug, launch R and run 'load(\"error.dump.rda\"); debugger(error.dump)'")
                 quit(save="no", status=1)
