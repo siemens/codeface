@@ -111,7 +111,7 @@ construct.twomode.graph <- function(edgelist, adjmat.twomode, threshold, con,
 ## Given an author-interest graph for mailing list ml, a given type
 ## (subject or content), and a range id to which the graph belongs,
 ## write the vertex and edge list into the database
-store.twomode.graph <- function(con, g, type, ml, range.id) {
+store.twomode.graph <- function(con, g, type, ml.id, range.id) {
   if (!(type %in% c("subject", "content"))) {
     stop("Internal error: Unsupported type for store.twomode.graph")
   }
@@ -124,9 +124,9 @@ store.twomode.graph <- function(con, g, type, ml, range.id) {
   vertices.df$type <- factor(vertices.df$type, levels=c("person", "keyword"),
                              labels=c(0,1))
   vertices.df <- cbind(releaseRangeId=range.id, source=type,
-                       ml=conf$ml, vertices.df)
+                       mlId=ml.id, vertices.df)
 
-  ## Columns are now: releaseRangeId, source, ml, name, degree, type
+  ## Columns are now: releaseRangeId, source, mlId, name, degree, type
   res <- dbWriteTable(con, "twomode_vertices", vertices.df, append=T,
                       row.names=F)
   if (!res) {
@@ -138,9 +138,9 @@ store.twomode.graph <- function(con, g, type, ml, range.id) {
   colnames(edges.df) <- c("fromVert", "toVert", "weight")
   edges.df$fromVert <- as.numeric(edges.df$fromVert)
   edges.df <- cbind(releaseRangeId=range.id, source=type,
-                    ml=conf$ml, edges.df)
+                    mlId=ml.id, edges.df)
 
-  ## Columns are now: releaseRangeId, source, ml, fromVert, toVert, weight
+  ## Columns are now: releaseRangeId, source, mlId, fromVert, toVert, weight
   res <- dbWriteTable(con, "twomode_edgelist", edges.df, append=T,
                       row.names=F)
   if (!res) {

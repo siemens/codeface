@@ -347,6 +347,9 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   networks.dat <- analyse.networks(forest.corp$forest, interest.networks,
                                    communication.network)
 
+  ## Obtain a unique numerical ID for the mailing list
+  ml.id <- gen.ml.id.con(conf$con, conf$ml, conf$pid)
+
   ## Compute base data for time series analysis
   msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(DateTimeStamp(x)) })
   msgs <- do.call(c, msgs)
@@ -435,7 +438,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
 
   ## freq_subjects stores the subjects that received the highest
   ## attention
-  dat <-  data.frame(projectId=conf$pid, releaseRangeId=cycle$range.id,
+  dat <-  data.frame(projectId=conf$pid, mlId=ml.id, releaseRangeId=cycle$range.id,
                      subject=thread.info.cut$subject, count=thread.info.cut$messages)
   res <- dbWriteTable(conf$con, "freq_subjects", dat, append=T, row.names=F)
   if (!res) {
@@ -464,7 +467,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
 
   dat <- data.frame(subject=thread.info$subject, createdBy=authorIDs,
                     projectId=conf$pid, releaseRangeId=cycle$range.id,
-                    ml=conf$ml, mailThreadId=thread.info$tid,
+                    mlId=ml.id, mailThreadId=thread.info$tid,
                     creationDate=creationDates,
                     numberOfAuthors=thread.info$authors,
                     numberOfMessages=thread.info$messages)
@@ -491,7 +494,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
 
   ####### End of actual computation. Generate graphs and store data etc. #######
   dispatch.plots(conf, data.path, res)
-  store.data(conf, res, cycle$range.id)
+  store.data(conf, res, cycle$range.id, ml.id)
 }
 
 compute.twomode.graphs <- function(conf, interest.networks) {
@@ -506,22 +509,22 @@ compute.twomode.graphs <- function(conf, interest.networks) {
 
   return(list(subject=g.subj, content=g.cont))
 }
-
-store.twomode.graphs <- function(conf, twomode.graphs, range.id) {
+s
+store.twomode.graphs <- function(conf, twomode.graphs, ml.id, range.id) {
   store.twomode.graph(conf$con, twomode.graphs$subject, "subject",
-                      conf$ml, range.id)
+                      ml.id, range.id)
   store.twomode.graph(conf$con, twomode.graphs$content, "content",
-                      conf$ml, range.id)
+                      ml.id, range.id)
 }
 
-store.initiate.response <- function(conf, ir, ml, range.id) {
-  dat <- cbind(releaseRangeId=range.id, ml=ml,
+store.initiate.response <- function(conf, ir, ml.id, range.id) {
+  dat <- cbind(releaseRangeId=range.id, mlId=ml.id,
                ir[,c("name", "responses", "initiations",
                  "responses.received", "deg", "source")])
   dat$source <- mapvalues(dat$source, from=c("subject", "content"), to=c(0,1))
 
   ## Create SQL-compatible column names
-  colnames(dat) <- c("releaseRangeId", "ml", "personId", "responses",
+  colnames(dat) <- c("releaseRangeId", "mlId", "personId", "responses",
                      "initiations", "responses_received", "deg", "source")
 
   res <- dbWriteTable(conf$con, "initiate_response", dat, append=T, row.names=F)
@@ -531,9 +534,9 @@ store.initiate.response <- function(conf, ir, ml, range.id) {
 }
 
 ## Dispatcher for all data storing functions above
-store.data <- function(conf, res, range.id) {
-  store.initiate.response(conf, res$networks.dat$ir, conf$ml, range.id)
-  store.twomode.graphs(conf, res$twomode.graphs, range.id)
+store.data <- function(conf, res, range.id, ml.id) {
+  store.initiate.response(conf, res$networks.dat$ir, ml.id, range.id)
+  store.twomode.graphs(conf, res$twomode.graphs, ml.id, range.id)
 }
 
 create.network.plots <- function(conf, plots.path, res) {
