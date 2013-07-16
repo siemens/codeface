@@ -82,7 +82,8 @@ load.config <- function(global_file, project_file=NULL) {
 ## a conf object and amends it with a database connection.
 ## If positional arguments are given by name in the positional_args list,
 ## these are stored by name in the conf object.
-config.from.args <- function(positional_args=list(), extra_args=list()) {
+config.from.args <- function(positional_args=list(), extra_args=list(),
+                             require_project=FALSE) {
     option_list <- c(list(
         make_option(c("-l", "--loglevel"), default="info",
                     help="logging level (debug, info, warning or error) [%default]"),
@@ -94,19 +95,26 @@ config.from.args <- function(positional_args=list(), extra_args=list()) {
     ), extra_args)
     parser <- OptionParser(usage=do.call(paste, c("%prog", positional_args)),
                            option_list=option_list)
-
     arguments <- parse_args(parser, positional_arguments=(length(positional_args)>0))
     opts = arguments[1]$options
     args = arguments[2]$args
+
+    # Set up logging handlers/logfiles
     config.logging(opts$loglevel, opts$logfile)
+
+    # Check options for correctness
     if (length(args) != length(positional_args)) {
-        logfatal("Wrong number of positional arguments!")
         print_help(parser)
-        return(NULL)
+        stop("Wrong number of positional arguments!")
+    }
+    if (require_project & is.null(opts$project)) {
+        stop("No project configuration file specified!")
     }
 
     # Load configuration file(s)
     conf <- load.config(opts$config, opts$project)
+    loginfo("Configuration:")
+    loginfo(toString(conf))
 
     # Open up the corresponding database connection
     if(is.null(opts$project)) {
@@ -143,10 +151,27 @@ config.logging.formatter <- function(record) {
 
 logfatal <- function(msg, ..., logger="") { levellog(50, msg, ..., logger) }
 
-## TODO: Turn this into a proper pipeline, or some plugin-based
-## analysis mechanism?
-if (!interactive()) {
-  options(error = quote(dump.frames("error.dump", TRUE)))
-} else {
-  options(error=recover)
+## Run a script in a tryCatch environment that catches errors and either terminates
+## the script with an error code, or in an interactive environment calls stop() again
+config.script.run <- function(expr) {
+    # Some notes on the muffleWarning restart:
+    # http://www.mail-archive.com/r-help@stat.math.ethz.ch/msg21676.html
+    withCallingHandlers(expr,
+        error=function(e) {
+            if (!interactive()) {
+                logfatal(e$message)
+
+                dump.frames("error.dump", to.file=TRUE)
+                loginfo("Error dump was written to 'error.dump.rda'.")
+                loginfo("To debug, launch R and run 'load(\"error.dump.rda\"); debugger(error.dump)'")
+                quit(save="no", status=1)
+            } else {
+                recover()
+            }
+        },
+        warning=function(w) {
+            logdebug(w$message)
+            invokeRestart("muffleWarning")
+        }
+    )
 }

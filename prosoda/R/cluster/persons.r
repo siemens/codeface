@@ -794,8 +794,8 @@ writePageRankData <- function(conf, outdir, .iddb, devs.by.pr, devs.by.pr.tr) {
         sanitize.colnames.function=rotate.label.30)
 
   ## Emit the results into the database
-  store.pageranks(conf, .iddb, devs.by.pr, range.id, 0)
-  store.pageranks(conf, .iddb, devs.by.pr.tr, range.id, 1)
+  store.pageranks(conf, .iddb, devs.by.pr, conf$range.id, 0)
+  store.pageranks(conf, .iddb, devs.by.pr.tr, conf$range.id, 1)
 }
 
 #########################################################################
@@ -1459,9 +1459,9 @@ test.community.quality.modularity <- function() {
 ##----------------------------
 ## Parse commandline arguments
 ##----------------------------
-{
-    conf <- config.from.args(positional_args=list("resdir", "range.id"))
-    if(is.null(conf)) stop("No configuration.")
-    resdir <- conf$resdir
-    performAnalysis(resdir, conf)
-}
+
+config.script.run({
+  conf <- config.from.args(positional_args=list("resdir", "range.id"),
+                           require_project=T)
+  performAnalysis(conf$resdir, conf)
+})

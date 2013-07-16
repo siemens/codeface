@@ -596,9 +596,9 @@ do.release.analysis <- function(resdir, graphdir, conf) {
 }
 
 ######################### Dispatcher ###################################
-{
-    conf <- config.from.args(positional_args=list("resdir"))
-    if(is.null(conf)) stop("No configuration.")
+config.script.run({
+    conf <- config.from.args(positional_args=list("resdir"),
+                             require_project=TRUE)
     resdir <- conf$resdir
     graphdir <- file.path(resdir, "graphs")
     loginfo(paste("graphdir is", graphdir))
@@ -610,4 +610,4 @@ do.release.analysis <- function(resdir, graphdir, conf) {
     do.commit.analysis(resdir, graphdir, conf)
     do.cluster.analysis(resdir, graphdir, conf)
     do.release.analysis(resdir, graphdir, conf)
-}
+})
