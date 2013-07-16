@@ -632,8 +632,8 @@ class gitVCS (VCS):
                 else:
                     tag_names_list[key] = [value]
             else:
-                log.warning("Could not parse Signed-off like line:")
-                log.warning('{0}'.format(entry))
+                log.debug("Could not parse Signed-off like line:")
+                log.debug('{0}'.format(entry))
 
     def extractCommitDataRange(self, revrange, subsys="__main__"):
         """
