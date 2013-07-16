@@ -84,72 +84,72 @@ load.config <- function(global_file, project_file=NULL) {
 ## these are stored by name in the conf object.
 config.from.args <- function(positional_args=list(), extra_args=list(),
                              require_project=T) {
-    option_list <- c(list(
-        make_option(c("-l", "--loglevel"), default="info",
-                    help="logging level (debug, info, warning or error) [%default]"),
-        make_option(c("-f", "--logfile"), help="logfile"),
-        make_option(c("-c", "--config"), default="prosoda.conf",
-                    help="global prosoda configuration file [%default]"),
-        make_option(c("-p", "--project"), help="project configuration file",
-                    default=NULL)
-    ), extra_args)
-    # Note that positional_arguments=T even if no positional arguments are
-    # required - this is necessary since otherwise the parser output differs
-    parser <- OptionParser(usage=do.call(paste, c("%prog", positional_args)),
-                           option_list=option_list)
-    arguments <- parse_args(parser, positional_arguments=T)
-    opts = arguments[1]$options
-    args = arguments[2]$args
+  option_list <- c(list(
+    make_option(c("-l", "--loglevel"), default="info",
+                help="logging level (debug, info, warning or error) [%default]"),
+    make_option(c("-f", "--logfile"), help="logfile"),
+    make_option(c("-c", "--config"), default="prosoda.conf",
+                help="global prosoda configuration file [%default]"),
+    make_option(c("-p", "--project"), help="project configuration file",
+                default=NULL)
+  ), extra_args)
+  # Note that positional_arguments=T even if no positional arguments are
+  # required - this is necessary since otherwise the parser output differs
+  parser <- OptionParser(usage=do.call(paste, c("%prog", positional_args)),
+                         option_list=option_list)
+  arguments <- parse_args(parser, positional_arguments=T)
+  opts = arguments[1]$options
+  args = arguments[2]$args
 
-    # Set up logging handlers/logfiles
-    config.logging(opts$loglevel, opts$logfile)
+  # Set up logging handlers/logfiles
+  config.logging(opts$loglevel, opts$logfile)
 
-    # Check options for correctness
-    if (length(args) != length(positional_args)) {
-        print_help(parser)
-        stop("Wrong number of positional arguments!")
-    }
-    if (require_project & is.null(opts$project)) {
-        stop("No project configuration file specified!")
-    }
+  # Check options for correctness
+  if (length(args) != length(positional_args)) {
+    print_help(parser)
+    stop("Wrong number of positional arguments!")
+  }
+  if (require_project & is.null(opts$project)) {
+    stop("No project configuration file specified!")
+  }
 
-    # Load configuration file(s)
-    conf <- load.config(opts$config, opts$project)
-    loginfo("Configuration:")
-    loginfo(toString(conf))
+  # Load configuration file(s)
+  conf <- load.config(opts$config, opts$project)
+  loginfo("Configuration:")
+  loginfo(toString(conf))
 
-    # Open up the corresponding database connection
-    if(is.null(opts$project)) {
-        conf <- init.db.global(conf)
-    } else {
-        conf <- init.db(conf)
-    }
+  # Open up the corresponding database connection
+  if(is.null(opts$project)) {
+    conf <- init.db.global(conf)
+  } else {
+    conf <- init.db(conf)
+  }
 
-    # Store positional arguments under their names in the conf object
-    conf[unlist(positional_args)] = arguments$args
-    return(conf)
+  # Store positional arguments under their names in the conf object
+  conf[unlist(positional_args)] = arguments$args
+  return(conf)
 }
 
 ## Setup the logging package given the log level string and an optional logfile
 config.logging <- function(level, logfile) {
-    logReset()
-    setLevel(toupper(level), getLogger())
-    addHandler(writeToConsole, level=toupper(level), formatter=config.logging.formatter)
-    logdebug(paste("Set log level to '", toString(level), "' == ", loglevels[toupper(level)], sep=""))
-    if (!is.null(logfile)) {
-        loginfo(paste("Opening log file '", logfile, "'", sep=""))
-        addHandler(writeToFile, file=logfile, formatter=config.logging.formatter)
-    }
+  logReset()
+  setLevel(toupper(level), getLogger())
+  addHandler(writeToConsole, level=toupper(level), formatter=config.logging.formatter)
+  logdebug(paste("Set log level to '", toString(level), "' == ", loglevels[toupper(level)], sep=""))
+  if (!is.null(logfile)) {
+    loginfo(paste("Opening log file '", logfile, "'", sep=""))
+    addHandler(writeToFile, file=logfile, formatter=config.logging.formatter)
+  }
 }
 
 ## A new logging formatter that is similar to the python formatter
 config.logging.formatter <- function(record) {
-    if (is.null(record$logger) || record$logger == "") {
-        from <- "[prosoda.R]"
-    } else {
-        from <- paste("[prosoda.R.", record$logger, "]", sep="")
-    }
-    text <- paste(record$timestamp, from, paste(record$levelname, ": ", record$msg, sep=''))
+  if (is.null(record$logger) || record$logger == "") {
+    from <- "[prosoda.R]"
+  } else {
+    from <- paste("[prosoda.R.", record$logger, "]", sep="")
+  }
+  text <- paste(record$timestamp, from, paste(record$levelname, ": ", record$msg, sep=''))
 }
 # Log really fatal errors at higher priority than logerror
 logfatal <- function(msg, ..., logger="") { levellog(50, msg, ..., logger) }
@@ -157,38 +157,39 @@ logfatal <- function(msg, ..., logger="") { levellog(50, msg, ..., logger) }
 ## Run a script in a tryCatch environment that catches errors and either terminates
 ## the script with an error code, or in an interactive environment calls stop() again
 config.script.run <- function(expr) {
-    # Some notes on the muffleWarning restart:
-    # http://www.mail-archive.com/r-help@stat.math.ethz.ch/msg21676.html
-    withCallingHandlers(expr,
-        error=function(e) {
-            # In a noninteractive shell, try to give as much useful information
-            # about the error as possible to ease error reporting
-            if (!interactive()) {
-                # Extract information from the frames
-                # (see also code of R builtin debugger function)
-                dump.frames("error.dump")
-                n <- length(error.dump)
-                calls <- names(error.dump)
-                logfatal(e$message)
-                trace <- "Traceback:\n"
-                for (i in 2L:n-2) {
-                    trace <- paste(trace, formatC(i, width=3), ": ",
-                                   gsub("\n","\n     ", calls[i]), "\n",
-                                   sep="")
-                }
-                loginfo(trace)
-                # Save the dump to file for later analysis
-                save("error.dump", file="error.dump.rda")
-                loginfo("Error dump was written to 'error.dump.rda'.")
-                loginfo("To debug, launch R and run 'load(\"error.dump.rda\"); debugger(error.dump)'")
-                quit(save="no", status=1)
-            } else {
-                recover()
-            }
-        },
-        warning=function(w) {
-            logdebug(w$message)
-            invokeRestart("muffleWarning")
+  # Some notes on the muffleWarning restart:
+  # http://www.mail-archive.com/r-help@stat.math.ethz.ch/msg21676.html
+  withCallingHandlers(expr,
+    error=function(e) {
+      # In a noninteractive shell, try to give as much useful information
+      # about the error as possible to ease error reporting
+      if (!interactive()) {
+        # Extract information from the frames
+        # (see also code of R builtin debugger function)
+        dump.frames("error.dump")
+        n <- length(error.dump)
+        calls <- names(error.dump)
+        logfatal(e$message)
+        trace <- "Traceback:\n"
+        for (i in 2L:n-2) {
+          trace <- paste(trace, formatC(i, width=3), ": ",
+                         gsub("\n","\n     ", calls[i]), "\n",
+                         sep="")
         }
-    )
+        loginfo(trace)
+        # Save the dump to file for later analysis
+        save("error.dump", file="error.dump.rda")
+        loginfo("Error dump was written to 'error.dump.rda'.")
+        loginfo("To debug, launch R and run 'load(\"error.dump.rda\"); debugger(error.dump)'")
+        quit(save="no", status=1)
+      } else {
+        recover()
+      }
+    },
+    warning=function(w) {
+      logdebug(w$message)
+      invokeRestart("muffleWarning")
+    }
+  )
 }
+

@@ -597,17 +597,17 @@ do.release.analysis <- function(resdir, graphdir, conf) {
 
 ######################### Dispatcher ###################################
 config.script.run({
-    conf <- config.from.args(positional_args=list("resdir"),
-                             require_project=TRUE)
-    resdir <- conf$resdir
-    graphdir <- file.path(resdir, "graphs")
-    loginfo(paste("graphdir is", graphdir))
-    dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
+  conf <- config.from.args(positional_args=list("resdir"),
+                           require_project=TRUE)
+  resdir <- conf$resdir
+  graphdir <- file.path(resdir, "graphs")
+  loginfo(paste("graphdir is", graphdir))
+  dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
-    do.ts.analysis(resdir, graphdir, conf)
-    ## NOTE: The processed (smoothed, cumulated) time series are available in the
-    ## database only after do.ts.analysis()
-    do.commit.analysis(resdir, graphdir, conf)
-    do.cluster.analysis(resdir, graphdir, conf)
-    do.release.analysis(resdir, graphdir, conf)
+  do.ts.analysis(resdir, graphdir, conf)
+  ## NOTE: The processed (smoothed, cumulated) time series are available in the
+  ## database only after do.ts.analysis()
+  do.commit.analysis(resdir, graphdir, conf)
+  do.cluster.analysis(resdir, graphdir, conf)
+  do.release.analysis(resdir, graphdir, conf)
 })
