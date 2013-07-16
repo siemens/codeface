@@ -34,6 +34,8 @@ source("vis.ports.r")
 conf <- config.from.args(require_project=F)
 projects.list <- query.projects(conf$con)
 
+logdevinfo("Developer information")
+
 ## Use the release ranges for the first project in the list
 ## as initial values
 range.ids.list <- query.range.ids.con(conf$con, projects.list$id[[1]])

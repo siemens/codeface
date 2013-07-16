@@ -21,7 +21,7 @@
 suppressPackageStartupMessages(library(RMySQL))
 suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(plyr))
-library(logging)
+suppressPackageStartupMessages(library(logging))
 
 ## Obtain the series.merged object constructed in do.ts.analysis
 query.series.merged <- function(conf, subset=NULL) {
@@ -121,7 +121,8 @@ get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
     dat <- get.commits.by.range(conf, range.id, subset, FUN)
 
     if (is.null(dat)) {
-      loginfo(paste("Skipping empty cycle ", tstamps$tag[i], "..", tstamps$tag[i+1], sep=""))
+      logdevinfo(paste("Skipping empty cycle ", tstamps$tag[i], "..", tstamps$tag[i+1], sep=""),
+                 logger="query")
       next
     }
 

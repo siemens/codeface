@@ -17,7 +17,7 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-library(logging)
+suppressPackageStartupMessages(library(logging))
 
 tstamp_to_date <- function(z) as.POSIXct(as.integer(z), origin="1970-01-01")
 
@@ -74,7 +74,7 @@ can.read.file <- function(file) {
 }
 
 status <- function(str) {
-	loginfo(str)
+	logdevinfo(str, logger="util")
 }
 
 ## Scale a given data set to the range [min,max]
@@ -120,7 +120,8 @@ construct.cluster <- function(con, cluster.id, technique=0) {
   }
 
   if (is.null(edges)) {
-    logwarn(paste("Duh: cluster without edges for id ", cluster.id, "?!\n"))
+    logwarn(paste("Duh: cluster without edges for id ", cluster.id, "?!\n"),
+            logger="util")
     return(NULL)
   }
 

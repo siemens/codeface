@@ -84,7 +84,7 @@ def cmd_run(args):
     revs = conf["revisions"]
     rcs = conf["rcs"] # release candidate tags
 
-    log.info("Processing project '{c[description]}'".format(c=conf))
+    log.info("=> Processing project '{c[description]}'".format(c=conf))
     dbm = DBManager(conf)
     pid = dbm.getProjectID(conf["project"], conf["tagging"])
 
@@ -177,6 +177,7 @@ def cmd_run(args):
 
         #########
         # STAGE 3: Generate cluster graphs
+        log.info("  -> Generating reports")
         if not no_report:
             layout_all_graphs(rev_resdir)
 
@@ -202,7 +203,7 @@ def cmd_run(args):
     cmd.append(resdir)
     cwd = resource_filename(__name__, "R")
     execute_command(cmd, direct_io=True, cwd=cwd)
-    log.info("prosoda run complete.")
+    log.info("=> Prosoda run complete!")
     return 0
 
 def cmd_dynamic(args):

@@ -15,8 +15,8 @@
 ## All Rights Reserved.
 
 suppressPackageStartupMessages(library(optparse))
-library(yaml)
-library(logging)
+suppressPackageStartupMessages(library(yaml))
+suppressPackageStartupMessages(library(logging))
 # set up the basic logging config in case logging is called at source() level
 basicConfig()
 
@@ -25,7 +25,7 @@ source("db.r")
 ## Load global and local configuration and apply some sanity checks
 ## TODO: More sanity checks, better merging of conf objects
 load.config <- function(global_file, project_file=NULL) {
-  loginfo(paste("Loading global config file '", global_file, "'", sep=""))
+  logdevinfo(paste("Loading global config file '", global_file, "'", sep=""), logger="config")
   if (!(file.exists(global_file))) {
       stop(paste("Global configuration file", global_file, "does not exist!"))
   }
@@ -49,7 +49,8 @@ load.config <- function(global_file, project_file=NULL) {
   if (is.null(project_file)) {
       return(conf)
   }
-  loginfo(paste("Loading project config file '", project_file, "'", sep=""))
+  logdevinfo(paste("Loading project config file '", project_file, "'", sep=""),
+             logger="config")
   if (!(file.exists(project_file))) {
       stop(paste("Project configuration file", project_file, "does not exist!"))
   }
@@ -115,8 +116,6 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
 
   # Load configuration file(s)
   conf <- load.config(opts$config, opts$project)
-  loginfo("Configuration:")
-  loginfo(toString(conf))
 
   # Open up the corresponding database connection
   if(is.null(opts$project)) {
@@ -135,7 +134,8 @@ config.logging <- function(level, logfile) {
   logReset()
   setLevel(loglevels[toupper(level)], getLogger())
   addHandler(writeToConsole, level=loglevels[toupper(level)], formatter=config.logging.formatter)
-  logdebug(paste("Set log level to '", toString(level), "' == ", loglevels[toupper(level)], sep=""))
+  logdebug(paste("Set log level to '", toString(level), "' == ", loglevels[toupper(level)], sep=""),
+           logger="config")
   if (!is.null(logfile)) {
     loginfo(paste("Opening log file '", logfile, "'", sep=""))
     addHandler(writeToFile, file=logfile, formatter=config.logging.formatter)

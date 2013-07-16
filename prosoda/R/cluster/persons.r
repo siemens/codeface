@@ -34,10 +34,10 @@
 ##        for learning, and then apply the inferred clustering on
 ##        the complete data set to infer subsystems in a quasi-Bayesian
 ##        way)
-library(igraph)
-library(stringr)
-library(xtable)
-library(logging)
+suppressPackageStartupMessages(library(igraph))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(xtable))
+suppressPackageStartupMessages(library(logging))
 suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(optparse))
@@ -1419,10 +1419,10 @@ test.community.quality <- function() {
   igraph.modularity.result <- modularity(g, g.spincommunity$membership)
   modularity.result        <- sum(compute.all.community.quality(g, g.spincommunity, "modularity"))
   if( !(igraph.modularity.result == modularity.result)){
-    logerror("modularity test failed")
+    logerror("modularity test failed", logger="cluster.persons")
   }
   else{
-    loginfo("Success: modularity test passed")
+    logdevinfo("Success: modularity test passed", logger="cluster.persons")
   }
 }
 

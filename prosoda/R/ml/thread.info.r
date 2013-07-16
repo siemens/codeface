@@ -17,8 +17,8 @@
 ## Helper functions to process/visualise mailing list thread information
 ## The functions work on the data frame returned by query.thread.info()
 
-library(ggplot2)
-library(reshape)
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(reshape))
 
 plot.author.msg.scatter <- function(thread.info, title="") {
   ## How focused are discussions, respectively how does the number

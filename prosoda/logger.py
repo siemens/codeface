@@ -46,7 +46,7 @@ def start_logfile(filename, level_string):
     '''
     logfile_handler = _get_log_handler(file(filename, 'w'))
     logfile_handler.setLevel(_loglevel_from_string(level_string))
-    log.info("Opened logfile '{}' with log level '{}'"
+    log.devinfo("Opened logfile '{}' with log level '{}'"
             "".format(filename, level_string))
     log.addHandler(logfile_handler)
     logfile_handlers[filename] = logfile_handler
@@ -57,7 +57,7 @@ def stop_logfile(filename):
     handler.flush()
     log.removeHandler(handler)
     handler.close()
-    log.info("Stopped logging into logfile '{}'".format(filename))
+    log.devinfo("Stopped logging into logfile '{}'".format(filename))
 
 # Internal constants and definitions follow
 

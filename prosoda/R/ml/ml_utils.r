@@ -71,13 +71,15 @@ construct.twomode.graph <- function(edgelist, adjmat.twomode, threshold, con,
 
       ## tmp can have shrunk (a lot) after applying component.largest,
       people <- which(is.element(rownames(tmp), unique(peoplelist)))
-      logdebug(paste("Result for threshold ", thresh, ": ", length(people)))
+      logdebug(paste("Result for threshold ", thresh, ": ", length(people)),
+               logger="ml.ml_utils")
       return (abs(max.persons - length(people)))
     }
 
     ## Found the optimal threshold, adapt the network accordingly
     threshold <- optimise(objective, c(0,1))
-    logdebug(paste("Found optimal threshold ", threshold$minimum))
+    logdebug(paste("Found optimal threshold ", threshold$minimum),
+             logger="ml.ml_utils")
     adjmat.twomode[adjmat.twomode < threshold$minimum] <- 0
   } else {
     adjmat.twomode[adjmat.twomode < threshold] <- 0

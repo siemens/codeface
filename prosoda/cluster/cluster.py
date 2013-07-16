@@ -75,11 +75,11 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type, rcranges=Non
     #------------------------
     #save data
     #------------------------
-    log.info("Shelving the VCS object")
+    log.devinfo("Shelving the VCS object")
     output = open(filename, 'wb')
     pickle.dump(git, output, -1)
     output.close()
-    log.info("Finished shelving the VCS object")
+    log.devinfo("Finished shelving the VCS object")
 
 
 def readDB(filename):
@@ -1214,7 +1214,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     link_type = conf["tagging"]
 
     if create_db == True:
-        log.info("Creating data base for {0}..{1}".format(revrange[0],
+        log.devinfo("Creating data base for {0}..{1}".format(revrange[0],
                                                         revrange[1]))
         createDB(dbfilename, git_repo, revrange, subsys_descr, \
                  link_type, rcranges)
@@ -1224,7 +1224,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
                    dbm.getRevisionID(projectID, revrange[1]))
     releaseRangeID = dbm.getReleaseRange(projectID, revisionIDs)
 
-    log.info("Reading from data base {0}...".format(dbfilename))
+    log.devinfo("Reading from data base {0}...".format(dbfilename))
     git = readDB(dbfilename)
     cmtlist = git.extractCommitData("__main__")
     cmtdict = git.getCommitDict()

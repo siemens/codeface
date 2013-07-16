@@ -650,7 +650,7 @@ class gitVCS (VCS):
         # (shelved objects can therefore provide a significant
         # performance advantage)
         if self._commit_list_dict:
-            log.info("Using cached data to extract commit information")
+            log.devinfo("Using cached data to extract commit information")
             return self._commit_list_dict[subsys]
 
         self._prepareCommitLists()

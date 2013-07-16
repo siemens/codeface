@@ -26,7 +26,7 @@ suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(yaml))
 suppressPackageStartupMessages(library(lubridate))
-library(logging)
+suppressPackageStartupMessages(library(logging))
 
 source("utils.r")
 source("config.r")
@@ -348,7 +348,7 @@ determine.cluster.mapping <- function(conf, cluster.method=cluster.methods[1]) {
   ## Compute similarities between all clusters in range i and the
   ## clusters in range i+1.
   for (i in 1:(length(res)-1)) {
-    loginfo(paste("Computing for range", i))
+    logdevinfo(paste("Computing for range", i), logger="analyze_ts")
     clust.sim <- expand.grid(c1=res[[i]]$cluster.id,
                              c2=res[[i+1]]$cluster.id)
     clust.sim$sim <- sapply(1:dim(clust.sim)[1], function(j) {
@@ -601,7 +601,7 @@ config.script.run({
                            require_project=TRUE)
   resdir <- conf$resdir
   graphdir <- file.path(resdir, "graphs")
-  loginfo(paste("graphdir is", graphdir))
+  logdevinfo(paste("graphdir is", graphdir), logger="analyze_ts")
   dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
   do.ts.analysis(resdir, graphdir, conf)

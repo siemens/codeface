@@ -27,7 +27,7 @@ s(source("ml/analysis.r"))
 s(source("ml/project.spec.r"))
 s(source("ml/keyword.list.r"))
 
-library(logging)
+s(library(logging))
 s(library(tm))
 s(library(parallel))
 s(library(tm.plugin.mail))
@@ -73,7 +73,7 @@ rm(s)
     }
 
     if (is.null(conf$ml)) {
-      logerror("No mailing list repository available for project, skipping analysis")
+      logerror("No mailing list repository available for project, skipping analysis", logger="ml.batch")
       stop()
     }
 
@@ -93,9 +93,10 @@ rm(s)
     }
 
     if (Sys.getenv("http_proxy") != "") {
-      logwarn("WARNING: http_proxy is set!")
-      logwarn("This is often unintended for local communication with the ID service.")
-      logwarn("Are you shure this setup is correct? Continuing nevertheless.")
+      lw <- function(msg) logwarn(msg, logger="ml.batch")
+      lw("WARNING: http_proxy is set!")
+      lw("This is often unintended for local communication with the ID service.")
+      lw("Are you shure this setup is correct? Continuing nevertheless.")
     }
 
     if (opts$nodes > 1) {

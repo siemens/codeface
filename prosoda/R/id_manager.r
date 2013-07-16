@@ -15,9 +15,9 @@
 ## All Rights Reserved.
 
 ## Interface to the ID manager
-library(RCurl)
-library(stringr)
-library(rjson)
+suppressPackageStartupMessages(library(RCurl))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(rjson))
 
 query.user.id.base <- function(host, port, pid, name, email) {
   res <- postForm(str_c("http://", host, ":", port, "/post_user_id"),

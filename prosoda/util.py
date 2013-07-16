@@ -99,7 +99,7 @@ def _convert_dot_file(dotfile):
     return res
 
 def layout_all_graphs(resdir):
-    log.info("  -> Generating cluster graphs")
+    log.devinfo("  -> Generating cluster graphs")
     files = glob(os.path.join(resdir, "*.dot"))
     for file in files:
         out = NamedTemporaryFile(mode="w", delete=False)
@@ -117,7 +117,7 @@ def layout_all_graphs(resdir):
         os.unlink(out.name)
 
 def generate_report(start_rev, end_rev, resdir):
-    log.info("  -> Generating report")
+    log.devinfo("  -> Generating report")
     report_base = "report-{0}_{1}".format(start_rev, end_rev)
 
     # Run perl script to generate report LaTeX file
