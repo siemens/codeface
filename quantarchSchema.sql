@@ -202,7 +202,7 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_thread` (
   `createdBy` BIGINT NULL DEFAULT NULL ,
   `projectId` BIGINT NOT NULL ,
   `releaseRangeId` BIGINT NOT NULL ,
-  `ml` VARCHAR(255) NOT NULL ,
+  `mlId` BIGINT NOT NULL ,
   `mailThreadId` BIGINT NOT NULL ,
   `creationDate` DATETIME NULL DEFAULT NULL ,
   `numberOfAuthors` INT NOT NULL ,
@@ -216,6 +216,11 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_thread` (
   CONSTRAINT `mail_release_range_key`
     FOREIGN KEY (`releaseRangeId` )
     REFERENCES `quantarch`.`release_range` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `mail_mlId`
+    FOREIGN KEY (`mlId` )
+    REFERENCES `quantarch`.`mailing_list` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `mail_projectId`
@@ -647,6 +652,7 @@ DROP TABLE IF EXISTS `quantarch`.`freq_subjects` ;
 CREATE  TABLE IF NOT EXISTS `quantarch`.`freq_subjects` (
   `id` BIGINT NOT NULL AUTO_INCREMENT ,
   `projectId` BIGINT NOT NULL ,
+  `mlId` BIGINT NOT NULL ,
   `releaseRangeId` BIGINT NOT NULL ,
   `subject` TEXT NOT NULL ,
   `count` INT NOT NULL ,
@@ -654,6 +660,11 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`freq_subjects` (
   CONSTRAINT `freq_subects_project_ref`
     FOREIGN KEY (`projectId` )
     REFERENCES `quantarch`.`project` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `freq_subjects_mlId_ref`
+    FOREIGN KEY (`mlId` )
+    REFERENCES `quantarch`.`mailing_list` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `freq_subjects_release_range_ref`
@@ -780,13 +791,18 @@ DROP TABLE IF EXISTS `quantarch`.`twomode_edgelist` ;
 CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_edgelist` (
   `releaseRangeId` BIGINT NOT NULL ,
   `source` CHAR(7) NOT NULL ,
-  `ml` VARCHAR(255) NOT NULL ,
+  `mlId` BIGINT NOT NULL ,
   `fromVert` BIGINT NOT NULL ,
   `toVert` VARCHAR(255) NOT NULL ,
   `weight` DOUBLE NOT NULL ,
   CONSTRAINT `twomode_edgelist_releaseRange`
     FOREIGN KEY (`releaseRangeId` )
     REFERENCES `quantarch`.`release_range` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `twomode_edgelist_mlId`
+    FOREIGN KEY (`mlId` )
+    REFERENCES `quantarch`.`mailing_list` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `twomode_edgelist_person`
@@ -809,10 +825,15 @@ DROP TABLE IF EXISTS `quantarch`.`twomode_vertices` ;
 CREATE  TABLE IF NOT EXISTS `quantarch`.`twomode_vertices` (
   `releaseRangeId` BIGINT NOT NULL ,
   `source` CHAR(7) NOT NULL ,
-  `ml` VARCHAR(255) NOT NULL ,
+  `mlId` BIGINT NOT NULL ,
   `name` VARCHAR(255) NOT NULL ,
   `degree` DOUBLE NOT NULL ,
   `type` SMALLINT NOT NULL ,
+  CONSTRAINT `twomode_vertices_mlId`
+    FOREIGN KEY (`mlId` )
+    REFERENCES `quantarch`.`mailing_list` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `twomode_vertices_releaseRange`
     FOREIGN KEY (`releaseRangeId` )
     REFERENCES `quantarch`.`release_range` (`id` )
@@ -830,7 +851,7 @@ DROP TABLE IF EXISTS `quantarch`.`initiate_response` ;
 
 CREATE  TABLE IF NOT EXISTS `quantarch`.`initiate_response` (
   `releaseRangeId` BIGINT NOT NULL ,
-  `ml` VARCHAR(255) NOT NULL ,
+  `mlId` BIGINT NOT NULL ,
   `personId` BIGINT NOT NULL ,
   `source` TINYINT NOT NULL ,
   `responses` INT NULL DEFAULT NULL ,
@@ -840,6 +861,11 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`initiate_response` (
   CONSTRAINT `initiate_response_releaseRange`
     FOREIGN KEY (`releaseRangeId` )
     REFERENCES `quantarch`.`release_range` (`id` )
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `initiate_response_mlId`
+    FOREIGN KEY (`mlId` )
+    REFERENCES `quantarch`.`mailing_list` (`id` )
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `initiate_response_person`
