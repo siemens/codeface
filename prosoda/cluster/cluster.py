@@ -1106,6 +1106,8 @@ def computeCommitterAuthorLinks(cmtlist, id_mgr):
         #add link from committer -> author
         pi_committer.addSendRelation   (LinkType.committer2author, pi_author.getID(), cmt, edge_weight)
         pi_author   .addReceiveRelation(LinkType.committer2author, pi_committer.getID()  , edge_weight)
+
+    pbar.finish()
     #end for i
 
 
@@ -1172,6 +1174,7 @@ def computeTagLinks(cmtlist, id_mgr):
                         id_mgr.getPI(relID).addSendRelation(tag, ID, cmt)
 
         cmt.setTagPIs(tag_pi_list)
+    pbar.finish()
     #end for i
 
 

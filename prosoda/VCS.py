@@ -679,6 +679,7 @@ class gitVCS (VCS):
 
             self._parseCommit(cmt)
 
+        pbar.finish()
         # For the subsystems, we need not re-analyse the commits again,
         # but can just pick the results from the global analysis.
         # Which was already done by _prepareCommitLists() ;-)
@@ -816,6 +817,7 @@ class gitVCS (VCS):
 
 
         #end for fnameList
+        pbar.finish()
 
         #find the date of earliest commit made for this revision
         #Check if time zones influence this or its already normalized
@@ -856,6 +858,8 @@ class gitVCS (VCS):
                         pbar.update(count)
 
                     self._commit_dict[cmt.id] = cmt
+
+                pbar.finish()
 
     def _addBlameRev(self, rev, file_commit, blame_cmt_ids):
         '''
