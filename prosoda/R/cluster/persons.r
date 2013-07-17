@@ -1021,21 +1021,6 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
            g.walktrap.community,
            paste(outdir, "wt_", sep=""),
            label="Random Walk Community")
-
-  if (!is.null(id.subsys)) {
-    status("Plotting per-cluster subsystem distribution")
-    plot.comm.subsys(g.spin.community, id.subsys.connected,
-                     paste(outdir, "/sg_comm_subsys.pdf", sep=""),
-                     "spin glass")
-    ## Since walktrap produces smaller, but more communities, we divide the
-    ## plot into two parts
-    plot.comm.subsys(g.walktrap.community, id.subsys.connected,
-                     paste(outdir, "/wt_comm_subsys_big.pdf", sep=""),
-                     "random walk", elems=elems.wt.more)
-    plot.comm.subsys(g.walktrap.community, id.subsys.connected,
-                     paste(outdir, "/wt_comm_subsys_small.pdf", sep=""),
-                     "random walk", elems=elems.wt.less)
-  }
 }
 
 
