@@ -61,9 +61,8 @@ rm(s)
     option_list <- list(
                     make_option(c("", "--basedir"), type="character", default="./",
                                 help="Base directory for prosoda"),
-                    make_option(c("-n", "--nodes"), type="integer", default=1,
-                                help=paste("Number of nodes for cluster analysis",
-                                "(1 means local processing)"))
+                    make_option(c("-n", "--cores"), type="integer", default=1,
+                                help="Number of cores for cluster analysis")
                     )
     positional_args <- list("resdir", "mldir")
 
@@ -77,6 +76,7 @@ rm(s)
       stop()
     }
 
+    repo.path <- conf$mldir
     resdir <- file.path(conf$resdir, conf$project, "ml")
     gen.dir(resdir)
 
@@ -99,8 +99,8 @@ rm(s)
       lw("Are you shure this setup is correct? Continuing nevertheless.")
     }
 
-    if (opts$nodes > 1) {
-      options(mc.cores=opts$nodes)
+    if (conf$opts$cores > 1) {
+      options(mc.cores=conf$opts$cores)
     } else {
       ## Setting mc.cores to 1 makes sure that a regular lapply is used.
       options(mc.cores=1)
