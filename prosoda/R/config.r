@@ -94,18 +94,19 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
     make_option(c("-p", "--project"), help="project configuration file",
                 default=NULL)
   ), extra_args)
-  # Note that positional_arguments=TRUE even if no positional arguments are
-  # required - this is necessary since otherwise the parser output differs
+
+  ## Note that positional_arguments=TRUE even if no positional arguments are
+  ## required - this is necessary since otherwise the parser output differs
   parser <- OptionParser(usage=do.call(paste, c("%prog", positional_args)),
                          option_list=option_list)
   arguments <- parse_args(parser, positional_arguments=TRUE)
   opts = arguments[1]$options
   args = arguments[2]$args
 
-  # Set up logging handlers/logfiles
+  ## Set up logging handlers/logfiles
   config.logging(opts$loglevel, opts$logfile)
 
-  # Check options for correctness
+  ## Check options for correctness
   if (length(args) != length(positional_args)) {
     print_help(parser)
     stop("Wrong number of positional arguments!")
@@ -114,18 +115,22 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
     stop("No project configuration file specified!")
   }
 
-  # Load configuration file(s)
+  ## Load configuration file(s)
   conf <- load.config(opts$config, opts$project)
 
-  # Open up the corresponding database connection
+  ## Open up the corresponding database connection
   if(is.null(opts$project)) {
     conf <- init.db.global(conf)
   } else {
     conf <- init.db(conf)
   }
 
-  # Store positional arguments under their names in the conf object
+  ## Store positional arguments under their names in the conf object
   conf[unlist(positional_args)] = arguments$args
+
+  ## Pass otherwise unhandled configuration options upwards
+  conf$opts <- opts
+
   return(conf)
 }
 
