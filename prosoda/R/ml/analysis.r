@@ -400,6 +400,10 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   get.initial.emailID <- function(threadID) {
     as.numeric(forest[forest[,"threadID"]==threadID, "emailID"][1])
   }
+  ## Get the email IDs of all follow-up emails of a thread (list can be empty)
+  get.followup.emailIDs <- function(threadID) {
+    as.numeric(forest[forest[,"threadID"]==threadID, "emailID"][-1])
+  }
   get.timestamp <- function(mailID) {
     DateTimeStamp(forest.corp$corp[[mailID]])
   }
@@ -483,6 +487,30 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
 
   ## Compute the two-mode graphs linking users with their interests
   twomode.graphs <- compute.twomode.graphs(conf, interest.networks)
+
+  ## Populate table thread_responses
+  ## For each thread, determine the local mail ids of all responses,
+  ## find the in-DB IDs for mail and author, and store the information
+  ## into the database
+  ml.id.map <- query.mlid.map(conf$con, ml.id)
+
+  dat.replies <- lapply(unique(forest[,"threadID"]), function(thread.id) {
+    replies <- lapply(get.followup.emailIDs(thread.id), function(mail.id) {
+      return(data.frame(who=as.numeric(mailID.to.authorID[mail.id]),
+                        mailThreadID=ml.thread.loc.to.glob(ml.id.map, thread.id),
+                        mailDate=as.character(get.timestamp(mail.id))))
+    })
+
+    return(do.call(rbind, replies))
+  })
+
+  dat.replies <- do.call(rbind, dat.replies)
+
+  res <- dbWriteTable(conf$con, "thread_responses", dat.replies, append=T,
+                      row.names=F)
+  if (!res) {
+    stop("Could not add to table thread_responses!")
+  }
 
   ## TODO: This should be represented by a class
   res <- list(doc.matrices=doc.matrices, termfreq=termfreq,
