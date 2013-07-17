@@ -438,6 +438,33 @@ query.mlid.map <- function(con, ml.id) {
   return(dat)
 }
 
+## Query mailing list activity data -- return a list of all time stamps
+## when a message was sent
+query.ml.activity <- function(con, ml.id, range.id) {
+  ## First, select all thread initiating messages
+  threads <- dbGetQuery(conf$con, str_c("SELECT id, creationDate FROM ",
+                                        "mail_thread WHERE mlId=", ml.id,
+                                        " AND releaseRangeID=", range.id))
+
+  ## Determine all replies for each thread, and store their dates
+  if (!is.null(threads)) {
+    threads$creationDate <- ymd_hms(threads$creationDate, quiet=TRUE)
+
+    dat <- lapply(threads$id, function(thread.id) {
+      res <- dbGetQuery(conf$con, str_c("SELECT mailDate FROM ",
+                                        "thread_responses WHERE ",
+                                        "mailThreadId=", thread.id))
+      if (!is.null(res)) {
+        return(ymd_hms(res$mailDate, quiet=TRUE))
+      }
+    })
+
+    dat <- do.call(rbind, dat)
+  }
+
+  return(c(threads$creationDate, dat))
+}
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
