@@ -59,17 +59,12 @@ rm(s)
 ######################### Dispatcher ###################################
 {
     option_list <- list(
-                    make_option(c("", "--basedir"), type="character", default="./",
-                                help="Base directory for prosoda"),
                     make_option(c("-n", "--cores"), type="integer", default=1,
                                 help="Number of cores for cluster analysis")
                     )
     positional_args <- list("resdir", "mldir")
 
     conf <- config.from.args(positional_args=positional_args, extra_args=option_list)
-    if (is.null(conf)) {
-        stop("No configuration.")
-    }
 
     if (is.null(conf$ml)) {
       logerror("No mailing list repository available for project, skipping analysis", logger="ml.batch")
@@ -99,12 +94,12 @@ rm(s)
       lw("Are you shure this setup is correct? Continuing nevertheless.")
     }
 
-    if (conf$opts$cores > 1) {
-      options(mc.cores=conf$opts$cores)
+    if (conf$nodes > 1) {
+      options(mc.cores=conf$cores)
     } else {
       ## Setting mc.cores to 1 makes sure that a regular lapply is used.
       options(mc.cores=1)
     }
 
-    dispatch.all(conf, repo.path, resdir)
+    dispatch.all(conf, conf$mldir, conf$resdir)
 }

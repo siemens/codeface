@@ -17,10 +17,18 @@
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(yaml))
 suppressPackageStartupMessages(library(logging))
-# set up the basic logging config in case logging is called at source() level
+## set up the basic logging config in case logging is called at source() level
 basicConfig()
 
 source("db.r")
+
+logdebug.config <- function(conf) {
+  ## Log the contents of a conf object to the debug stream
+  logdebug("Configuration options:")
+  for (n in names(conf)) {
+    logdebug(paste(n, ":", conf[n]))
+  }
+}
 
 ## Load global and local configuration and apply some sanity checks
 ## TODO: More sanity checks, better merging of conf objects
@@ -55,7 +63,7 @@ load.config <- function(global_file, project_file=NULL) {
       stop(paste("Project configuration file", project_file, "does not exist!"))
   }
 
-  # Append project configuration to conf
+  ## Append project configuration to conf
   conf <- c(conf, yaml.load_file(project_file))
 
   if (is.null(conf$project) || is.null(conf$repo)) {
@@ -125,12 +133,12 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
     conf <- init.db(conf)
   }
 
-  ## Store positional arguments under their names in the conf object
-  conf[unlist(positional_args)] = arguments$args
-
-  ## Pass otherwise unhandled configuration options upwards
-  conf$opts <- opts
-
+  ## Store arguments under their names in the conf object
+  conf[unlist(positional_args)] = args
+  for (n in extra_args) {
+    conf[n@dest] = opts[n@dest]
+  }
+  logdebug.config(conf)
   return(conf)
 }
 
@@ -163,7 +171,7 @@ config.logging.formatter <- function(record) {
   text <- paste(record$timestamp, from, paste(record$levelname, ": ", record$msg, sep=''))
 }
 
-# Add own functions that set the default log level to DEBUG, so that the handlers can filter out messages
+## Add own functions that set the default log level to DEBUG, so that the handlers can filter out messages
 logdebug <- function(msg, ..., logger="") { mylevellog(loglevels["DEBUG"], msg, ..., logger=logger) }
 logdevinfo <- function(msg, ..., logger="") { mylevellog(loglevels["DEVINFO"], msg, ..., logger=logger) }
 loginfo <- function(msg, ..., logger="") { mylevellog(loglevels["INFO"], msg, ..., logger=logger) }
@@ -178,15 +186,15 @@ mylevellog <- function(lvl, msg, ..., logger="") {
 ## Run a script in a tryCatch environment that catches errors and either terminates
 ## the script with an error code, or in an interactive environment calls stop() again
 config.script.run <- function(expr) {
-  # Some notes on the muffleWarning restart:
-  # http://www.mail-archive.com/r-help@stat.math.ethz.ch/msg21676.html
+  ## Some notes on the muffleWarning restart:
+  ## http://www.mail-archive.com/r-help@stat.math.ethz.ch/msg21676.html
   withCallingHandlers(expr,
     error=function(e) {
-      # In a noninteractive shell, try to give as much useful information
-      # about the error as possible to ease error reporting
+      ## In a noninteractive shell, try to give as much useful information
+      ## about the error as possible to ease error reporting
       if (!interactive()) {
-        # Extract information from the frames
-        # (see also code of R builtin debugger function)
+        ## Extract information from the frames
+        ## (see also code of R builtin debugger function)
         dump.frames("error.dump")
         n <- length(error.dump)
         calls <- names(error.dump)
@@ -198,7 +206,7 @@ config.script.run <- function(expr) {
         }
         loginfo(trace)
         logfatal(e$message)
-        # Save the dump to file for later analysis
+        ## Save the dump to file for later analysis
         save("error.dump", file="error.dump.rda")
         loginfo("Error dump was written to 'error.dump.rda'.")
         loginfo("To debug, launch R and run 'load(\"error.dump.rda\"); debugger(error.dump)'")
