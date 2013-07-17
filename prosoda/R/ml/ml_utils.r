@@ -14,6 +14,7 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+library(logging)
 ## Source all r files in a given path
 ## NOTE: This is adapted from the example in the source help page
 source.files <- function(path) {
@@ -423,4 +424,20 @@ gen.agg.smooth.ts <- function(ts, smooth) {
   try(ts.as <- rollmean(period.apply(ts, INDEX=endpoints(ts, 'hours'),
                                      FUN=sum), smooth))
   ts.df <- data.frame(date=index(ts.as), value=coredata(ts.as), smooth=smooth)
+}
+
+## Given the result from query.mlid.map, convert local mail thread IDs
+## to in-db global IDs
+ml.thread.loc.to.glob <- function(ml.id.map, loc.id) {
+  global.id <- ml.id.map[ml.id.map$local.id==187,]$db.id
+
+  ## gmane.org, for instance, sometimes provides multiple copies
+  ## of identical threads in their archives. This would need to be handled
+  ## in a separate clean-up step; here, just show a warning
+  if (length(global.id) > 1) {
+    logwarn(str_c("Multiple global IDs for local mail ID ", loc.id, "!"))
+    global.id <- global.id[1]
+  }
+
+  return(global.id)
 }
