@@ -122,7 +122,7 @@ if (packageVersion("plyr") < "1.8.0") {
 if (Sys.getenv("http_proxy") != "") {
   cat("WARNING: http_proxy is set!\n")
   cat("This is often unintended for local communication with the ID service.\n")
-  cat("Are you shure this setup is correct? Continuing nevertheless.\n")
+  cat("Are you sure this setup is correct? Continuing nevertheless.\n")
 }
 
 if (opts$nodes > 1) {
