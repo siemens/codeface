@@ -38,14 +38,14 @@ annotate.cluster <- function(g) {
   ## larger the score, the better is bidirectional connection in a graph
   ## (low score ones tend to be central developer communities with numerous
   ## unconnected contributors)
-  g$rec <- round(reciprocity(g, ignore.loops=F), digits=3)
+  g$rec <- round(reciprocity(g, ignore.loops=FALSE), digits=3)
 
   ## TODO: Document the purpose of graph strength
   g$strength <- mean(graph.strength(g, mode="all"))
   g$strength <- round(g$strength/vcount(g), digits=3)
 
   ## Select the most important developers (as per page rank)
-  prank.sorted <- sort(V(g)$rankValue, index.return=T, decreasing=T)
+  prank.sorted <- sort(V(g)$rankValue, index.return=TRUE, decreasing=TRUE)
 
   ## We compute the degree for the three most important developers
   ## (for large graphs) or of the most important developer for
@@ -57,7 +57,7 @@ annotate.cluster <- function(g) {
     vertex.idx <- prank.sorted$ix
   }
 
-  g$deg.graph <- round(mean(degree(g, vertex.idx, normalize=T)), digits=3)
+  g$deg.graph <- round(mean(degree(g, vertex.idx, normalize=TRUE)), digits=3)
   g$size <- vcount(g)
 
   ## TODO: IN the analysis/the clustering phase, also consider the

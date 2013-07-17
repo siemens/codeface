@@ -19,7 +19,7 @@
 linux.kernel.preprocess <- function(corp) {
   # Remove anything sent by a tip bot
   authors <- sapply(corp, Author)
-  tip.bot <- grep("tip-bot for ", authors, fixed=T, useBytes=T)
+  tip.bot <- grep("tip-bot for ", authors, fixed=TRUE, useBytes=TRUE)
   if (length(tip.bot) > 0)
       corp <- corp[-tip.bot]
 

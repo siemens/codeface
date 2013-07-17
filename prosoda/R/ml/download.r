@@ -34,12 +34,12 @@ get.postings <- function(ml) {
   url <- paste("http://gmane.org/output-rate.php?group=", ml, sep="")
   res = getURL(url)
   tcon <- textConnection(res)
-  dat <- read.table(tcon, header=T)
+  dat <- read.table(tcon, header=TRUE)
   close(tcon)
 
   cat("done.\n")
 
-  dat$date <- ymd(as.character(dat$date), quiet=T)
+  dat$date <- ymd(as.character(dat$date), quiet=TRUE)
   dat$posts <- dat$posting.rate + dat$spam.rate
 #  dat$cumulative <- cumsum(dat$posting.rate)
   dat$cumulative <- cumsum(dat$posts)
@@ -87,7 +87,7 @@ if (length(arguments$args) != 3) {
   stop()
 } else {
   ml <- arguments$args[1]
-  start.date <- ymd(arguments$args[2], quiet=T)
+  start.date <- ymd(arguments$args[2], quiet=TRUE)
   outfile <- str_c(arguments$args[3], ".mbox")
 }
 

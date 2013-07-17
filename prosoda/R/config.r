@@ -84,7 +84,7 @@ load.config <- function(global_file, project_file=NULL) {
 ## If positional arguments are given by name in the positional_args list,
 ## these are stored by name in the conf object.
 config.from.args <- function(positional_args=list(), extra_args=list(),
-                             require_project=T) {
+                             require_project=TRUE) {
   option_list <- c(list(
     make_option(c("-l", "--loglevel"), default="info",
                 help="logging level (debug, devinfo, info, warning or error) [%default]"),
@@ -94,11 +94,11 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
     make_option(c("-p", "--project"), help="project configuration file",
                 default=NULL)
   ), extra_args)
-  # Note that positional_arguments=T even if no positional arguments are
+  # Note that positional_arguments=TRUE even if no positional arguments are
   # required - this is necessary since otherwise the parser output differs
   parser <- OptionParser(usage=do.call(paste, c("%prog", positional_args)),
                          option_list=option_list)
-  arguments <- parse_args(parser, positional_arguments=T)
+  arguments <- parse_args(parser, positional_arguments=TRUE)
   opts = arguments[1]$options
   args = arguments[2]$args
 

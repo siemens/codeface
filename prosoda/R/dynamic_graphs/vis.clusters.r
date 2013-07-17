@@ -32,7 +32,7 @@ source("clusters.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- config.from.args(require_project=F)
+conf <- config.from.args(require_project=FALSE)
 projects.list <- query.projects(conf$con)
 
 ## Use the release ranges for the first project in the list
@@ -76,7 +76,7 @@ prepare.clusters <- function(con, pid, range.id) {
 
   ## Sort the clusters by number of vertices
   sizes <- sapply(clusters.list, vcount)
-  clusters.list <- clusters.list[sort(sizes, index.return=T, decreasing=T)$ix]
+  clusters.list <- clusters.list[sort(sizes, index.return=TRUE, decreasing=TRUE)$ix]
 
   max.length <- 8
   if (length(clusters.list) < max.length) {

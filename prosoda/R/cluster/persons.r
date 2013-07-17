@@ -97,7 +97,7 @@ txt.comm.subsys <- function(.comm, .id.subsys, i) {
 
 get.rank.by.field <- function(.iddb, .field, N=dim(.iddb)[1]) {
   res <- .iddb[c("ID", "Name", .field)]
-  res <- res[order(res[c(.field)], decreasing=T),]
+  res <- res[order(res[c(.field)], decreasing=TRUE),]
   s <- sum(res[,3])
   res <- cbind(res, data.frame(percent=res[,3]/s*100))
   res <- cbind(res, data.frame(norm=scale.data(res[,3], 0, 1)))
@@ -137,7 +137,7 @@ largest.subgraph.idx <- function(graph) {
 
   ## Select the id of the largest cluster, and find all mathing indices
   clusters <- data.frame(id=1:length(g.clust$csize), size=g.clust$csize)
-  clusters <- clusters[sort(clusters$size, index.return=T, decreasing=T)$ix,]
+  clusters <- clusters[sort(clusters$size, index.return=TRUE, decreasing=TRUE)$ix,]
   id.largest <- clusters$id[1]
 
   ## Get all indices of connected developers for the largest cluster
@@ -203,7 +203,7 @@ link.community <- function(g){
   edge.list.dir.we <- data.frame( cbind(get.edgelist(g), E(g)$weight))
   ## perform decomposition
   link.communities <- getLinkCommunities(edge.list.dir.we, hcmethod="single",
-										 directed=T, plot=F, verbose=F)
+										 directed=TRUE, plot=FALSE, verbose=FALSE)
   ## create an igraph community object to return results in accordance with
   ## existing infrastructure in handeling communities
   node.clust <- link.communities$nodeclusters
@@ -430,7 +430,7 @@ select.communities <- function(comm, min.fract=0.95, upper.bound=NA) {
                        sum(comm$membership==i)}))
   ## ... and sort the communities by size (they are still identifiable
   ## by their id)
-  cmts <- cmts[sort(cmts$size, index.return=T, decreasing=T)$ix,]
+  cmts <- cmts[sort(cmts$size, index.return=TRUE, decreasing=TRUE)$ix,]
 
   cmts$size.csum <- cumsum(cmts$size)
 
@@ -544,7 +544,7 @@ store.graph.db <- function(conf, baselabel, idx, .iddb, g.reg, g.tr, j) {
   })
   users.df <- do.call(rbind, users.df)
 
-  dbWriteTable(conf$con, "cluster_user_mapping", users.df, append=T, row.names=F)
+  dbWriteTable(conf$con, "cluster_user_mapping", users.df, append=TRUE, row.names=FALSE)
 
   ## TODO: Insert the generated dot files into the database
 
@@ -570,7 +570,7 @@ store.graph.db <- function(conf, baselabel, idx, .iddb, g.reg, g.tr, j) {
     edges <- gen.weighted.edgelist(edges)
     edges <- cbind(clusterId=cluster.id, edges)
 
-    dbWriteTable(conf$con, "edgelist", edges, append=T, row.names=F)
+    dbWriteTable(conf$con, "edgelist", edges, append=TRUE, row.names=FALSE)
   }
 }
 
@@ -776,7 +776,7 @@ store.pageranks <- function(conf, .iddb, devs.by.pr, range.id, technique) {
   dat$personId <- .iddb[dat$personId,]$ID.orig
   dat$pageRankId <- prank.id
 
-  res <- dbWriteTable(conf$con, "pagerank_matrix", dat, append=T, row.names=F)
+  res <- dbWriteTable(conf$con, "pagerank_matrix", dat, append=TRUE, row.names=FALSE)
   if (!res) {
     stop("Internal error: Could not write pagerank matrix into database!")
   }
@@ -1462,6 +1462,6 @@ test.community.quality.modularity <- function() {
 
 config.script.run({
   conf <- config.from.args(positional_args=list("resdir", "range.id"),
-                           require_project=T)
+                           require_project=TRUE)
   performAnalysis(conf$resdir, conf)
 })

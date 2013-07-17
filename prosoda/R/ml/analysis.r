@@ -368,7 +368,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   ## NOTE: We append new values to the existing content. This way,
   ## we can plot arbitrary subsets of the series by selecting
   ## subranges, without the need to concatenate parts together
-  res <- dbWriteTable(conf$con, "timeseries", dat, append=T, row.names=F)
+  res <- dbWriteTable(conf$con, "timeseries", dat, append=TRUE, row.names=FALSE)
   if (!res) {
     stop("Internal error: Could not write timeseries into database!")
   }
@@ -415,7 +415,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
 
   ## Infer the larges threads as measured by the number of messages per thread,
   ## and sort thread.info accordingly
-  thread.info <- thread.info[order(thread.info$messages, decreasing=T),]
+  thread.info <- thread.info[order(thread.info$messages, decreasing=TRUE),]
 
   ## ... and determine the subjects that started the threads, together
   ## with the IDs of the first email in the thread
@@ -442,7 +442,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   ## attention
   dat <-  data.frame(projectId=conf$pid, mlId=ml.id, releaseRangeId=cycle$range.id,
                      subject=thread.info.cut$subject, count=thread.info.cut$messages)
-  res <- dbWriteTable(conf$con, "freq_subjects", dat, append=T, row.names=F)
+  res <- dbWriteTable(conf$con, "freq_subjects", dat, append=TRUE, row.names=FALSE)
   if (!res) {
     stop("Internal error: Could not write freq_subjects into database!")
   }
@@ -478,7 +478,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   dat$subject <- as.character(dat$subject)
   dat$subject <- gsub("\t", " ", dat$subject, fixed=TRUE, useBytes=TRUE)
 
-  res <- dbWriteTable(conf$con, "mail_thread", dat, append=T, row.names=F)
+  res <- dbWriteTable(conf$con, "mail_thread", dat, append=TRUE, row.names=FALSE)
   if (!res) {
     stop("Could not add to table mail_thread!")
   }
@@ -553,7 +553,7 @@ store.initiate.response <- function(conf, ir, ml.id, range.id) {
   colnames(dat) <- c("releaseRangeId", "mlId", "personId", "responses",
                      "initiations", "responses_received", "deg", "source")
 
-  res <- dbWriteTable(conf$con, "initiate_response", dat, append=T, row.names=F)
+  res <- dbWriteTable(conf$con, "initiate_response", dat, append=TRUE, row.names=FALSE)
   if (!res) {
     stop("Internal error: Could not write thread.info into database!")
   }

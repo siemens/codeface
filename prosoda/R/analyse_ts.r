@@ -81,7 +81,7 @@ compute.next.timestamp <- function(time, last.time) {
 ## Take a list of commits and make their date indices unique by
 ## adding a one second offset to identical ones.
 make.index.unique <- function(dat, subset) {
-  dat$commitDate <- ymd_hms(dat$commitDate, quiet=T)
+  dat$commitDate <- ymd_hms(dat$commitDate, quiet=TRUE)
   last.timestamp <- min(dat$commitDate) - dseconds(1)
 
   for (i in 1:length(dat$commitDate)) {
@@ -150,10 +150,10 @@ process.ts <- function(series) {
   series.merged <- merge(gen.df.from.ts(series.weekly,
                                         type="Averaged (small window)"),
                          gen.df.from.ts(series.monthly,
-                                        type="Averaged (large window)"), all=T)
+                                        type="Averaged (large window)"), all=TRUE)
   series.merged <- merge(series.merged,
                          gen.df.from.ts(series.cumulative,
-                                        type="Cumulative"), all=T)
+                                        type="Cumulative"), all=TRUE)
 
   return(series.merged)
 }
@@ -360,7 +360,7 @@ determine.cluster.mapping <- function(conf, cluster.method=cluster.methods[1]) {
 
     ## Remove total mismatches, and sort the matches by decreasing strength
     clust.sim <- clust.sim[clust.sim$sim>0,]
-    clust.sim <- clust.sim[sort(clust.sim$sim, index.return=T, decreasing=T)$ix,]
+    clust.sim <- clust.sim[sort(clust.sim$sim, index.return=TRUE, decreasing=TRUE)$ix,]
 
     ## Systematically pick the best matches
     for (j in 1:dim(clust.sim)[1]) {
@@ -545,7 +545,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
                       value=series.sub$value,
                       value_scaled=series.sub$value.scaled,
                       plotId=plot.id)
-    res <- dbWriteTable(conf$con, "timeseries", dat, append=T, row.names=F)
+    res <- dbWriteTable(conf$con, "timeseries", dat, append=TRUE, row.names=FALSE)
     if (!res) {
       stop("Internal error: Could not write timeseries into database!")
     }
@@ -557,8 +557,8 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
 
   dummy <- sapply(seq(min.year, max.year), function(year) {
     status(paste("Creating annual time series for", year))
-    g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=T),
-                       dmy(paste("31-12-", year, sep=""), quiet=T)) +
+    g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=TRUE),
+                       dmy(paste("31-12-", year, sep=""), quiet=TRUE)) +
               ggtitle(paste("Code changes in ", year, " for project '",
                             conf$description, "'", sep=""))
 
@@ -586,7 +586,7 @@ do.release.analysis <- function(resdir, graphdir, conf) {
   dat <- data.frame(time=as.character(conf$boundaries$date.end[-1]), value=dat,
                     value_scaled=dat, plotId=plot.id)
 
-  res <- dbWriteTable(conf$con, "timeseries", dat, append=T, row.names=F)
+  res <- dbWriteTable(conf$con, "timeseries", dat, append=TRUE, row.names=FALSE)
   if (!res) {
     stop("Internal error: Could not write release distance TS into database!")
   }

@@ -113,7 +113,7 @@ gen.weighted.edgelist <- function(edges) {
 ## (re)construct an igraph object from the DB
 construct.cluster <- function(con, cluster.id, technique=0) {
   edges <- query.cluster.edges(con, cluster.id)
-  members <- query.cluster.members(con, cluster.id, prank=T, technique=technique)
+  members <- query.cluster.members(con, cluster.id, prank=TRUE, technique=technique)
 
   if (!all(unique(c(edges$toId, edges$fromId)) %in% members$person)) {
     stop("Internal error: edges for non-existent persons in cluster ", cluster.id)

@@ -128,7 +128,7 @@ store.twomode.graph <- function(con, g, type, ml.id, range.id) {
 
   ## Columns are now: releaseRangeId, source, mlId, name, degree, type
   res <- dbWriteTable(con, "twomode_vertices", vertices.df, append=T,
-                      row.names=F)
+                      row.names=FALSE)
   if (!res) {
     stop("Internal error: Could not write two-mode vertex list!")
   }
@@ -142,7 +142,7 @@ store.twomode.graph <- function(con, g, type, ml.id, range.id) {
 
   ## Columns are now: releaseRangeId, source, mlId, fromVert, toVert, weight
   res <- dbWriteTable(con, "twomode_edgelist", edges.df, append=T,
-                      row.names=F)
+                      row.names=FALSE)
   if (!res) {
     stop("Internal error: Could not write two-mode edge list!")
   }
@@ -156,7 +156,7 @@ gen.net <- function(type, termfreq, data.path, max.terms) {
   }
 
   res <- centrality.edgelist(termfreq, type, data.path, max.terms)
-  adj.matrix <- adjacency(res$edgelist, mode="addvalues", directed=F)
+  adj.matrix <- adjacency(res$edgelist, mode="addvalues", directed=FALSE)
 
 #  print(ggplot(data.frame(x=res[[2]]), aes(x=x)) + geom_histogram(binwidth=1))
   return(list(edgelist=res$edgelist, adj.matrix=adj.matrix))
@@ -251,7 +251,7 @@ find.high.freq <- function(x, percentage=0.1, min.entries=-1, max.entries=50,
                          exclude.list=list()) {
   if (inherits(x, "DocumentTermMatrix"))
         x <- t(x)
-  tmp <- sort(slam::row_sums(x), decreasing=T)
+  tmp <- sort(slam::row_sums(x), decreasing=TRUE)
 
   rs <- names(tmp)
   names(rs) <- tmp
@@ -309,7 +309,7 @@ gen.combined.network <- function(interest.network, commnet) {
   ## They should all be supported by SNA
   network.red.ig <- graph.adjacency(network.red, mode="directed")
   deg <- sna::degree(network.red, cmode="freeman", gmode="graph", ignore.eval=TRUE)
-  betw <- igraph::betweenness(network.red.ig, directed=F)
+  betw <- igraph::betweenness(network.red.ig, directed=FALSE)
   clo <- igraph::closeness(network.red.ig)
   cty.list <- list(deg, betw, clo)
   names(cty.list) <- c("Degree", "Betweenness", "Closeness")

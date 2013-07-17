@@ -108,7 +108,7 @@ get.release.rc.dates <- function(conf) {
   ## valie date entry included, ymd_hms will happily convert the
   ## NAs to NAs.
   if (sum(is.na(res$date)) != length(res$date)) {
-    res$date <- ymd_hms(res$date, quiet=T)
+    res$date <- ymd_hms(res$date, quiet=TRUE)
   }
 
   return(res)

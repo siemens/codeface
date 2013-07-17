@@ -30,7 +30,7 @@ source("ts_utils.r")
 source("vis.ports.r")
 
 ## Global variables
-conf <- config.from.args(require_project=F)
+conf <- config.from.args(require_project=FALSE)
 ###########
 
 get.ts.data <- function(con, pid) {

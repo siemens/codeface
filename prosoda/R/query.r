@@ -50,7 +50,7 @@ query.timeseries <- function(con, plot.id, subset=NULL) {
   }
 
   dat <- dbGetQuery(con, query)
-  dat$time <- ymd_hms(dat$time, quiet=T)
+  dat$time <- ymd_hms(dat$time, quiet=TRUE)
   colnames(dat)[3] <- "value.scaled"
 
   return(dat)
@@ -90,8 +90,8 @@ get.cycles.con <- function(con, pid) {
                                "cycle FROM revisions_view WHERE projectId=", pid))
   colnames(res) <- c("range.id", "date.start", "date.end", "cycle")
 
-  res$date.start <- ymd_hms(res$date.start, quiet=T)
-  res$date.end <- ymd_hms(res$date.end, quiet=T)
+  res$date.start <- ymd_hms(res$date.start, quiet=TRUE)
+  res$date.end <- ymd_hms(res$date.end, quiet=TRUE)
 
   return(res)
 }
@@ -211,7 +211,7 @@ query.global.collab <- function(conf, range.id, cluster.method) {
 ## Get all members (in terms of person id) of a cluster
 ## technique can be 0 for normal pagerank and 1 for pagerank based
 ## on the transposed adjacency matrix
-query.cluster.members <- function(con, cluster.id, prank=F, technique=0) {
+query.cluster.members <- function(con, cluster.id, prank=FALSE, technique=0) {
   query <- "SELECT personId"
   if (prank) {
     query <- str_c(query, ", rankValue")
