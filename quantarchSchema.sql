@@ -238,15 +238,15 @@ CREATE INDEX `mail_release_range_key_idx` ON `quantarch`.`mail_thread` (`release
 
 
 -- -----------------------------------------------------
--- Table `quantarch`.`mail_comments`
+-- Table `quantarch`.`thread_responses`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `quantarch`.`mail_comments` ;
+DROP TABLE IF EXISTS `quantarch`.`thread_responses` ;
 
-CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_comments` (
+CREATE  TABLE IF NOT EXISTS `quantarch`.`thread_responses` (
   `who` BIGINT NOT NULL ,
   `mailThreadId` BIGINT NOT NULL ,
-  `commentDate` DATETIME NULL DEFAULT NULL ,
-  CONSTRAINT `mail_comment_who`
+  `mailDate` DATETIME NULL DEFAULT NULL ,
+  CONSTRAINT `thread_responses_who`
     FOREIGN KEY (`who` )
     REFERENCES `quantarch`.`person` (`id` )
     ON DELETE CASCADE
@@ -258,9 +258,9 @@ CREATE  TABLE IF NOT EXISTS `quantarch`.`mail_comments` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `mail_comment_who_idx` ON `quantarch`.`mail_comments` (`who` ASC) ;
+CREATE INDEX `thread_responses_who_idx` ON `quantarch`.`thread_responses` (`who` ASC) ;
 
-CREATE INDEX `mailThreadId_idx` ON `quantarch`.`mail_comments` (`mailThreadId` ASC) ;
+CREATE INDEX `mailThreadId_idx` ON `quantarch`.`thread_responses` (`mailThreadId` ASC) ;
 
 
 -- -----------------------------------------------------
