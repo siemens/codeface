@@ -40,6 +40,8 @@ def get_parser():
                 default='info')
     parser.add_argument('--logfile', help='Save all debug logging into the'
                 ' given log file')
+    parser.add_argument('-j', '--jobs', default=1,
+                help='Number of cores to use in parallel')
 
     sub_parser = parser.add_subparsers(help='select action')
     test_parser = sub_parser.add_parser('test', help='Run tests')
@@ -77,7 +79,9 @@ def cmd_run(args):
     resdir, gitdir = map(os.path.abspath, (args.resdir, args.gitdir))
     prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
     no_report = args.no_report
-    loglevel, logfile = args.loglevel, os.path.abspath(args.logfile)
+    loglevel, logfile = args.loglevel, args.logfile
+    if logfile:
+        logfile = os.path.abspath(args.logfile)
     del args
 
     conf = Configuration.load(prosoda_conf, project_conf)
@@ -140,6 +144,10 @@ def cmd_run(args):
     releaseRangeIds = [str(releaseRangeIds[i][0])
                        for i in range(0,len(releaseRangeIds))]
 
+    # TODO: Sanity checks (ensure that git repo dir exists)
+    if 'proximity' == conf["tagging"]:
+        check4ctags()
+
     #############################
     # Analyse all revision ranges
     for i in range(len(revs)-1):
@@ -147,18 +155,10 @@ def cmd_run(args):
                               conf["tagging"],
                               "{0}-{1}".format(revs[i], revs[i+1]))
 
-        # TODO: Sanity checks (ensure that git repo dir exists)
-        if 'proximity' == conf["tagging"]:
-            check4ctags()
-
         #######
         # STAGE 1: Commit analysis
-        # TODO: Instead of calling an external python script, it
-        # would maybe wiser to call a procedure...
         log.info("  -> Analysing commits {0}..{1}".format(revs[i], revs[i+1]))
-
         limit_history = True
-
         repo = os.path.join(gitdir, conf["repo"], ".git")
         doProjectAnalysis(conf, dbm, revs[i], revs[i+1], rcs[i+1], rev_resdir, repo, True, limit_history)
 
@@ -208,6 +208,32 @@ def cmd_run(args):
     cwd = resource_filename(__name__, "R")
     execute_command(cmd, direct_io=True, cwd=cwd)
     log.info("=> Prosoda run complete!")
+    return 0
+
+def cmd_ml(args):
+    '''Dispatch the ``ml`` command.'''
+    # First make all the args absolute
+    resdir, mldir = map(os.path.abspath, (args.resdir, args.mldir))
+    prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
+    loglevel, logfile = args.loglevel, args.logfile
+    jobs = args.jobs
+    if logfile:
+        logfile = os.path.abspath(args.logfile)
+    del args
+    log.info("=> Analysing mailing lists")
+    cmd = []
+    cmd.append(resource_filename(__name__, "R/ml/batch.r"))
+    if logfile:
+        cmd.extend(("--logfile", "{}.R.ts".format(logfile)))
+    cmd.extend(("--loglevel", loglevel))
+    cmd.extend(("-c", prosoda_conf))
+    cmd.extend(("-p", project_conf))
+    cmd.extend(("-n", jobs))
+    cmd.append(resdir)
+    cmd.append(mldir)
+    cwd = resource_filename(__name__, "R")
+    execute_command(cmd, direct_io=True, cwd=cwd)
+    log.info("=> Prosoda mailing list analysis complete!")
     return 0
 
 def cmd_dynamic(args):
