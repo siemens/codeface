@@ -16,7 +16,7 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-## Create activity punchcards for revision control repository data
+## Create activity punchcards for mailing list activity data
 
 s <- suppressPackageStartupMessages
 s(library(ggplot2))
@@ -29,7 +29,6 @@ source("config.r")
 source("utils.r")
 source("query.r")
 source("ts_utils.r")
-source("commits.r")
 source("vis.ports.r")
 
 ## Global variables
@@ -39,10 +38,16 @@ projects.list <- query.projects(conf$con)
 
 ## Generate commity activity punch card datasets for all cycles
 ## of a given project
-gen.punchcard <- function(con, pid, range.id) {
-  dat <- gen.commits.activity(con, pid, range.id)
-  act.ts <- xts(x=dat$DiffSize, order.by=ymd_hms(dat$commitDate, quiet=TRUE))
-  res <- compute.hourly.statistics(act.ts, FUN=length)
+gen.punchcard <- function(con, ml.id, range.id) {
+##  dat <- query.ml.activity(conf$con, ml.id, range.id)
+  dat <- query.ml.activity(conf$con, 9, range.id)
+
+  if (!is.null(dat)) {
+    act.ts <- xts(x=1:length(dat), order.by=dat)
+    res <- compute.hourly.statistics(act.ts, FUN=length)
+  } else {
+    res <- NULL
+  }
 
   return(res)
 }
@@ -53,7 +58,9 @@ gen.punchcards <- function(con, pid) {
 
   res <- lapply(range.ids.list, function(range.id) {
     res <- gen.punchcard(con, pid, range.id)
-    res <- cbind(res, cycle=cycles$cycle[cycles$range.id==range.id])
+    if (!is.null(res)) {
+      res <- cbind(res, cycle=cycles$cycle[cycles$range.id==range.id])
+    }
 
     return(res)
   })
@@ -75,21 +82,22 @@ vis.punchcard.server <- function(input, output, clientData, session) {
   })
 }
 
-vis.punchcard.ui <- pageWithSidebar(
-                         headerPanel("Activity punch cards"),
-                         sidebarPanel(
-                           selectInput("project", "Project",
-                                       choices = projects.list$name),
+vis.punchcard.ui <-
+  pageWithSidebar(
+    headerPanel("ML activity punch cards"),
 
-                           submitButton("Update View")
-                           ),
-
-                         mainPanel(
-                           plotOutput("punchCardPlot")
-                         )
-                      )
+    sidebarPanel(
+      selectInput("project", "Project",
+                  choices = projects.list$name),
+      
+      submitButton("Update View")
+      ),
+    
+    mainPanel(
+      plotOutput("punchCardPlot")
+      )
+    )
 
 ## Dispatch the shiny server
-
 runApp(list(ui=vis.punchcard.ui, server=vis.punchcard.server),
-       port=PORT.PUNCHCARD.VCS)
+       port=PORT.PUNCHCARD.ML)

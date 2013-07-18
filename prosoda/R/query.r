@@ -447,22 +447,26 @@ query.ml.activity <- function(con, ml.id, range.id) {
                                         " AND releaseRangeID=", range.id))
 
   ## Determine all replies for each thread, and store their dates
-  if (!is.null(threads)) {
+  if (dim(threads)[1] > 0) {
     threads$creationDate <- ymd_hms(threads$creationDate, quiet=TRUE)
 
     dat <- lapply(threads$id, function(thread.id) {
       res <- dbGetQuery(conf$con, str_c("SELECT mailDate FROM ",
                                         "thread_responses WHERE ",
                                         "mailThreadId=", thread.id))
-      if (!is.null(res)) {
+      if (dim(res)[1] > 0) {
         return(ymd_hms(res$mailDate, quiet=TRUE))
       }
+
+      return(NULL)
     })
 
-    dat <- do.call(rbind, dat)
+    dat <- do.call(c, dat)
+
+    return(c(threads$creationDate, dat))
   }
 
-  return(c(threads$creationDate, dat))
+  return(NULL)
 }
 
 ### General SQL helper functions

@@ -422,13 +422,13 @@ gen.agg.smooth.ts <- function(ts, smooth) {
   ts.as <- ts # In case rollmean fails
   try(ts.as <- rollmean(period.apply(ts, INDEX=endpoints(ts, 'hours'),
                                      FUN=sum), smooth))
-  ts.df <- data.frame(date=index(ts.as), value=coredata(ts.as), smooth=smooth)
+  ts.df <- data.frame(date=index(ts.as), value=coredata(ts.as))
 }
 
 ## Given the result from query.mlid.map, convert local mail thread IDs
 ## to in-db global IDs
 ml.thread.loc.to.glob <- function(ml.id.map, loc.id) {
-  global.id <- ml.id.map[ml.id.map$local.id==187,]$db.id
+  global.id <- ml.id.map[ml.id.map$local.id==loc.id,]$db.id
 
   ## gmane.org, for instance, sometimes provides multiple copies
   ## of identical threads in their archives. This would need to be handled
