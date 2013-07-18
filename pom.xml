@@ -15,25 +15,6 @@
 		<jarFileName>bugExtractor</jarFileName>
 	</properties>
 
-	<repositories>
-		<repository>
-			<id>atlassian</id>
-			<name>Atlassian Public Repository</name>
-			<url>http://repository.atlassian.com/maven2</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>atlassian-public</id>
-			<name>Atlassian Public for client</name>
-			<url>https://maven.atlassian.com/content/repositories/atlassian-public/</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
-
 	<pluginRepositories>
 		<pluginRepository>
 			<id>onejar-maven-plugin.googlecode.com</id>
@@ -163,7 +144,7 @@
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
-			<version>4.2.5</version>
+			<version>4.2.4</version>
 		</dependency>
 
 		<dependency>

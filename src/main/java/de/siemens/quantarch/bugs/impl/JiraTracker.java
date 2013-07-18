@@ -1,6 +1,5 @@
 package de.siemens.quantarch.bugs.impl;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import de.siemens.quantarch.bugs.IssueTracker;
 import de.siemens.quantarch.bugs.dao.IssueTrackerDao;
 import de.siemens.quantarch.bugs.utils.BugExtractorConfig;
@@ -23,8 +22,7 @@ public class JiraTracker implements IssueTracker {
 
 	@Override
 	public void parseIssues() {
-		throw new NotImplementedException();
-
+		System.out.println("Not yet implemented");
 	}
 
 }
