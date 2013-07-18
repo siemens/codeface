@@ -127,3 +127,34 @@ detrend.by.range <- function(s, boundaries) {
 
   return(res)
 }
+
+## Compute commit activity statistics resolved by week day and hour
+## to get an impression when contributors work on the code
+## Use FUN=sum to get the sum of all diff sizes, and FUN=length to get the
+## number of commits. When used with mailing list data where the datum
+## associated with every mail is one, length and sum produce
+## identical results.
+compute.hourly.statistics <- function(ts, FUN=length) {
+  wday.labels <- c("Sun", "Mon", "Thu", "Wed", "Thu", "Fri", "Sat")
+  wday.labels.mon <- c("Mon", "Thu", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+  res <- lapply(1:7, function(i) {
+    ts.sub <- ts[wday(ts)==i]
+    if (length(ts.sub) == 0) {
+      return(NULL)
+    }
+    act <- aggregate(coredata(ts.sub), by=list(hour=hour(ts.sub)), FUN)
+    colnames(act) <- c("hour", "size")
+    return(data.frame(day=i, act))
+  })
+
+  res <- do.call(rbind, res)
+
+  ## Convert the labels to use monday as first day of the week
+  res$day <- mapvalues(res$day, 1:7, c(7, 1:6), warn_missing=FALSE)
+  res <- arrange(res, res$day)
+  res$day <- factor(res$day, levels=7:1, ordered=TRUE)
+  res$day <- mapvalues(res$day, 1:7, wday.labels.mon, warn_missing=FALSE)
+
+  return(res)
+}

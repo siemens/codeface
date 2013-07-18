@@ -28,6 +28,7 @@ rm(s)
 source("config.r")
 source("utils.r")
 source("query.r")
+source("ts_utils.r")
 source("commits.r")
 source("vis.ports.r")
 
