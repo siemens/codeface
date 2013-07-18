@@ -89,7 +89,7 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
     make_option(c("-l", "--loglevel"), default="info",
                 help="logging level (debug, devinfo, info, warning or error) [%default]"),
     make_option(c("-f", "--logfile"), help="logfile"),
-    make_option(c("-c", "--config"), default="prosoda.conf",
+    make_option(c("-c", "--config"), default="../../prosoda.conf",
                 help="global prosoda configuration file [%default]"),
     make_option(c("-p", "--project"), help="project configuration file",
                 default=NULL)
