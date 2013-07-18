@@ -35,10 +35,10 @@ from .ts import dispatch_ts_analysis
 def get_parser():
     parser = argparse.ArgumentParser(prog='prosoda',
                 description='Program for Social Data Analysis')
-    parser.add_argument('--loglevel', help='Choose the logging level',
+    parser.add_argument('-l', '--loglevel', help='Choose the logging level',
                 choices=['debug', 'devinfo', 'info', 'warning', 'error'],
                 default='info')
-    parser.add_argument('--logfile', help='Save all debug logging into the'
+    parser.add_argument('-f', '--logfile', help='Save all debug logging into the'
                 ' given log file')
     parser.add_argument('-j', '--jobs', default=1,
                 help='Number of cores to use in parallel')
@@ -63,6 +63,17 @@ def get_parser():
                         help="Directory for git repositories")
     run_parser.add_argument('--no-report', action="store_true",
                         help="Skip LaTeX report generation (and dot compilation)")
+
+    ml_parser = sub_parser.add_parser('ml', help='Run mailing list analysis')
+    ml_parser.set_defaults(func=cmd_ml)
+    ml_parser.add_argument('-c', '--config', help="Prosoda configuration file",
+                default='prosoda.conf')
+    ml_parser.add_argument('-p', '--project', help="Project configuration file",
+                required=True)
+    ml_parser.add_argument('resdir',
+                        help="Directory to store analysis results in")
+    ml_parser.add_argument('mldir',
+                        help="Directory for mailing lists")
 
     dyn_parser = sub_parser.add_parser('dynamic', help='Start R server for a dynamic graph')
     dyn_parser.set_defaults(func=cmd_dynamic)
@@ -228,7 +239,7 @@ def cmd_ml(args):
     cmd.extend(("--loglevel", loglevel))
     cmd.extend(("-c", prosoda_conf))
     cmd.extend(("-p", project_conf))
-    cmd.extend(("-n", jobs))
+    cmd.extend(("-j", str(jobs)))
     cmd.append(resdir)
     cmd.append(mldir)
     cwd = resource_filename(__name__, "R")

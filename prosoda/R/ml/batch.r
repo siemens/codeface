@@ -59,8 +59,8 @@ rm(s)
 ######################### Dispatcher ###################################
 {
     option_list <- list(
-                    make_option(c("-n", "--cores"), type="integer", default=1,
-                                help="Number of cores for cluster analysis")
+                    make_option(c("-j", "--jobs"), type="integer", default=1,
+                                help="Number of parallel jobs for cluster analysis")
                     )
     positional_args <- list("resdir", "mldir")
 
@@ -94,8 +94,8 @@ rm(s)
       lw("Are you shure this setup is correct? Continuing nevertheless.")
     }
 
-    if (conf$nodes > 1) {
-      options(mc.cores=conf$cores)
+    if (conf$jobs > 1) {
+      options(mc.cores=conf$jobs)
     } else {
       ## Setting mc.cores to 1 makes sure that a regular lapply is used.
       options(mc.cores=1)
