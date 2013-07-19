@@ -29,7 +29,7 @@ gen.forest <- function(conf, repo.path, resdir) {
   doCompute <- !(file.exists(corp.file))
 
   if (doCompute) {
-    corp.base <- gen.corpus(conf$ml, repo.path, suffix=".mbox",
+    corp.base <- gen.corpus(conf$listname, repo.path, suffix=".mbox",
                             marks=c("^_{10,}", "^-{10,}", "^[*]{10,},",
                                    # Also remove inline diffs. TODO: Better
                                    # heuristics for non-git projects
@@ -267,7 +267,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
   loginfo(paste(length(corp.base$corp), "messages in corpus"), logger="ml.analysis")
   loginfo(paste("Date range is", as.character(int_start(iter[[1]])), "to",
       as.character(int_end(iter[[length(iter)]]))), logger="ml.analysis")
-  loginfo(paste("=> Analysing ", conf$ml, "in", length(iter), "subsets"),
+  loginfo(paste("=> Analysing ", conf$listname, "in", length(iter), "subsets"),
           logger="ml.analysis")
 
   ## Prepare a single-parameter version of do.normalise that does
@@ -346,7 +346,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
                                    communication.network)
 
   ## Obtain a unique numerical ID for the mailing list
-  ml.id <- gen.clear.ml.id.con(conf$con, conf$ml, conf$pid)
+  ml.id <- gen.clear.ml.id.con(conf$con, conf$listname, conf$pid)
 
   ## Compute base data for time series analysis
   msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(DateTimeStamp(x)) })
@@ -357,7 +357,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
 
   ## ... and store it into the data base
   ts.df <- gen.df.from.ts(series.daily, "Mailing list activity")
-  plot.name <- str_c(conf$ml, " activity")
+  plot.name <- str_c(conf$listname, " activity")
   plot.id <- get.clear.plot.id(conf, plot.name)
 
   dat <- data.frame(time=as.character(ts.df$time),

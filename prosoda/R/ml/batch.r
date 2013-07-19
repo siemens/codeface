@@ -62,18 +62,11 @@ rm(s)
                     make_option(c("-j", "--jobs"), type="integer", default=1,
                                 help="Number of parallel jobs for cluster analysis")
                     )
-    positional_args <- list("resdir", "mldir")
+    positional_args <- list("resdir", "mldir", "listname")
 
     conf <- config.from.args(positional_args=positional_args, extra_args=option_list)
 
-    if (is.null(conf$ml)) {
-      logerror("No mailing list repository available for project, skipping analysis", logger="ml.batch")
-      stop()
-    }
-
-    repo.path <- conf$mldir
-    resdir <- file.path(conf$resdir, conf$project, "ml")
-    gen.dir(resdir)
+    gen.dir(conf$resdir)
 
     set.seed(19101978) ## Fix the seed to make results of random algorithms reproducible
 

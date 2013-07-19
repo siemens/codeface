@@ -35,7 +35,7 @@ class Configuration(Mapping):
     GLOBAL_KEYS = ('dbname', 'dbhost', 'dbuser', 'dbpwd',
             'nodejsHostname', 'nodejsPort')
     PROJECT_KEYS = ('project', 'repo', 'tagging', 'revisions', 'rcs')
-    OPTIONAL_KEYS = ('description', 'ml')
+    OPTIONAL_KEYS = ('description', 'ml', 'mailinglists')
     ALL_KEYS = set(GLOBAL_KEYS + PROJECT_KEYS + OPTIONAL_KEYS)
 
     def __init__(self):
@@ -85,6 +85,14 @@ class Configuration(Mapping):
         '''Infer missing values in the configuration'''
         if "rcs" not in self:
             self._conf["rcs"] = [None for x in range(len(self["revisions"]))]
+
+        if "mailinglists" not in self:
+            self._conf["mailinglists"] = []
+            if "ml" in self:
+                self._conf["mailinglists"].append({"name": self["ml"]})
+        for ml in self._conf["mailinglists"]:
+            ml.setdefault("type", "dev")
+            ml.setdefault("source", "gmane")
 
     def _check_sanity(self):
         '''

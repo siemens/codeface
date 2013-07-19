@@ -188,19 +188,25 @@ def cmd_ml(args):
     if logfile:
         logfile = os.path.abspath(args.logfile)
     del args
-    log.info("=> Analysing mailing lists")
+    conf = Configuration.load(prosoda_conf, project_conf)
+    ml_resdir = os.path.join(resdir, conf["project"], "ml")
+    cwd = resource_filename(__name__, "R")
+    exe = [resource_filename(__name__, "R/ml/batch.r")]
     cmd = []
-    cmd.append(resource_filename(__name__, "R/ml/batch.r"))
-    if logfile:
-        cmd.extend(("--logfile", "{}.R.ts".format(logfile)))
     cmd.extend(("--loglevel", loglevel))
     cmd.extend(("-c", prosoda_conf))
     cmd.extend(("-p", project_conf))
     cmd.extend(("-j", str(jobs)))
-    cmd.append(resdir)
+    cmd.append(ml_resdir)
     cmd.append(mldir)
-    cwd = resource_filename(__name__, "R")
-    execute_command(cmd, direct_io=True, cwd=cwd)
+    for i, ml in enumerate(conf["mailinglists"]):
+        log.info("=> Analysing mailing list '{name}' of type '{type}'".
+                format(ml))
+        logargs = []
+        if logfile:
+            logargs = ["--logfile", "{}.R.ml.{}".format(logfile, i)]
+        execute_command(exe + logargs + cmd + [ml["name"]],
+                direct_io=True, cwd=cwd)
     log.info("=> Prosoda mailing list analysis complete!")
     return 0
 
