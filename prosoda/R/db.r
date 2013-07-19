@@ -36,33 +36,50 @@ get.project.id <- function(con, name) {
 
 ## Determine the ID of a given plot for a given project. Since
 ## plots are not created in parallel, we need no locking
-get.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
-  query <- str_c("SELECT id from plots WHERE name=", sq(plot.name),
+## Also, Clear the plot for new data
+get.clear.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
+  query <- str_c(" FROM plots WHERE name=", sq(plot.name),
                  " AND projectId=", pid)
   if (!is.null(range.id)) {
     query <- str_c(query, " AND releaseRangeId=", range.id)
   }
 
-  res <- dbGetQuery(con, query)
+  dbGetQuery(con, str_c("DELETE", query))
 
-  if (length(res) == 0) {
-    if (is.null(range.id)) {
-      dbGetQuery(con, str_c("INSERT INTO plots (name, projectId) VALUES (",
-                            sq(plot.name), ", ", pid, ")"))
-    } else {
-      dbGetQuery(con, str_c("INSERT INTO plots (name, projectId, releaseRangeId) ",
-                            "VALUES (", sq(plot.name), ", ", pid, ", ",
-                            range.id, ")"))
-    }
-
-    res <- dbGetQuery(con, query)
+  if (is.null(range.id)) {
+    dbGetQuery(con, str_c("INSERT INTO plots (name, projectId) VALUES (",
+                          sq(plot.name), ", ", pid, ")"))
+  } else {
+    dbGetQuery(con, str_c("INSERT INTO plots (name, projectId, releaseRangeId) ",
+                          "VALUES (", sq(plot.name), ", ", pid, ", ",
+                          range.id, ")"))
   }
+
+  res <- dbGetQuery(con, str_c("SELECT id", query))
 
   if (length(res) != 1) {
     stop("Internal error: Plot ", plot.name, " appears multiple times in DB",
          "for project ID ", pid)
   }
 
+  return(res$id)
+}
+
+get.clear.plot.id <- function(conf, plot.name, range.id=NULL) {
+  return(get.clear.plot.id.con(conf$con, conf$pid, plot.name, range.id))
+}
+
+get.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
+  query <- str_c(" FROM plots WHERE name=", sq(plot.name),
+                 " AND projectId=", pid)
+  if (!is.null(range.id)) {
+    query <- str_c(query, " AND releaseRangeId=", range.id)
+  }
+  res <- dbGetQuery(con, str_c("SELECT id", query))
+  if (length(res) < 1) {
+    stop("Internal error: Plot ", plot.name, " not found in DB",
+         "for project ID ", pid)
+  }
   return(res$id)
 }
 
@@ -122,24 +139,22 @@ get.release.dates <- function(conf) {
   return(res)
 }
 
-get.cluster.id <- function(conf, range.id, method, num) {
+get.clear.cluster.id <- function(conf, range.id, method, num) {
+  dbGetQuery(conf$con, str_c("DELETE FROM cluster ",
+                             "WHERE clusterMethod=", sq(method),
+                             " AND projectId=", conf$pid,
+                             " AND releaseRangeId=", range.id,
+                             " AND clusterNumber=", num))
+
+  dbGetQuery(conf$con, str_c("INSERT INTO cluster (projectId, clusterNumber, ",
+                              "releaseRangeId, clusterMethod) VALUES (",
+                              conf$pid, ", ", num, ", ", range.id, ", ",
+                              sq(method), ")"))
   res <- dbGetQuery(conf$con, str_c("SELECT id from cluster ",
                                     "WHERE clusterMethod=", sq(method),
                                     " AND projectId=", conf$pid,
                                     " AND releaseRangeId=", range.id,
                                     " AND clusterNumber=", num))
-
-  if (length(res) == 0) {
-    dbGetQuery(conf$con, str_c("INSERT INTO cluster (projectId, clusterNumber, ",
-                               "releaseRangeId, clusterMethod) VALUES (",
-                               conf$pid, ", ", num, ", ", range.id, ", ",
-                               sq(method), ")"))
-    res <- dbGetQuery(conf$con, str_c("SELECT id from cluster ",
-                                      "WHERE clusterMethod=", sq(method),
-                                      " AND projectId=", conf$pid,
-                                      " AND releaseRangeId=", range.id,
-                                      " AND clusterNumber=", num))
-  }
 
   return(res$id)
 }
@@ -147,50 +162,48 @@ get.cluster.id <- function(conf, range.id, method, num) {
 ## Obtain the ID of a per release-range, per technique pagerank table.
 ## technique is by convention 0 for normal pagerank and 1 for transposed
 ## pagerank
+get.clear.pagerank.id.con <- function(con, range.id, technique) {
+  if (technique != 0 && technique != 1) {
+    stop("Internal error: Invalid technique specified in get.pagerank.id")
+  }
+  dbGetQuery(con, str_c("DELETE FROM pagerank ",
+                        "WHERE releaseRangeId=", range.id,
+                        " AND technique=", technique))
+  dbGetQuery(con, str_c("INSERT INTO pagerank (releaseRangeId, technique)",
+                        " VALUES (", range.id, ", ", technique, ")"))
+  return(get.pagerank.id.con(con, range.id, technique))
+}
+
 get.pagerank.id.con <- function(con, range.id, technique) {
   if (technique != 0 && technique != 1) {
     stop("Internal error: Invalid technique specified in get.pagerank.id")
   }
-
   res <- dbGetQuery(con, str_c("SELECT id from pagerank ",
                                "WHERE releaseRangeId=", range.id,
                                " AND technique=", technique))
-
-  if (length(res) == 0) {
-    dbGetQuery(con, str_c("INSERT INTO pagerank (releaseRangeId, technique)",
-                          " VALUES (", range.id, ", ", technique, ")"))
-    res <- dbGetQuery(con, str_c("SELECT id from pagerank ",
-                                 "WHERE releaseRangeId=", range.id,
-                                 " AND technique=", technique))
-  }
-
   return(res$id)
 }
 
-
-get.pagerank.id <- function(conf, range.id, technique) {
-  return(get.pagerank.id.con(conf$con, range.id, technique))
+get.clear.pagerank.id <- function(conf, range.id, technique) {
+  return(get.clear.pagerank.id.con(conf$con, range.id, technique))
 }
 
 ## Obtain a unique ID for mailing list, given name of the list and project id.
-gen.ml.id.con <- function(con, ml, pid) {
-  res <- dbGetQuery(con, str_c("SELECT id from mailing_list ",
+## Delete any existing mailing lists of this name.
+gen.clear.ml.id.con <- function(con, ml, pid) {
+  dbGetQuery(con, str_c("DELETE FROM mailing_list ",
                                "WHERE projectId=", pid,
                                " AND name=", sq(ml)))
-
-  if (length(res) == 0) {
-    dbGetQuery(con, str_c("INSERT INTO mailing_list (projectID, name)",
-                          " VALUES (", pid, ", ", sq(ml), ")"))
-    res <- dbGetQuery(con, str_c("SELECT id from mailing_list ",
-                                 "WHERE projectId=", pid,
-                                 " AND name=", sq(ml)))
-  }
-
+  dbGetQuery(con, str_c("INSERT INTO mailing_list (projectID, name)",
+                        " VALUES (", pid, ", ", sq(ml), ")"))
+  res <- dbGetQuery(con, str_c("SELECT id from mailing_list ",
+                                "WHERE projectId=", pid,
+                                " AND name=", sq(ml)))
   return(res$id)
 }
 
-gen.ml.id <- function(conf, ml) {
-  return(gen.ml.id(conf$con, ml, conf$pid))
+gen.clear.ml.id <- function(conf, ml) {
+  return(gen.clear.ml.id(conf$con, ml, conf$pid))
 }
 
 ## Augment the configuration "object" with information that

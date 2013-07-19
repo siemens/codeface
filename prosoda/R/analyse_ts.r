@@ -537,7 +537,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   status("Storing time series data into database")
   for (type in unique(series.merged$type)) {
     plot.name <- str_c("Progress TS [", type, "]")
-    plot.id <- get.plot.id(conf, plot.name)
+    plot.id <- get.clear.plot.id(conf, plot.name)
 
     series.sub <- series.merged[series.merged$type==type,]
 
@@ -580,7 +580,7 @@ do.release.analysis <- function(resdir, graphdir, conf) {
   ## of the actual shape of the cycle, having similar cycles shows that
   ## the project follows a certain well-defined process
   plot.name <- "Release TS distance"
-  plot.id <- get.plot.id(conf, plot.name)
+  plot.id <- get.clear.plot.id(conf, plot.name)
 
   dat <- compute.release.distance(series.merged, conf)
   dat <- data.frame(time=as.character(conf$boundaries$date.end[-1]), value=dat,

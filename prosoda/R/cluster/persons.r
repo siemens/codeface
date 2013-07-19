@@ -536,7 +536,7 @@ save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label) {
 
 ## Write clusters into the database
 store.graph.db <- function(conf, baselabel, idx, .iddb, g.reg, g.tr, j) {
-  cluster.id <- get.cluster.id(conf, conf$range.id, baselabel, j)
+  cluster.id <- get.clear.cluster.id(conf, conf$range.id, baselabel, j)
 
   users.df <- lapply(idx, function(index.local) {
     person.id <- .iddb[index.local,]$ID.orig
@@ -768,7 +768,7 @@ influential.developers <- function(N, .ranks, .tags, .iddb) {
 store.pageranks <- function(conf, .iddb, devs.by.pr, range.id, technique) {
   ## First, create an entry in table pagerank to get the DB internal
   ## id for the releaseRangeId/technique tuple
-  prank.id <- get.pagerank.id(conf, range.id, technique)
+  prank.id <- get.clear.pagerank.id(conf, range.id, technique)
 
   dat <- devs.by.pr[,c("ID", "rank")]
   colnames(dat) <- c("personId", "rankValue")

@@ -855,6 +855,10 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
     # at all anyway which diff algorithm we use
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
 
+    # Clear the commit information before writing new commints
+    dbm.doExec("DELETE FROM commit WHERE projectId=%s AND releaseRangeId=%s",
+               (projectID, int(releaseRangeID)))
+
     for cmt in cmtlist:
         subsys_touched = cmt.getSubsystemsTouched()
         subsys_count = 0
@@ -944,6 +948,10 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
     '''
 
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
+
+    # Clear the information before writing new commints
+    dbm.doExec("DELETE FROM author_commit_stats WHERE releaseRangeId=%s",
+               (int(releaseRangeID)))
 
     for id in sorted(id_mgr.getPersons().keys()):
         pi = id_mgr.getPI(id)

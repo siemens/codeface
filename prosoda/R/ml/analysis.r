@@ -346,7 +346,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
                                    communication.network)
 
   ## Obtain a unique numerical ID for the mailing list
-  ml.id <- gen.ml.id.con(conf$con, conf$ml, conf$pid)
+  ml.id <- gen.clear.ml.id.con(conf$con, conf$ml, conf$pid)
 
   ## Compute base data for time series analysis
   msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(DateTimeStamp(x)) })
@@ -358,7 +358,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   ## ... and store it into the data base
   ts.df <- gen.df.from.ts(series.daily, "Mailing list activity")
   plot.name <- str_c(conf$ml, " activity")
-  plot.id <- get.plot.id(conf, plot.name)
+  plot.id <- get.clear.plot.id(conf, plot.name)
 
   dat <- data.frame(time=as.character(ts.df$time),
                     value=ts.df$value,
