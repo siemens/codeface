@@ -72,43 +72,222 @@ class DBManager:
 
     # NOTE: We don't provide any synchronisation since by assumption,
     # a single project is never analysed from two threads.
-    # TODO: This does not consider the case that one project can
-    # be analysed with different methods
     def getProjectID(self, name, analysisMethod):
-        self.doExec("SELECT id FROM project WHERE name=%s", name)
-
-        if self.cur.rowcount < 1:
+        """
+        Return the project ID of the given name/analysisMethod combination.
+        If the project does not exist yet in the database, it is created.
+        """
+        self.doExec("SELECT id FROM project WHERE name=%s "
+                    "AND analysisMethod=%s", (name, analysisMethod))
+        if self.cur.rowcount == 0:
             # Project is not contained in the database
+            log.devinfo("Creating new project {}/{}".
+                    format(name, analysisMethod))
             self.doExec("INSERT INTO project (name, analysisMethod) " +
                         "VALUES (%s, %s);", (name, analysisMethod))
             self.doCommit()
             self.doExec("SELECT id FROM project WHERE name=%s;", name)
+        elif self.cur.rowcount > 1:
+            raise Exception("Duplicate projects {}/{} in database!".
+                    format(name, analysisMethod))
+        pid = self.doFetchAll()[0][0]
+        log.devinfo("Using project {}/{} with ID {}".
+                format(name, analysisMethod, pid))
+        return pid
 
-        res = self.doFetchAll()[0]
-        return res[0]
+    def get_project(self, pid):
+        self.doExec("SELECT name, analysisMethod FROM project"
+                    " WHERE id=%s", pid)
+        if self.cur.rowcount == 0:
+            raise Exception("Project id {} not found!".format(pid))
+        return self.doFetchAll()[0]
 
     def getTagID(self, projectID, tag, type):
         """Determine the ID of a tag, given its textual form and the type"""
         self.doExec("SELECT id FROM release_timeline WHERE projectId=%s " +
                     "AND tag=%s AND type=%s", (projectID, tag, type))
-
-        res = self.doFetchAll()[0]
-        return(res[0])
+        if self.cur.rowcount != 1:
+            raise Exception("Tag '{}' of type {} is {} times in the DB!".
+                    format(tag, type, self.cur.rowcount))
+        return self.doFetchAll()[0][0]
 
     def getRevisionID(self, projectID, tag):
-        return(self.getTagID(projectID, tag, "release"))
+        return self.getTagID(projectID, tag, "release")
 
     def getRCID(self, projectID, tag):
-        return(self.getTagID(projectID, tag, "rc"))
+        return self.getTagID(projectID, tag, "rc")
 
-    def getReleaseRange(self, projectID, revisionIDs):
+    def getReleaseRangeID(self, projectID, revisionIDs):
         """Given a pair of release IDs, determine the release range ID"""
         self.doExec("SELECT id FROM release_range WHERE projectId=%s " +
                     "AND releaseStartId=%s AND releaseEndId=%s",
                     (projectID, revisionIDs[0], revisionIDs[1]))
+        if self.cur.rowcount != 1:
+            raise Exception("Release range from '{r[0]}' to '{r[1]}' is {c} "
+                    "times in the DB!".
+                    format(r=revisionIDs, c=self.cur.rowcount))
+        return self.doFetchAll()[0][0]
 
-        res = self.doFetchAll()[0]
-        return(res[0])
+    def get_release_range(self, project_id, range_id):
+        self.doExec(
+            "SELECT st.tag, nd.tag, rc.tag FROM release_range "
+            "LEFT JOIN release_timeline AS st ON st.id=releaseStartId "
+            "LEFT JOIN release_timeline AS nd ON nd.id=releaseEndId "
+            "LEFT JOIN release_timeline AS rc ON rc.id=releaseRCStartId "
+            "WHERE release_range.projectId=%s AND release_range.id=%s",
+            (project_id, range_id))
+        ranges = self.doFetchAll()
+        if self.cur.rowcount == 0:
+            raise Exception("Range id {} not found!".format(pid))
+        return ranges[0]
+
+    def update_release_timeline(self, project, tagging, revs, rcs,
+            recreate_project=False):
+        '''
+        For a project, update the release timeline table with the given
+        revisions. If existing releases/rcs from the timeline are not in
+        order, the conservative approach is taken and the whole project is
+        recreated to avoid inconsistencies.
+
+        Returns true if the project had to be recreated.
+        '''
+        assert len(revs) >= 2
+        assert len(revs) == len(rcs)
+        pid = self.getProjectID(project, tagging)
+
+        if not recreate_project:
+            # First check if the release timeline is sane and in order
+            self.doExec("SELECT tag FROM release_timeline WHERE projectId=%s "
+                        "AND type='release' ORDER BY id", (pid,))
+            tags = [tag for (tag,) in self.doFetchAll()]
+            if len(set(tags)) != len(tags):
+                log.error("Database corrupted: Duplicate release entries in "
+                        "release_timeline! Recreating project.")
+                recreate_project = True
+            if len(tags) == 0:
+                recreate_project = True
+
+        # Check that the tags are in the same order
+        if not recreate_project:
+            for i, tag in enumerate(tags):
+                if i >= len(revs):
+                    log.warning("List of revisions to analyse was shortened.")
+                    break
+                if revs[i] != tag:
+                    log.error("Release number {} changed tag from {} to "
+                              "{}. Recreating project.".
+                              format(i, tag, revs[i]))
+                    recreate_project = True
+                    break
+
+        # Check that the RC tags are in order
+        if not recreate_project:
+            self.doExec("SELECT tag FROM release_timeline WHERE "
+                        "projectId=%s AND type='rc' ORDER BY id", (pid,))
+            rctags = [tag for (tag,) in self.doFetchAll()]
+            if len(set(rctags)) != len(rctags):
+                log.error("Database corrupted: Duplicate RC entries in "
+                          "release_timeline! Recreating project.")
+                recreate_project = True
+
+        # Check for changes in release candidates
+        # Note that the first RC is unused, since it refers to the end
+        # of a previous period
+        if not recreate_project:
+            for i, tag in enumerate(rctags):
+                if i+1 >= len(rcs):
+                    log.warning("List of release candidates to analyse "
+                                "was shortened.")
+                    break
+                if rcs[i+1] != tag:
+                    log.error("Release candidate number {} changed tag "
+                              "from {} to {}. Recreating project.".
+                              format(i, tag, rcs[i+1]))
+                    recreate_project = True
+                    break
+
+        # Go through the release ranges and check if they have changed
+        if not recreate_project:
+            self.doExec(
+                "SELECT st.tag, nd.tag, rc.tag FROM release_range "
+                "LEFT JOIN release_timeline AS st ON st.id=releaseStartId "
+                "LEFT JOIN release_timeline AS nd ON nd.id=releaseEndId "
+                "LEFT JOIN release_timeline AS rc ON rc.id=releaseRCStartId "
+                "WHERE release_range.projectId=%s ORDER BY release_range.id",
+                (pid,))
+            ranges = self.doFetchAll()
+            if len(set(ranges)) != len(tags)-1:
+                log.error("Database corrupted: Number of release ranges"
+                          " does not match number of release tags!")
+                recreate_project = True
+
+            for i, (start, end, rc) in enumerate(self.doFetchAll()):
+                if i+1 >= len(revs) or recreate_project:
+                    # List of revisions to analyse was shortened
+                    break
+                if (start, end) != (revs[i], revs[i+1]):
+                    log.error("Release range {} changed from {} to {}."
+                              " Recreating project.".
+                              format(i, (start, end), (revs[i], revs[i+1])))
+                    recreate_project = True
+                    break
+                if rc != rcs[i+1]:
+                    log.error("Release candidate {} changed from {} to {}."
+                              " Recreating project.".
+                              format(i, rc, rcs[i+1]))
+                    recreate_project = True
+                    break
+
+        # Recreate project if necessary
+        if recreate_project:
+            # This should ripple through the database and delete
+            # all referencing entries for project
+            log.warning("Deleting and re-creating project {}/{}.".
+                    format(project, tagging))
+            self.doExecCommit("DELETE FROM `project` WHERE id=%s", (pid,))
+            pid = self.getProjectID(project, tagging)
+            tags = []
+            rctags = []
+
+        # at this point we have verified that the first len(tags)
+        # entries are identical
+        new_ranges_to_process = []
+        if len(revs) > len(tags):
+            n_new = len(revs) - len(tags)
+            log.info("Adding {} new releases...".format(n_new))
+            previous_rev = None
+            if len(tags) > 0:
+                previous_rev = tags[-1]
+            for rev, rc in zip(revs, rcs)[len(tags):]:
+                self.doExecCommit("INSERT INTO release_timeline "
+                                    "(type, tag, projectId) "
+                                    "VALUES (%s, %s, %s)",
+                                    ("release", rev, pid))
+
+                if previous_rev is not None and rc is not None:
+                    self.doExecCommit("INSERT INTO release_timeline "
+                                        "(type, tag, projectId) "
+                                        "VALUES (%s, %s, %s)",
+                                        ("rc", rc, pid))
+
+                if previous_rev is not None:
+                    startID = self.getRevisionID(pid, previous_rev)
+                    endID = self.getRevisionID(pid, rev)
+                    if rc:
+                        rcID = self.getRCID(pid, rc)
+                    else:
+                        rcID = "NULL"
+                    self.doExecCommit("INSERT INTO release_range "
+                                        "(releaseStartId, releaseEndId, "
+                                        "projectId, releaseRCStartId) "
+                                        "VALUES (%s, %s, %s, %s)",
+                                        (startID, endID, pid, rcID))
+                    new_ranges_to_process.append(self.getReleaseRangeID(pid,
+                            (startID, endID)))
+                previous_rev = rev
+        # now we are in a well-defined state.
+        # Return the ids of the release ranges we have to process
+        return new_ranges_to_process
 
 def tstamp_to_sql(tstamp):
     """Convert a Unix timestamp into an SQL compatible DateTime string"""

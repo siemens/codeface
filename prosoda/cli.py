@@ -63,6 +63,8 @@ def get_parser():
                         help="Directory for git repositories")
     run_parser.add_argument('--no-report', action="store_true",
                         help="Skip LaTeX report generation (and dot compilation)")
+    run_parser.add_argument('--recreate', action="store_true",
+                        help="Force a delete of the project in the database")
 
     ml_parser = sub_parser.add_parser('ml', help='Run mailing list analysis')
     ml_parser.set_defaults(func=cmd_ml)
@@ -91,6 +93,7 @@ def cmd_run(args):
     prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
     no_report = args.no_report
     loglevel, logfile = args.loglevel, args.logfile
+    recreate = args.recreate
     if logfile:
         logfile = os.path.abspath(args.logfile)
     del args
@@ -98,84 +101,43 @@ def cmd_run(args):
     conf = Configuration.load(prosoda_conf, project_conf)
     revs = conf["revisions"]
     rcs = conf["rcs"] # release candidate tags
-
-    log.info("=> Processing project '{c[description]}'".format(c=conf))
-    dbm = DBManager(conf)
-    pid = dbm.getProjectID(conf["project"], conf["tagging"])
-
-    # Fill table release_timeline with the release information
-    # known so far (date is not yet available)
-    for i in range(len(revs)):
-        # We need to make sure that no entries are duplicated to avoid
-        # creating malformed release databases
-        dbm.doExec("SELECT * FROM release_timeline WHERE type='release' " +
-                   "AND tag=%s AND projectId=%s", (revs[i], pid))
-
-        if dbm.cur.rowcount < 1:
-            dbm.doExecCommit("INSERT INTO release_timeline " +
-                             "(type, tag, projectId) " +
-                             "VALUES (%s, %s, %s)",
-                             ("release", revs[i], pid))
-
-    # Also construct the release ranges, again with the information known
-    # so far
-    for i in range(len(revs)-1):
-        startID = dbm.getRevisionID(pid, revs[i])
-        endID = dbm.getRevisionID(pid, revs[i+1])
-        rcTag = rcs[i+1]
-        rcID = None
-
-        if (rcTag != None):
-            dbm.doExec("SELECT * FROM release_timeline WHERE type='rc' " +
-                   "AND tag=%s AND projectId=%s", (rcTag, pid))
-
-            if dbm.cur.rowcount < 1:
-                dbm.doExecCommit("INSERT INTO release_timeline " +
-                                 "(type, tag, projectId) " +
-                                 "VALUES (%s, %s, %s)",
-                                 ("rc", rcTag, pid))
-                rcID = dbm.getRCID(pid, rcTag)
-
-        if (rcID != None):
-            dbm.doExecCommit("INSERT INTO release_range " +
-                             "(releaseStartId, releaseEndId, "+
-                             "projectId, releaseRCStartId) " +
-                             "VALUES (%s, %s, %s, %s)",
-                             (startID, endID, pid, rcID))
-        else:
-            dbm.doExecCommit("INSERT INTO release_range " +
-                             "(releaseStartId, releaseEndId, "+
-                             "projectId) " +
-                             "VALUES (%s, %s, %s)",
-                             (startID, endID, pid))
-
-    ## Obtain all release range ids created
-    dbm.doExec("SELECT id FROM release_range WHERE projectId=%s", (pid))
-    releaseRangeIds = dbm.doFetchAll()
-    releaseRangeIds = [str(releaseRangeIds[i][0])
-                       for i in range(0,len(releaseRangeIds))]
+    project, tagging = conf["project"], conf["tagging"]
+    repo = os.path.join(gitdir, conf["repo"], ".git")
+    project_resdir = os.path.join(resdir, project, tagging)
 
     # TODO: Sanity checks (ensure that git repo dir exists)
     if 'proximity' == conf["tagging"]:
         check4ctags()
 
-    #############################
-    # Analyse all revision ranges
-    for i in range(len(revs)-1):
-        rev_resdir = os.path.join(resdir, conf["project"],
-                              conf["tagging"],
-                              "{0}-{1}".format(revs[i], revs[i+1]))
+    # Set up project in database and retrieve ranges to analyse
+    log.info("=> Processing project '{c[project]}'".format(c=conf))
+    dbm = DBManager(conf)
+    new_range_ids = dbm.update_release_timeline(project, tagging,
+            revs, rcs, recreate_project=recreate)
+    project_id = dbm.getProjectID(project, tagging)
+    all_range_ids = [dbm.getReleaseRangeID(project_id,
+            ( dbm.getRevisionID(project_id, start),
+              dbm.getRevisionID(project_id, end)))
+            for (start, end) in zip(revs, revs[1:])]
+
+    # Analyse new revision ranges
+    for i, range_id in enumerate(all_range_ids):
+        start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
+        range_resdir = os.path.join(project_resdir, "{0}-{1}".
+                format(start_rev, end_rev))
+        log.info("  -> Analysing revision range {0}..{1}".
+                format(start_rev, end_rev))
 
         #######
         # STAGE 1: Commit analysis
-        log.info("  -> Analysing commits {0}..{1}".format(revs[i], revs[i+1]))
         limit_history = True
-        repo = os.path.join(gitdir, conf["repo"], ".git")
-        doProjectAnalysis(conf, dbm, revs[i], revs[i+1], rcs[i+1], rev_resdir, repo, True, limit_history)
+        log.info("    - Analysing commits")
+        doProjectAnalysis(conf, dbm, start_rev, end_rev, rc_rev, range_resdir,
+                repo, True, limit_history)
 
         #########
         # STAGE 2: Cluster analysis
-        log.info("  -> Detecting clusters")
+        log.info("    - Detecting clusters")
         cmd = []
         cmd.append(resource_filename(__name__, "R/cluster/persons.r"))
         cmd.extend(("--loglevel", loglevel))
@@ -183,22 +145,17 @@ def cmd_run(args):
             cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
         cmd.extend(("-c", prosoda_conf))
         cmd.extend(("-p", project_conf))
-        cmd.append(rev_resdir)
-        cmd.append(releaseRangeIds[i])
+        cmd.append(range_resdir)
+        cmd.append(str(range_id))
         cwd = resource_filename(__name__, "R")
         execute_command(cmd, direct_io=True, cwd=cwd)
 
         #########
         # STAGE 3: Generate cluster graphs
-        log.info("  -> Generating reports")
         if not no_report:
-            layout_all_graphs(rev_resdir)
-
-        #########
-        # STAGE 4: Report generation
-        # Stage 4.1: Report preparation
-        if not no_report:
-            generate_report(revs[i], revs[i+1], rev_resdir)
+            log.info("    - Generating reports")
+            layout_all_graphs(range_resdir)
+            generate_report(start_rev, end_rev, range_resdir)
 
     #########
     # Global stage 1: Time series generation

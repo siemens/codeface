@@ -1225,7 +1225,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
     revisionIDs = (dbm.getRevisionID(projectID, revrange[0]),
                    dbm.getRevisionID(projectID, revrange[1]))
-    releaseRangeID = dbm.getReleaseRange(projectID, revisionIDs)
+    releaseRangeID = dbm.getReleaseRangeID(projectID, revisionIDs)
 
     log.devinfo("Reading from data base {0}...".format(dbfilename))
     git = readDB(dbfilename)
