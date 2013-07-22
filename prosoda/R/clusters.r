@@ -44,6 +44,11 @@ annotate.cluster <- function(g) {
   g$strength <- mean(graph.strength(g, mode="all"))
   g$strength <- round(g$strength/vcount(g), digits=3)
 
+  g$cent.deg <- centralization.degree(g, loops=FALSE)$centralization
+  g$cent.clo <- centralization.closeness(g)$centralization
+  g$cent.bet <- centralization.betweenness(g)$centralization
+  g$cent.evc <- centralization.evcent(g)$centralization
+
   ## Select the most important developers (as per page rank)
   prank.sorted <- sort(V(g)$rankValue, index.return=TRUE, decreasing=TRUE)
 

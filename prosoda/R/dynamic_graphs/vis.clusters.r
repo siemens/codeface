@@ -95,7 +95,9 @@ do.cluster.plots <- function(clusters.list) {
 
 gen.cluster.info <- function(g) {
   return(data.frame(Reciprocity=g$rec, Strength=g$strength,
-                    Degree=g$deg.graph, Size=g$size))
+                    Degree=g$deg.graph, Size=g$size,
+                    Cent.degree=g$cent.deg, Cent.closeness=g$cent.clo,
+                    Cent.betweenness=g$cent.bet, Cent.eigenvec=g$cent.evc))
 }
 
 gen.cluster.summary <- function(clusters.list) {
@@ -125,7 +127,9 @@ vis.clusters.server <- function(input, output, clientData, session) {
 
   output$correlationPlot <- renderPlot({
     dat <- {gen.cluster.summary(cluster.list())}
-    dat <- dat[,c("Reciprocity", "Strength", "Degree", "Size")]
+    dat <- dat[,c("Reciprocity", "Strength", "Degree", "Size",
+                  "Cent.degree", "Cent.closeness", "Cent.betweenness",
+                  "Cent.eigenvec")]
     corrgram(dat, order=FALSE, lower.panel=panel.shade, upper.panel=panel.pie,
               text.panel=panel.txt, main="")
   })
