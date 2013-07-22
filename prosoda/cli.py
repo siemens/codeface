@@ -207,9 +207,11 @@ def cmd_ml(args):
 def cmd_dynamic(args):
     r_directory = resource_filename(__name__, "R")
     dyn_directory = resource_filename(__name__, "R/dynamic_graphs")
+
+    if args.graph is None and not(args.list):
+        log.critical("No dynamic graph given!")
+
     if args.list or args.graph is None:
-        if args.graph is None:
-            log.critical("No dynamic graph given!")
         print('List of possible dynamic graphs:')
         for s in sorted(os.listdir(dyn_directory)):
             if s.endswith('.r'):
