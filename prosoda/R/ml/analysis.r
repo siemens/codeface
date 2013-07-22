@@ -194,7 +194,8 @@ dispatch.all <- function(conf, repo.path, resdir) {
                    lapply(seq_along(corp.base$corp),
                           function(i) as.POSIXct(DateTimeStamp(corp.base$corp[[i]])))
                    )
-  dates <- dates[!is.na(dates)]
+  ## Sort the dates to enable faster algorithms. This also removes NAs
+  dates <- sort(dates)
 
   ## Select weekly and monthly intervals (TODO: With the new flexible
   ## intervals in place, we could select proper monthly intervals)
@@ -220,6 +221,10 @@ dispatch.all <- function(conf, repo.path, resdir) {
   nonempty.release.intervals <- get.nonempty.intervals(dates, release.intervals)
   release.intervals <- release.intervals[nonempty.release.intervals]
   release.labels <- release.labels[nonempty.release.intervals]
+
+  if (length(nonempty.release.intervals) == 0) {
+    stop("Mailing list does not cover any release range.")
+  }
 
   ## TODO: Find some measure (likely depending on the number of messages per
   ## time) to select suitable time intervals of interest. For many projects,
