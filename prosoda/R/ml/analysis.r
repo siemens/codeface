@@ -232,17 +232,22 @@ dispatch.all <- function(conf, repo.path, resdir) {
   ## be considered.
   periodic.analysis <- FALSE
   if (periodic.analysis) {
+    loginfo("Periodic analysis", logger="ml.analysis")
     analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, resdir,
                           paste("weekly", 1:length(iter.weekly), sep=""))
     analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, resdir,
                           paste("4weekly", 1:length(iter.4weekly), sep=""))
   }
 
+  loginfo("Analysing subsequences", logger="ml.analysis")
+  ## Obtain a unique numerical ID for the mailing list
+  ml.id <- gen.clear.ml.id.con(conf$con, conf$listname, conf$pid)
   analyse.sub.sequences(conf, corp.base, release.intervals, repo.path, resdir,
-                        release.labels)
+                        release.labels, ml.id)
 
   ## #######
   ## Global analysis
+  loginfo("Global analysis", logger="ml.analysis")
   ## NOTE: We only compute the forest for the complete interval to allow for creating
   ## descriptive statistics.
   corp <- corp.base$corp
@@ -262,7 +267,7 @@ dispatch.all <- function(conf, repo.path, resdir) {
 
 
 analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
-                                  data.path, labels) {
+                                  data.path, labels, ml.id) {
   if (length(iter) != length(labels))
     stop("Internal error: Iteration sequence and data prefix length must match!")
 
@@ -301,7 +306,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     save(file=file.path(data.path.local, "forest.corp"), forest.corp.sub)
 
     cycles <- get.cycles(conf)
-    dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub, cycles[i,])
+    dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub, cycles[i,], ml.id)
     loginfo(paste(" -> Finished interval ", i, ": ", labels[[i]]), logger="ml.analysis")
   })
 }
@@ -309,7 +314,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 ## User needs to make sure that data.path exists and is writeable
 ## dispatch.steps is called for every time interval that is considered
 ## in the analysis
-dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
+dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle, ml.id) {
   ## TODO: Check how we can speed up prepare.text. And think about if the
   ## function is really neccessary. With stemming activated, I doubt
   ## that it really pays off.
@@ -350,8 +355,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   networks.dat <- analyse.networks(forest.corp$forest, interest.networks,
                                    communication.network)
 
-  ## Obtain a unique numerical ID for the mailing list
-  ml.id <- gen.clear.ml.id.con(conf$con, conf$listname, conf$pid)
 
   ## Compute base data for time series analysis
   msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(DateTimeStamp(x)) })
