@@ -357,7 +357,8 @@ save.graph.graphviz <- function(g, comm, filename, plot.size=7){
   ## Output:
   ##   saves an SVG image of the graph to the specified filename
   cluster.conductance <- compute.all.community.quality(g, comm, "conductance")
-  g.min      <- min.edge.count(g, comm, page.rank(g))
+  node.rank  <- page.rank(g)
+  g.min      <- min.edge.count(g, comm, node.rank)
   g.min.simp <- simplify(g.min, remove.multiple=TRUE,remove.loops=TRUE)
 
   ## Convert to Rgraph object via graph object
@@ -368,38 +369,72 @@ save.graph.graphviz <- function(g, comm, filename, plot.size=7){
   g.NEL <- ftM2graphNEL(edgeL, weights, edgemode="directed")
   subgraph.list <- compute.subgraph.list(g.NEL, comm)
   g.viz <- agopen(g.NEL, "pieGraph", subGList=subgraph.list)
-  
+
   ## Compute graph node and cluster colors
   pie.vertex  <- assignCommCol(g, comm)
   comm.col    <- mapCommSig2Color(cluster.conductance)$value
 
   ## Cluster Attributes
   cluster.id <- sort(unique(comm$membership))-1
+  ## border thickness
+  clusterData(g.viz, cluster.id, "penwidth") <- "15"
+  ## background color
   clusterData(g.viz, cluster.id,"bgcolor") <- comm.col
+  ## border style
   clusterData(g.viz, cluster.id, "style") <- "bold"
+  ## border color
   clusterData(g.viz, cluster.id, "color") <- pie.vertex$comm.col
 
   ## Node Attributes
   n.idx <-  as.character(1:vcount(g))
   nodeDataDefaults(g.viz, c("style","shape")) <- c("wedged", "ellipse")
   nodeData(g.viz, n.idx, "label")     <- ""
+  ## pie chart color
   nodeData(g.viz, n.idx, "fillcolor") <- 
-    format.color.weight(pie.vertex$color, pie.vertex$fracs) 
+    format.color.weight(pie.vertex$color, pie.vertex$fracs)
+  ## node size
+  nodeData(g.viz, n.idx, "width") <- as.character(
+		  scale.data(node.rank$vector, 0.75, 5))
+  nodeData(g.viz, n.idx, "height") <- as.character(
+		  scale.data(node.rank$vector, 0.75, 5))
 
   ## Edge Attributes 
-  ## Color inter-community edges a different color 
-  from.comm  <- as.character(
-                get.edgelist(g.min.simp)[crossing(comm,g.min.simp),1])
-  to.comm    <- as.character(
-                get.edgelist(g.min.simp)[crossing(comm,g.min.simp),2])
-  g.viz.edges <- !is.na(as.character(
-                        edgeData(g.viz, from.comm, to.comm, "color")))
-  from.comm.viz <- from.comm[g.viz.edges]
-  to.comm.viz   <- to.comm[g.viz.edges]
-  edgeData(g.viz, from=from.comm.viz, to=to.comm.viz, "color") <- "red"
-  edgeData(g.viz, from=from.comm.viz, to=to.comm.viz, "style") <- "bold"
+  N   <- length(edgeL[,1])
+  rmv <- removedEdges(g.NEL)
+  keep.edge        <- c()
+  keep.edge[1:N]   <- TRUE
+  keep.edge[rmv]   <- FALSE
+  remaining.edgeL  <- edgeL[keep.edge,]
+  edge.weights.viz <- unlist(unlist(edgeWeights(g.NEL)))[keep.edge]
+  inter.comm.edges <- crossing(comm,g.min.simp)[keep.edge]
+  from.viz         <- remaining.edgeL[,1]
+  to.viz           <- remaining.edgeL[,2]
+  from.inter.comm  <- from.viz[inter.comm.edges]
+  to.inter.comm    <- to.viz  [inter.comm.edges]
+  from.intra.comm  <- from.viz[!inter.comm.edges]
+  to.intra.comm    <- to.viz  [!inter.comm.edges]
+  inter.comm.weights <- edge.weights.viz[inter.comm.edges]
+  intra.comm.weights <- edge.weights.viz[!inter.comm.edges]
+  ## color inter-community edges different than intra-community edges
+  edgeData(g.viz, from=from.inter.comm, to=to.inter.comm, "color") <- "red"
+  edgeData(g.viz, from=from.inter.comm, to=to.inter.comm, "style") <- "bold"
+  ## edge thickness
+  edgeDataDefaults(g.viz, "penwidth") <- "1.0"
+  ## scale inter-community edges seperately from intra-community edges
+  edgeData(g.viz ,from=from.inter.comm, to=to.inter.comm, "penwidth") <-
+		  as.character(scale.data((inter.comm.weights)+1,0.1,20))
+  edgeData(g.viz ,from=from.inter.comm, to=to.inter.comm, "arrowsize") <-
+		  as.character(scale.data((inter.comm.weights)+1,0.1,20)/3)
+  ## scale intra-community edges
+  edgeData(g.viz, from=from.intra.comm, to=to.intra.comm, "penwidth") <-
+		  as.character(scale.data(log(intra.comm.weights)+1,1,10))
+  edgeData(g.viz, from=from.intra.comm, to=to.intra.comm, "arrowsize") <-
+		  as.character(scale.data(log(intra.comm.weights)+1,1,10)/3)
+  ## edge weights are used in the layout algorithm
+  edgeData(g.viz, from=from.viz, to=to.viz, "weight") <-
+		  as.character(edge.weights.viz)
 
-  ## Graph attributes
+  ## Graph Attributes
   graphDataDefaults(g.viz, "size") <- plot.size
   graphDataDefaults(g.viz, "overlap") <- "prism"
 
