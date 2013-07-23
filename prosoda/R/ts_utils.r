@@ -135,8 +135,8 @@ detrend.by.range <- function(s, boundaries) {
 ## associated with every mail is one, length and sum produce
 ## identical results.
 compute.hourly.statistics <- function(ts, FUN=length) {
-  wday.labels <- c("Sun", "Mon", "Thu", "Wed", "Thu", "Fri", "Sat")
-  wday.labels.mon <- c("Mon", "Thu", "Wed", "Thu", "Fri", "Sat", "Sun")
+  wday.labels <- c("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+  wday.labels.mon <- c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
   res <- lapply(1:7, function(i) {
     ts.sub <- ts[wday(ts)==i]
