@@ -160,7 +160,7 @@ def cmd_run(args):
     #########
     # Global stage 1: Time series generation
     log.info("=> Preparing time series data")
-    dispatch_ts_analysis(resdir, dbm, conf)
+    dispatch_ts_analysis(project_resdir, dbm, conf)
 
     #########
     # Global stage 2: Time series analysis
@@ -172,7 +172,7 @@ def cmd_run(args):
     cmd.extend(("--loglevel", loglevel))
     cmd.extend(("-c", prosoda_conf))
     cmd.extend(("-p", project_conf))
-    cmd.append(resdir)
+    cmd.append(project_resdir)
     cwd = resource_filename(__name__, "R")
     execute_command(cmd, direct_io=True, cwd=cwd)
     log.info("=> Prosoda run complete!")
