@@ -1,6 +1,6 @@
 from logging import getLogger; log = getLogger(__name__)
 from pkg_resources import resource_filename
-from os.path import join as pathjoin
+from os.path import join as pathjoin, split as pathsplit
 
 from .dbmanager import DBManager
 from .configuration import Configuration
@@ -62,8 +62,10 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
         #########
         # STAGE 2: Cluster analysis
         log.info("    - Detecting clusters")
+        exe = resource_filename(__name__, "R/cluster/persons.r")
+        cwd, _ = pathsplit(exe)
         cmd = []
-        cmd.append(resource_filename(__name__, "R/cluster/persons.r"))
+        cmd.append(exe)
         cmd.extend(("--loglevel", loglevel))
         if logfile:
             cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
@@ -71,7 +73,7 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
         cmd.extend(("-p", project_conf))
         cmd.append(range_resdir)
         cmd.append(str(range_id))
-        cwd = resource_filename(__name__, "R")
+        print(cmd, cwd)
         execute_command(cmd, direct_io=True, cwd=cwd)
 
         #########
@@ -89,14 +91,14 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
     #########
     # Global stage 2: Time series analysis
     log.info("=> Analysing time series")
-    cmd = []
-    cmd.append(resource_filename(__name__, "R/analyse_ts.r"))
+    exe = resource_filename(__name__, "R/analyse_ts.r")
+    cwd, _ = pathsplit(exe)
+    cmd = [exe]
     if logfile:
         cmd.extend(("--logfile", "{}.R.ts".format(logfile)))
     cmd.extend(("--loglevel", loglevel))
     cmd.extend(("-c", prosoda_conf))
     cmd.extend(("-p", project_conf))
     cmd.append(project_resdir)
-    cwd = resource_filename(__name__, "R")
     execute_command(cmd, direct_io=True, cwd=cwd)
     log.info("=> Prosoda run complete!")

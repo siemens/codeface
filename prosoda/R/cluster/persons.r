@@ -42,11 +42,11 @@ suppressPackageStartupMessages(library(reshape))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(plyr))
-source("utils.r")
-source("config.r")
-source("db.r")
-source("query.r")
-source("cluster/community_metrics.r")
+source("../utils.r", chdir=TRUE)
+source("../config.r", chdir=TRUE)
+source("../db.r", chdir=TRUE)
+source("../query.r", chdir=TRUE)
+source("community_metrics.r")
 
 
 #######################################################################

@@ -111,8 +111,9 @@ def cmd_ml(args):
     del args
     conf = Configuration.load(prosoda_conf, project_conf)
     ml_resdir = os.path.join(resdir, conf["project"], "ml")
-    cwd = resource_filename(__name__, "R")
-    exe = [resource_filename(__name__, "R/ml/batch.r")]
+
+    exe = resource_filename(__name__, "R/ml/batch.r")
+    cwd, _ = os.path.split(exe)
     cmd = []
     cmd.extend(("--loglevel", loglevel))
     cmd.extend(("-c", prosoda_conf))
@@ -122,17 +123,16 @@ def cmd_ml(args):
     cmd.append(mldir)
     for i, ml in enumerate(conf["mailinglists"]):
         log.info("=> Analysing mailing list '{name}' of type '{type}'".
-                format(ml))
+                format(**ml))
         logargs = []
         if logfile:
             logargs = ["--logfile", "{}.R.ml.{}".format(logfile, i)]
-        execute_command(exe + logargs + cmd + [ml["name"]],
+        execute_command([exe] + logargs + cmd + [ml["name"]],
                 direct_io=True, cwd=cwd)
     log.info("=> Prosoda mailing list analysis complete!")
     return 0
 
 def cmd_dynamic(args):
-    r_directory = resource_filename(__name__, "R")
     dyn_directory = resource_filename(__name__, "R/dynamic_graphs")
 
     if args.graph is None and not(args.list):
@@ -151,7 +151,7 @@ def cmd_dynamic(args):
         log.critical('File "{}" not found!'.format(fn))
         return 1
     cmd = ["Rscript", fn, "-c", cfg]
-    execute_command(cmd, direct_io=True, cwd=r_directory)
+    execute_command(cmd, direct_io=True, cwd=dyn_directory)
 
 def cmd_test(args):
     '''Sub-command handler for the ``test`` command.'''

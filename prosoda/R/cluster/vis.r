@@ -30,11 +30,11 @@ s(library(rpart))
 s(library(randomForest))
 s(library(party)) # ctree
 rm(s)
-source("config.r")
-source("db.r")
-source("utils.r")
-source("query.r")
-source("commits.r")
+source("../config.r", chdir=TRUE)
+source("../db.r", chdir=TRUE)
+source("../utils.r", chdir=TRUE)
+source("../query.r", chdir=TRUE)
+source("../commits.r", chdir=TRUE)
 
 ## Global variables
 conf <- load.global.config("prosoda.conf")

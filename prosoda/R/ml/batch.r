@@ -20,12 +20,12 @@
 ## directory; otherwise, we run into trouble with source()ed filed
 
 s <- suppressPackageStartupMessages
-source("config.r")
-source("db.r")
-source("ml/ml_utils.r")
-s(source("ml/analysis.r"))
-s(source("ml/project.spec.r"))
-s(source("ml/keyword.list.r"))
+source("../config.r", chdir=TRUE)
+source("../db.r", chdir=TRUE)
+source("ml_utils.r")
+s(source("analysis.r"))
+s(source("project.spec.r"))
+s(source("keyword.list.r"))
 
 s(library(logging))
 s(library(tm))
@@ -44,7 +44,7 @@ s(library(plyr))
 
 ## NOTE: This is _temporary_. After the changes to snatm are upstreamed,
 ## we can get rid of loading the files directly.
-snatm.path <- "../../../src.nntp/snatm/pkg/R"
+snatm.path <- "../../../../src.nntp/snatm/pkg/R"
 if (!file.exists(snatm.path)) {
   stop("Could not find local snatm library, aborting!")
 }

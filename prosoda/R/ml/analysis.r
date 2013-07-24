@@ -17,10 +17,10 @@
 suppressPackageStartupMessages(library(zoo))
 suppressPackageStartupMessages(library(xts))
 suppressPackageStartupMessages(library(lubridate))
-source("db.r")
-source("utils.r")
-source("query.r")
-source("id_manager.r")
+source("../db.r", chdir=TRUE)
+source("../utils.r", chdir=TRUE)
+source("../query.r", chdir=TRUE)
+source("../id_manager.r", chdir=TRUE)
 
 gen.forest <- function(conf, repo.path, resdir) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
