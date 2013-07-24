@@ -117,5 +117,5 @@ vis.descriptive.ui <-
 
 ## Dispatch the shiny server
 
-runApp(list(ui=vis.descriptive.ui, server=vis.descriptive.server),
-       port=PORT.CONTRIBUTORS)
+#runApp(list(ui=vis.descriptive.ui, server=vis.descriptive.server),
+#       port=PORT.CONTRIBUTORS)
