@@ -12,3 +12,28 @@ prosoda executable on the command line. Type
   prosoda --help
 
 for more information.
+
+Database Setup
+--------------
+
+Prosoda requires a MySQL dabase which is already pre-configured with the
+SQL Schema specified in the `bugzilla` repository in the file
+DataModel/quantarchSchema.sql. The access credentials and name of the
+database is configurable in prosoda.conf
+
+To run the integration tests, a copy of the database with the
+default name `quantarch_testing` is also suggested. The access for the
+testing database is configurable in prosoda_testing.conf.
+
+Running the REST DB service
+---------------------------
+
+Before running prosoda and the prosoda integration tests, you need to make
+sure that the prosoda REST DB service is running and using the same
+prosoda.conf than prosoda. Currently, the REST service is maintained
+in the `webui` repository. To run it, change to the subdirectory node.js and
+run: `node prosoda_rest_api.js <path/to/my/prosoda.conf>`.
+
+For integration tests, a REST service using the same prosoda.conf than prosoda
+needs to be run. Note that by default, the prosoda test command will use
+prosoda_testing.conf.
