@@ -242,8 +242,11 @@ dispatch.all <- function(conf, repo.path, resdir) {
   loginfo("Analysing subsequences", logger="ml.analysis")
   ## Obtain a unique numerical ID for the mailing list
   ml.id <- gen.clear.ml.id.con(conf$con, conf$listname, conf$pid)
+  ## Also obtain a clear plot for the mailing list activity
+  activity.plot.name <- str_c(conf$listname, " activity")
+  activity.plot.id <- get.clear.plot.id(conf, activity.plot.name)
   analyse.sub.sequences(conf, corp.base, release.intervals, repo.path, resdir,
-                        release.labels, ml.id)
+                        release.labels, ml.id, activity.plot.id)
 
   ## #######
   ## Global analysis
@@ -267,7 +270,7 @@ dispatch.all <- function(conf, repo.path, resdir) {
 
 
 analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
-                                  data.path, labels, ml.id) {
+                                  data.path, labels, ml.id, activity.plot.id) {
   if (length(iter) != length(labels))
     stop("Internal error: Iteration sequence and data prefix length must match!")
 
@@ -306,7 +309,8 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     save(file=file.path(data.path.local, "forest.corp"), forest.corp.sub)
 
     cycles <- get.cycles(conf)
-    dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub, cycles[i,], ml.id)
+    dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub,
+                   cycles[i,], ml.id, activity.plot.id)
     loginfo(paste(" -> Finished interval ", i, ": ", labels[[i]]), logger="ml.analysis")
   })
 }
@@ -314,7 +318,8 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 ## User needs to make sure that data.path exists and is writeable
 ## dispatch.steps is called for every time interval that is considered
 ## in the analysis
-dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle, ml.id) {
+dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
+                           ml.id, activity.plot.id) {
   ## TODO: Check how we can speed up prepare.text. And think about if the
   ## function is really neccessary. With stemming activated, I doubt
   ## that it really pays off.
@@ -363,15 +368,12 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle, ml.id
   series <- xts(rep(1,length(msgs)), order.by=msgs)
   series.daily <- apply.daily(series, sum)
 
-  ## ... and store it into the data base
+  ## ... and store it into the data base, appending it to the activity plot.
   ts.df <- gen.df.from.ts(series.daily, "Mailing list activity")
-  plot.name <- str_c(conf$listname, " activity")
-  plot.id <- get.clear.plot.id(conf, plot.name)
-
   dat <- data.frame(time=as.character(ts.df$time),
                     value=ts.df$value,
                     value.scaled=ts.df$value.scaled,
-                    plotId=plot.id)
+                    plotId=activity.plot.id)
 
   ## NOTE: We append new values to the existing content. This way,
   ## we can plot arbitrary subsets of the series by selecting
