@@ -82,6 +82,7 @@ def get_parser():
                 default='prosoda.conf')
     dyn_parser.add_argument('graph', help="graph to show", default=None, nargs='?')
     dyn_parser.add_argument('-l', '--list', action="store_true", help="list available graphs")
+    dyn_parser.add_argument('-p', '--port', default="8100", help="Pass this to R as port to listen on")
     return parser
 
 
@@ -133,7 +134,7 @@ def cmd_ml(args):
     return 0
 
 def cmd_dynamic(args):
-    dyn_directory = resource_filename(__name__, "R/dynamic_graphs")
+    dyn_directory = resource_filename(__name__, "R/shiny/")
 
     if args.graph is None and not(args.list):
         log.critical("No dynamic graph given!")
@@ -141,17 +142,18 @@ def cmd_dynamic(args):
     if args.list or args.graph is None:
         print('List of possible dynamic graphs:')
         for s in sorted(os.listdir(dyn_directory)):
-            if s.endswith('.r'):
-                print(" * " + s[:-len('.r')])
+            if os.path.isdir(os.path.join(dyn_directory, s)):
+                print(" * " + s)
         return 1
 
-    fn = os.path.join(dyn_directory, args.graph + ".r")
+    cwd = os.path.join(dyn_directory, args.graph)
     cfg = os.path.abspath(args.config)
-    if not os.path.exists(fn):
-        log.critical('File "{}" not found!'.format(fn))
+    if not os.path.exists(cwd):
+        log.critical('Path "{}" not found!'.format(cwd))
         return 1
-    cmd = ["Rscript", fn, "-c", cfg]
-    execute_command(cmd, direct_io=True, cwd=dyn_directory)
+    Rcode = "library(shiny); runApp(port={})".format(args.port)
+    cmd = ["Rscript", "-e", Rcode, "-c", cfg]
+    execute_command(cmd, direct_io=True, cwd=cwd)
 
 def cmd_test(args):
     '''Sub-command handler for the ``test`` command.'''
