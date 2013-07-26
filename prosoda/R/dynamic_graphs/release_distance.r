@@ -22,10 +22,10 @@
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(shiny))
-source("config.r")
-source("query.r")
-source("ts_utils.r")
-source("vis.ports.r")
+source("../config.r", chdir=TRUE)
+source("../query.r", chdir=TRUE)
+source("../ts_utils.r", chdir=TRUE)
+source("../vis.ports.r", chdir=TRUE)
 
 ## Global variables
 conf <- config.from.args(require_project=FALSE)

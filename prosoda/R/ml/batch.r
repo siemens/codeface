@@ -20,12 +20,12 @@
 ## directory; otherwise, we run into trouble with source()ed filed
 
 s <- suppressPackageStartupMessages
-source("config.r")
-source("db.r")
-source("ml/ml_utils.r")
-s(source("ml/analysis.r"))
-s(source("ml/project.spec.r"))
-s(source("ml/keyword.list.r"))
+source("../config.r", chdir=TRUE)
+source("../db.r", chdir=TRUE)
+source("ml_utils.r")
+s(source("analysis.r"))
+s(source("project.spec.r"))
+s(source("keyword.list.r"))
 
 s(library(logging))
 s(library(tm))
@@ -44,7 +44,7 @@ s(library(plyr))
 
 ## NOTE: This is _temporary_. After the changes to snatm are upstreamed,
 ## we can get rid of loading the files directly.
-snatm.path <- "../../../src.nntp/snatm/pkg/R"
+snatm.path <- "../../../../src.nntp/snatm/pkg/R"
 if (!file.exists(snatm.path)) {
   stop("Could not find local snatm library, aborting!")
 }
@@ -62,18 +62,11 @@ rm(s)
                     make_option(c("-j", "--jobs"), type="integer", default=1,
                                 help="Number of parallel jobs for cluster analysis")
                     )
-    positional_args <- list("resdir", "mldir")
+    positional_args <- list("resdir", "mldir", "listname")
 
     conf <- config.from.args(positional_args=positional_args, extra_args=option_list)
 
-    if (is.null(conf$ml)) {
-      logerror("No mailing list repository available for project, skipping analysis", logger="ml.batch")
-      stop()
-    }
-
-    repo.path <- conf$mldir
-    resdir <- file.path(conf$resdir, conf$project, "ml")
-    gen.dir(resdir)
+    gen.dir(conf$resdir)
 
     set.seed(19101978) ## Fix the seed to make results of random algorithms reproducible
 

@@ -77,17 +77,6 @@ def _compute_next_timestamp(time, last_time):
 
     return time
 
-# TODO: This is a layering violation. The function should be
-# provided by the VCS object, and the referenced commit must not
-# be placed into the global commit list
-def getCommitDate(vcs, id):
-    rev_range = "{0}~1..{0}".format(id)
-
-    cmt = vcs._Logstring2Commit(vcs._getCommitIDsLL("", "{0}~1".format(id), id,
-                                                    ignoreMerges=False)[0])
-    return cmt.cdate
-
-
 def createCumulativeSeries(vcs, subsys="__main__", revrange=None):
     """
     Create a cumulative diff history by summing up the diff sizes.
@@ -143,15 +132,15 @@ def createSeries(vcs, subsys="__main__", revrange=None, rc_start=None):
     res = TimeSeries()
     if revrange==None:
         list = vcs.extractCommitData(subsys)
-        res.set_start(getCommitDate(vcs, vcs.rev_start))
-        res.set_end(getCommitDate(vcs, vcs.rev_end))
+        res.set_start(vcs.getCommitDate(vcs.rev_start))
+        res.set_end(vcs.getCommitDate(vcs.rev_end))
     else:
         list = vcs.extractCommitDataRange(revrange, subsys)
-        res.set_start(getCommitDate(vcs, revrange[0]))
-        res.set_end(getCommitDate(vcs, revrange[1]))
+        res.set_start(vcs.getCommitDate(revrange[0]))
+        res.set_end(vcs.getCommitDate(revrange[1]))
 
     if rc_start:
-        res.set_rc_start(getCommitDate(vcs, rc_start))
+        res.set_rc_start(vcs.getCommitDate(rc_start))
 
     for cmt in list:
         entry = {"commit" : cmt,

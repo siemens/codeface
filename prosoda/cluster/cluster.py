@@ -28,11 +28,12 @@ import codeBlock
 import codeLine
 import math
 import random
-from progressbar import *
+from progressbar import ProgressBar, Percentage, Bar, ETA
 from logging import getLogger; log = getLogger(__name__)
 
 from prosoda import kerninfo
-from prosoda.commit_analysis import *
+from prosoda.commit_analysis import (getSignoffCount, getSignoffEtcCount,
+        getInvolvedPersons, tag_types)
 from prosoda.VCS import gitVCS
 from prosoda.dbmanager import tstamp_to_sql
 from .PersonInfo import PersonInfo

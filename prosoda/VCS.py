@@ -116,6 +116,9 @@ class VCS:
     def getRevStartDate(self):
         return self.rev_startDate
 
+    def getCommitDate(self, rev):
+        return self._getCommitDate(rev)
+
     def getFileCommitDict(self):
         return self._fileCommit_dict
 
@@ -230,7 +233,7 @@ class gitVCS (VCS):
                                           for logstring in clist])
 
     def _getCommitIDsLL(self, dir_list, rev_start=None, rev_end=None,
-                        ignoreMerges=True):
+                        rev_range = None, ignoreMerges=True):
         """Low-level routine to extract the commit list from the VCS.
 
         Must be implemented specifically for every VCS, and must
@@ -242,18 +245,19 @@ class gitVCS (VCS):
             log.critical("Range start revision is None, but end revision specified.")
             raise Error("Bogus range!")
 
-        revrange = ""
-        if rev_start:
-            revrange += "{0}..".format(rev_start)
-        else:
-            if self.rev_start:
-                revrange += "{0}..".format(self.rev_start)
+        if not rev_range:
+            rev_range = ""
+            if rev_start:
+                rev_range += "{0}..".format(rev_start)
+            else:
+                if self.rev_start:
+                    rev_range += "{0}..".format(self.rev_start)
 
-        if rev_end:
-            revrange += rev_end
-        else:
-            if self.rev_end:
-                revrange += self.rev_end
+            if rev_end:
+                rev_range += rev_end
+            else:
+                if self.rev_end:
+                    rev_range += self.rev_end
 
         # TODO: Check the effect that -M and -C (to detect copies and
         # renames) have on the output. Is there anything we need
@@ -271,7 +275,7 @@ class gitVCS (VCS):
             cmd.append('--no-merges')
         cmd.append('--pretty=format:%ct %H')
         cmd.append('--date=local')
-        cmd.append(revrange)
+        cmd.append(rev_range)
         if (len(dir_list) > 0):
             cmd.append("--")
             for dir in dir_list:
@@ -290,6 +294,14 @@ class gitVCS (VCS):
         # and extract the desired subrange
         return clist
 
+    def _getCommitDate(self, rev):
+        '''
+        Return the date of the commit specified by the revision rev
+        without inserting the commit in any global listings/
+        '''
+        logmsg = self._getCommitIDsLL((), rev_range=rev)
+        cmt = self._Logstring2Commit(logmsg[0])
+        return cmt.cdate
 
     def _getSingleCommitInfo(self, cmtHash):
         #produces the git log output for a single commit hash

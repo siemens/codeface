@@ -26,11 +26,8 @@ from pkg_resources import resource_filename
 
 from .logger import set_log_level, start_logfile, log
 from .configuration import Configuration
-from .dbmanager import DBManager
-from .cluster.cluster import doProjectAnalysis
-from .util import (execute_command, generate_report, layout_all_graphs,
-        check4ctags)
-from .ts import dispatch_ts_analysis
+from .util import execute_command
+from .project import project_analyse
 
 def get_parser():
     parser = argparse.ArgumentParser(prog='prosoda',
@@ -46,6 +43,8 @@ def get_parser():
     sub_parser = parser.add_subparsers(help='select action')
     test_parser = sub_parser.add_parser('test', help='Run tests')
     test_parser.set_defaults(func=cmd_test)
+    test_parser.add_argument('-c', '--config', help="Prosoda configuration file",
+                default='prosoda_testing.conf')
     test_parser.add_argument('-p', '--pattern', default="*",
                 help='run only tests matching the given pattern')
     test_parser.add_argument('-u', '--unit', action='store_true',
@@ -83,6 +82,7 @@ def get_parser():
                 default='prosoda.conf')
     dyn_parser.add_argument('graph', help="graph to show", default=None, nargs='?')
     dyn_parser.add_argument('-l', '--list', action="store_true", help="list available graphs")
+    dyn_parser.add_argument('-p', '--port', default="8100", help="Pass this to R as port to listen on")
     return parser
 
 
@@ -96,86 +96,8 @@ def cmd_run(args):
     recreate = args.recreate
     if logfile:
         logfile = os.path.abspath(args.logfile)
-    del args
-
-    conf = Configuration.load(prosoda_conf, project_conf)
-    revs = conf["revisions"]
-    rcs = conf["rcs"] # release candidate tags
-    project, tagging = conf["project"], conf["tagging"]
-    repo = os.path.join(gitdir, conf["repo"], ".git")
-    project_resdir = os.path.join(resdir, project, tagging)
-
-    # TODO: Sanity checks (ensure that git repo dir exists)
-    if 'proximity' == conf["tagging"]:
-        check4ctags()
-
-    # Set up project in database and retrieve ranges to analyse
-    log.info("=> Processing project '{c[project]}'".format(c=conf))
-    dbm = DBManager(conf)
-    new_range_ids = dbm.update_release_timeline(project, tagging,
-            revs, rcs, recreate_project=recreate)
-    project_id = dbm.getProjectID(project, tagging)
-    all_range_ids = [dbm.getReleaseRangeID(project_id,
-            ( dbm.getRevisionID(project_id, start),
-              dbm.getRevisionID(project_id, end)))
-            for (start, end) in zip(revs, revs[1:])]
-
-    # Analyse new revision ranges
-    for i, range_id in enumerate(all_range_ids):
-        start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
-        range_resdir = os.path.join(project_resdir, "{0}-{1}".
-                format(start_rev, end_rev))
-        log.info("  -> Analysing revision range {0}..{1}".
-                format(start_rev, end_rev))
-
-        #######
-        # STAGE 1: Commit analysis
-        limit_history = True
-        log.info("    - Analysing commits")
-        doProjectAnalysis(conf, dbm, start_rev, end_rev, rc_rev, range_resdir,
-                repo, True, limit_history)
-
-        #########
-        # STAGE 2: Cluster analysis
-        log.info("    - Detecting clusters")
-        cmd = []
-        cmd.append(resource_filename(__name__, "R/cluster/persons.r"))
-        cmd.extend(("--loglevel", loglevel))
-        if logfile:
-            cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
-        cmd.extend(("-c", prosoda_conf))
-        cmd.extend(("-p", project_conf))
-        cmd.append(range_resdir)
-        cmd.append(str(range_id))
-        cwd = resource_filename(__name__, "R")
-        execute_command(cmd, direct_io=True, cwd=cwd)
-
-        #########
-        # STAGE 3: Generate cluster graphs
-        if not no_report:
-            log.info("    - Generating reports")
-            layout_all_graphs(range_resdir)
-            generate_report(start_rev, end_rev, range_resdir)
-
-    #########
-    # Global stage 1: Time series generation
-    log.info("=> Preparing time series data")
-    dispatch_ts_analysis(resdir, dbm, conf)
-
-    #########
-    # Global stage 2: Time series analysis
-    log.info("=> Analysing time series")
-    cmd = []
-    cmd.append(resource_filename(__name__, "R/analyse_ts.r"))
-    if logfile:
-        cmd.extend(("--logfile", "{}.R.ts".format(logfile)))
-    cmd.extend(("--loglevel", loglevel))
-    cmd.extend(("-c", prosoda_conf))
-    cmd.extend(("-p", project_conf))
-    cmd.append(resdir)
-    cwd = resource_filename(__name__, "R")
-    execute_command(cmd, direct_io=True, cwd=cwd)
-    log.info("=> Prosoda run complete!")
+    project_analyse(resdir, gitdir, prosoda_conf, project_conf,
+                    no_report, loglevel, logfile, recreate)
     return 0
 
 def cmd_ml(args):
@@ -188,25 +110,31 @@ def cmd_ml(args):
     if logfile:
         logfile = os.path.abspath(args.logfile)
     del args
-    log.info("=> Analysing mailing lists")
+    conf = Configuration.load(prosoda_conf, project_conf)
+    ml_resdir = os.path.join(resdir, conf["project"], "ml")
+
+    exe = resource_filename(__name__, "R/ml/batch.r")
+    cwd, _ = os.path.split(exe)
     cmd = []
-    cmd.append(resource_filename(__name__, "R/ml/batch.r"))
-    if logfile:
-        cmd.extend(("--logfile", "{}.R.ts".format(logfile)))
     cmd.extend(("--loglevel", loglevel))
     cmd.extend(("-c", prosoda_conf))
     cmd.extend(("-p", project_conf))
     cmd.extend(("-j", str(jobs)))
-    cmd.append(resdir)
+    cmd.append(ml_resdir)
     cmd.append(mldir)
-    cwd = resource_filename(__name__, "R")
-    execute_command(cmd, direct_io=True, cwd=cwd)
+    for i, ml in enumerate(conf["mailinglists"]):
+        log.info("=> Analysing mailing list '{name}' of type '{type}'".
+                format(**ml))
+        logargs = []
+        if logfile:
+            logargs = ["--logfile", "{}.R.ml.{}".format(logfile, i)]
+        execute_command([exe] + logargs + cmd + [ml["name"]],
+                direct_io=True, cwd=cwd)
     log.info("=> Prosoda mailing list analysis complete!")
     return 0
 
 def cmd_dynamic(args):
-    r_directory = resource_filename(__name__, "R")
-    dyn_directory = resource_filename(__name__, "R/dynamic_graphs")
+    dyn_directory = resource_filename(__name__, "R/shiny/")
 
     if args.graph is None and not(args.list):
         log.critical("No dynamic graph given!")
@@ -214,22 +142,24 @@ def cmd_dynamic(args):
     if args.list or args.graph is None:
         print('List of possible dynamic graphs:')
         for s in sorted(os.listdir(dyn_directory)):
-            if s.endswith('.r'):
-                print(" * " + s[:-len('.r')])
+            if os.path.isdir(os.path.join(dyn_directory, s)):
+                print(" * " + s)
         return 1
 
-    fn = os.path.join(dyn_directory, args.graph + ".r")
+    cwd = os.path.join(dyn_directory, args.graph)
     cfg = os.path.abspath(args.config)
-    if not os.path.exists(fn):
-        log.critical('File "{}" not found!'.format(fn))
+    if not os.path.exists(cwd):
+        log.critical('Path "{}" not found!'.format(cwd))
         return 1
-    cmd = ["Rscript", fn, "-c", cfg]
-    execute_command(cmd, direct_io=True, cwd=r_directory)
+    Rcode = "library(shiny); runApp(port={})".format(args.port)
+    cmd = ["Rscript", "-e", Rcode, "-c", cfg]
+    execute_command(cmd, direct_io=True, cwd=cwd)
 
 def cmd_test(args):
     '''Sub-command handler for the ``test`` command.'''
     unit_only=args.unit
     pattern=args.pattern
+    config_file=os.path.abspath(args.config)
     del args
     test_path = os.path.join(os.path.dirname(__file__), 'test')
     print('\n===== running unittests =====\n')
@@ -246,6 +176,14 @@ def cmd_test(args):
     print('\n===== running integration tests =====\n')
     tests = unittest.TestLoader().discover(os.path.join(test_path, 'integration'),
         pattern='test_{}.py'.format(pattern), top_level_dir=test_path)
+    # Set the testing configuration file as member variable
+    # for all integration tests, since we need the DB and REST configurations
+    def set_config(suite):
+        if isinstance(suite, unittest.TestSuite):
+            for test in suite:
+                set_config(test)
+        suite.config_file = config_file
+    set_config(tests)
     int_result = unittest.TextTestRunner(verbosity=2).run(tests)
     int_success = not (int_result.failures or int_result.errors)
     if unit_success and int_success:

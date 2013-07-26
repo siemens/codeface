@@ -386,7 +386,7 @@ get.nonempty.intervals <- function(dates, intervals.list) {
   ## contain less than MIN.NUM.MESSAGES messages, and remove them
   ## from the list -- they are considered outliers.
   ## This is the reason why not just the date boundaries, but a complete
-  ## list of dates is required as input.
+  ## sorted list of dates is required as input.
   MIN.NUM.MESSAGES <- 5
   if (length(dates) == 0)
     stop("Date list for interval generation is empty!")
@@ -399,9 +399,11 @@ get.nonempty.intervals <- function(dates, intervals.list) {
   ## Detect essentially empty ranges (with less than 5 messages) and remove
   ## them from the interval list
   msg.per.interval <- function(timestamps, itv) {
-    idx <- which(timestamps >= int_start(itv) &
-                 timestamps < int_end(itv))
-    return(length(timestamps[idx]))
+    ## findInterval returns the index in dates that precedes the given
+    ## timestamp. For two timestamps, the difference of the returned indices
+    ## therefore yields the number of messages between the timestamps.
+    r <- findInterval(list(int_start(itv), int_end(itv)), dates)
+    return(r[2] - r[1])
   }
   idx <- sapply(intervals.list, function(i) msg.per.interval(dates, i))
 
@@ -410,8 +412,11 @@ get.nonempty.intervals <- function(dates, intervals.list) {
 
 ## Frontend for the above functions: Take a list of dates and
 ## an interval length, and computer a list of non-empty intervals
+## Assumes that dates is sorted in ascending order
 gen.iter.intervals <- function(dates, interval.length) {
-  intervals.list <- construct.intervals(min(dates), max(dates), interval.length)
+  mindate <- dates[1]
+  maxdate <- dates[length(dates)]
+  intervals.list <- construct.intervals(mindate, maxdate, interval.length)
 
   return (intervals.list[get.nonempty.intervals(dates, intervals.list)])
 }

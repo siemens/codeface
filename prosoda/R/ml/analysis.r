@@ -17,10 +17,10 @@
 suppressPackageStartupMessages(library(zoo))
 suppressPackageStartupMessages(library(xts))
 suppressPackageStartupMessages(library(lubridate))
-source("db.r")
-source("utils.r")
-source("query.r")
-source("id_manager.r")
+source("../db.r", chdir=TRUE)
+source("../utils.r", chdir=TRUE)
+source("../query.r", chdir=TRUE)
+source("../id_manager.r", chdir=TRUE)
 
 gen.forest <- function(conf, repo.path, resdir) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
@@ -29,7 +29,7 @@ gen.forest <- function(conf, repo.path, resdir) {
   doCompute <- !(file.exists(corp.file))
 
   if (doCompute) {
-    corp.base <- gen.corpus(conf$ml, repo.path, suffix=".mbox",
+    corp.base <- gen.corpus(conf$listname, repo.path, suffix=".mbox",
                             marks=c("^_{10,}", "^-{10,}", "^[*]{10,},",
                                    # Also remove inline diffs. TODO: Better
                                    # heuristics for non-git projects
@@ -194,7 +194,8 @@ dispatch.all <- function(conf, repo.path, resdir) {
                    lapply(seq_along(corp.base$corp),
                           function(i) as.POSIXct(DateTimeStamp(corp.base$corp[[i]])))
                    )
-  dates <- dates[!is.na(dates)]
+  ## Sort the dates to enable faster algorithms. This also removes NAs
+  dates <- sort(dates)
 
   ## Select weekly and monthly intervals (TODO: With the new flexible
   ## intervals in place, we could select proper monthly intervals)
@@ -221,23 +222,35 @@ dispatch.all <- function(conf, repo.path, resdir) {
   release.intervals <- release.intervals[nonempty.release.intervals]
   release.labels <- release.labels[nonempty.release.intervals]
 
+  if (length(nonempty.release.intervals) == 0) {
+    stop("Mailing list does not cover any release range.")
+  }
+
   ## TODO: Find some measure (likely depending on the number of messages per
   ## time) to select suitable time intervals of interest. For many projects,
   ## weekly (and monthly) are much too short, and longer intervals need to
   ## be considered.
   periodic.analysis <- FALSE
   if (periodic.analysis) {
+    loginfo("Periodic analysis", logger="ml.analysis")
     analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, resdir,
                           paste("weekly", 1:length(iter.weekly), sep=""))
     analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, resdir,
                           paste("4weekly", 1:length(iter.4weekly), sep=""))
   }
 
+  loginfo("Analysing subsequences", logger="ml.analysis")
+  ## Obtain a unique numerical ID for the mailing list
+  ml.id <- gen.clear.ml.id.con(conf$con, conf$listname, conf$pid)
+  ## Also obtain a clear plot for the mailing list activity
+  activity.plot.name <- str_c(conf$listname, " activity")
+  activity.plot.id <- get.clear.plot.id(conf, activity.plot.name)
   analyse.sub.sequences(conf, corp.base, release.intervals, repo.path, resdir,
-                        release.labels)
+                        release.labels, ml.id, activity.plot.id)
 
   ## #######
   ## Global analysis
+  loginfo("Global analysis", logger="ml.analysis")
   ## NOTE: We only compute the forest for the complete interval to allow for creating
   ## descriptive statistics.
   corp <- corp.base$corp
@@ -257,7 +270,7 @@ dispatch.all <- function(conf, repo.path, resdir) {
 
 
 analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
-                                  data.path, labels) {
+                                  data.path, labels, ml.id, activity.plot.id) {
   if (length(iter) != length(labels))
     stop("Internal error: Iteration sequence and data prefix length must match!")
 
@@ -267,7 +280,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
   loginfo(paste(length(corp.base$corp), "messages in corpus"), logger="ml.analysis")
   loginfo(paste("Date range is", as.character(int_start(iter[[1]])), "to",
       as.character(int_end(iter[[length(iter)]]))), logger="ml.analysis")
-  loginfo(paste("=> Analysing ", conf$ml, "in", length(iter), "subsets"),
+  loginfo(paste("=> Analysing ", conf$listname, "in", length(iter), "subsets"),
           logger="ml.analysis")
 
   ## Prepare a single-parameter version of do.normalise that does
@@ -296,7 +309,8 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     save(file=file.path(data.path.local, "forest.corp"), forest.corp.sub)
 
     cycles <- get.cycles(conf)
-    dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub, cycles[i,])
+    dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub,
+                   cycles[i,], ml.id, activity.plot.id)
     loginfo(paste(" -> Finished interval ", i, ": ", labels[[i]]), logger="ml.analysis")
   })
 }
@@ -304,7 +318,8 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 ## User needs to make sure that data.path exists and is writeable
 ## dispatch.steps is called for every time interval that is considered
 ## in the analysis
-dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
+dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
+                           ml.id, activity.plot.id) {
   ## TODO: Check how we can speed up prepare.text. And think about if the
   ## function is really neccessary. With stemming activated, I doubt
   ## that it really pays off.
@@ -345,8 +360,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   networks.dat <- analyse.networks(forest.corp$forest, interest.networks,
                                    communication.network)
 
-  ## Obtain a unique numerical ID for the mailing list
-  ml.id <- gen.clear.ml.id.con(conf$con, conf$ml, conf$pid)
 
   ## Compute base data for time series analysis
   msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(DateTimeStamp(x)) })
@@ -355,15 +368,12 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle) {
   series <- xts(rep(1,length(msgs)), order.by=msgs)
   series.daily <- apply.daily(series, sum)
 
-  ## ... and store it into the data base
+  ## ... and store it into the data base, appending it to the activity plot.
   ts.df <- gen.df.from.ts(series.daily, "Mailing list activity")
-  plot.name <- str_c(conf$ml, " activity")
-  plot.id <- get.clear.plot.id(conf, plot.name)
-
   dat <- data.frame(time=as.character(ts.df$time),
                     value=ts.df$value,
                     value.scaled=ts.df$value.scaled,
-                    plotId=plot.id)
+                    plotId=activity.plot.id)
 
   ## NOTE: We append new values to the existing content. This way,
   ## we can plot arbitrary subsets of the series by selecting

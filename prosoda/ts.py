@@ -53,7 +53,7 @@ def writeReleases(dbm, tstamps, conf):
     dbm.doCommit()
 
 def dispatch_ts_analysis(resdir, dbm, conf):
-    dbpath = os.path.join(resdir, conf["project"], conf["tagging"])
+    dbpath = resdir
     destdir = os.path.join(dbpath, "ts")
 
     if not(os.path.exists(destdir)):
