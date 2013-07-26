@@ -96,49 +96,43 @@ do.ts.plot <- function(ts, boundaries, smooth, transform) {
   return(g)
 }
 
+ml.timeseries.server <- function(input, output, session) {
+  args.list <- parseQueryString(isolate(session$clientData$url_search))
+  pid <- args.list[["projectId"]]
+  
+  if (!is.vector(pid)) {
+    stop("No projectId parameter in URL")
+  } else if (is.na(as.numeric(pid))) {
+      stop("projectId URL parameter is empty")
+  }
+  
+  loginfo(paste("projectId =", as.character(as.numeric(pid)), sep = " "))
+  
+  ## Loading of data is performed only once for performance reasons
+  ts <- get.ts.data(conf$con, pid)
+  boundaries <- get.cycles.con(conf$con, pid)
 
-prepare.ts.plot <- function(con, pid, smooth, transform) {
-  ts <- get.ts.data(con, pid)
-  boundaries <- get.cycles.con(con, pid)
-
-  return(do.ts.plot(ts, boundaries, smooth, transform))
-}
-
-ml.timeseries.server <- function(input, output) {
-  ## Validate inputs
-#  if (!(reactive(input$smooth) %in% 0:3)) {
- #   reactive(input$smooth) <- 0
-##  }
-#    if (!(reactive({transform}) %in% 0:3)) {
-#    reactive({transform <- 0})
-#  }
-
-
-  smooth <- reactive({input$smooth})
   output$distancePlot <- renderPlot({
-    print(prepare.ts.plot(conf$con, 2, smooth(), input$transform))
+    print(do.ts.plot(ts, boundaries, input$smooth, input$transform))
   })
 }
 
-ml.timeseries.ui <- pageWithSidebar(
-                         headerPanel("Mailing list activity"),
-                         sidebarPanel(
-                           selectInput("smooth", "Smoothing window size",
-                                       choices = c("None" = 0,
-                                         "Weekly" = 1,
-                                         "Monthly" = 2)),
-                           selectInput("transform", "Transformation",
-                                       choices = c("Normal" = 0,
-                                         "Logarithmic" = 1,
-                                         "Square root" = 2)),
-
-                           submitButton("Update View")
-                           ),
-
-                         mainPanel(
-                           plotOutput("distancePlot")
-                           )
-                         )
+ml.timeseries.ui <- 
+  pageWithSidebar(headerPanel("Mailing list activity"),
+                  div(class = "span2", 
+                      tags$form(class = "well",
+                                radioButtons("smooth", "Smoothing window size",
+                                             choices = c("None" = 0, 
+                                                         "Weekly" = 1, 
+                                                         "Monthly" = 2)),
+                                br(),
+                                radioButtons("transform", "Transformation",
+                                             choices = c("Normal" = 0,
+                                                         "Logarithmic" = 1,
+                                                         "Square root" = 2))
+                                )),
+                  div(class = "span10", 
+                      plotOutput("distancePlot")))
 
 ## Dispatch the shiny server
 runApp(list(ui=ml.timeseries.ui, server=ml.timeseries.server),
