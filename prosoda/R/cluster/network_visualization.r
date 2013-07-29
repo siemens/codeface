@@ -145,7 +145,10 @@ computeVertCommFrac <- function (graph, comm) {
   ##					   	percentages are captured.
   verts.frac <- list()
   for (i in 1:vcount(graph)) {
-    vert.neigh <- neighbors(graph, i, mode='all')
+	## Get neighbors of vertex i, mode=all will return both in and out 
+	## directions, multiple edges are listed multiple times however we want 
+	## the unique vertex index
+    vert.neigh <- unique(neighbors(graph, i, mode='all'))
     comm.frac  <- list()
     total      <- 0
     for (j in 1:length(vert.neigh)) {
@@ -153,7 +156,9 @@ computeVertCommFrac <- function (graph, comm) {
       if(length(comm.frac[[key]]) == 0) {
         comm.frac[[key]] <- 0
       }
-      comm.frac[[key]] <- comm.frac[[key]] + 1
+      ## get edge weight and sum directions (in weight + out weight) 
+      edge.weight <- sum(E(graph)[i %--% vert.neigh[j]]$weight)
+      comm.frac[[key]] <- comm.frac[[key]] + edge.weight
     }
     ## only select the top 4 largest community fractions
     comm.top.4 <- comm.frac[sort(unlist(comm.frac),
