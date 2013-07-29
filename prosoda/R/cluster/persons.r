@@ -647,12 +647,12 @@ store.graph.db <- function(conf, baselabel, idx, .iddb, g.reg, g.tr, j) {
 ## Consequently, we only need to write into tables cluster_user_mapping
 ## and edgelist once.
 save.groups <- function(conf, .tags, .iddb, .comm, .prank.list, .basedir,
-                        .prefix, .which, comm.quality, label) {
+                        .prefix, comm.quality, label) {
   baselabel <- label
   label.tr <- NA
   j <- 0
 
-  for (i in .which) {
+  for (i in unique(.comm$membership)) {
     filename.reg <- paste(.basedir, "/", .prefix, "reg_", "group_", three.digit(i),
                           ".dot", sep="")
     filename.tr <- paste(.basedir, "/", .prefix, "tr_", "group_", three.digit(i),
@@ -928,11 +928,6 @@ detect.communities <- function(g.connected, ids.connected,
     ## compute community quality
     comm.quality <- compute.all.community.quality(g.connected, g.community,
                                                   "conductance")
-    ## Remove small communities, but make sure that at least min.fract of
-    ## the contributors remain in the final set, and that no communities
-    ## with more than upper.bound members are removed even if they
-    ## were admissible for deletion by the fraction criterion
-    elems.selected <- select.communities(g.community, min.fract, upper.bound)
   }
 
   status(str_c("Writing community graph sources for algorithm ", label))
@@ -940,7 +935,7 @@ detect.communities <- function(g.connected, ids.connected,
   ## rank calculation technique -- only the edge strengths, but not the
   ## page rank values influence the decomposition.
   save.groups(conf, adjMatrix.connected.scaled, ids.connected,
-              g.community, prank.list, outdir, prefix, elems.selected,
+              g.community, prank.list, outdir, prefix,
 			  comm.quality, label=label)
   return(g.community)
 }
