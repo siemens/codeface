@@ -1,7 +1,7 @@
 from .gitproject import GitProject
 
-def get_example_project_1():
-    project = GitProject()
+def get_example_project_1(tagging="tag"):
+    project = GitProject(tagging)
     Adam = project.add_author("Adam Awkward", "adam@awkward.net")
     Bill = project.add_author("Bill Bully", "bill@bullies.org")
     Clara = project.add_author("Clara Confident", "clara@foo.org")

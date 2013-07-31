@@ -25,8 +25,7 @@ from prosoda.project import project_analyse
 class TestEndToEnd(unittest.TestCase):
     '''End to end test of a prosoda analysis'''
 
-    def testExampleProject1(self):
-        p = get_example_project_1()
+    def executeTest(self, p):
         with p:
             path = p.directory
             gitdir = dirname(path)
@@ -40,3 +39,8 @@ class TestEndToEnd(unittest.TestCase):
             prosoda_conf = self.config_file
             print("project_analyse", (resdir, gitdir, prosoda_conf, project_conf, no_report, loglevel, logfile, recreate))
             project_analyse(resdir, gitdir, prosoda_conf, project_conf, no_report, loglevel, logfile, recreate)
+
+    def testExampleProject1(self):
+        for tagging in ["tag", "committer2author", "proximity"]:
+            p = get_example_project_1(tagging)
+            self.executeTest(p)

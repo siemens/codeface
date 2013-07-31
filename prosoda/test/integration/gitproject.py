@@ -21,10 +21,11 @@ class GitProject(object):
     as a context manager using the with statement. This ensures that the git
     repository is properly deleted at the end of testing.
     '''
-    def __init__(self):
+    def __init__(self, tagging="tag"):
         '''Creates a repository with no commits'''
         self._authors = []
         self._commits = []
+        self._tagging = tagging
 
     def __enter__(self):
         '''
@@ -110,8 +111,9 @@ class GitProject(object):
                     source: generated
             revisions: {release_tags}
             rcs : {rctags}
-            tagging: tag
+            tagging: {tagging}
             """.format(release_tags=str(release_tags),
+                       tagging=self._tagging,
                        rctags=str([rc_tags.get(i, release_tags[i]) for i in range(len(release_tags))]),
                        project=basename(self.directory)
                 )
