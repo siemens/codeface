@@ -782,6 +782,8 @@ class gitVCS (VCS):
         if self._commit_dict is None:
             self._commit_dict = {}
 
+        if len(fnameList) == 0:
+            return
 
         count = 0
         widgets = ['Blame Analysis: ', Percentage(), ' ', Bar(), ' ', ETA()]
