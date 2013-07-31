@@ -411,18 +411,47 @@ save.graph.igraph <- function(g, comm, filename, plot.size=7, format="png") {
 }
 
 
-save.graph.graphviz <- function(g, comm, filename, plot.size=7){
+save.graph.graphviz <- function(con, pid, range.id, filename, plot.size=7) {
   ## Generate pie graph plot using graphviz package
   ## Args:
   ## 	g: igraph graph object
   ## 	comm: igraph communities object
   ##  filename: output filename to store graph image
-  ##  plot.size: string that specifies the size in inches of the resulting image 
+  ##  plot.size: string that specifies the size in inches of the resulting image
   ##             if not specified the default 7x7 inches is used
   ## Output:
   ##   saves an SVG image of the graph to the specified filename
+
+  ## Query Database
+  ## Graph
+  cluster.method <- "Spin Glass Community"
+  graph.id       <- query.global.collab.con(con, pid, range.id, cluster.method)
+  edgelist.db    <- query.cluster.edges(con, graph.id) 
+  p.id.map       <- get.index.map(c(edgelist.db$fromId,edgelist.db$toId))
+  edgelist		 <- cbind(map.ids(edgelist.db$fromId, p.id.map),
+						  map.ids(edgelist.db$toId, p.id.map))
+  ## Clusters
+  cluster.ids <- query.cluster.ids.con(con, pid, range.id, cluster.method)
+  ## remove main graph cluster id
+  cluster.ids   <- cluster.ids[cluster.ids!=graph.id]
+  cluster.data  <- lapply(cluster.ids,
+                         function(c.id)
+                           query.cluster.members(con, c.id,
+                           prank=TRUE, technique=0))
+  ## get the cluster members
+  cluster.mem <- lapply(cluster.data, function(cluster) cluster$personId)
+  ## reconstruct igraph style communities object 
+  comm <- clusters.2.communities(cluster.mem, p.id.map)
+
+  ## Rank
+  node.rank.db          <- ldply(cluster.data, data.frame)
+  node.rank.db$personId <- map.ids(node.rank.db$personId, p.id.map)
+  node.rank <- c()
+  node.rank[node.rank.db$personId] <- node.rank.db$rankValue
+
+  ## Create igraph object and perform manipulations
+  g <- graph(t(edgelist), directed=TRUE)
   cluster.conductance <- compute.all.community.quality(g, comm, "conductance")
-  node.rank  <- page.rank(g)
   g.min      <- min.edge.count(g, comm, node.rank)
   g.min.simp <- simplify(g.min, remove.multiple=TRUE,remove.loops=TRUE)
 
@@ -455,13 +484,13 @@ save.graph.graphviz <- function(g, comm, filename, plot.size=7){
   nodeDataDefaults(g.viz, c("style","shape")) <- c("wedged", "ellipse")
   nodeData(g.viz, n.idx, "label")     <- ""
   ## pie chart color
-  nodeData(g.viz, n.idx, "fillcolor") <- 
+  nodeData(g.viz, n.idx, "fillcolor") <-
     format.color.weight(pie.vertex$color, pie.vertex$fracs)
   ## node size
   nodeData(g.viz, n.idx, "width") <- as.character(
-		  scale.data(node.rank$vector, 0.75, 5))
+		  scale.data(node.rank, 0.75, 5))
   nodeData(g.viz, n.idx, "height") <- as.character(
-		  scale.data(node.rank$vector, 0.75, 5))
+		  scale.data(node.rank, 0.75, 5))
 
   ## Edge Attributes 
   N   <- length(edgeL[,1])
@@ -503,7 +532,7 @@ save.graph.graphviz <- function(g, comm, filename, plot.size=7){
   graphDataDefaults(g.viz, "size") <- plot.size
   graphDataDefaults(g.viz, "overlap") <- "prism"
 
-  ## Write image file
-  toFile(g.viz, layoutType="fdp", filename, "svg")
+  ## Write dot file
+  agwrite(g.viz, filename)
 }
 
