@@ -314,7 +314,7 @@ class gitVCS (VCS):
         cmd.append('--date=local')
 
         #submit query to git
-        logMsg = execute_command(cmd)
+        logMsg = execute_command(cmd).splitlines()
 
         return logMsg
 
@@ -348,7 +348,7 @@ class gitVCS (VCS):
 
 
         #submit query command
-        clist = execute_command(cmd)
+        clist = execute_command(cmd).splitlines()
 
         # Remember the comment about monotonically increasing time sequences
         # above? True in principle, but unfortunately, a very small number
@@ -714,7 +714,7 @@ class gitVCS (VCS):
         cmd.append(fileName)
 
         #query git repository
-        blameMsg = execute_command(cmd)
+        blameMsg = execute_command(cmd).splitlines()
 
         return blameMsg
 
@@ -937,7 +937,7 @@ class gitVCS (VCS):
 
         # run ctags analysis on the file to create a tags file
         cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tagFn, srcFn).split()
-        output = execute_command(cmd)
+        output = execute_command(cmd).splitlines()
 
         # parse ctags generated file for the function line numbers
         try:
@@ -1020,7 +1020,7 @@ class gitVCS (VCS):
         cmd.append(revrange)
 
         #query git
-        output = execute_command(cmd)
+        output = execute_command(cmd).splitlines()
 
         #filter results to only get implementation files
         fileExt = (".c", ".cc", ".cpp", ".cxx", ".cs", ".asmx", ".m", ".mm",
