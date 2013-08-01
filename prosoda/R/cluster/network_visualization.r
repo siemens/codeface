@@ -21,10 +21,60 @@
 ## 	Functions are responsible for handling the visualization of network based
 ##	structures. These function make extensive use of igraph and persons.r
 ##  to support the heavy manipulation as a precursor to visualization.
-source("persons.r")
+library(Rgraphviz)
 ################################################################################
 ## Low Level Functions
 ################################################################################
+
+## Reduces a graph to single edges between them most important edge in a
+## a community according to a rank
+
+## Args:
+##  g: igraph graph object
+##  comm: igraph communities object
+##  rank: vector of values indicating a rank value of each vertex in the graph
+##          eg. page rank, betweenness centrality
+## Returns:
+##  g.min.edges: igraph graph object with only single weighted edges between
+##               communities
+min.edge.count <- function(g, comm, rank) {
+  ## Determine the most single most vertex in a community
+  community.idx <- sort(unique(comm$membership))
+  important.comm.verts <- sapply(community.idx,
+                                 function(comm.idx) {
+                                   which(rank ==
+                                         max(rank[which(comm$membership == comm.idx)]))[1]
+                                 })
+
+  ## Find all edges that cross communities and remove them
+  cross.comm.edges     <- E(g)[crossing(comm,g)]
+  g.inter.comm.removed <- delete.edges(g, cross.comm.edges)
+
+  ## Find edge weight of combined cross community edges, the multiple edges
+  ## between communities are summed by the simplify(..) function
+  g.contracted <- simplify(contract.vertices(g, comm$membership))
+
+  ## Assign the edge weight between the important people of each community
+  num.comms <- vcount(g.contracted)
+  for (i in 1:num.comms) {
+    vert.1 <- important.comm.verts[i]
+    for(j in 1:num.comms) { 
+      vert.2 <- important.comm.verts[j]
+      out.edge  <- g.contracted[i, j]
+      in.edge   <- g.contracted[j, i]
+      if(out.edge != 0) {
+        g.inter.comm.removed[vert.1, vert.2] <- out.edge
+      }
+      if(in.edge != 0) {
+        g.inter.comm.removed[vert.2, vert.1] <- in.edge
+      }
+    }
+  }
+
+  return(g.inter.comm.removed)
+}
+
+
 layoutCommunity <- function(g, comm, grid.layout=FALSE) {
   ## calculates a layout that collectes nodes belonging to a community into
   ## a consolodated region
@@ -95,7 +145,10 @@ computeVertCommFrac <- function (graph, comm) {
   ##					   	percentages are captured.
   verts.frac <- list()
   for (i in 1:vcount(graph)) {
-    vert.neigh <- neighbors(graph, i, mode='all')
+	## Get neighbors of vertex i, mode=all will return both in and out 
+	## directions, multiple edges are listed multiple times however we want 
+	## the unique vertex index
+    vert.neigh <- unique(neighbors(graph, i, mode='all'))
     comm.frac  <- list()
     total      <- 0
     for (j in 1:length(vert.neigh)) {
@@ -103,7 +156,9 @@ computeVertCommFrac <- function (graph, comm) {
       if(length(comm.frac[[key]]) == 0) {
         comm.frac[[key]] <- 0
       }
-      comm.frac[[key]] <- comm.frac[[key]] + 1
+      ## get edge weight and sum directions (in weight + out weight) 
+      edge.weight <- sum(E(graph)[i %--% vert.neigh[j]]$weight)
+      comm.frac[[key]] <- comm.frac[[key]] + edge.weight
     }
     ## only select the top 4 largest community fractions
     comm.top.4 <- comm.frac[sort(unlist(comm.frac),
@@ -208,40 +263,281 @@ membership2markGroup <- function(membership) {
   }
   return (groups)
 }
+
+
+compute.subgraph.list <- function (g, comm){
+  ## Builds a list of subgraphs from a given community membership
+  ## Args:
+  ##  g: Rgraphviz graph object
+  ##	comm: igraph communities object
+  ## Returns:
+  ##  subgraph.list: list of Rgraphviz subgraph objects
+  community.id <- sort(unique(comm$membership))
+  subgraphL <- list()
+  subgraphL <- lapply(community.id,
+    function(x) { 
+      return(list(graph=subGraph(as.character(which(comm$membership==x)), g)))
+	})
+	return(subgraphL)
+}
+
+
+format.color.weight <- function(colorL, weightL) {
+  ## constructs a vector of strings that contain the color and weight data
+  ## for the pie chart style node. The graphviz library demands the following
+  ## color format WC:WC:WC:WC where WC = color;weight
+
+  ## interlace color and weight
+  color.weight.list <- mapply(
+    function(colors, weights) 
+      as.vector(rbind(as.character(paste(colors,";",sep="")),
+					  as.character(paste(weights,":",sep="")))),
+    colorL, weightL)
+
+  ## collapse vector to single strings
+  color.weight.vector <- sapply(color.weight.list, 
+		                        function(x) paste(x,collapse=""))
+  return (color.weight.vector)
+}
+
+
+## Create an index mapping that maps unique person ids to consecutive numbers
+## from 1 to N where N is the number of nodes in the graph
+## Args:
+##  ids: vector of integers
+## Return:
+##  map: environment (hash table) mapping ids to consecutive integers starting
+##       from 1
+get.index.map <- function(ids) {
+  node.ids <- unique(ids)
+  N        <- length(node.ids)
+  map      <- new.env(size=N)
+  for(i in 1:N) {
+    map[[as.character(node.ids[i])]] <- i
+  }
+  return(map)
+}
+
+
+## Remap all ids in the given a mapping
+## Args:
+##  ids: id index vector (non-consecutive)
+##  map: environment (hash table) mapping global index to consecutive local 
+##       index
+## Returns:
+##  edgelist: edge list with remapped node index
+map.ids <- function(ids, map){
+  N       <- length(ids)
+  new.ids <- c()
+
+  ## Remap ids using the given mapping
+  new.ids <- sapply(ids, function(id) map[[as.character(id)]])
+
+  return(new.ids)
+}
+
+
+## Create communities object from clusters list
+## Args:
+##  clusters: list of global personId vectors mapping people to clusters
+##  map: environment (hash table) to map non-consecutive global index to 
+##       consecutive local index
+## Returns:
+##  comm: igraph-like communities object
+clusters.2.communities <- function(cluster.list, map) {
+  membership <- c()
+  csize      <- c()
+  ## create membership vector from cluster.list
+  for (i in 1:length(cluster.list)) {
+    p.global.ids <- cluster.list[[i]]
+	## ids need to be consecutive, use global -> local index map
+	p.local.ids  <- map.ids(p.global.ids, map)
+    membership[p.local.ids] <- i
+	csize[i] <- length(p.local.ids)
+  }
+
+  ## Build igraph-like communities object
+  comm            <- list()
+  class(comm)     <- "communities"
+  comm$membership <- membership
+  comm$csize      <- csize
+
+  return(comm)
+}
 ################################################################################
 ## High Level Functions
 ################################################################################
-plotPieGraph <- function(g, comm) {
-  ## plot a community graph structure using pie chart style vertex visualization
-
+save.graph.igraph <- function(g, comm, filename, plot.size=7, format="png") {
+  ## Generate a community graph structure using pie chart style vertex visualization
   ## Args:
-  ##	g: igraph graph object
-  ##	comm: igraph communities object
-  ## Returns:
-  ## 	igraph plot of the graphs community structure
+  ##  g: igraph graph object
+  ##  comm: igraph communities object
+  ##  filename: output filename to store graph image
+  ##  plot.size: string that specifies the size in inch of the resulting image
+  ##             if not specified the 7x7 inch is used
+  ##  format: One of the supported output formats of base graphics
+  ## Output:
+  ##  igraph plot of the graphs community structure
   cluster.conductance <- compute.all.community.quality(g, comm, "conductance")
   pie.vertex      <- assignCommCol(g, comm)
+  g               <- min.edge.count(g, comm, page.rank(g))
   g               <- simplify(g, remove.multiple=TRUE,remove.loops=TRUE)
   comm.domain.col <- mapCommSig2Color(cluster.conductance)$value
+  comm.layout     <- layoutCommunity(g,comm,FALSE)
+  edge.width      <- scale.data(log(E(g)$weight),1,3)
 
+  formats <- c(bmp, jpeg, png, tiff)
+  names(formats) <- c("bmp", "jpeg", "png", "tiff")
+
+  if (!(format %in% names(formats))) {
+    format <- "png"
+  }
+
+  formats[format](filename=filename, width=size, height=size,
+                  units="in", res=320)
   plot(g,
        mark.group        = membership2markGroup(comm$membership),
-       layout            = layoutCommunity(g,comm,TRUE),
+       layout            = comm.layout,
        vertex.size       = 2 ,
        vertex.label      = NA,
        edge.width        = 0.02,
        edge.arrow.size   = 0.05,
-       edge.color			   = c("black","red")[crossing(comm,g)+1],
-       mark.expand			 = 2,
-       mark.shape			   = 1,
-       mark.col				   = comm.domain.col,
-       mark.border			 = pie.vertex$comm.col,
-       vertex.shape		   = "pie",
+       edge.color        = c("black","red")[crossing(comm,g)+1],
+       mark.expand       = 2,
+       mark.shape        = 1,
+       mark.col          = comm.domain.col,
+       mark.border       = pie.vertex$comm.col,
+       vertex.shape      = "pie",
        vertex.pie        = pie.vertex$fracs,
        vertex.pie.color  = pie.vertex$colors,
        vertex.pie.border = pie.vertex$vert.comm.col,
        vertex.pie.lty    = 0)
+  dev.off()
 }
-################################################################################
-## Executed
-################################################################################
+
+
+save.graph.graphviz <- function(con, pid, range.id, filename, plot.size=7) {
+  ## Generate pie graph plot using graphviz package
+  ## Args:
+  ## 	g: igraph graph object
+  ## 	comm: igraph communities object
+  ##  filename: output filename to store graph image
+  ##  plot.size: string that specifies the size in inches of the resulting image
+  ##             if not specified the default 7x7 inches is used
+  ## Output:
+  ##   saves an SVG image of the graph to the specified filename
+
+  ## Query Database
+  ## Graph
+  cluster.method <- "Spin Glass Community"
+  graph.id       <- query.global.collab.con(con, pid, range.id, cluster.method)
+  edgelist.db    <- query.cluster.edges(con, graph.id) 
+  p.id.map       <- get.index.map(c(edgelist.db$fromId,edgelist.db$toId))
+  edgelist		 <- cbind(map.ids(edgelist.db$fromId, p.id.map),
+						  map.ids(edgelist.db$toId, p.id.map))
+  ## Clusters
+  cluster.ids <- query.cluster.ids.con(con, pid, range.id, cluster.method)
+  ## remove main graph cluster id
+  cluster.ids   <- cluster.ids[cluster.ids!=graph.id]
+  cluster.data  <- lapply(cluster.ids,
+                         function(c.id)
+                           query.cluster.members(con, c.id,
+                           prank=TRUE, technique=0))
+  ## get the cluster members
+  cluster.mem <- lapply(cluster.data, function(cluster) cluster$personId)
+  ## reconstruct igraph style communities object 
+  comm <- clusters.2.communities(cluster.mem, p.id.map)
+
+  ## Rank
+  node.rank.db          <- ldply(cluster.data, data.frame)
+  node.rank.db$personId <- map.ids(node.rank.db$personId, p.id.map)
+  node.rank <- c()
+  node.rank[node.rank.db$personId] <- node.rank.db$rankValue
+
+  ## Create igraph object and perform manipulations
+  g <- graph(t(edgelist), directed=TRUE)
+  cluster.conductance <- compute.all.community.quality(g, comm, "conductance")
+  g.min      <- min.edge.count(g, comm, node.rank)
+  g.min.simp <- simplify(g.min, remove.multiple=TRUE,remove.loops=TRUE)
+
+  ## Convert to Rgraph object via graph object
+  From    <- as.character(get.edgelist(g.min.simp)[,1])
+  To      <- as.character(get.edgelist(g.min.simp)[,2])
+  edgeL   <- cbind(From, To)
+  weights <- E(g.min.simp)$weight
+  g.NEL <- ftM2graphNEL(edgeL, weights, edgemode="directed")
+  subgraph.list <- compute.subgraph.list(g.NEL, comm)
+  g.viz <- agopen(g.NEL, "pieGraph", subGList=subgraph.list)
+
+  ## Compute graph node and cluster colors
+  pie.vertex  <- assignCommCol(g, comm)
+  comm.col    <- mapCommSig2Color(cluster.conductance)$value
+
+  ## Cluster Attributes
+  cluster.id <- sort(unique(comm$membership))-1
+  ## border thickness
+  clusterData(g.viz, cluster.id, "penwidth") <- "15"
+  ## background color
+  clusterData(g.viz, cluster.id,"bgcolor") <- comm.col
+  ## border style
+  clusterData(g.viz, cluster.id, "style") <- "bold"
+  ## border color
+  clusterData(g.viz, cluster.id, "color") <- pie.vertex$comm.col
+
+  ## Node Attributes
+  n.idx <-  as.character(1:vcount(g))
+  nodeDataDefaults(g.viz, c("style","shape")) <- c("wedged", "ellipse")
+  nodeData(g.viz, n.idx, "label")     <- ""
+  ## pie chart color
+  nodeData(g.viz, n.idx, "fillcolor") <-
+    format.color.weight(pie.vertex$color, pie.vertex$fracs)
+  ## node size
+  nodeData(g.viz, n.idx, "width") <- as.character(
+		  scale.data(node.rank, 0.75, 5))
+  nodeData(g.viz, n.idx, "height") <- as.character(
+		  scale.data(node.rank, 0.75, 5))
+
+  ## Edge Attributes 
+  N   <- length(edgeL[,1])
+  rmv <- removedEdges(g.NEL)
+  keep.edge        <- c()
+  keep.edge[1:N]   <- TRUE
+  keep.edge[rmv]   <- FALSE
+  remaining.edgeL  <- edgeL[keep.edge,]
+  edge.weights.viz <- unlist(unlist(edgeWeights(g.NEL)))[keep.edge]
+  inter.comm.edges <- crossing(comm,g.min.simp)[keep.edge]
+  from.viz         <- remaining.edgeL[,1]
+  to.viz           <- remaining.edgeL[,2]
+  from.inter.comm  <- from.viz[inter.comm.edges]
+  to.inter.comm    <- to.viz  [inter.comm.edges]
+  from.intra.comm  <- from.viz[!inter.comm.edges]
+  to.intra.comm    <- to.viz  [!inter.comm.edges]
+  inter.comm.weights <- edge.weights.viz[inter.comm.edges]
+  intra.comm.weights <- edge.weights.viz[!inter.comm.edges]
+  ## color inter-community edges different than intra-community edges
+  edgeData(g.viz, from=from.inter.comm, to=to.inter.comm, "color") <- "red"
+  edgeData(g.viz, from=from.inter.comm, to=to.inter.comm, "style") <- "bold"
+  ## edge thickness
+  edgeDataDefaults(g.viz, "penwidth") <- "1.0"
+  ## scale inter-community edges seperately from intra-community edges
+  edgeData(g.viz ,from=from.inter.comm, to=to.inter.comm, "penwidth") <-
+		  as.character(scale.data((inter.comm.weights)+1,0.1,20))
+  edgeData(g.viz ,from=from.inter.comm, to=to.inter.comm, "arrowsize") <-
+		  as.character(scale.data((inter.comm.weights)+1,0.1,20)/3)
+  ## scale intra-community edges
+  edgeData(g.viz, from=from.intra.comm, to=to.intra.comm, "penwidth") <-
+		  as.character(scale.data(log(intra.comm.weights)+1,1,10))
+  edgeData(g.viz, from=from.intra.comm, to=to.intra.comm, "arrowsize") <-
+		  as.character(scale.data(log(intra.comm.weights)+1,1,10)/3)
+  ## edge weights are used in the layout algorithm
+  edgeData(g.viz, from=from.viz, to=to.viz, "weight") <-
+		  as.character(edge.weights.viz)
+
+  ## Graph Attributes
+  graphDataDefaults(g.viz, "size") <- plot.size
+  graphDataDefaults(g.viz, "overlap") <- "prism"
+
+  ## Write dot file
+  agwrite(g.viz, filename)
+}
+
