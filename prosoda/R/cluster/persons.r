@@ -193,10 +193,13 @@ largest.subgraph <- function(graph) {
   ## graph.connected: igraph object, composed of the largest connected component
   ##                  provided by the input graph
   ##############################################################################
+  ## Get all vertices that exist in the largest connected component
   idx <- largest.subgraph.idx(graph)
+  ## Get vertices to remove
+  idx.rmv <- setdiff(V(graph),idx)
 
   ## Remove all vertices that are not in the largest connected component
-  graph.connected <- delete.vertices(graph,idx)
+  graph.connected <- delete.vertices(graph, idx.rmv)
 
   return(graph.connected)
 }
