@@ -195,7 +195,7 @@ community.stat.significance <- function(graph, cluster.algo) {
                                                        graph.clusters, "conductance")
   ## compute randomized conductance samples
   niter <- 1000
-  rand.samps <- randomizedConductanceSamples(graph, niter, cluster.algo)
+  rand.samps <- randomised.conductance.samples(graph, niter, cluster.algo)
 
   ## test for normality
   normality.test <- shapiro.test(rand.samps)
