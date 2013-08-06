@@ -198,7 +198,13 @@ community.stat.significance <- function(graph, cluster.algo) {
   rand.samps <- randomised.conductance.samples(graph, niter, cluster.algo)
 
   ## test for normality
-  normality.test <- shapiro.test(rand.samps)
+  ## check if values are same because the test while fail if they are 
+  if( length(unique(rand.samps) == 1)){
+    normality.test <- c()
+    normality.test$p.value <- -1
+  } else {
+    normality.test <- shapiro.test(rand.samps)
+  }
 
   ## compute normal distribution
   mean.conductance <- mean(rand.samps)
