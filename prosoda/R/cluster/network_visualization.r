@@ -22,6 +22,7 @@
 ##	structures. These function make extensive use of igraph and persons.r
 ##  to support the heavy manipulation as a precursor to visualization.
 library(Rgraphviz)
+library(colorspace)
 ################################################################################
 ## Low Level Functions
 ################################################################################
@@ -195,7 +196,7 @@ assignCommCol <- function(graph, comm) {
   res <- list(colors=list(), fracs=list(), comm.col=c())
   numComms <- length(comm$csize)
   ## map unique color to each community
-  col=rainbow(numComms)
+  col <- rainbow_hcl(numComms)
   verts.frac <- computeVertCommFrac(graph, comm)
 
   for (i in 1:vcount(graph)) {
@@ -233,9 +234,9 @@ mapCommSig2Color <- function(commSig) {
   ## Returns:
   ## 	sig.color.vec: a vector of values representing the color code for each
   ##						     community
-  color.palette  <- colorRampPalette(c("red", "white", "blue"))
+  color.palette  <- colorRampPalette(c("#4DFF4D","#8FFFA9", "#FFFF6B", "#FFFF2E", "#FFB3B3","#FFB3B3"))
   color.gradient <- color.palette(256)
-  commSig.scaled <- round(scale.data(commSig, 1, 256))
+  commSig.scaled <- round(commSig*255) + 1
   sig.color.vec  <- addAlpha(color.gradient[commSig.scaled])
   return(list(value=sig.color.vec, map=color.gradient))
 }
