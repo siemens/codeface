@@ -214,6 +214,29 @@ community.stat.significance <- function(graph, cluster.algo) {
   t.test.result <- t.test(rand.samps,  mu=mean(cluster.conductance))
 }
 
+
+## write the significance test results to pdf
+save.comm.sig.test <- function(rand.samps, cluster.conductance,t.result, shap.result, outfile) {
+	m.c = sum(cluster.conductance)
+	m.r = mean(rand.samps)
+	s.r = sd(rand.samps)
+	x.low.lim <- 0
+	x.up.lim  <- 1
+	x.lim = c(x.low.lim, x.up.lim)
+	pdf(outfile)
+	plot(density(rand.samps), main="Community Significance Test", ylab="Probability Density", xlab="Conductance", xlim=x.lim)
+	points(x=mean(cluster.conductance),y=0, col="green", pch=21, cex=2.5, bg="green")
+	abline(v=t.result$conf.int[1], col='red')
+	#abline(v=t.result$estimate, col='black')
+	abline(v=t.result$conf.int[2], col='red')
+	legendData <- character(2)
+	legendData[1] <- sprintf("T-test p-value: %e", t.result$p.value)
+	legendData[2] <- sprintf("Shapiro-Wilk p-value: %e", shap.result$p.value)
+	legend("topleft", legend=legendData, bty="n")
+	dev.off()
+}
+
+
 ############################################################################
 ## Randomize a given graph while maintaining the degree distribution using
 ## a rewiring concept. For each randomized graph a decomposition is performed
