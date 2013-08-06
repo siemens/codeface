@@ -269,9 +269,10 @@ randomised.conductance.samples <- function(graph, niter, cluster.algo) {
 
     ## Rewire graph, randomize the graph while maintaining the degree distribution
     rw.graph <- rewire(graph.multi, mode = rewire.mode,
-                       niter = 10*ecount(graph.multi))
+                                  niter = 10*ecount(graph.multi))
     E(rw.graph)$weight <- 1
     rw.graph <- simplify(rw.graph, remove.loops=FALSE)
+    rw.graph.connected   <- largest.subgraph(rw.graph)
 
     ## Find clusters
     rw.graph.clusters <- cluster.algo(rw.graph.connected)
