@@ -287,18 +287,16 @@ format.color.weight <- function(colorL, weightL) {
   ## constructs a vector of strings that contain the color and weight data
   ## for the pie chart style node. The graphviz library demands the following
   ## color format WC:WC:WC:WC where WC = color;weight
-
-  ## interlace color and weight
   color.weight.list <- mapply(
-    function(colors, weights) 
-      as.vector(rbind(as.character(paste(colors,";",sep="")),
-					  as.character(paste(weights,":",sep="")))),
-    colorL, weightL)
-
-  ## collapse vector to single strings
-  color.weight.vector <- sapply(color.weight.list, 
-		                        function(x) paste(x,collapse=""))
-  return (color.weight.vector)
+    function(colors, weights) paste(paste(colors, as.character(weights), sep=";"), 
+                                                     collapse=":"),
+    colorL, weightL, SIMPLIFY=FALSE)
+  
+  ## Add ":" to the end of every string, for some reason if the weight is 1
+  ## and there is no ":" after, graphviz will not fill the node with color
+  color.weight.vec <- paste(unlist(color.weight.list), ":", sep="")
+  
+  return(color.weight.vec)
 }
 
 
