@@ -340,6 +340,80 @@ compute.num.spins <- function(g) {
   return(num.spins)
 }
 
+
+######
+## Community detection algorithms require the input graph to be connected,
+## here the graph is decomposed into connected components and the cluster
+## algorithm is applied to each connected component, the results are then
+## collected into a single membership vector
+## Args:
+##  g: igraph graph object
+##  cluster.algo: clustering algorithm with an interface equivalent to igraph
+##                clustering algorithms
+## Returns:
+##  community: igraph communities object, includes membership vector, size of
+##             communities and number of communities
+community.detection.disconnected <- function(g, cluster.algo) {
+  ## Global community
+  membership.global <- c()
+  csize.global      <- c()
+
+  ## Find all connected subgraphs
+  g.conn.clust    <- clusters(g)
+  g.conn.mem      <- g.conn.clust$membership
+  g.conn.clust.no <- g.conn.clust$no ## number of clusters
+
+  ## Perform clustering on each connected subgraph and aggregate results
+  ## into single data structure
+  global.idx.start <- global.idx.end <- 0
+  algorithm.name <- "None"
+  for (sub.g.id in 1:g.conn.clust.no) {
+    ## Get all vertices for subgraph
+    sub.g.verts <- which(g.conn.mem == sub.g.id)
+
+    ## Computed connected graph
+    g.conn <- induced.subgraph(g, sub.g.verts)
+
+    if (vcount(g.conn) != 1) {
+      ## Perform clustering
+      g.comm <- cluster.algo(g.conn)
+      comm.membership <- g.comm$membership
+      algorithm.name  <- g.comm$algorithm
+      csize           <- g.comm$csize
+    }
+    else {
+      ## Singleton clusters don't require clustering
+      comm.membership <- c(1)
+      csize <- c(1)
+    }
+    comm.no <- length(unique(comm.membership))
+
+    ## Map local cluster index system to global index system
+    global.idx.start <- global.idx.end + 1
+    global.idx.end   <- global.idx.end + comm.no
+    comm.global.map  <- global.idx.start:global.idx.end
+
+    ## Map local membership ids to global ids
+    membership.global[sub.g.verts] <- comm.global.map[comm.membership]
+
+    ## compute community sizes
+    for (comm.id in 1:comm.no) {
+      csize.global[comm.global.map[comm.id]] <- length(which(comm.membership ==
+                                                             comm.id))
+    }
+  }
+  ## Calculate other communities class attributes 
+  community            <- list(membership=c(), csize=c(), modularity=0, no=0)
+  community$membership <- membership.global
+  community$no         <- global.idx.end
+  community$csize      <- csize.global
+  community$algorithm  <- algorithm.name
+  class(community)     <- "communities"
+
+  return(community)
+ }
+
+
 spinglass.community.connected <- function(graph, spins=compute.num.spins(graph)) {
 	## wrapper for spinglass clustering algorithm
 
