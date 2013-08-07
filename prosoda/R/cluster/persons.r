@@ -988,11 +988,11 @@ writeClassicalStatistics <- function(outdir, ids.connected) {
 
 ## Detect, visualise and save communities with clustering algorithm FUN
 ## (for instance spinglass.communities or walktrap.communities)
-detect.communities <- function(g.connected, ids.connected,
-                               adjMatrix.connected.scaled, prank.list, outdir,
+detect.communities <- function(g, ids,
+                               adjMatrix, prank.list, outdir,
                                prefix, label, min.fract, upper.bound, FUN) {
   set.seed(42)
-  if (vcount(g.connected) == 1) {
+  if (vcount(g) == 1) {
     ## If there is only one vertex in the graph (which can happen for
     ## very short bug-fox cycles when a single contributor interacts
     ## with the repo), it does not make sense to try detecting communities.
@@ -1001,9 +1001,9 @@ detect.communities <- function(g.connected, ids.connected,
     g.community <- NULL
     elems.selected <- logical(0)
   } else {
-    g.community <- FUN(g.connected)
+    g.community <- community.detection.disconnected(g, FUN)
     ## compute community quality
-    comm.quality <- compute.all.community.quality(g.connected, g.community,
+    comm.quality <- compute.all.community.quality(g, g.community,
                                                   "conductance")
   }
 
@@ -1011,7 +1011,7 @@ detect.communities <- function(g.connected, ids.connected,
   ## NOTE: The cluster decomposition is independent of the page
   ## rank calculation technique -- only the edge strengths, but not the
   ## page rank values influence the decomposition.
-  save.groups(conf, adjMatrix.connected.scaled, ids.connected,
+  save.groups(conf, adjMatrix, ids,
               g.community, prank.list, outdir, prefix,
 			  comm.quality, label=label)
   return(g.community)
@@ -1030,34 +1030,23 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ## projects where proper direct clustering can happen)
   status("Computing adjacency matrices")
 
-  g <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
+  g    <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
+  idx <- V(g)
 
-  ## Find the index of the largest connected cluster
-  ## TODO: This is likely bogous; what happens when there are
-  ## multiple large connected subclusters that can be further
-  ## decomposed? We should iterate over all of these.
-  idx <- largest.subgraph.idx(g)
-  adjMatrix.connected <- as.matrix(adjMatrix[idx,idx])
-
-
-  ## Build adjacency matrix of connected developers
-  ids.connected <- ids[idx,]
   ## Working with the adjacency matrices is easier if the IDs are numbered
   ## consecutively. We need to be able to map the consecutive (local) ids
   ## back to the (global) ids used in the data base later on, so keep
   ## a mapping by storing a copy in ID.orig.
-  ids.connected$ID.orig <- ids.connected$ID
-  ids.connected$ID=seq(1:length(idx))
-  ids.connected$Name <- as.character(ids.connected$Name)
+  ids$ID.orig <- ids$ID
+  ids$ID=seq(1:length(idx))
+  ids$Name <- as.character(ids$Name)
 
   if (!is.null(id.subsys)) {
-    id.subsys.connected <- id.subsys[idx,]
-    id.subsys.connected$ID=seq(1:length(idx))
+    id.subsys <- id.subsys[idx,]
+    id.subsys$ID=seq(1:length(idx))
   }
 
-  g.connected <- graph.adjacency(adjMatrix.connected, mode="directed",
-                                 weighted=TRUE)
-  V(g.connected)$label <- as.character(ids.connected$Name)
+  V(g)$label <- as.character(ids$Name)
 
   ## TODO: Include computing classical statistics from performTagAnalysis
 
@@ -1068,28 +1057,28 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ## Compute the page ranking for all developers in the database
   status("Computing page rank")
   ## This puts the focus on tagging other persons
-  pr.for.all <- compute.pagerank(adjMatrix.connected, transpose=TRUE,
+  pr.for.all <- compute.pagerank(adjMatrix, transpose=TRUE,
                                  weights=TRUE)
   ## ... and this on being tagged.
-  pr.for.all.tr <- compute.pagerank(adjMatrix.connected, .damping=0.3,
+  pr.for.all.tr <- compute.pagerank(adjMatrix, .damping=0.3,
                                     weights=TRUE)
 
   ## NOTE: pr.for.all$value should be one, but is 0.83 for some
   ## reason. This seems to be a documentation bug, though:
   ## https://bugs.launchpad.net/igraph/+bug/526106
-  devs.by.pr <- influential.developers(NA, pr.for.all, adjMatrix.connected,
-                                       ids.connected)
+  devs.by.pr <- influential.developers(NA, pr.for.all, adjMatrix,
+                                       ids)
 
   devs.by.pr.tr <- influential.developers(NA, pr.for.all.tr,
-                                          adjMatrix.connected, ids.connected)
+                                          adjMatrix, ids)
 
   ##-----------
   ##save data
   ##-----------
-  writePageRankData(conf, outdir, ids.connected, devs.by.pr, devs.by.pr.tr)
+  writePageRankData(conf, outdir, ids, devs.by.pr, devs.by.pr.tr)
 
   status("Computing classical statistics")
-  writeClassicalStatistics(outdir, ids.connected)
+  writeClassicalStatistics(outdir, ids)
 
   ## Parameters for removing too small communities; see select.communities
   ## for details (TODO: Should we make this configurable?)
@@ -1105,7 +1094,6 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ## Scale the weight in the adjacency matrix for propers visualization
   ## graphviz requires integer edge weights adjMatrix.connected.scaled =
   ## round( scale.data(adjMatrix.connected, 0, 1000) )
-  adjMatrix.connected.scaled <- adjMatrix.connected
 
   ##--------------------
   ##infomap
@@ -1114,16 +1102,16 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##g.walktrap.community <- infomap.community(g.connected)
 
   status("Inferring communities with spin glasses")
-  g.spin.community <- detect.communities(g.connected, ids.connected,
-                                         adjMatrix.connected.scaled,
+  g.spin.community <- detect.communities(g, ids,
+                                         adjMatrix,
                                          list(reg=pr.for.all, tr=pr.for.all.tr),
                                          outdir, "sg_", "Spin Glass Community",
                                          MIN.CUT.FRACTION, MAX.CUT.SIZE,
                                          spinglass.community.connected)
 
   status("Inferring communities with random walks")
-  g.walktrap.community <- detect.communities(g.connected, ids.connected,
-                                             adjMatrix.connected.scaled,
+  g.walktrap.community <- detect.communities(g, ids,
+                                             adjMatrix,
                                              list(reg=pr.for.all, tr=pr.for.all.tr),
                                              outdir, "wt_", "Random Walk Community",
                                              MIN.CUT.FRACTION, MAX.CUT.SIZE,
@@ -1147,12 +1135,12 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##-----------------
   status("Writing the all-developers graph sources")
 
-  save.all(conf, adjMatrix.connected.scaled, ids.connected,
+  save.all(conf, adjMatrix, ids,
            list(reg=pr.for.all, tr=pr.for.all.tr),
            g.spin.community,
            paste(outdir, "/sg_", sep=""),
            label="Spin Glass Community")
-  save.all(conf, adjMatrix.connected.scaled, ids.connected,
+  save.all(conf, adjMatrix, ids,
            list(reg=pr.for.all, tr=pr.for.all.tr),
            g.walktrap.community,
            paste(outdir, "wt_", sep=""),
