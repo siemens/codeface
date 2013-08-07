@@ -469,6 +469,55 @@ query.ml.activity <- function(con, ml.id, range.id) {
   return(NULL)
 }
 
+## Generate a data frame with descriptive statistics (or factoids, as
+## other portals like Ohloh call them). While we can observe intervals
+## of interest at different granularity (per cycle, yearly, complete
+## project duration), the base query is always identical.
+gen.factoids.basequery <- function() {
+  return(str_c("SELECT COUNT(DISTINCT(author)) AS numauthors, ",
+               "COUNT(id) as numcommits, ",
+               "SUM(addedLines+deletedLines) as changedLines, ",
+               "SUM(ChangedFiles) AS changedFiles FROM commit"))
+}
+
+query.factoids.cycle.con <- function(con, range.id) {
+  query <- gen.factoids.basequery()
+  query <- str_c(query, " WHERE releaseRangeId=", range.id)
+  res <- dbGetQuery(con, query)
+
+  return(res)
+}
+
+## Same factoids as before, but this time resolved by year
+query.factoids.yearly.con <- function(con, year) {
+  query <- gen.factoids.basequery()
+  query <- str_c(query, " WHERE commitDate >= '", year, "-01-01' AND ",
+                 " commitDate <= '", year, "-31-12'")
+  res <- dbGetQuery(con, query)
+
+  return(res)
+}
+
+## When the conf object is available, we can perform a sanity check
+## to ensure that the desired year is in the analysis range
+query.factoids.yearly <- function(conf, year) {
+  if (year < year(conf$boundaries$date.start[1]) |
+      year > year(conf$boundaries$date.start[length(conf$boundaries$date.start)])) {
+    return(NA)
+  }
+
+  return(query.factoids.yearly.con(conf$con, year))
+}
+
+## .. and the factoids for the global project
+query.factoids.total.con <- function(con) {
+  query <- gen.factoids.basequery()
+  res <- dbGetQuery(con, query)
+
+  return(res)
+}
+
+
 ### General SQL helper functions
 ## Test if a table is empty (returns false) or not (returns true)
 table.has.entries <- function(conf, table) {
