@@ -435,15 +435,18 @@ save.graph.graphviz <- function(con, pid, range.id, filename, plot.size=7) {
   ## Query Database
   ## Graph
   cluster.method <- "Spin Glass Community"
-  graph.id       <- query.global.collab.con(con, pid, range.id, cluster.method)
-  edgelist.db    <- query.cluster.edges(con, graph.id) 
-  p.id.map       <- get.index.map(c(edgelist.db$fromId,edgelist.db$toId))
-  edgelist		 <- cbind(map.ids(edgelist.db$fromId, p.id.map),
-						  map.ids(edgelist.db$toId, p.id.map))
+  g.id.complete    <- query.global.collab.con(con, pid, range.id, cluster.method)
+  node.global.ids  <- query.cluster.members(con, g.id.complete) 
+  edgelist.db    <- query.cluster.edges(con, g.id.complete) 
+  p.id.map       <- get.index.map(node.global.ids)
+  node.local.ids <- map.ids(node.global.ids, p.id.map)
+  edgelist		 <- data.frame(from=map.ids(edgelist.db$fromId, p.id.map),
+                                            to=map.ids(edgelist.db$toId, p.id.map),
+                                            weight=edgelist.db$weight)
   ## Clusters
   cluster.ids <- query.cluster.ids.con(con, pid, range.id, cluster.method)
   ## remove main graph cluster id
-  cluster.ids   <- cluster.ids[cluster.ids!=graph.id]
+  cluster.ids   <- cluster.ids[cluster.ids!=g.id.complete]
   cluster.data  <- lapply(cluster.ids,
                          function(c.id)
                            query.cluster.members(con, c.id,
@@ -460,23 +463,18 @@ save.graph.graphviz <- function(con, pid, range.id, filename, plot.size=7) {
   node.rank[node.rank.db$personId] <- node.rank.db$rankValue
 
   ## Create igraph object and perform manipulations
-  g <- graph(t(edgelist), directed=TRUE)
+  g <- graph.data.frame(edgelist, directed=TRUE,
+                                     vertices=data.frame(node.local.ids))
   cluster.conductance <- compute.all.community.quality(g, comm, "conductance")
   g.min      <- min.edge.count(g, comm, node.rank)
   g.min.simp <- simplify(g.min, remove.multiple=TRUE,remove.loops=TRUE)
-  ## check for isolated nodes, these will get eliminated if edge list
-  ## representation is used, therefore we create a self loop to avoid 
-  ## problems, this should occur only for a small number of nodes
-  isolated.nodes <- V(g)[igraph::degree(g.min.simp) == 0]
-  loops <- as.vector(t(cbind(isolated.nodes,isolated.nodes)))
-  g.min.simp <- add.edges(g.min.simp, loops, attr=list(weight=1))
 
   ## Convert to Rgraph object via graph object
   From    <- as.character(get.edgelist(g.min.simp)[,1])
   To      <- as.character(get.edgelist(g.min.simp)[,2])
   edgeL   <- cbind(From, To)
   weights <- E(g.min.simp)$weight
-  g.NEL <- ftM2graphNEL(edgeL, weights, edgemode="directed")
+  g.NEL <- ftM2graphNEL(edgeL, W=weights, V=V(g.min.simp)$name, edgemode="directed")
   subgraph.list <- compute.subgraph.list(g.NEL, comm)
   g.viz <- agopen(g.NEL, "pieGraph", subGList=subgraph.list)
 
