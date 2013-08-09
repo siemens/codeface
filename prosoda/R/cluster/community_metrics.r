@@ -216,14 +216,15 @@ community.stat.significance <- function(graph, cluster.algo) {
 
 
 ## write the significance test results to pdf
-save.comm.sig.test <- function(rand.samps, cluster.conductance,t.result, shap.result, outfile) {
+save.comm.sig.test <- function(rand.samps, cluster.conductance,t.result, 
+                               shap.result, outfile, format="png") {
 	m.c = sum(cluster.conductance)
 	m.r = mean(rand.samps)
 	s.r = sd(rand.samps)
 	x.low.lim <- 0
 	x.up.lim  <- 1
 	x.lim = c(x.low.lim, x.up.lim)
-	pdf(outfile)
+  select.graphics.dev(filename=outfile, size=size, format=format)
 	plot(density(rand.samps), main="Community Significance Test", ylab="Probability Density", xlab="Conductance", xlim=x.lim)
 	points(x=mean(cluster.conductance),y=0, col="green", pch=21, cex=2.5, bg="green")
 	abline(v=t.result$conf.int[1], col='red')

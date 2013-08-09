@@ -391,15 +391,8 @@ save.graph.igraph <- function(g, comm, filename, plot.size=7, format="png") {
   comm.layout     <- layoutCommunity(g,comm,FALSE)
   edge.width      <- scale.data(log(E(g)$weight),1,3)
 
-  formats <- c(bmp, jpeg, png, tiff)
-  names(formats) <- c("bmp", "jpeg", "png", "tiff")
+  select.graphics.dev <- function(filename, size, format="png")
 
-  if (!(format %in% names(formats))) {
-    format <- "png"
-  }
-
-  formats[format](filename=filename, width=size, height=size,
-                  units="in", res=320)
   plot(g,
        mark.group        = membership2markGroup(comm$membership),
        layout            = comm.layout,
