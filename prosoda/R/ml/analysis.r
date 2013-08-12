@@ -551,7 +551,7 @@ compute.twomode.graphs <- function(conf, interest.networks) {
 
   return(list(subject=g.subj, content=g.cont))
 }
-s
+
 store.twomode.graphs <- function(conf, twomode.graphs, ml.id, range.id) {
   store.twomode.graph(conf$con, twomode.graphs$subject, "subject",
                       ml.id, range.id)

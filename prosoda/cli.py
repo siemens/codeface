@@ -91,13 +91,10 @@ def cmd_run(args):
     # First make all the args absolute
     resdir, gitdir = map(os.path.abspath, (args.resdir, args.gitdir))
     prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
-    no_report = args.no_report
-    loglevel, logfile = args.loglevel, args.logfile
-    recreate = args.recreate
     if logfile:
         logfile = os.path.abspath(args.logfile)
     project_analyse(resdir, gitdir, prosoda_conf, project_conf,
-                    no_report, loglevel, logfile, recreate)
+                    args.no_report, args.loglevel, args.logfile, args.recreate)
     return 0
 
 def cmd_ml(args):
