@@ -109,7 +109,7 @@ def cmd_ml(args):
     return 0
 
 def cmd_dynamic(args):
-    dyn_directory = resource_filename(__name__, "R/shiny/")
+    dyn_directory = resource_filename(__name__, "R/shiny/apps")
 
     if args.graph is None and not(args.list):
         log.critical("No dynamic graph given!")
