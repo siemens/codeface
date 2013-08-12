@@ -313,6 +313,12 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
                    cycles[i,], ml.id, activity.plot.id)
     loginfo(paste(" -> Finished interval ", i, ": ", labels[[i]]), logger="ml.analysis")
   })
+  ## Check for errors in mclapply
+  for (r in res) {
+    if (inherits(r, "try-error")) {
+      stop(r)
+    }
+  }
 }
 
 ## User needs to make sure that data.path exists and is writeable
