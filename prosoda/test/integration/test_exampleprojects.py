@@ -19,30 +19,148 @@ from subprocess import check_call
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
 from os.path import dirname, join as pathjoin
-from .example_projects import get_example_project_1
+from .example_projects import example_project_func
 from prosoda.project import project_analyse, mailinglist_analyse
+from prosoda.configuration import Configuration
+from prosoda.dbmanager import DBManager
 
-class TestEndToEnd(unittest.TestCase):
+pid_tables = [
+    "cluster",
+    "commit",
+    "freq_subjects",
+    "issue",
+    "mail_thread",
+    "mailing_list",
+    "per_cluster_statistics",
+    "person",
+    "plots",
+    "release_range",
+    "release_timeline",
+    "thread_density",
+    "url_info",
+]
+
+# TODO: Check if these should be filled
+ignore_tables = [
+    "issue",
+    "per_cluster_statistics",
+    "thread_density",
+    "url_info",
+    "cc_list",
+    "commit_communication",
+    "issue_comment",
+    "issue_dependencies",
+    "issue_duplicates",
+    "issue_history",
+    "plot_bin",
+]
+
+other_tables = [
+    "author_commit_stats",
+    "cc_list",
+    "cluster_user_mapping",
+    "commit_communication",
+    "edgelist",
+    "initiate_response",
+    "issue_comment",
+    "issue_dependencies",
+    "issue_duplicates",
+    "issue_history",
+    "pagerank",
+    "pagerank_matrix",
+    "plot_bin",
+    "project",
+    "thread_responses",
+    "timeseries",
+    "twomode_edgelist",
+    "twomode_vertices",
+]
+
+class TestEndToEnd(object):
     '''End to end test of a prosoda analysis'''
+    add_ignore_tables = []
 
-    def executeTest(self, p):
-        with p:
-            path = p.directory
-            gitdir = dirname(path)
-            resdir = pathjoin(path, ".git", "results")
-            mldir = pathjoin(path, ".git")
-            project_conf = p.prosoda_conf
-            no_report = False
-            loglevel = "devinfo"
-            logfile = pathjoin(path, ".git", "log")
-            recreate = False
-            # This config_file is added in the prosoda test command handler
-            prosoda_conf = self.config_file
-            print("project_analyse", (resdir, gitdir, prosoda_conf, project_conf, no_report, loglevel, logfile, recreate))
-            project_analyse(resdir, gitdir, prosoda_conf, project_conf, no_report, loglevel, logfile, recreate)
-            mailinglist_analyse(resdir, mldir, prosoda_conf, project_conf, loglevel, logfile, jobs=2)
+    def setup_with_p(self, p):
+        path = self.p.directory
+        self.gitdir = dirname(path)
+        self.resdir = pathjoin(path, ".git", "results")
+        self.mldir = pathjoin(path, ".git")
+        self.project_conf = self.p.prosoda_conf
+        self.no_report = False
+        self.loglevel = "devinfo"
+        self.logfile = pathjoin(path, ".git", "log")
+        self.recreate = False
+        # This config_file is added in the prosoda test command handler
+        self.prosoda_conf = self.config_file
+        conf = Configuration.load(self.prosoda_conf, self.project_conf)
+        dbm = DBManager(conf)
+        for table in pid_tables + other_tables:
+            dbm.doExecCommit("DELETE FROM {}".format(table))
 
-    def testExampleProject1(self):
-        for tagging in ["tag", "committer2author", "proximity"]:
-            p = get_example_project_1(tagging)
-            self.executeTest(p)
+    def analyseEndToEnd(self):
+        project_analyse(self.resdir, self.gitdir, self.prosoda_conf,
+                        self.project_conf, self.no_report, self.loglevel,
+                        self.logfile, self.recreate)
+
+    def mlEndToEnd(self):
+        mailinglist_analyse(self.resdir, self.mldir, self.prosoda_conf,
+                            self.project_conf, self.loglevel, self.logfile,
+                            jobs=2)
+
+    def checkResult(self):
+        conf = Configuration.load(self.prosoda_conf, self.project_conf)
+        dbm = DBManager(conf)
+        project_id = dbm.getProjectID(conf["project"], self.tagging)
+        self.assertGreaterEqual(project_id, 0)
+        for table in pid_tables + other_tables:
+            res = dbm.doExec("SELECT * FROM {table}".format(table=table))
+            if table in ignore_tables + self.add_ignore_tables:
+                if res == 0:
+                    print ("Table not filled (expected): ", table)
+            else:
+                self.assertGreaterEqual(res, 1, msg="Table '{}' not filled!".
+                                                    format(table))
+
+    def checkClean(self):
+        conf = Configuration.load(self.prosoda_conf, self.project_conf)
+        dbm = DBManager(conf)
+        project_id = dbm.getProjectID(conf["project"], self.tagging)
+        dbm.doExecCommit("DELETE FROM project WHERE id={}".format(project_id))
+        for table in pid_tables:
+            res = dbm.doExec("SELECT * FROM {table} WHERE projectId={pid}".
+                             format(table=table, pid=project_id))
+            self.assertEqual(res, 0, msg="Table '{}' still dirty!".
+                                 format(table))
+        for table in other_tables:
+            res = dbm.doExec("SELECT * FROM {table}".format(table=table))
+            self.assertEqual(res, 0,  msg="Table '{}' still dirty!".format(table))
+
+    def testEndToEnd(self):
+        self.p = example_project_func[self.example_project](self.tagging)
+        with self.p:
+            self.setup_with_p(self.p)
+            self.analyseEndToEnd()
+            self.mlEndToEnd()
+            self.checkResult()
+            self.checkClean()
+
+class TestEndToEndExample1Tag(unittest.TestCase, TestEndToEnd):
+    example_project = 1
+    tagging = "tag"
+
+class TestEndToEndExample1C2A(unittest.TestCase, TestEndToEnd):
+    example_project = 1
+    tagging = "committer2author"
+
+class TestEndToEndExample1Proximity(unittest.TestCase, TestEndToEnd):
+    example_project = 1
+    tagging = "proximity"
+    add_ignore_tables = ["edgelist"]
+
+
+class TestEndToEndExample2Tag(unittest.TestCase, TestEndToEnd):
+    example_project = 2
+    tagging = "tag"
+    testEndToEnd = unittest.expectedFailure(TestEndToEnd.testEndToEnd)
+
+

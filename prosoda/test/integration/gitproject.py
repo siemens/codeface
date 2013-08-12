@@ -175,6 +175,10 @@ class GitProject(object):
         return pathjoin(self.directory, ".git", "testproject.conf")
 
     @property
+    def name(self):
+        return basename(self.directory)
+
+    @property
     def mboxes(self):
         project = basename(self.directory)
         return [(name, pathjoin(self.directory, ".git",
