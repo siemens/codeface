@@ -23,33 +23,58 @@ def get_example_project_1(tagging="tag"):
     Clara = project.add_author("Clara Confident", "clara@foo.org")
     Max = project.add_author("Max Maintainer", "max@theboss.com")
     Peter = project.add_author("Peter Popular", "peter@gmail.com")
+    project.email("dev1", Adam, "2013-01-07T15:00:00", "Project start", "Foo!")
     project.commit(Adam, Adam, "2013-01-07T16:00:00",
             {"README":"FOO\nBOO"}, signoff=[Adam])
     project.tag_rc(Adam, "2013-01-07T16:30:00")
-    project.tag_release(Adam, "2013-01-07T16:60:00")
+    project.tag_release(Adam, "2013-01-07T16:59:00")
+    project.email("dev1", Adam, "2013-01-08T14:00:00", "Mail 2a", "A commit!")
+    project.email("dev1", Adam, "2013-01-08T14:00:01", "Mail 2b", "A commit!")
+    project.email("dev1", Adam, "2013-01-08T14:00:02", "Mail 2c", "A commit!")
+    project.email("dev1", Adam, "2013-01-08T14:00:03", "Mail 2d", "A commit!")
+    project.email("dev1", Adam, "2013-01-08T14:00:04", "Mail 2e", "A commit!")
     project.commit(Adam, Adam, "2013-01-08T15:00:00",
             {"README":"Foo\nBoo",
             "src/code.c":"int main() {return 0;};"},
             signoff=[Adam])
     project.tag_rc(Adam, "2013-01-08T15:30:00")
+    project.email("dev1", Bill, "2013-01-09T14:00:00", "Re: Mail 2", "A fix!")
     project.commit(Bill, Bill, "2013-01-09T15:30:00",
             {"README":"Foo\nBoo",
             "src/code.c":"int main() {return 0;};",
             "src/carp.c":"int main() {return -1;};"
             },
             signoff=[Bill, Clara])
+    project.email("dev1", Adam, "2013-01-10T14:00:00", "Re: Mail 2a", "I will revert!")
+    project.email("dev1", Adam, "2013-01-10T14:00:01", "Re: Mail 2b", "I will revert!")
+    project.email("dev1", Adam, "2013-01-10T14:00:02", "Re: Mail 2c", "I will revert!")
+    project.email("dev1", Adam, "2013-01-10T14:00:03", "Re: Mail 2d", "I will revert!")
+    project.email("dev1", Adam, "2013-01-10T14:00:04", "Re: Mail 2e", "I will revert!")
     project.commit(Adam, Adam, "2013-01-10T18:00:00",
             {"README":"Foo\nBoo",
             "src/code.c":"int main() {\n    return 0;\n};"
             },
             signoff=[Adam, Peter])
+
     project.tag_release(Adam, "2013-01-10T18:40:00")
+    project.email("dev1", Adam, "2013-01-10T19:00:00", "Release 1a", "Released.")
+    project.email("dev1", Adam, "2013-01-10T19:00:01", "Release 1b", "Released.")
+    project.email("dev1", Adam, "2013-01-10T19:00:02", "Release 1c", "Released.")
+    project.email("dev1", Adam, "2013-01-10T19:00:03", "Release 1d", "Released.")
+    project.email("dev1", Adam, "2013-01-10T19:00:04", "Release 1e", "Released.")
     project.commit(Max, Adam, "2013-01-14T12:30:42",
             {"README":"Foo\nBoo",
             "src/code.c":"int main() {\n    return 0;\n};",
             "src/newcode.c":"int answer() {\n    return 42;\n};"
             },
             signoff=[Adam, Max])
+    project.email("dev2", Max, "2013-01-14T19:00:00", "Commit", "A commit.")
+    project.email("dev2", Max, "2013-01-14T19:00:01", "Commit A", "A commit.")
+    project.email("dev2", Max, "2013-01-14T19:00:02", "Commit B", "A commit.")
+    project.email("dev2", Max, "2013-01-14T19:00:03", "Commit C", "A commit.")
+    project.email("dev2", Max, "2013-01-14T19:00:04", "Commit D", "A commit.")
+    project.email("dev2", Adam, "2013-01-14T19:20:00", "Re: Commit", "Comment.")
+    project.email("dev2", Max, "2013-01-14T19:40:00", "Re: Commit", "Comment too.")
     project.commit(Max, Max, "2013-01-14T12:50:42",
             {"README":"Foo\nBoo",
             "src/code.c":"int main() {\n    return 0;\n};",
@@ -64,11 +89,28 @@ def get_example_project_1(tagging="tag"):
             },
             signoff=[Adam, Max, Clara])
     project.tag_rc(Max, "2013-01-15T13:42:42")
+    project.email("dev2", Max, "2013-01-15T13:43:00", "RC", "A RC.")
+    project.email("dev2", Max, "2013-01-15T13:43:01", "RC A", "A RC.")
+    project.email("dev2", Max, "2013-01-15T13:43:02", "RC B", "A RC.")
+    project.email("dev2", Max, "2013-01-15T13:43:03", "RC C", "A RC.")
+    project.email("dev2", Max, "2013-01-15T13:43:04", "RC D", "A RC.")
+    project.email("dev2", Clara, "2013-01-15T14:00:00", "Re: RC", "Nice :)")
     project.commit(Max, Max, "2013-01-21T12:50:42",
             {"README":"Foo\nBoo\nGoo.",
             "src/code.c":"int main() {\n    return 0;\n};",
             "src/answer.c":"int answer() {\n    return 42;\n};"
             },
             signoff=[Adam, Max])
+
+    # These emails are simultaneous on purpose
+    project.email("dev2", Max, "2013-01-23T13:40:00", "Release 2a", "A Release.")
+    project.email("dev2", Max, "2013-01-23T13:40:00", "Release 2b", "A Release.")
+    project.email("dev2", Max, "2013-01-23T13:40:00", "Release 2c", "A Release.")
+    project.email("dev2", Max, "2013-01-23T13:40:00", "Release 2d", "A Release.")
+    project.email("dev2", Max, "2013-01-23T13:40:00", "Release 2e", "A Release.")
     project.tag_release(Max, "2013-01-23T13:42:42")
     return project
+
+
+
+

@@ -14,13 +14,15 @@
 # Copyright 2013 by Siemens AG
 # All Rights Reserved.
 
-from tempfile import mkdtemp
+from tempfile import mkdtemp, NamedTemporaryFile
 from shutil import rmtree
 from collections import namedtuple
 from subprocess import check_call
 from textwrap import dedent
 from os import getcwd, chdir, listdir, unlink, getenv, makedirs, environ
 from os.path import split as pathsplit, join as pathjoin, isdir, exists, basename
+from datetime import datetime
+from time import strptime
 
 _Author = namedtuple("_Author", ["name", "email"])
 class Author(_Author):
@@ -42,6 +44,7 @@ class GitProject(object):
         self._authors = []
         self._commits = []
         self._tagging = tagging
+        self._mboxes = {}
 
     def __enter__(self):
         '''
@@ -136,6 +139,9 @@ class GitProject(object):
             )
             with file(self.prosoda_conf, "w") as fd:
                 fd.write(configuration)
+            for ml_name, ml_file in self.mboxes:
+                with file(ml_file, "w") as fd:
+                    fd.write(self.mbox_contents(ml_name))
         finally:
             chdir(cwd)
 
@@ -169,5 +175,44 @@ class GitProject(object):
         return pathjoin(self.directory, ".git", "testproject.conf")
 
     @property
+    def mboxes(self):
+        project = basename(self.directory)
+        return [(name, pathjoin(self.directory, ".git",
+                 ".".join((project, name, "mbox"))))
+                for name in ("dev1", "dev2", "user1", "user2")]
+
+    @property
     def authors(self):
         return self._authors
+
+    def email(self, mlist, sender, date, subject, content):
+        cdate = datetime(*strptime(date, "%Y-%m-%dT%H:%M:%S")[:6]).strftime("%a, %d %b %Y %H:%M:%S")
+        self._mboxes.setdefault(mlist, []).append(dedent(
+        """
+        From MAILER-DAEMON Thu Jul 18 13:48:48 2013
+        Path: example.com!not-for-mail
+        From: {sender}
+        Newsgroups: gmane.prosoda.test.project
+        Subject: {subject}
+        Date: {date}
+        Approved: auto
+        Message-ID: <{messageid}@example.com>
+        NNTP-Posting-Host: example.com
+        Mime-Version: 1.0
+        Content-Type: text/plain; charset=us-ascii; format=flowed
+        Content-Transfer-Encoding: 7bit
+        X-Complaints-To: complaints@example.com
+        NNTP-Posting-Date: {date}
+        User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:0.9.8) Gecko/20020205
+        X-Accept-Language: en-us
+        Original-To: prosoda.test.project@example.com
+        Precedence: bulk
+        X-Mailing-List: prosoda.test.project@example.com
+
+        {content}""").
+        format(date=cdate, sender=sender, subject=subject,
+               content=content, messageid=len(self._mboxes.get(mlist, []))))
+
+    def mbox_contents(self, mlist):
+        return ("\n\n".join(self._mboxes.get(mlist, [])) + "\n\n").lstrip()
+

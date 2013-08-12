@@ -105,32 +105,10 @@ def cmd_ml(args):
     # First make all the args absolute
     resdir, mldir = map(os.path.abspath, (args.resdir, args.mldir))
     prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
-    loglevel, logfile = args.loglevel, args.logfile
-    jobs = args.jobs
     if logfile:
         logfile = os.path.abspath(args.logfile)
-    del args
-    conf = Configuration.load(prosoda_conf, project_conf)
-    ml_resdir = os.path.join(resdir, conf["project"], "ml")
-
-    exe = resource_filename(__name__, "R/ml/batch.r")
-    cwd, _ = os.path.split(exe)
-    cmd = []
-    cmd.extend(("--loglevel", loglevel))
-    cmd.extend(("-c", prosoda_conf))
-    cmd.extend(("-p", project_conf))
-    cmd.extend(("-j", str(jobs)))
-    cmd.append(ml_resdir)
-    cmd.append(mldir)
-    for i, ml in enumerate(conf["mailinglists"]):
-        log.info("=> Analysing mailing list '{name}' of type '{type}'".
-                format(**ml))
-        logargs = []
-        if logfile:
-            logargs = ["--logfile", "{}.R.ml.{}".format(logfile, i)]
-        execute_command([exe] + logargs + cmd + [ml["name"]],
-                direct_io=True, cwd=cwd)
-    log.info("=> Prosoda mailing list analysis complete!")
+    mailinglist_analyse(resdir, mldir, prosoda_conf, project_conf,
+                        args.loglevel, args.logfile, args.jobs)
     return 0
 
 def cmd_dynamic(args):

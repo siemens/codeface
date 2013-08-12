@@ -20,7 +20,7 @@ from tempfile import NamedTemporaryFile
 from textwrap import dedent
 from os.path import dirname, join as pathjoin
 from .example_projects import get_example_project_1
-from prosoda.project import project_analyse
+from prosoda.project import project_analyse, mailinglist_analyse
 
 class TestEndToEnd(unittest.TestCase):
     '''End to end test of a prosoda analysis'''
@@ -30,6 +30,7 @@ class TestEndToEnd(unittest.TestCase):
             path = p.directory
             gitdir = dirname(path)
             resdir = pathjoin(path, ".git", "results")
+            mldir = pathjoin(path, ".git")
             project_conf = p.prosoda_conf
             no_report = False
             loglevel = "devinfo"
@@ -39,6 +40,7 @@ class TestEndToEnd(unittest.TestCase):
             prosoda_conf = self.config_file
             print("project_analyse", (resdir, gitdir, prosoda_conf, project_conf, no_report, loglevel, logfile, recreate))
             project_analyse(resdir, gitdir, prosoda_conf, project_conf, no_report, loglevel, logfile, recreate)
+            mailinglist_analyse(resdir, mldir, prosoda_conf, project_conf, loglevel, logfile, jobs=2)
 
     def testExampleProject1(self):
         for tagging in ["tag", "committer2author", "proximity"]:

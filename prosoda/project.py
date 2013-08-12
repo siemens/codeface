@@ -118,3 +118,27 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
     cmd.append(project_resdir)
     execute_command(cmd, direct_io=True, cwd=cwd)
     log.info("=> Prosoda run complete!")
+
+def mailinglist_analyse(resdir, mldir, prosoda_conf, project_conf, loglevel,
+                        logfile, jobs):
+    conf = Configuration.load(prosoda_conf, project_conf)
+    ml_resdir = pathjoin(resdir, conf["project"], "ml")
+
+    exe = resource_filename(__name__, "R/ml/batch.r")
+    cwd, _ = pathsplit(exe)
+    cmd = []
+    cmd.extend(("--loglevel", loglevel))
+    cmd.extend(("-c", prosoda_conf))
+    cmd.extend(("-p", project_conf))
+    cmd.extend(("-j", str(jobs)))
+    cmd.append(ml_resdir)
+    cmd.append(mldir)
+    for i, ml in enumerate(conf["mailinglists"]):
+        log.info("=> Analysing mailing list '{name}' of type '{type}'".
+                format(**ml))
+        logargs = []
+        if logfile:
+            logargs = ["--logfile", "{}.R.ml.{}".format(logfile, i)]
+        execute_command([exe] + logargs + cmd + [ml["name"]],
+                direct_io=True, cwd=cwd)
+    log.info("=> Prosoda mailing list analysis complete!")
