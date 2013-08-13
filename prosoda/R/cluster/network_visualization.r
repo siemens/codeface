@@ -449,6 +449,8 @@ save.graph.graphviz <- function(con, pid, range.id, filename, plot.size=7) {
   cluster.method <- "Spin Glass Community"
   g.id.complete    <- query.global.collab.con(con, pid, range.id, cluster.method)
   node.global.ids  <- query.cluster.members(con, g.id.complete) 
+  node.label <- lapply(node.global.ids, function(id)
+                       query.person.name(con, id))
   edgelist.db    <- query.cluster.edges(con, g.id.complete) 
   p.id.map       <- get.index.map(node.global.ids)
   node.local.ids <- map.ids(node.global.ids, p.id.map)
@@ -505,6 +507,10 @@ save.graph.graphviz <- function(con, pid, range.id, filename, plot.size=7) {
   clusterData(g.viz, cluster.id, "style") <- "bold"
   ## border color
   clusterData(g.viz, cluster.id, "color") <- pie.vertex$comm.col
+  ## cluster label
+  central.node.idx <- important.community.nodes(comm, node.rank)
+  clusterData(g.viz, cluster.id, "label") <-
+              as.character(node.label[central.node.idx])
 
   ## Node Attributes
   n.idx <-  as.character(1:vcount(g))
@@ -519,7 +525,7 @@ save.graph.graphviz <- function(con, pid, range.id, filename, plot.size=7) {
   nodeData(g.viz, n.idx, "height") <- as.character(
 		  scale.data(node.rank, 0.75, 5))
   ## node label
-  nodeData(g.viz, n.idx, "label") <- unlist(node.label)
+  nodeData(g.viz, n.idx, "label") <- as.character(node.global.ids)
 
   ## Edge Attributes 
   N   <- nrow(edge.df)
