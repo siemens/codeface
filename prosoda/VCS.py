@@ -940,18 +940,35 @@ class gitVCS (VCS):
         cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tagFile.name, srcFile.name).split()
         output = execute_command(cmd).splitlines()
 
-        # parse ctags generated file for the function line numbers
+        # parse ctags
         try:
             tags = CTags(tagFile.name)
         except:
             log.critical("failure to load ctags file")
             raise Error("failure to load ctags file")
 
-        # locate function line numbers and names
+        # locate line numbers and structure names
         entry = TagEntry()
         funcLines = {}
-        while(tagFile.next(entry)):
-            if 'f' == entry['kind']:
+        # select the language structures we are interested in identifying
+        # f = functions, s = structs, c = classes, n = namespace
+        # p = function prototype, g = enum, d = macro, t= typedef, u = union 
+        structures = ["f", "s", "c", "n", "p", "g", "d", "t", "u"]
+        # TODO: investigate other languages and how ctags assigns the structure
+        #       tags, we may need more languages specific assignments in
+        #       addition to java and c# files, use "ctags --list-kinds" to
+        #       see all tag meanings per language
+        if fileExt in (".java", ".j", ".jav", ".cs", ".js"):
+            structures.append("m") # methods
+            structures.append("i") # interface
+        elif fileExt in (".php"):
+            structures.append("i") # interface
+            structures.append("j") # functions
+        elif fileExt in (".py"):
+            structures.append("m") # class members
+
+        while(tags.next(entry)):
+            if entry['kind'] in structures:
                 funcLines[int(entry['lineNumber'])] = entry['name']
 
         # clean up temporary files
