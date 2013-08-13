@@ -76,7 +76,8 @@ other_tables = [
     "twomode_vertices",
 ]
 
-class TestEndToEnd(object):
+
+class EndToEndTestSetup(unittest.TestCase):
     '''End to end test of a prosoda analysis'''
     add_ignore_tables = []
 
@@ -107,18 +108,25 @@ class TestEndToEnd(object):
                             self.project_conf, self.loglevel, self.logfile,
                             jobs=2)
 
-    def checkResult(self):
+    def getResults(self):
         conf = Configuration.load(self.prosoda_conf, self.project_conf)
         dbm = DBManager(conf)
         project_id = dbm.getProjectID(conf["project"], self.tagging)
         self.assertGreaterEqual(project_id, 0)
-        for table in pid_tables + other_tables:
-            res = dbm.doExec("SELECT * FROM {table}".format(table=table))
+        results = {}
+        for table in pid_tables + other_tables + ignore_tables:
+            dbm.doExec("SELECT * FROM {table}".format(table=table))
+            results[table] = dbm.doFetchAll()
+        return results
+
+    def checkResult(self):
+        results = self.getResults()
+        for table, res in results.iteritems():
             if table in ignore_tables + self.add_ignore_tables:
-                if res == 0:
+                if len(res) == 0:
                     print ("Table not filled (expected): ", table)
             else:
-                self.assertGreaterEqual(res, 1, msg="Table '{}' not filled!".
+                self.assertGreaterEqual(len(res), 1, msg="Table '{}' not filled!".
                                                     format(table))
 
     def checkClean(self):
@@ -135,6 +143,7 @@ class TestEndToEnd(object):
             res = dbm.doExec("SELECT * FROM {table}".format(table=table))
             self.assertEqual(res, 0,  msg="Table '{}' still dirty!".format(table))
 
+class TestEndToEnd(object):
     def testEndToEnd(self):
         self.p = example_project_func[self.example_project](self.tagging)
         with self.p:
@@ -144,23 +153,45 @@ class TestEndToEnd(object):
             self.checkResult()
             self.checkClean()
 
-class TestEndToEndExample1Tag(unittest.TestCase, TestEndToEnd):
+class TestEndToEndExample1Tag(EndToEndTestSetup, TestEndToEnd):
     example_project = 1
     tagging = "tag"
 
-class TestEndToEndExample1C2A(unittest.TestCase, TestEndToEnd):
+class TestEndToEndExample1C2A(EndToEndTestSetup, TestEndToEnd):
     example_project = 1
     tagging = "committer2author"
 
-class TestEndToEndExample1Proximity(unittest.TestCase, TestEndToEnd):
+class TestEndToEndExample1Proximity(EndToEndTestSetup, TestEndToEnd):
     example_project = 1
     tagging = "proximity"
     add_ignore_tables = ["edgelist"]
 
 
-class TestEndToEndExample2Tag(unittest.TestCase, TestEndToEnd):
+class TestEndToEndExample2Tag(EndToEndTestSetup, TestEndToEnd):
     example_project = 2
     tagging = "tag"
     testEndToEnd = unittest.expectedFailure(TestEndToEnd.testEndToEnd)
 
-
+class TestEndToEndCaseInsensitivity(EndToEndTestSetup):
+    example_project = 1
+    tagging = "tag"
+    def testCaseInsensitivity(self):
+        self.p = example_project_func[self.example_project](self.tagging,
+                    randomise_email_case=False)
+        with self.p:
+            self.setup_with_p(self.p)
+            self.analyseEndToEnd()
+            self.mlEndToEnd()
+            self.checkResult()
+            result_normalcase = self.getResults()
+            self.checkClean()
+        self.p = example_project_func[self.example_project](self.tagging,
+                    randomise_email_case=True)
+        with self.p:
+            self.setup_with_p(self.p)
+            self.analyseEndToEnd()
+            self.mlEndToEnd()
+            self.checkResult()
+            result_randcase = self.getResults()
+            self.checkClean()
+        self.assertEqual(result_normalcase, result_randcase)

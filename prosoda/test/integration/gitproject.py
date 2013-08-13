@@ -23,6 +23,7 @@ from os import getcwd, chdir, listdir, unlink, getenv, makedirs, environ
 from os.path import split as pathsplit, join as pathjoin, isdir, exists, basename
 from datetime import datetime
 from time import strptime
+from random import Random
 
 _Author = namedtuple("_Author", ["name", "email"])
 class Author(_Author):
@@ -39,12 +40,15 @@ class GitProject(object):
     as a context manager using the with statement. This ensures that the git
     repository is properly deleted at the end of testing.
     '''
-    def __init__(self, tagging="tag"):
+    def __init__(self, tagging="tag", randomise_email_case=False):
         '''Creates a repository with no commits'''
         self._authors = []
         self._commits = []
         self._tagging = tagging
         self._mboxes = {}
+        self._randomise_email_case = randomise_email_case
+        self._random = Random()
+        self._random.seed(42)
 
     def __enter__(self):
         '''
@@ -191,6 +195,9 @@ class GitProject(object):
 
     def email(self, mlist, sender, date, subject, content):
         cdate = datetime(*strptime(date, "%Y-%m-%dT%H:%M:%S")[:6]).strftime("%a, %d %b %Y %H:%M:%S")
+        if self._randomise_email_case:
+            subject = ''.join(self._random.choice((x.lower(), x.upper())) for x in subject)
+            content = ''.join(self._random.choice((x.lower(), x.upper())) for x in content)
         self._mboxes.setdefault(mlist, []).append(dedent(
         """
         From MAILER-DAEMON Thu Jul 18 13:48:48 2013

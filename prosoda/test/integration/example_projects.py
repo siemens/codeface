@@ -18,8 +18,8 @@ from .gitproject import GitProject
 
 example_project_func = {}
 
-def get_example_project_1(tagging="tag"):
-    project = GitProject(tagging)
+def get_example_project_1(tagging="tag", randomise_email_case=False):
+    project = GitProject(tagging, randomise_email_case)
     Adam = project.add_author("Adam Awkward", "adam@awkward.net")
     Bill = project.add_author("Bill Bully", "bill@bullies.org")
     Clara = project.add_author("Clara Confident", "clara@foo.org")
