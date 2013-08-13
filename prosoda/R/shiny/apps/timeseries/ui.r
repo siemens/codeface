@@ -5,6 +5,6 @@
 # notice and this notice are preserved.  This file is offered as-is,
 # without any warranty.
 
-source("../../dynamic_graphs/contributors.r", chdir=TRUE)
+source("../../../dynamic_graphs/timeseries.r", chdir=TRUE)
 
-shinyServer(vis.descriptive.server)
+shinyUI(ml.timeseries.ui)

@@ -31,6 +31,7 @@ source("../vis.ports.r", chdir=TRUE)
 ## Global variables
 conf <- config.from.args(require_project=FALSE)
 projects.list <- query.projects(conf$con)
+source("../shiny/nav/breadcrumb.r", chdir = TRUE)
 
 ## Use the release ranges for the first project in the list
 ## as initial values
@@ -92,7 +93,8 @@ vis.descriptive.server <- function(input, output, clientData, session) {
 
 vis.descriptive.ui <-
   pageWithSidebar(
-    headerPanel("Descriptive statistics"),
+    breadcrumbPanel(breadcrumbPanelData("contributors", NULL)),
+    #headerPanel("Descriptive statistics"),
     sidebarPanel(
       selectInput("project", "Project",
                   choices = projects.list$name),
