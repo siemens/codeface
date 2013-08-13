@@ -40,6 +40,7 @@ import fileCommit
 import re
 import os
 import ctags
+import tempfile
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from ctags import CTags, TagEntry
 from logging import getLogger; log = getLogger(__name__)
@@ -927,23 +928,21 @@ class gitVCS (VCS):
         fileExt = os.path.splitext(file_commit.filename)[1]
 
         # temporary file where we write transient data needed for ctags
-        #TODO: use a unique id for the file
-        srcFn = self.rev_start + '_' + self.rev_end + 'srcTmp' + fileExt
-        tagFn = self.rev_start + '_' + self.rev_end + 'tagTmp'
+        srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
+        tagFile = tempfile.NamedTemporaryFile()
         # generate a source code file from the file_layout_src dictionary
         # and save it to a temporary location
-        srcFile = open(srcFn, 'w')
         for line in file_layout_src:
             srcFile.write(line)
-        srcFile.close()
+        srcFile.flush()
 
         # run ctags analysis on the file to create a tags file
-        cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tagFn, srcFn).split()
+        cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tagFile.name, srcFile.name).split()
         output = execute_command(cmd).splitlines()
 
         # parse ctags generated file for the function line numbers
         try:
-            tagFile = CTags(tagFn)
+            tags = CTags(tagFile.name)
         except:
             log.critical("failure to load ctags file")
             raise Error("failure to load ctags file")
@@ -956,8 +955,8 @@ class gitVCS (VCS):
                 funcLines[int(entry['lineNumber'])] = entry['name']
 
         # clean up temporary files
-        os.remove(srcFn)
-        os.remove(tagFn)
+        srcFile.close()
+        tagFile.close()
 
         # save result to the file commit instance
         file_commit.setFunctionLines(funcLines)
