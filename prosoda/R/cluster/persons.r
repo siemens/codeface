@@ -47,7 +47,7 @@ source("../config.r", chdir=TRUE)
 source("../db.r", chdir=TRUE)
 source("../query.r", chdir=TRUE)
 source("community_metrics.r")
-
+source("network_visualization.r")
 
 #######################################################################
 ##		Lower Level Functions
@@ -849,6 +849,10 @@ save.all <- function(conf, .tags, .iddb, .prank.list, .comm, .filename.base=NULL
     write.graph(g.all.reg, filename.reg, format="dot")
     write.graph(g.all.tr, filename.tr, format="dot")
   }
+
+  ## Community visualization
+  filename.comm <- paste(.filename.base, "community.dot", sep="")
+  save.graph.graphviz(conf$con, conf$pid, conf$range.id, filename.comm)
 }
 
 
