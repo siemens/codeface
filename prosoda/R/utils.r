@@ -19,62 +19,15 @@
 
 suppressPackageStartupMessages(library(logging))
 
-tstamp_to_date <- function(z) as.POSIXct(as.integer(z), origin="1970-01-01")
-
-shannon.entropy <- function(p)
-{
-	if (min(p) < 0 || sum(p) <= 0)
-		return(NA)
-	p.norm <- p[p>0]/sum(p)
-	-sum(log2(p.norm)*p.norm)
-}
-
-to.regts <- function(rawts, smooth)
-{
-	ts <- as.xts(rollmean(rawts, smooth))
-	ts_reduced <- as.xts(to.period(ts, "hours")[,1])
-	# Average difference in seconds between two data points
-	tstart <- unclass(index(ts_reduced[1]))
-	tend <- unclass(index(ts_reduced[length(ts_reduced)]))
-	tdiff <- floor((tend-tstart)/length(ts_reduced))
-	ts(data=coredata(ts_reduced), start=tstart, deltat=tdiff)
-}
-
-HOURLY <- 60*60
-HALF.DAILY <- HOURLY*12
-DAILY <- HOURLY*24
-
-align_ts <- function(x,N) { tstamp_to_date(floor(as.integer(x)/N)*N)}
-
-generate_regular_ts <- function(raw, N, delta.t=NA) {
-  daily <- aggregate(raw, function(x) { align_ts(x, N) }, sum)
-  if (is.na(delta.t)) {
-    tseries <- as.ts(daily);
-  } else {
-    tseries <- ts(data=coredata(daily), deltat=delta.t);
-  }
-  # TODO: Strangely enough, the time propery of the index is lost,
-  # and we retain only the numeric values. tstamp_to_date(index(series))
-  # is, however, still correct
-  tseries[is.na(tseries)] <- 0
-
-  return(tseries)
-}
+## Interpret an integer as timestamp from the UNIX epoch
+tstamp.to.POSIXct <- function(z) as.POSIXct(as.integer(z), origin="1970-01-01")
 
 ## Convert a time series into a data frame
+## The data frame contains the timestamps (index(ts)),
+## the matrix of observations (coredata(ts))
 gen.df.from.ts <- function(ts, type) {
-  df <- data.frame(time=index(ts), value=coredata(ts),
-                   value.scaled=scale.data(coredata(ts)), type=type)
-
-  return(df)
-}
-
-can.read.file <- function(file) {
-  return (file.access(file, mode=2) != -1)
-}
-
-status <- function(str) {
-	logdevinfo(str, logger="util")
+  data.frame(time=index(ts), value=coredata(ts),
+             value.scaled=scale.data(coredata(ts)), type=type)
 }
 
 ## Scale a given data set to the range [min,max]

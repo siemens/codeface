@@ -867,7 +867,7 @@ writePageRankData <- function(conf, outdir, .iddb, devs.by.pr, devs.by.pr.tr) {
 
 performAnalysis <- function(outdir, conf) {
   ################## Process the data #################
-  status("Reading files")
+  logdevinfo("Reading files", logger="cluster.persons")
   adjMatrix <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
                      sep="\t", header=FALSE)
   colnames(adjMatrix) <- rownames(adjMatrix)
@@ -930,7 +930,7 @@ detect.communities <- function(g.connected, ids.connected,
                                                   "conductance")
   }
 
-  status(str_c("Writing community graph sources for algorithm ", label))
+  logdevinfo(str_c("Writing community graph sources for algorithm ", label), logger="cluster.persons")
   ## NOTE: The cluster decomposition is independent of the page
   ## rank calculation technique -- only the edge strengths, but not the
   ## page rank values influence the decomposition.
@@ -951,7 +951,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ## Isolated graph members are outliers for the Linux kernel. Eliminate
   ## them to create a connected graph (NOTE: This must not be done for
   ## projects where proper direct clustering can happen)
-  status("Computing adjacency matrices")
+  logdevinfo("Computing adjacency matrices", logger="cluster.persons")
 
   g <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
 
@@ -989,7 +989,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##========================
 
   ## Compute the page ranking for all developers in the database
-  status("Computing page rank")
+  logdevinfo("Computing page rank", logger="cluster.persons")
   ## This puts the focus on tagging other persons
   pr.for.all <- compute.pagerank(adjMatrix.connected, transpose=TRUE,
                                  weights=TRUE)
@@ -1011,7 +1011,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##-----------
   writePageRankData(conf, outdir, ids.connected, devs.by.pr, devs.by.pr.tr)
 
-  status("Computing classical statistics")
+  logdevinfo("Computing classical statistics", logger="cluster.persons")
   writeClassicalStatistics(outdir, ids.connected)
 
   ## Parameters for removing too small communities; see select.communities
@@ -1036,7 +1036,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##g.infomap.community <- infomap.community(g.connected)
   ##g.walktrap.community <- infomap.community(g.connected)
 
-  status("Inferring communities with spin glasses")
+  logdevinfo("Inferring communities with spin glasses", logger="cluster.persons")
   g.spin.community <- detect.communities(g.connected, ids.connected,
                                          adjMatrix.connected.scaled,
                                          list(reg=pr.for.all, tr=pr.for.all.tr),
@@ -1044,7 +1044,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
                                          MIN.CUT.FRACTION, MAX.CUT.SIZE,
                                          spinglass.community.connected)
 
-  status("Inferring communities with random walks")
+  logdevinfo("Inferring communities with random walks", logger="cluster.persons")
   g.walktrap.community <- detect.communities(g.connected, ids.connected,
                                              adjMatrix.connected.scaled,
                                              list(reg=pr.for.all, tr=pr.for.all.tr),
@@ -1068,7 +1068,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ##------------------
   ## Write other data
   ##-----------------
-  status("Writing the all-developers graph sources")
+  logdevinfo("Writing the all-developers graph sources", logger="cluster.persons")
 
   save.all(conf, adjMatrix.connected.scaled, ids.connected,
            list(reg=pr.for.all, tr=pr.for.all.tr),

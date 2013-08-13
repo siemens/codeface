@@ -43,11 +43,11 @@ get.series.boundaries <- function(conn) {
   ## the hash mark of the comment line)
   elems = str_split(readLines(conn, n=1), "\t")[[1]][-1:0]
 
-  boundaries <- data.frame(date.start = tstamp_to_date(elems[1]),
-                           date.end = tstamp_to_date(elems[2]))
+  boundaries <- data.frame(date.start = tstamp.to.POSIXct(elems[1]),
+                           date.end = tstamp.to.POSIXct(elems[2]))
 
   if (length(elems) == 3) {
-    boundaries$date.rc_start= tstamp_to_date(elems[3])
+    boundaries$date.rc_start= tstamp.to.POSIXct(elems[3])
   } else {
     boundaries$date.rc_start = NA
   }
@@ -227,7 +227,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf,
   clusters.summary <- vector("list", dim(cycles)[1])
 
   ## Stage 1: Perform per-release operations
-  status("Preparing per-release cluster plots")
+  logdevinfo("Preparing per-release cluster plots", logger="analyse_ts")
   cycles <- get.cycles(conf)
   for (i in seq_along(cycles$range.id)) {
     range.id <- cycles$range.id[[i]]
@@ -262,7 +262,7 @@ do.cluster.analysis <- function(resdir, graphdir, conf,
   ## Stage 2: Perform global operations on all releases
   ## TODO: Augment the date labels with release specifications; additionally,
   ## sort the clusters by average page rank per release
-  status("Preparing global cluster plots")
+  logdevinfo("Preparing global cluster plots", logger="analyse_ts")
   clusters.all <- do.call(rbind, clusters.all)
   clusters.summary.all <- do.call(rbind, clusters.summary)
 
@@ -407,7 +407,7 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "inRC")
   ts <- get.commits.by.ranges(conf, subset, normalise.commit.dat)
 
-  status("Plotting the commit information time series")
+  logdevinfo("Plotting the commit information time series", logger="analyse_ts")
   ## Stage 1: Plot the complete commit information time series
   ts <- do.call(rbind, ts)
 
@@ -462,10 +462,10 @@ do.commit.analysis <- function(resdir, graphdir, conf) {
 
   dummy <- sapply(seq(min.year, max.year), function(year) {
     if (dim(ts.molten[year(ts.molten$date)==year,])[1] == 0) {
-      status(paste("Skipping annual commit time series for", year, "(no release)"))
+      logdevinfo(paste("Skipping annual commit time series for", year, "(no release)"), logger="analyse_ts")
       return(NA)
     }
-    status(paste("Creating annual commit time series for", year))
+    logdevinfo(paste("Creating annual commit time series for", year), logger="analyse_ts")
     dat <- ts.molten[year(ts.molten$date)==year,]
 
     # Don't plot tagging information if there are no tags
@@ -534,7 +534,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   ggsave(file.path(graphdir, "ts.pdf"), g, width=16, height=7)
 
   ## Store the complete time series information into the database
-  status("Storing time series data into database")
+  logdevinfo("Storing time series data into database", logger="analyse_ts")
   for (type in unique(series.merged$type)) {
     plot.name <- str_c("Progress TS [", type, "]")
     plot.id <- get.clear.plot.id(conf, plot.name)
@@ -556,7 +556,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   max.year <- year(max(series.merged$time))
 
   dummy <- sapply(seq(min.year, max.year), function(year) {
-    status(paste("Creating annual time series for", year))
+    logdevinfo(paste("Creating annual time series for", year), logger="analyse_ts")
     g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=TRUE),
                        dmy(paste("31-12-", year, sep=""), quiet=TRUE)) +
               ggtitle(paste("Code changes in ", year, " for project '",
