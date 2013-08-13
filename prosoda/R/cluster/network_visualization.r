@@ -26,6 +26,27 @@ library(colorspace)
 ################################################################################
 ## Low Level Functions
 ################################################################################
+## Find the index of the most important person in each community according to
+## a rank vector
+## Args:
+##  comm: igraph communities object
+##  rank: vector, each entry corresponds to the rank of the node with the index
+##        id
+## Returns:
+##  important.comm.nodes: vector, each entry corresponds to the community with
+##                        same index id. The value of each entry is a string
+##                        with the name of the most important person for that
+##                        given community
+important.community.nodes <- function(comm, rank) {
+  community.ids <- sort(unique(comm$membership))
+  important.nodes <- sapply(community.ids,
+      function(comm.id) {
+        which(rank ==
+              max(rank[which(comm$membership == comm.id)]))[1]
+      })
+  return (important.nodes)
+}
+
 
 ## Reduces a graph to single edges between them most important edge in a
 ## a community according to a rank
@@ -41,11 +62,7 @@ library(colorspace)
 min.edge.count <- function(g, comm, rank) {
   ## Determine the most single most vertex in a community
   community.idx <- sort(unique(comm$membership))
-  important.comm.verts <- sapply(community.idx,
-                                 function(comm.idx) {
-                                   which(rank ==
-                                         max(rank[which(comm$membership == comm.idx)]))[1]
-                                 })
+  important.comm.verts <- important.community.nodes(comm, rank)
 
   ## Find all edges that cross communities and remove them
   cross.comm.edges     <- E(g)[crossing(comm,g)]
