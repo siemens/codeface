@@ -17,8 +17,6 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-suppressPackageStartupMessages(library(logging))
-
 ## Interpret an integer as timestamp from the UNIX epoch
 tstamp.to.POSIXct <- function(z) as.POSIXct(as.integer(z), origin="1970-01-01")
 
@@ -45,8 +43,8 @@ scale.data <- function(dat, .min=0, .max=1) {
   return(dat)
 }
 
-## Given an igraph edge list (data frame with columns to and from), create
-## a weighted edge list
+## Given an igraph edge list (data frame with columns toId and fromId), create
+## a weighted edge list, where the weight is the number of parallel edges.
 gen.weighted.edgelist <- function(edges) {
   edges.weighted <- lapply(unique(edges$fromId), function(from.vertex) {
     to.vertices <- edges[edges$fromId==from.vertex,]$toId
