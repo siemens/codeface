@@ -361,12 +361,10 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, maxDist,
         #get all blocks for the oldCmtId
         oldRevBlks = [blk for blk in codeBlks if blk.cmtHash == oldCmtId]
 
-        #TODO: think about a more appropriate way to measure the collaboration
-        #     strength, at the moment this value can be interpreted as for every
-        #     commit in the neighborhood (no matter the size) is valued as 1
-        #     this means that the number of LOC has no impact on the perceived
-        #     collaboration which may negatively impact the further analysis
-        collaboration_strength = 1
+        # collaboration strength is seen as the sum of the newly contributed
+        # lines of code and previously committed code by the other person
+        collaboration_strength = computeBlksSize(revCmtBlks, oldRevBlks)
+
         #store result
         if author:
             personId = oldRevBlks[0].authorId
@@ -431,6 +429,15 @@ def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist):
         inEdgePerson = id_mgr.getPI(Id)
         person.addOutEdge(   Id   , avgStrength)
         inEdgePerson.addInEdge(personId, avgStrength)
+
+
+def computeBlksSize(blks1, blks2):
+    # compute the total size of two sets of codeBlock objects
+    blks_total = blks1 + blks2
+    size_total = 0
+    for blk in blks_total:
+        size_total += blk.end - blk.start + 1
+    return size_total
 
 
 def computeEdgeStrength(blk1, blk2, maxDist):
