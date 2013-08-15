@@ -1007,8 +1007,7 @@ detect.communities <- function(g, ids,
   } else {
     g.community <- community.detection.disconnected(g, FUN)
     ## compute community quality
-    comm.quality <- compute.all.community.quality(g, g.community,
-                                                  "conductance")
+    comm.quality <- community.metric(g, g.community, "conductance")
   }
 
   status(str_c("Writing community graph sources for algorithm ", label))
@@ -1149,6 +1148,53 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
            g.walktrap.community,
            paste(outdir, "wt_", sep=""),
            label="Random Walk Community")
+}
+
+
+## Compute SNA metrics using community centric perspective
+## ARGS:
+##  g: igraph graph object
+##  comm: igraph communities object
+## RETURNS:
+##  res: list containing all statistics
+compute.community.metrics <- function(g, comm) {
+  res <- list()
+
+  ## intra-community
+  res$intra.betweenness  <- community.metric(g, comm,
+                                                     "betweenness")
+  res$intra.transitivity <- community.metric(g, comm,
+                                                     "transitivity")
+  res$intra.in.deg     <- community.metric(g, comm, "in.deg")
+  res$intra.out.deg    <- community.metric(g, comm, "out.deg")
+  res$intra.in.weight  <- community.metric(g, comm, "in.weight")
+  res$intra.out.weight <- community.metric(g, comm, "out.weight")
+  res$intra.diameter   <- community.metric(g, comm, "diameter")
+  ## inter-community
+  g.con     <- contract.vertices(g, membership(comm))
+  g.con.sim <- simplify(g.con)
+  res$inter.betweeness   <- betweenness(g.con.sim)
+  res$inter.transitivity <- transitivity(g.con.sim, type="local")
+  res$inter.in.deg       <- degree(g.con.sim, mode="in")
+  res$inter.out.deg      <- degree(g.con.sim, mode="out")
+  res$inter.in.weight    <- graph.strength(g.con.sim, mode="in")
+  res$inter.out.weight   <- graph.strength(g.con.sim, mode="out")
+  res$inter.diameter     <- diameter(g.con.sim)
+  ## quality
+  res$conductance <- community.metric(g, comm, "conductance")
+  res$mean.conductance <- mean(res$conductance)
+  res$sd.conductance <- sd(res$conductance)
+  res$modularity  <- community.metric(g, comm, "modularity")
+  res$modularity.sum <- sum(res$modularity)
+  ## global
+  res$mean.size <- mean(comm$csize)
+  res$sd.size   <- sd(comm$csize)
+  res$max.size  <- max(comm$csize)
+  intra.edges   <- unlist(lapply(res$intra.in.deg,sum))
+  res$mean.num.edges <- mean(intra.edges)
+  res$sd.num.edges   <- sd(intra.edges)
+  res$max.edges <- max(intra.edges)
+  return(res)
 }
 
 
@@ -1544,7 +1590,7 @@ test.community.quality <- function() {
   ## Test that modularity is correct
   g.spincommunity <- spinglass.community(g)
   igraph.modularity.result <- modularity(g, g.spincommunity$membership)
-  modularity.result        <- sum(compute.all.community.quality(g, g.spincommunity, "modularity"))
+  modularity.result        <- sum(community.metric(g, g.spincommunity, "modularity"))
   if( !(igraph.modularity.result == modularity.result)){
     logerror("modularity test failed", logger="cluster.persons")
   }
@@ -1571,7 +1617,7 @@ test.community.quality.modularity <- function() {
   g.clust <- list()
   g.clust$membership <- c(1,1,1,2,2,3,3,3)
 
-  quality <- compute.all.community.quality(g, g.clust, "modularization")
+  quality <- community.metric(g, g.clust, "modularization")
 
 }
 

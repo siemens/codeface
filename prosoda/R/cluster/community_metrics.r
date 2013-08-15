@@ -191,8 +191,8 @@ community.stat.significance <- function(graph, cluster.algo) {
                                         #graph.clusters.more <- select.communities.more(graph.clusters, 10)
 
   ## compute cluster conductance values
-  cluster.conductance <- compute.all.community.quality(graph.connected,
-                                                       graph.clusters, "conductance")
+  cluster.conductance <- community.metric(graph.connected, graph.clusters,
+                                          "conductance")
   ## compute randomized conductance samples
   niter <- 1000
   rand.samps <- randomised.conductance.samples(graph, niter, cluster.algo)
@@ -282,7 +282,7 @@ randomised.conductance.samples <- function(graph, niter, cluster.algo) {
     ##rw.graph.clusters.more <- select.communities.more(rw.graph.clusters, 10)
 
     ## Compute conductance
-    rw.cluster.conductance <- compute.all.community.quality(rw.graph.connected,
+    rw.cluster.conductance <- community.metric(rw.graph.connected,
                                                             rw.graph.clusters,
                                                             "conductance")
     conduct.vec <- append(conduct.vec, mean(rw.cluster.conductance))
@@ -305,10 +305,9 @@ randomised.conductance.samples <- function(graph, niter, cluster.algo) {
 ##
 ##       igraph
 ## Output:
-##   - vector indexed by community number indicating the quality of that
-##		community
+##   - vector of metric values indexed by community number
 ########################################################################
-compute.all.community.quality <- function(graph, community, test) {
+community.metric <- function(graph, community, test) {
   ## Get number of communities
   if (class(community) == "communities") {
     community.id <- sort(unique(community$membership))
@@ -323,36 +322,79 @@ compute.all.community.quality <- function(graph, community, test) {
   }
 
   if(test == "modularity") {
-    quality.vec <- sapply(community.id,
+    metric.vec <- sapply(community.id,
                           function(x) {
                             return(community.quality.modularity(graph, members[[x]]))
                           })
   }
   else if (test == "wilcox") {
-    quality.vec <- sapply(community.id,
+    metric.vec <- sapply(community.id,
                           function(x) {
                             return(community.quality.wilcox(graph, members[[x]]))})
   }
   else if (test == "conductance") {
-    quality.vec <- sapply(community.id,
+    metric.vec <- sapply(community.id,
                           function(x) {
                             return(community.quality.conductance(graph, members[[x]]))
                           })
 
   }
   else if (test == "modularization") {
-    quality.vec <- sapply(community.id,
+    metric.vec <- sapply(community.id,
                           function(x) {
                             return(community.quality.modularization(graph,
                                             members[[x]], community$membership))
                           })
   }
   else if (test == "betweenness") {
-    quality.vec <- sapply(community.id,
+    metric.vec <- sapply(community.id,
                           function(x) {
-                            return (mean(betweenness(graph, members[[x]])))
+                            g.sub <- induced.subgraph(graph, members[[x]])
+                            return(betweenness(g.sub))
                           })
   }
+  else if(test == "transitivity") {
+    metric.vec <- sapply(community.id,
+                           function(x) {
+                             g.sub <- induced.subgraph(graph, members[[x]])
+                             return (transitivity(g.sub,type="local"))
+                           })
+  }
+  else if(test == "out.weight") {
+    metric.vec <- sapply(community.id,
+        function(x) {
+          g.sub <- induced.subgraph(graph, members[[x]])
+          return (graph.strength(g.sub, mode="out"))
+        })
+  }
+  else if(test == "in.weight") {
+    metric.vec <- sapply(community.id,
+        function(x) {
+          g.sub <- induced.subgraph(graph, members[[x]])
+          return (graph.strength(g.sub, mode="in"))
+        })
+  }
+  else if(test == "out.deg") {
+    metric.vec <- sapply(community.id,
+        function(x) {
+          g.sub <- induced.subgraph(graph, members[[x]])
+          return (degree(g.sub, mode="out"))
+        })
+  }
+  else if(test == "in.deg") {
+    metric.vec <- sapply(community.id,
+        function(x) {
+          g.sub <- induced.subgraph(graph, members[[x]])
+          return (degree(g.sub, mode="in"))
+        })
+  }
+  else if(test == "diameter") {
+    metric.vec <- sapply(community.id,
+        function(x) {
+          g.sub <- induced.subgraph(graph, members[[x]])
+          return (diameter(g.sub))
+        })
+  }
 
-  return(quality.vec)
+  return(metric.vec)
 }

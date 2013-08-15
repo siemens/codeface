@@ -402,7 +402,7 @@ save.graph.igraph <- function(g, comm, filename, plot.size=7, format="png") {
   ##  format: One of the supported output formats of base graphics
   ## Output:
   ##  igraph plot of the graphs community structure
-  cluster.conductance <- compute.all.community.quality(g, comm, "conductance")
+  cluster.conductance <- community.metric(g, comm, "conductance")
   pie.vertex      <- assignCommCol(g, comm)
   g               <- min.edge.count(g, comm, page.rank(g))
   g               <- simplify(g, remove.multiple=TRUE,remove.loops=TRUE)
@@ -479,7 +479,7 @@ save.graph.graphviz <- function(con, pid, range.id, filename, plot.size=7) {
   ## Create igraph object and perform manipulations
   g <- graph.data.frame(edgelist, directed=TRUE,
                                      vertices=data.frame(node.local.ids))
-  cluster.conductance <- compute.all.community.quality(g, comm, "conductance")
+  cluster.conductance <- community.metric(g, comm, "conductance")
   g.min      <- min.edge.count(g, comm, node.rank)
   g.min.simp <- simplify(g.min, remove.multiple=TRUE,remove.loops=TRUE)
 
