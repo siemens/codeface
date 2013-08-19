@@ -15,10 +15,13 @@
 # All Rights Reserved.
 
 import unittest
+import sys
 from subprocess import check_call
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
 from os.path import dirname, join as pathjoin
+from pkg_resources import load_entry_point
+
 from .example_projects import example_project_func
 from prosoda.project import project_analyse, mailinglist_analyse
 from prosoda.configuration import Configuration
@@ -99,14 +102,24 @@ class EndToEndTestSetup(unittest.TestCase):
             dbm.doExecCommit("DELETE FROM {}".format(table))
 
     def analyseEndToEnd(self):
-        project_analyse(self.resdir, self.gitdir, self.prosoda_conf,
-                        self.project_conf, self.no_report, self.loglevel,
-                        self.logfile, self.recreate)
+        save_argv = sys.argv
+        sys.argv = ['prosoda', '-l', self.loglevel, '-f', self.logfile,
+                    'run', '-c', self.prosoda_conf, '-p', self.project_conf,
+                    self.resdir, self.gitdir]
+        try:
+            load_entry_point('prosoda', 'console_scripts', 'prosoda')()
+        finally:
+            sys.argv = save_argv
 
     def mlEndToEnd(self):
-        mailinglist_analyse(self.resdir, self.mldir, self.prosoda_conf,
-                            self.project_conf, self.loglevel, self.logfile,
-                            jobs=2)
+        save_argv = sys.argv
+        sys.argv = ['prosoda', '-l', self.loglevel, '-f', self.logfile,
+                    'ml', '-c', self.prosoda_conf, '-p', self.project_conf,
+                    self.resdir, self.mldir]
+        try:
+            load_entry_point('prosoda', 'console_scripts', 'prosoda')()
+        finally:
+            sys.argv = save_argv
 
     def getResults(self):
         conf = Configuration.load(self.prosoda_conf, self.project_conf)
