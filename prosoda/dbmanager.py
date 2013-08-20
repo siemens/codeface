@@ -56,7 +56,15 @@ class DBManager:
 
     def doExec(self, stmt, args=None):
         with _log_db_error(stmt):
-            return self.cur.execute(stmt, args)
+            while True:
+                try:
+                    return self.cur.execute(stmt, args)
+                except mdb.OperationalError as dbe:
+                    log.info("DBE args: " + str(dbe.args))
+                    if dbe.args[0] == 1213: # Deadlock! retry...
+                        log.warning("Recoverable deadlock in MySQL - retrying.")
+                    else:
+                        raise
 
     def doFetchAll(self):
         with _log_db_error("fetchall"):
@@ -83,9 +91,8 @@ class DBManager:
             # Project is not contained in the database
             log.devinfo("Creating new project {}/{}".
                     format(name, analysisMethod))
-            self.doExec("INSERT INTO project (name, analysisMethod) " +
+            self.doExecCommit("INSERT INTO project (name, analysisMethod) " +
                         "VALUES (%s, %s);", (name, analysisMethod))
-            self.doCommit()
             self.doExec("SELECT id FROM project WHERE name=%s;", name)
         elif self.cur.rowcount > 1:
             raise Exception("Duplicate projects {}/{} in database!".

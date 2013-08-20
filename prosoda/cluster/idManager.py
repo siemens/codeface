@@ -115,7 +115,12 @@ class idManager:
 
         # TODO: We should handle errors by throwing an exception instead
         # of silently ignoring them
-        id = json.loads(res.read())["id"]
+        result = res.read()
+        jsond = json.loads(result)
+        try:
+            id = jsond["id"]
+        except KeyError:
+            raise Exception("Bad response from server: '{}'".format(jsond))
         return(id)
 
     def getPersonID(self, addr):

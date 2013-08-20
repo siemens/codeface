@@ -24,6 +24,8 @@ import unittest
 import os
 from pkg_resources import resource_filename
 
+from glob import glob
+
 from .logger import set_log_level, start_logfile, log
 from .configuration import Configuration
 from .util import execute_command
@@ -94,7 +96,7 @@ def cmd_run(args):
     if args.logfile:
         logfile = os.path.abspath(args.logfile)
     project_analyse(resdir, gitdir, prosoda_conf, project_conf,
-                    args.no_report, args.loglevel, args.logfile, args.recreate)
+                    args.no_report, args.loglevel, args.logfile, args.recreate, args.jobs)
     return 0
 
 def cmd_ml(args):
