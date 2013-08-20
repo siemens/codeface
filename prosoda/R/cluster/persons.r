@@ -1146,7 +1146,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   save.all(conf, adjMatrix, ids,
            list(reg=pr.for.all, tr=pr.for.all.tr),
            g.walktrap.community,
-           paste(outdir, "wt_", sep=""),
+           paste(outdir, "/wt_", sep=""),
            label="Random Walk Community")
 }
 
