@@ -16,11 +16,15 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+##
 ## Central configuration of navigation elements for Quantarch apps 
+##
 
-## REMARK: All sourcing is done in server.r. The only data needed is projects.list
+## REMARKS: - All sourcing is done in server.r. 
+##			- The only data needed currently is projects.list
 
-## UNCOMMENT THIS FOR TESTING
+## TODO: Move testing to test_breadcrumb.r
+## UNCOMMENT THIS FOR STANDALONE TESTING
 # if (interactive()) {
   # suppressPackageStartupMessages(library(shiny))
   # suppressPackageStartupMessages(library(logging))
@@ -29,20 +33,19 @@
   # conf <- config.from.args(require_project=FALSE)
   # projects.list <- query.projects(conf$con)
 # }
-
-suppressPackageStartupMessages(library(RJSONIO))
-
-## nav.list holds the methods used to generate the breadcrumb (and later on the links)
-nav.list <- list()
-
-## dummy projects.list (for demonstration if no database available)
+## ALTERNATIVE TESTING: dummy projects.list (for demonstration if no database available)
 ##projects <- list("4" = "qed", "6" = "linux core", "7" = "github")
 ##id <- c(4, 6, 7)
 ##name <- c("qed","linux core", "github")
 ##projects.list <- data.frame(id, name)
 
+suppressPackageStartupMessages(library(RJSONIO))
+
+## nav.list holds the methods used to generate the breadcrumb
+nav.list <- list()
+
 ## configuration of nav.list
-## adapt this for every app
+## adapt this for every app used
 
 ################## START CONFIGURATION SECTION #####################
 
@@ -153,7 +156,9 @@ nav.list$timeseries <- list(
 ## Returns
 ## =======
 ##	list of lists, where each sublist contains label, url and a list of children
-##	each list of children contains label and url
+##	each list of children contains label and url.
+##	The last list entry is marked with active=TRUE (e.g. to allow special formatting)
+##	TODO: also mark children to indicate which one is the active one
 ##
 breadcrumbPanelData <- function (originId, paramstr = "" ) {
 
@@ -181,7 +186,7 @@ breadcrumbPanelData <- function (originId, paramstr = "" ) {
           child.list[[i]] <- list(label = ptr$label(cparamstr), url = ptr$url(cparamstr))
         }
       }
-      bclist[[count]] <- list(label = n$label(paramstr), url = n$url(paramstr), children = child.list)
+      bclist[[count]] <- list(label = n$label(paramstr), url = n$url(paramstr), active=(count == 1), children = child.list)
       ##print(count)
       ##print(bclist)
       pid <- p$id
@@ -243,15 +248,17 @@ breadcrumbBrandville <- function( breadcrumb ) {
 ##   <ul class="breadcrumb">
 ##   <li><a href="#">Link1</a></li>
 ##   <li class="dropdown">
-##   <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-##   Operations <b class="caret"></b>
+##   <a href="#">
+##   Operations
+##	 <b class="caret" class="dropdown-toggle" data-toggle="dropdown"></b>
 ##   </a>
 ##   <ul class="dropdown-menu">
 ##   <li><a href="#">Operations 1</a></li>
 ##   <li><a href="#">Operations 2</a></li>
 ##   </ul>
+##	 <span class="divider">/</span>
 ##   </li>
-##   <li><a href="#">Link2</a></li>
+##   <li> ... </li>
 ##   </ul>
 ##</div>
 ## 
@@ -269,16 +276,21 @@ breadcrumbPanel <- function( breadcrumb ) {
   popdown.tags <- function(x) {
     tags$li(a(href=as.character(x$url),as.character(x$label)))
   }  
+  divider.tag <- function( x=FALSE ) {
+	if(x) { tags$span() } else { tags$span( class="divider",">")}}
   
   navul <- tags$ul(class = "breadcrumb")
   
   for (bc.element in breadcrumb) {
     childtags <- tagList(lapply(bc.element$children, popdown.tags))
     childlist <- tags$ul(class="dropdown-menu", childtags)
-    navtag <- tags$li(class = "dropdown", a(class = "dropdown-toggle", 
-                                            "data-toggle" = "dropdown", 
-                                            href = as.character(bc.element$url),
-                                            as.character(bc.element$label)), childlist)
+	navtag <- tags$li(class = "dropdown",
+						a( "data-target"="#",
+						  href = as.character(bc.element$url),
+                          as.character(bc.element$label)), 
+						tags$b( class = "dropdown-toggle", "data-toggle" = "dropdown", class="caret" ), 
+						childlist, 
+						divider.tag( bc.element$active ))
     navul <- tagAppendChild(navul, navtag)
   }
     
@@ -286,7 +298,8 @@ breadcrumbPanel <- function( breadcrumb ) {
 
 } # end breadcrumbBootstrap
 
-## UNCOMMENT FOR TESTING 
+## TODO: Move testing to test_breadcrumb.r
+## UNCOMMENT THIS FOR STANDALONE TESTING
 # if (interactive()) {
   # cat("TESTS")
   # cat("=====\n")

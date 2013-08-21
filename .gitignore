@@ -28,3 +28,5 @@ cluster/.RData
 cluster/res/
 error.dump.rda
 prosoda.egg-info/
+log/
+
