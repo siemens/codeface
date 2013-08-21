@@ -27,9 +27,10 @@ source("../../../config.r", chdir=TRUE, local=TRUE)  # this activates logging
 ## database functionality
 ## TODO: improve session management to avoid excessive number of open sessions
 source("../../../query.r", chdir=TRUE, local=TRUE)
+source("../../../dynamic_graphs/timeseries.r", chdir=TRUE, local=TRUE)
 conf <- config.from.args(require_project=FALSE)
 projects.list <- query.projects(conf$con) # this is needed by breadcrumb.r
-dbDisconnect(conf$con) # close database session, because we got the data needed for this app
+##dbDisconnect(conf$con) # close database session, because we got the data needed for this app
 
 ## source the breadcrumb functionality
 source(file.path("..","..","nav","breadcrumb.r"), chdir = TRUE, local=TRUE)
@@ -65,6 +66,14 @@ shinyServer(function(input, output, session) {
 			paste( 	as.character(projects.list$name[projects.list$id == pid]),
 					"Dashboard")}
 			)
+			
+
+		ts <- get.ts.data(conf$con, pid)
+		boundaries <- get.cycles.con(conf$con, pid)
+
+		output$timeseriesWidget <- renderPlot({
+			print(do.ts.plot(ts, boundaries, 0, 0))
+			})
 			
 		## IMPLEMENTATION: insert initial stuff depending on project id here   
  

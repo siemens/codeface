@@ -37,32 +37,32 @@ shinyUI(bootstrapPage(
 	
 	),
   
-  ##pageWithBreadcrumbAndHeader(
 	div(class = "container",
-	div(class = "row",
-	uiOutput("quantarchBreadcrumb")),
 		div(class = "row",
-	h3(textOutput("dashboardTitleOutput")),
-		
-	gridster(width = 250, height = 250,
-		gridsterItem(col = 1, row = 1, sizex = 1, sizey = 1,
-			tags$p("Widget 1,1")
-			),
-		gridsterItem(col = 2, row = 1, sizex = 2, sizey = 1,
-			tags$p("Widget 1,2")
-			),
-		gridsterItem(col = 1, row = 2, sizex = 1, sizey = 1,
-			justgageOutput("live_gauge", width=250, height=200)
-			),
-		gridsterItem(col = 2, row = 2, sizex = 1, sizey = 1,
-			tags$div(class = 'grid_title', 'Status'),
-			statusOutput('status'),
-			a(href="apps/contributors/","more")
-			),
-		gridsterItem(col = 3, row = 2, sizex = 1, sizey = 1,
-			tags$p("Widget 1,3")
-			)
-		))
+			uiOutput("quantarchBreadcrumb"),
+			h1(div(id = "dashboardTitleOutput", class = "shiny-text-output span12"))),
+		div(class = "row",
+			gridster(width = 250, height = 250,
+				gridsterItem(col = 1, row = 1, sizex = 1, sizey = 1,
+					tags$p("Widget 1,1")
+					),
+				## sample plotOutput for timeseries plot
+				## to assure that plot fits in widgets, must define height = "100%" or 200
+				gridsterItem(col = 2, row = 1, sizex = 2, sizey = 1,
+					plotOutput("timeseriesWidget",height="250px")
+					),
+				gridsterItem(col = 1, row = 2, sizex = 1, sizey = 1,
+					justgageOutput("live_gauge", width=250, height=200)
+					),
+				gridsterItem(col = 2, row = 2, sizex = 1, sizey = 1,
+					tags$div(class = 'grid_title', 'Status'),
+					statusOutput('status'),
+					a(href="apps/contributors/","more")
+					),
+				gridsterItem(col = 3, row = 2, sizex = 1, sizey = 1,
+					tags$p("Widget 1,3")
+					)
+				))
 	)
 	  ## Read Javascript code from a separate file
 	  ## if needed, init iframe communication

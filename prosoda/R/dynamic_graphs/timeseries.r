@@ -81,7 +81,7 @@ do.ts.plot <- function(ts, boundaries, smooth, transform) {
                data=boundaries) +
     scale_fill_manual(values = alpha(c("blue", "red"), .1)) +
     xlab("Time") + ylab(str_c("Messages per day")) +
-    ggtitle("Mailing list activity")
+    ggtitle("Mailing list activity") + opts(aspect.ratio = 2/(1+sqrt(5)))
 
   ## na.omit is required to remove all cycles that don't contain
   ## rc regions.
@@ -98,15 +98,15 @@ do.ts.plot <- function(ts, boundaries, smooth, transform) {
 
 ml.timeseries.server <- function(input, output, session) {
   args.list <- parseQueryString(isolate(session$clientData$url_search))
-  pid <- args.list[["projectId"]]
+  pid <- args.list[["projectid"]]
   
   if (!is.vector(pid)) {
-    stop("No projectId parameter in URL")
+    stop("No projectid parameter in URL")
   } else if (is.na(as.numeric(pid))) {
-      stop("projectId URL parameter is empty")
+      stop("projectid URL parameter is empty")
   }
   
-  loginfo(paste("projectId =", as.character(as.numeric(pid)), sep = " "))
+  loginfo(paste("projectid =", as.character(as.numeric(pid)), sep = " "))
   
   ## Loading of data is performed only once for performance reasons
   ts <- get.ts.data(conf$con, pid)
@@ -135,5 +135,5 @@ ml.timeseries.ui <-
                       plotOutput("distancePlot")))
 
 ## Dispatch the shiny server
-runApp(list(ui=ml.timeseries.ui, server=ml.timeseries.server),
-       port=PORT.TIMESERIES.ML)
+#runApp(list(ui=ml.timeseries.ui, server=ml.timeseries.server),
+#       port=PORT.TIMESERIES.ML)
