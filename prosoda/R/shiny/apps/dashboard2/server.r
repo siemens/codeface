@@ -41,10 +41,31 @@ source(file.path("..","..","nav","breadcrumb.r"), chdir = TRUE, local=TRUE)
 ##
 
 widgetlist <- list()
-widgetlist[[1]] <- list(html=tags$li(tags$p("Widget A")), size_x=1, size_y=1)
-widgetlist[[2]] <- list(html=tags$li(tags$p("Widget B")), size_x=2, size_y=1)
-widgetlist[[3]] <- list(html=tags$li(tags$p("Widget C")), size_x=1, size_y=1)
-widgetlist[[4]] <- list(html=tags$li(tags$p("Widget D")), size_x=1, size_y=1)
+widgetlist[[1]] <- list(
+	html=tags$li(
+		style="background-color:red;box-shadow: 10px 10px 5px #CCC;", 
+		tags$p("Widget A")), 
+		size_x=1, size_y=1, col=1, row=1)
+widgetlist[[2]] <- list(
+	html=tags$li(
+		style="background-color:yellow;box-shadow: 10px 10px 5px #CCC;", 
+		tags$p("Widget B")), 
+		size_x=2, size_y=1, col=2, row=1)
+widgetlist[[3]] <- list(
+	html=tags$li(
+		style="background-color:blue;box-shadow: 10px 10px 5px #CCC;", 
+		tags$p("Widget C")), 
+		size_x=1, size_y=1, col=1, row=2)
+widgetlist[[4]] <- list(
+	html=tags$li(
+		style="background-color:green;box-shadow: 10px 10px 5px #CCC;", 
+		tags$p("Widget D")), 
+		size_x=1, size_y=1, col=2, row=2)
+widgetlist[[5]] <- list(
+	html=tags$li(
+		style="background-color:white;box-shadow: 10px 10px 5px #CCC;", 
+		tags$p("Widget E")), 
+		size_x=1, size_y=1, col=3, row=2)		
 
 shinyServer(function(input, output, session) {
 
@@ -99,7 +120,9 @@ shinyServer(function(input, output, session) {
 			msgname = "addWidget",
 			html = as.character(w$html),
 			size_x = as.character(w$size_x),
-			size_y = as.character(w$size_y)
+			size_y = as.character(w$size_y),
+			col = as.character(w$col),
+			row = as.character(w$row)
 		))
 		}
 

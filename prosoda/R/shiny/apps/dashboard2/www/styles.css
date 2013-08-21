@@ -1,5 +1,5 @@
 body {
-    background-color: #CCC;
+    background-color: #FFF;
     font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -14,6 +14,7 @@ h1 {
 
 .gridster .gs_w {
   border-radius: 5px;
+  background-color: #000;
 }
 
 .gridster .gs_w.alert {

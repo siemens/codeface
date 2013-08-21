@@ -19,9 +19,11 @@ $(function(){ //DOM Ready
   	function(message) {		
 			switch(message.msgname) {
 			case 'addWidget': 
-           var gridster = $(".gridster ul").gridster().data('gridster');
-           gridster.add_widget( message.html, message. size_x, message.size_y, 1, 1 );
-           break;
+				var gridster = $(".gridster ul").gridster().data('gridster');
+				Shiny.unbindAll();
+				gridster.add_widget( message.html, message. size_x, message.size_y, message.col, message.row );
+				Shiny.bindAll();
+				break;
 			}
 		}
 	);
