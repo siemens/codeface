@@ -16,26 +16,7 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-## Create activity punchcards for revision control repository data
-
-s <- suppressPackageStartupMessages
-s(library(ggplot2))
-s(library(shiny))
-s(library(logging))
-s(library(lubridate))
-s(library(xts))
-rm(s)
-source("../config.r", chdir=TRUE)
-source("../utils.r", chdir=TRUE)
-source("../query.r", chdir=TRUE)
-source("../ts_utils.r", chdir=TRUE)
-source("../commits.r", chdir=TRUE)
-source("../vis.ports.r", chdir=TRUE)
-
-## Global variables
-conf <- config.from.args(require_project=FALSE)
-projects.list <- query.projects(conf$con)
-#####
+source("../../ts_utils.r", chdir=TRUE)
 
 ## Generate commity activity punch card datasets for all cycles
 ## of a given project
@@ -63,33 +44,12 @@ gen.punchcards <- function(con, pid) {
 }
 
 
-vis.punchcard.server <- function(input, output, clientData, session) {
-  pid <- reactive({projects.list[projects.list$name==input$project,]$id})
+punchcard.plot <- function(pid) {
   res <- reactive({gen.punchcards(conf$con, pid())})
-
-  output$punchCardPlot <- renderPlot({
+  renderPlot({
     g <- ggplot(res(), aes(x=hour, y=day, size=size)) + geom_point() +
       facet_wrap(~cycle)
 
     print(g)
   })
 }
-
-vis.punchcard.ui <- pageWithSidebar(
-                         headerPanel("Activity punch cards"),
-                         sidebarPanel(
-                           selectInput("project", "Project",
-                                       choices = projects.list$name),
-
-                           submitButton("Update View")
-                           ),
-
-                         mainPanel(
-                           plotOutput("punchCardPlot")
-                         )
-                      )
-
-## Dispatch the shiny server
-
-runApp(list(ui=vis.punchcard.ui, server=vis.punchcard.server),
-       port=PORT.PUNCHCARD.VCS)

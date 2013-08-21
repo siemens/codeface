@@ -72,8 +72,47 @@ nav.list$quantarch <- list(
 	NULL # no parent
 	})
 
-## Configure the project dashboard
 
+
+## Configure contributors app
+project.apps <- list(
+    c("commit.info", "Commit Information"),
+    c("commit.structure", "Commit Structure"),
+    c("contributions", "Contributions overview"),
+    c("contributors", "Contributors"),
+    c("punchcard", "Activity punch cards"),
+    c("punchcard_ml", "ML activity punch cards"),
+    c("release_distance", "Inter-Release Distance"),
+    c("timeseries", "Mailing list activity"),
+    c("vis.clusters", "Collaboration clusters")
+)
+
+constant.func <- function(value) {
+  return(function(paramstr = NULL) { value })
+}
+
+constant.func.url <- function(name) {
+  return(function(paramstr = NULL) { paste("../", name, "/?", paramstr, sep='') })
+}
+
+for (app in project.apps) {
+  name <- app[[1]]
+  title <- app[[2]]
+
+  nav.list[[name]] <- list(
+    label = constant.func(title),
+    url = constant.func.url(name),
+    childrenIds = function(paramstr) { data.frame() }, # NULL
+    parentId = function(paramstr = NULL) {
+      id <- c("dashboard")
+      data.frame(id)
+    }
+  )
+  cat(toString(nav.list[[name]]$label()), "\n")
+  cat(toString(nav.list[[name]]$url()), '\n')
+}
+
+## Configure the project dashboard
 nav.list$dashboard <- list(
   ## (1) Configure he label displayed in the breadcrumb entry 
   label = function(paramstr) {  # paramstr must contain project id, e.g. "projectid=4&..."
@@ -89,55 +128,11 @@ nav.list$dashboard <- list(
   childrenIds = function(paramstr) {
 #                   id <- c("timeseries","contributors")
 #                   params <- c(paramstr)
-	data.frame(id = c("timeseries","contributors"), params = c(paramstr))
+	data.frame(id = sapply(project.apps, "[", 1), params = c(paramstr))
 	},
   ## (4) configure parent
   parentId = function(paramstr) {
     id <- c("quantarch")
-    data.frame(id)
-	})
-
-## Configure contributors app
-
-nav.list$contributors <- list(
-  ## (1) Configure he label displayed in the breadcrumb entry 
-  label = function(paramstr = NULL) {
-	"Contributors"
-	},
-  ## (2) configure URL for the breadcrumb entry
-  url = function(paramstr = NULL) {
-	paste("http://localhost:8081/apps/contributors/", paramstr, sep = "?")
-	},
-  ## (3) configure children displayed in dropdown
-  childrenIds = function(paramstr) {
-    # NULL
-    data.frame()
-	},
-  ## (4) configure parent
-  parentId = function(paramstr = NULL) {
-    id <- c("dashboard")
-    data.frame(id)
-	})
-
-## Configure timeseries app
-
-nav.list$timeseries <- list(
-  ## (1) Configure he label displayed in the breadcrumb entry 
-  label = function(paramstr = NULL) {
-	"Mailinglist Activities"
-	},
-  ## (2) configure URL for the breadcrumb entry
-  url = function(paramstr = NULL) {
-	paste("http://localhost:8081/apps/timeseries/", paramstr, sep = "?")
-	},
-  ## (3) configure children displayed in dropdown
-  childrenIds = function(paramstr) {
-    #NULL
-    data.frame()
-	},
-  ## (4) configure parent
-  parentId = function(paramstr = NULL) {
-    id <- c("dashboard")
     data.frame(id)
 	})
 

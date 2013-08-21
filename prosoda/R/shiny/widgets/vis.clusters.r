@@ -16,29 +16,10 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+source("../../clusters.r", chdir=TRUE)
+
 ## Create overviews about the types of collaboration graphs appearing in
 ## projects.
-
-s <- suppressPackageStartupMessages
-s(library(shiny))
-s(library(igraph))
-s(library(logging))
-s(library(corrgram))
-rm(s)
-source("../config.r", chdir=TRUE)
-source("../utils.r", chdir=TRUE)
-source("../query.r", chdir=TRUE)
-source("../clusters.r", chdir=TRUE)
-source("../vis.ports.r", chdir=TRUE)
-
-## Global variables
-conf <- config.from.args(require_project=FALSE)
-projects.list <- query.projects(conf$con)
-
-## Use the release ranges for the first project in the list
-## as initial values
-range.ids.list <- query.range.ids.con(conf$con, projects.list$id[[1]])
-#####
 
 gen.clusters.list <- function(l, con) {
   clusters.list <- lapply(1:length(l), function(i) {
@@ -68,7 +49,6 @@ do.plot <- function(g) {
   V(g)$name <- NA
   plot(g)
 }
-
 
 prepare.clusters <- function(con, pid, range.id) {
   l <- query.cluster.ids.con(con, pid, range.id, "Spin Glass Community")
@@ -109,23 +89,16 @@ gen.cluster.summary <- function(clusters.list) {
   return(do.call(rbind, res))
 }
 
-vis.clusters.server <- function(input, output, clientData, session) {
-  ## TODO: Ensure that the selected project exists
-  pid <- reactive({projects.list[projects.list$name==input$project,]$id})
-  range.ids.list <- reactive({query.range.ids.con(conf$con, pid())})
-
-  observe({
-    updateSelectInput(session, "cycle", choices=range.ids.list())
-  })
-
-  range.id <- reactive({input$cycle})
+vis.clusters.plot.clusters <- function(pid, range.id) {
   cluster.list <- reactive({prepare.clusters(conf$con, pid(), range.id())})
-
-  output$clustersPlot <- renderPlot({
+  renderPlot({
     do.cluster.plots(cluster.list())
   }, height=1024, width=2048)
+}
 
-  output$correlationPlot <- renderPlot({
+vis.clusters.plot.correlations <- function(pid, range.id) {
+  cluster.list <- reactive({prepare.clusters(conf$con, pid(), range.id())})
+  renderPlot({
     dat <- {gen.cluster.summary(cluster.list())}
     dat <- dat[,c("Reciprocity", "Strength", "Degree", "Size",
                   "Cent.degree", "Cent.closeness", "Cent.betweenness",
@@ -133,31 +106,10 @@ vis.clusters.server <- function(input, output, clientData, session) {
     corrgram(dat, order=FALSE, lower.panel=panel.shade, upper.panel=panel.pie,
               text.panel=panel.txt, main="")
   })
-
-  output$clustersSummary <- renderTable({gen.cluster.summary(cluster.list())})
 }
 
-vis.clusters.ui <- pageWithSidebar(
-                         headerPanel("Collaboration clusters"),
-                         sidebarPanel(
-                           selectInput("project", "Project",
-                                       choices = projects.list$name),
-                           selectInput("cycle", "Release Cycle",
-                                       choices = range.ids.list),
+vis.clusters.plot.summary <- function(pid, range.id) {
+  cluster.list <- reactive({prepare.clusters(conf$con, pid(), range.id())})
+  renderTable({gen.cluster.summary(cluster.list())})
+}
 
-                           submitButton("Update View")
-                           ),
-
-                         mainPanel(
-                           tabsetPanel(
-                             tabPanel("Clusters", plotOutput("clustersPlot")),
-                             tabPanel("Correlations", plotOutput("correlationPlot")),
-                             tabPanel("Numeric", tableOutput("clustersSummary"))
-                             )
-                           )
-                         )
-
-## Dispatch the shiny server
-
-runApp(list(ui=vis.clusters.ui, server=vis.clusters.server),
-       port=PORT.VIS.CLUSTERS)

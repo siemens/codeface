@@ -17,10 +17,10 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets/contributors.r", chdir=TRUE)
+source("../../widgets/vis.clusters.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "contributors")
+  pid = common.server.init(output, session, "vis.clusters")
 
   observe({
     range.ids.list <- query.range.ids.con(conf$con, pid())
@@ -31,24 +31,20 @@ shinyServer(function(input, output, clientData, session) {
 
   range.id <- reactive({input$cycle})
 
-  output$prTable <- contributors.table.pagerank(pid, range.id)
-  output$prTrTable <- contributors.table.pagerank.transposed(pid, range.id)
-  output$commitsTable <- contributors.table.commits(pid, range.id)
-  output$changesTable <- contributors.table.changes(pid, range.id)
+  output$clustersPlot <- vis.clusters.plot.clusters(pid, range.id)
+  output$correlationPlot <- vis.clusters.plot.correlations(pid, range.id)
+  output$clustersSummary <- vis.clusters.plot.summary(pid, range.id)
   output$quantarchContent <- renderUI({
     pageWithSidebar(
-      headerPanel("Contributors"),
+      headerPanel("Collaboration clusters"),
       sidebarPanel(
-        selectInput("cycle", "Release Cycle", choices = list(1)),
-        helpText(paste("Interpretational aid: Page rank focuses on giving tags, ",
-                       "transposed page rank on being tagged."))
+        selectInput("cycle", "Release Cycle", choices = list(1))
       ),
       mainPanel(
         tabsetPanel(
-          tabPanel("Page Rank", tableOutput("prTable")),
-          tabPanel("Page Rank (tr)", tableOutput("prTrTable")),
-          tabPanel("Commits", tableOutput("commitsTable")),
-          tabPanel("Code Changes", tableOutput("changesTable"))
+          tabPanel("Clusters", plotOutput("clustersPlot")),
+          tabPanel("Correlations", plotOutput("correlationPlot")),
+          tabPanel("Numeric", tableOutput("clustersSummary"))
         )
       )
     )

@@ -19,8 +19,8 @@
 ##
 
 suppressPackageStartupMessages(library(shinyGridster))
-source('dashwidgets.r', local=TRUE)
-source('../../nav/quantarch-shiny.r', local=TRUE)
+source('dashwidgets.r')
+source('../../nav/quantarch-shiny.r')
 ## TODO: This is needed, if we include scripts for breadcrumb navigation
 addResourcePath("navigation", "../../nav") # hint: do not add a final "/"
 

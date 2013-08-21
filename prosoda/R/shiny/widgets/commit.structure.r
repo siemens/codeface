@@ -16,26 +16,6 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-## Create overviews about the types of collaboration graphs appearing in
-## projects.
-
-s <- suppressPackageStartupMessages
-s(library(ggplot2))
-s(library(shiny))
-s(library(logging))
-s(library(stats))
-rm(s)
-source("../config.r", chdir=TRUE)
-source("../utils.r", chdir=TRUE)
-source("../query.r", chdir=TRUE)
-source("../commits.r", chdir=TRUE)
-source("../vis.ports.r", chdir=TRUE)
-
-## Global variables
-conf <- config.from.args(require_project=FALSE)
-projects.list <- query.projects(conf$con)
-#####
-
 ## Perform dimensionality reduction on the per-cycle commits using
 ## multi-dimensional scaling
 do.mds <- function(cmt.info.list, k=2, method="euclidean") {
@@ -79,52 +59,26 @@ do.prcomp <- function(cmt.info.list, subset, method="euclidean") {
   return(res)
 }
 
-
-vis.commit.structure.server <- function(input, output, clientData, session) {
-  pid <- reactive({projects.list[projects.list$name==input$project,]$id})
-
+commit.structure.plot.mds <- function(pid) {
   subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
   cmt.info.list <- reactive({get.cmt.info.list(conf$con, pid(), subset)})
-
-  output$mdsPlot <- renderPlot({
+  plot <- renderPlot({
     dat <- reactive({do.mds(cmt.info.list(), method="euclidean")})
-
     g <- ggplot(dat(), aes(x=x, y=y, colour=inRC)) + geom_point() +
       facet_wrap(~cycle)
-
     print(g)
   })
-
-  output$princompPlot <- renderPlot({
-    dat <- reactive({do.prcomp(cmt.info.list(), subset)})
-
-    g <- ggplot(dat(), aes(x=x, y=y, colour=prop, shape=inRC)) + geom_point() +
-      facet_wrap(~cycle)
-
-    print(g)
-  })
+  return(plot)
 }
 
-vis.commit.structure.ui <- pageWithSidebar(
-                         headerPanel("Commit Structure (dimensionality reduction)"),
-                         sidebarPanel(
-                           selectInput("project", "Project",
-                                       choices = projects.list$name),
-
-                           submitButton("Update View")
-                           ),
-
-                         mainPanel(
-                           tabsetPanel(
-                             tabPanel("Principal components",
-                                      plotOutput("princompPlot")),
-                             tabPanel("Multi-Dimensional Scaling",
-                                      plotOutput("mdsPlot"))
-                             )
-                           )
-                         )
-
-## Dispatch the shiny server
-
-runApp(list(ui=vis.commit.structure.ui, server=vis.commit.structure.server),
-       port=PORT.COMMIT.STRUCTURE)
+commit.structure.plot.princomp <- function(pid) {
+  subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
+  cmt.info.list <- reactive({get.cmt.info.list(conf$con, pid(), subset)})
+  plot <- renderPlot({
+    dat <- reactive({do.prcomp(cmt.info.list(), subset)})
+    g <- ggplot(dat(), aes(x=x, y=y, colour=prop, shape=inRC)) + geom_point() +
+      facet_wrap(~cycle)
+    print(g)
+  })
+  return(plot)
+}

@@ -18,21 +18,7 @@
 ## Software Projects Navigation Sidebar (server.r) 
 ##
 
-suppressPackageStartupMessages(library(shiny))
-
-## initialize globals in local scope, so they are visible for all user sessions
-
-## get prosoda configuration
-source("../../../config.r", chdir=TRUE, local=TRUE)  # this activates logging
-## database functionality
-## TODO: improve session management to avoid excessive number of open sessions
-source("../../../query.r", chdir=TRUE, local=TRUE)
-conf <- config.from.args(require_project=FALSE)
-projects.list <- query.projects(conf$con) # this is needed by breadcrumb.r
-dbDisconnect(conf$con) # close database session, because we got the data needed for this app
-
-## source the breadcrumb functionality
-source(file.path("..","..","nav","breadcrumb.r"), chdir = TRUE, local=TRUE)
+source("../common.server.r", chdir=TRUE)  # this activates logging
 
 ##
 ## the server function

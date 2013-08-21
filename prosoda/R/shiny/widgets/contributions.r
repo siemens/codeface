@@ -16,24 +16,7 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-## Show descriptive statistics about projects
-
-s <- suppressPackageStartupMessages
-s(library(ggplot2))
-s(library(shiny))
-s(library(logging))
-s(library(plyr))
-s(library(reshape))
-rm(s)
-source("../config.r", chdir=TRUE)
-source("../utils.r", chdir=TRUE)
-source("../query.r", chdir=TRUE)
-source("../vis.ports.r", chdir=TRUE)
-
-## Global variables
-conf <- config.from.args(require_project=FALSE)
-projects.list <- query.projects(conf$con)
-#####
+library(reshape)
 
 ## Determine how many authors repeatedly contributed to how many cycles
 gen.authors.multi.cycles <- function(project.stats) {
@@ -73,9 +56,6 @@ do.contrib.overview.plot <- function(project.stats, cycles) {
   print(g)
 }
 
-
-
-
 ## There seem to be two patterns: Very frequent one-time contributors
 ## (git, qemu, kernel), and a fairly level structure (clang, openssl)
 do.multi.cycle.plot <- function(project.stats) {
@@ -86,7 +66,6 @@ do.multi.cycle.plot <- function(project.stats) {
   print(g)
 }
 
-
 do.authors.per.cycle.plot <- function(project.stats, cycles) {
   dat <- gen.authors.per.cycle(project.stats, cycles)
   g <- ggplot(dat, aes(x=cycle, y=developers)) + geom_bar(stat="identity") +
@@ -95,39 +74,21 @@ do.authors.per.cycle.plot <- function(project.stats, cycles) {
   print(g)
 }
 
-
-vis.contributions.server <- function(input, output, clientData, session) {
-  pid <- reactive({projects.list[projects.list$name==input$project,]$id})
+contributions.plot.multiCycles = function(pid) {
   project.stats <- reactive({query.contributions.stats.project(conf$con, pid())})
   cycles <- reactive({get.cycles.con(conf$con, pid())})
-
-  output$multiCycles <- renderPlot({do.multi.cycle.plot(project.stats())})
-  output$authorsPerCycle <- renderPlot({do.authors.per.cycle.plot(project.stats(),
-                                                                  cycles())})
-  output$overview <- renderPlot({do.contrib.overview.plot(project.stats(),
-                                                          cycles())})
+  renderPlot({do.multi.cycle.plot(project.stats())})
 }
 
-vis.contributions.ui <-
-  pageWithSidebar(
-    headerPanel("Contributions overview"),
-    sidebarPanel(
-      selectInput("project", "Project",
-                  choices = projects.list$name),
+contributions.plot.authorsPerCycle = function(pid) {
+  project.stats <- reactive({query.contributions.stats.project(conf$con, pid())})
+  cycles <- reactive({get.cycles.con(conf$con, pid())})
+  renderPlot({do.authors.per.cycle.plot(project.stats(), cycles())})
+}
 
-      submitButton("Update View")
-      ),
+contributions.plot.overview = function(pid) {
+  project.stats <- reactive({query.contributions.stats.project(conf$con, pid())})
+  cycles <- reactive({get.cycles.con(conf$con, pid())})
+  renderPlot({do.contrib.overview.plot(project.stats(), cycles())})
+}
 
-    mainPanel(
-      tabsetPanel(
-        tabPanel("Overview", plotOutput("overview")),
-        tabPanel("Repeated Contributions", plotOutput("multiCycles")),
-        tabPanel("Authors per cycle", plotOutput("authorsPerCycle"))
-        )
-      )
-    )
-
-## Dispatch the shiny server
-basicConfig()
-runApp(list(ui=vis.contributions.ui, server=vis.contributions.server),
-       port=PORT.CONTRIBUTIONS)

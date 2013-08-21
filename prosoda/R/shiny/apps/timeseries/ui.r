@@ -5,6 +5,4 @@
 # notice and this notice are preserved.  This file is offered as-is,
 # without any warranty.
 
-source("../../../dynamic_graphs/timeseries.r", chdir=TRUE, local=TRUE)
-
-shinyUI(ml.timeseries.ui)
+source("../common.ui.r")

@@ -19,21 +19,8 @@
 ## Example server component to dynamically compare inter-release similarities
 ## for projects
 
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(scales))
-suppressPackageStartupMessages(library(shiny))
-source("../config.r", chdir=TRUE)
-source("../query.r", chdir=TRUE)
-source("../ts_utils.r", chdir=TRUE)
-source("../vis.ports.r", chdir=TRUE)
-
-## Global variables
-conf <- config.from.args(require_project=FALSE)
-conf <- init.db.global(conf)
-projects.list <- query.projects(conf$con)
-###########
-
 get.release.distance.data <- function(con, name.list) {
+  cat(toString(name.list), "\n")
   pid.list <- lapply(name.list, function(name) {
     return(projects.list[projects.list$name==name,]$id)
   })
@@ -69,32 +56,11 @@ do.release.distance.plot <- function(con, names.list) {
   return(g)
 }
 
-release.distance.server <- function(input, output) {
-  output$distancePlot <- renderPlot({
+release.distance.plot <- function(pid, name2, name3) {
+  renderPlot({
     print(do.release.distance.plot(conf$con,
-                                   list(input$name1, input$name2, input$name3)))
+                                   list(projects.list[[as.integer(pid())]],
+                                        name2(), name3())))
   })
 }
 
-release.distance.ui <- pageWithSidebar(
-                         headerPanel("Inter-Release Distance"),
-                         sidebarPanel(
-                           selectInput("name1", "Project 1",
-                                       choices = projects.list$name),
-                           selectInput("name2", "Project 2",
-                                       choices = projects.list$name),
-                           selectInput("name3", "Project 3",
-                                       choices = projects.list$name),
-
-                           helpText("Interpretational aid: Smaller is better for this plot."),
-                           submitButton("Update View")
-                           ),
-
-                         mainPanel(
-                           plotOutput("distancePlot")
-                           )
-                         )
-
-## Dispatch the shiny server
-runApp(list(ui=release.distance.ui, server=release.distance.server),
-       port=PORT.RELEASE.DISTANCE)

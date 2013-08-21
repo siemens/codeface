@@ -17,10 +17,10 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets/contributors.r", chdir=TRUE)
+source("../../widgets/release_distance.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "contributors")
+  pid = common.server.init(output, session, "release_distance")
 
   observe({
     range.ids.list <- query.range.ids.con(conf$con, pid())
@@ -30,26 +30,22 @@ shinyServer(function(input, output, clientData, session) {
   })
 
   range.id <- reactive({input$cycle})
+  name2 <- reactive({input$name2})
+  name3 <- reactive({input$name3})
 
-  output$prTable <- contributors.table.pagerank(pid, range.id)
-  output$prTrTable <- contributors.table.pagerank.transposed(pid, range.id)
-  output$commitsTable <- contributors.table.commits(pid, range.id)
-  output$changesTable <- contributors.table.changes(pid, range.id)
+  output$distancePlot <- release.distance.plot(pid, name2, name3)
   output$quantarchContent <- renderUI({
     pageWithSidebar(
-      headerPanel("Contributors"),
+      headerPanel("Inter-Release Distance"),
       sidebarPanel(
-        selectInput("cycle", "Release Cycle", choices = list(1)),
-        helpText(paste("Interpretational aid: Page rank focuses on giving tags, ",
-                       "transposed page rank on being tagged."))
+        selectInput("name2", "Also show project:",
+                    choices = projects.list$name),
+        selectInput("name3", "Also show project:",
+                    choices = projects.list$name),
+        helpText("Interpretational aid: Smaller is better for this plot.")
       ),
       mainPanel(
-        tabsetPanel(
-          tabPanel("Page Rank", tableOutput("prTable")),
-          tabPanel("Page Rank (tr)", tableOutput("prTrTable")),
-          tabPanel("Commits", tableOutput("commitsTable")),
-          tabPanel("Code Changes", tableOutput("changesTable"))
-        )
+        plotOutput("distancePlot")
       )
     )
   })

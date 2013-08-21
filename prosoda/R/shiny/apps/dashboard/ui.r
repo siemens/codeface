@@ -19,8 +19,8 @@
 ##
 
 suppressPackageStartupMessages(library(shinyGridster))
-source('dashwidgets.r', local=TRUE)
-source('../../nav/quantarch-shiny.r', local=TRUE)
+source('dashwidgets.r')
+source('../../nav/quantarch-shiny.r')
 
 shinyUI(bootstrapPage(
 

@@ -18,22 +18,10 @@
 ## Software Project Dashboard (server.r) 
 ##
 
-suppressPackageStartupMessages(library(shiny))
+source("../common.server.r", chdir=TRUE)
 
-## initialize globals in local scope, so they are visible for all user sessions
-
-## get prosoda configuration
-source("../../../config.r", chdir=TRUE, local=TRUE)  # this activates logging
-## database functionality
-## TODO: improve session management to avoid excessive number of open sessions
-source("../../../query.r", chdir=TRUE, local=TRUE)
-source("../../../dynamic_graphs/timeseries.r", chdir=TRUE, local=TRUE)
-conf <- config.from.args(require_project=FALSE)
-projects.list <- query.projects(conf$con) # this is needed by breadcrumb.r
-##dbDisconnect(conf$con) # close database session, because we got the data needed for this app
-
-## source the breadcrumb functionality
-source(file.path("..","..","nav","breadcrumb.r"), chdir = TRUE, local=TRUE)
+## Load widgets
+source("../../widgets/timeseries.r", chdir=TRUE)
 
 ##
 ## the server function
@@ -67,13 +55,7 @@ shinyServer(function(input, output, session) {
 					"Dashboard")}
 			)
 			
-
-		ts <- get.ts.data(conf$con, pid)
-		boundaries <- get.cycles.con(conf$con, pid)
-
-		output$timeseriesWidget <- renderPlot({
-			print(do.ts.plot(ts, boundaries, 0, 0))
-			})
+		output$timeseriesWidget <- timeseries.plot.messages.per.day(reactive({pid}), reactive({"openssl.devel activity"}), reactive({0}), reactive({0}))
 			
 		## IMPLEMENTATION: insert initial stuff depending on project id here   
  
