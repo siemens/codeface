@@ -20,11 +20,144 @@ import os
 import re
 import math
 import shutil
+from time import sleep
+from multiprocessing import Process, Queue
 from glob import glob
 from logging import getLogger; log = getLogger(__name__)
 from subprocess import Popen, PIPE
 from pkg_resources import resource_filename
 from tempfile import NamedTemporaryFile, mkdtemp
+
+class BatchJob(object):
+    '''
+    Simple implementation of a dependency-respecting batch system
+
+    This implementation spawns a set of n_cores processes, which pop work
+    items off the work_queue. If a work item is executed without an exception,
+    the worker puts its job id into the done_queue to signal completion. If
+    an exception occurs, a None object is put in the done_queue; which
+    triggers a RuntimeException in the main Process.
+
+    Jobs can be created using BatchJob.add(function, args, kwargs, deps=deps))
+    where deps can be a list of job handles previously returned by
+    BatchJob.add. After all jobs have been added, BatchJob.join() keeps up
+    execution and returns only after all jobs have finished.
+    '''
+    work_queue = Queue()
+    done_queue = Queue()
+    workers = []
+    jobs = []
+    n_cores = 1
+
+    @classmethod
+    def set_parallel_jobs(cls, n=1):
+        '''Set the number of parallel processes'''
+        cls.n_cores = int(n)
+
+    @classmethod
+    def join(cls, jobs=None):
+        '''Run until all jobs (or only the specified jobs) are finished.'''
+        cls._setup()
+        if jobs is None:
+            jobs = [j.id for j in jobs]
+        while True:
+            if all(cls.jobs[j].done for j in jobs):
+                break
+            for j in cls.jobs:
+                j.submit()
+            # Wait for a result from the done_queue
+            res = cls.done_queue.get(block=True)
+            if res is None:
+                # sleep for a bit to allow the original processes' exception
+                # to actually propagate.
+                sleep(1)
+                for w in cls.workers:
+                    w.terminate()
+                raise RuntimeError("Failed process. Terminating.")
+            cls.jobs[res].done = True
+        cls._shutdown()
+
+    @classmethod
+    def add(cls, func, args, kwargs={}, deps=()):
+        '''Add a job that exceuted func(*args, **kwargs)'''
+        j = cls(func, args, kwargs, deps)
+        return j.id
+
+    @classmethod
+    def _setup(cls):
+        '''
+        Internal setup function that spawns the necessary number of worker
+        threads. Can be called multiple times with no ill effect.
+        Will never decrease the number of worker threads, as jobs might
+        already be in progress.
+        '''
+        for i in range(cls.n_cores - len(cls.workers)):
+            w = Process(target=cls._worker_function, args=())
+            w.start()
+            cls.workers.append(w)
+
+    @classmethod
+    def _worker_function(cls):
+        '''
+        Worker function executed in a separate process.
+        This function pulls work items off the work queue; terminates in case
+        of None; otherwise executes the work item. Any exception is reraised
+        after putting a None onto the done_queue (triggering an exception in
+        the main process)
+        '''
+        while True:
+            workitem = cls.work_queue.get(block=True)
+            if workitem is None:
+                break # regular termination
+            jobid, func, args, kwargs = workitem
+            try:
+                func(*args, **kwargs)
+                cls.done_queue.put(jobid)
+            except Exception as e:
+                cls.done_queue.put(None)
+                raise
+
+    @classmethod
+    def _shutdown(cls):
+        '''Cooperatively shut down the worker processes'''
+        for i in range(len(cls.workers)):
+            cls.work_queue.put(None)
+        for w in cls.workers:
+            w.join()
+        cls.workers = []
+
+    def __init__(self, func, args, kwargs, deps):
+        '''
+        Set up a new BatchJob object and insert it into the global job list
+        '''
+        self.func, self.args, self.kwargs, self.deps = func, args, kwargs, deps
+        self.id = len(self.__class__.jobs)
+        self.__class__.jobs.append(self)
+        self.submitted = False
+        self.done = False
+
+    def submit(self):
+        '''
+        Put this job onto the work queue if it is ready and not yet submitted
+        '''
+        if not self.submitted and self.ready:
+            workitem = (self.id, self.func, self.args, self.kwargs)
+            self.__class__.work_queue.put(workitem)
+            self.submitted = True
+
+    @property
+    def ready(self):
+        '''a job is ready if all its dependencies are done'''
+        return all(self.__class__.jobs[j].done for j in self.deps)
+
+    @property
+    def running(self):
+        '''
+        a job is running if it has been submitted to the queue, but is not
+        yet done
+        '''
+        return self.submitted and not self.done
+
 
 def execute_command(cmd, ignore_errors=False, direct_io=False, cwd=None):
     '''
@@ -99,23 +232,22 @@ def _convert_dot_file(dotfile):
     res.append("}\n")
     return res
 
-def layout_all_graphs(resdir):
-    log.devinfo("  -> Generating cluster graphs")
-    files = glob(os.path.join(resdir, "*.dot"))
-    for file in files:
-        out = NamedTemporaryFile(mode="w", delete=False)
-        out.writelines(_convert_dot_file(file))
-        out.close() # flushes the cache
-        cmd = []
-        cmd.append("dot")
-        cmd.append("-Ksfdp")
-        cmd.append("-Tpdf")
-        cmd.append("-Gcharset=utf-8")
-        cmd.append("-o{0}.pdf".format(os.path.splitext(file)[0]))
-        cmd.append(out.name)
-        execute_command(cmd)
-        # Manually remove the temporary file
-        os.unlink(out.name)
+
+
+def layout_graph(filename):
+    out = NamedTemporaryFile(mode="w", delete=False)
+    out.writelines(_convert_dot_file(filename))
+    out.close() # flushes the cache
+    cmd = []
+    cmd.append("dot")
+    cmd.append("-Ksfdp")
+    cmd.append("-Tpdf")
+    cmd.append("-Gcharset=utf-8")
+    cmd.append("-o{0}.pdf".format(os.path.splitext(filename)[0]))
+    cmd.append(out.name)
+    execute_command(cmd)
+    # Manually remove the temporary file
+    os.unlink(out.name)
 
 def generate_report(start_rev, end_rev, resdir):
     log.devinfo("  -> Generating report")

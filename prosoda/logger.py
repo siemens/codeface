@@ -26,6 +26,7 @@ instead of the current handcoded configuration.
 '''
 import logging
 import os
+import multiprocessing
 from copy import copy
 
 DEVINFO_LEVEL = 15
@@ -121,7 +122,7 @@ def _get_log_handler(stream=None):
     is a TTY, since stderr could have been redirected into a file.
     '''
     handler = logging.StreamHandler(stream=stream)
-    FORMAT = "%(asctime)s [$BOLD%(name)s$RESET] %(levelname)s: %(message)s"
+    FORMAT = "%(asctime)s [$BOLD%(name)s$RESET] %(processName)s %(levelname)s: %(message)s"
     datefmt = '%Y-%m-%d %H:%M:%S'
 
     if hasattr(handler.stream, "fileno") and os.isatty(handler.stream.fileno()):

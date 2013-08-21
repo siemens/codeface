@@ -28,7 +28,7 @@ from datetime import datetime
 from .VCS import gitVCS
 from .commit_analysis import createCumulativeSeries, createSeries, \
     writeToFile, getSeriesDuration
-from .dbmanager import tstamp_to_sql
+from .dbmanager import DBManager, tstamp_to_sql
 
 def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
     pkl_file = open(dbfilename, 'rb')
@@ -52,9 +52,10 @@ def writeReleases(dbm, tstamps, conf):
                    (tstamp_to_sql(int(tstamp[2])), pid, tstamp[0], tstamp[1]))
     dbm.doCommit()
 
-def dispatch_ts_analysis(resdir, dbm, conf):
+def dispatch_ts_analysis(resdir, conf):
     dbpath = resdir
     destdir = os.path.join(dbpath, "ts")
+    dbm = DBManager(conf)
 
     if not(os.path.exists(destdir)):
         os.mkdir(destdir)

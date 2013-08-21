@@ -17,13 +17,18 @@
 from logging import getLogger; log = getLogger(__name__)
 from pkg_resources import resource_filename
 from os.path import join as pathjoin, split as pathsplit
+from glob import glob
 
 from .dbmanager import DBManager
 from .configuration import Configuration
 from .cluster.cluster import doProjectAnalysis
 from .ts import dispatch_ts_analysis
-from .util import (execute_command, generate_report, layout_all_graphs,
-        check4ctags)
+from .util import (execute_command, generate_report, layout_graph,
+        check4ctags, BatchJob)
+
+def loginfo(msg):
+    ''' Pickleable function for multiprocessing '''
+    log.info(msg)
 
 def project_setup(conf, recreate):
     '''
@@ -47,7 +52,8 @@ def project_setup(conf, recreate):
     return project_id, dbm, all_range_ids
 
 def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
-                    no_report, loglevel, logfile, recreate):
+                    no_report, loglevel, logfile, recreate, n_jobs):
+    BatchJob.set_parallel_jobs(n_jobs)
     conf = Configuration.load(prosoda_conf, project_conf)
     revs = conf["revisions"]
     rcs = conf["rcs"] # release candidate tags
@@ -61,23 +67,20 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
 
     project_id, dbm, all_range_ids = project_setup(conf, recreate)
     # Analyse new revision ranges
+    jobs = []
     for i, range_id in enumerate(all_range_ids):
         start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
         range_resdir = pathjoin(project_resdir, "{0}-{1}".
-                format(start_rev, end_rev))
-        log.info("  -> Analysing revision range {0}..{1}".
                 format(start_rev, end_rev))
 
         #######
         # STAGE 1: Commit analysis
         limit_history = True
-        log.info("    - Analysing commits")
-        doProjectAnalysis(conf, dbm, start_rev, end_rev, rc_rev, range_resdir,
-                repo, True, limit_history)
+
+        s1 = BatchJob.add(doProjectAnalysis, (conf, start_rev, end_rev, rc_rev, range_resdir, repo, True, limit_history))
 
         #########
         # STAGE 2: Cluster analysis
-        log.info("    - Detecting clusters")
         exe = resource_filename(__name__, "R/cluster/persons.r")
         cwd, _ = pathsplit(exe)
         cmd = []
@@ -89,20 +92,30 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
         cmd.extend(("-p", project_conf))
         cmd.append(range_resdir)
         cmd.append(str(range_id))
-        print(cmd, cwd)
-        execute_command(cmd, direct_io=True, cwd=cwd)
+
+        BatchJob.add(loginfo, ["  -> Analysing revision range "
+            "{0}..{1}: Detecting clusters...".format(start_rev, end_rev)],
+            deps=[s1])
+        s2 = BatchJob.add(execute_command, (cmd,), {"direct_io":True, "cwd":cwd}, deps=[s1])
+        jobs.append(s2)
 
         #########
         # STAGE 3: Generate cluster graphs
         if not no_report:
-            log.info("    - Generating reports")
-            layout_all_graphs(range_resdir)
-            generate_report(start_rev, end_rev, range_resdir)
+            files = glob(pathjoin(range_resdir, "*.dot"))
+            lj = BatchJob.add(loginfo, ["  -> Analysing revision "
+                "range {0}..{1}: Generating Reports...".
+                format(start_rev, end_rev)],
+                deps=[s2])
+            dotjobs = [BatchJob.add(layout_graph, (file,), deps=[s2, lj]) for file in files]
+            jobs.append(BatchJob.add(generate_report, (start_rev, end_rev, range_resdir), deps=dotjobs))
+
+    BatchJob.join(jobs)
 
     #########
     # Global stage 1: Time series generation
     log.info("=> Preparing time series data")
-    dispatch_ts_analysis(project_resdir, dbm, conf)
+    dispatch_ts_analysis(project_resdir, conf)
 
     #########
     # Global stage 2: Time series analysis

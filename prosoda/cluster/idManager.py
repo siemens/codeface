@@ -40,6 +40,9 @@ class idManager:
         # assigned to the developer
         self.person_ids = {}
 
+        # Cache identical requests to the server
+        self._cache = {}
+
         self.fixup_emailPattern = re.compile(r'([^<]+)\s+<([^>]+)>')
         self.commaNamePattern = re.compile(r'([^,\s]+),\s+(.+)')
 
@@ -112,7 +115,12 @@ class idManager:
 
         # TODO: We should handle errors by throwing an exception instead
         # of silently ignoring them
-        id = json.loads(res.read())["id"]
+        result = res.read()
+        jsond = json.loads(result)
+        try:
+            id = jsond["id"]
+        except KeyError:
+            raise Exception("Bad response from server: '{}'".format(jsond))
         return(id)
 
     def getPersonID(self, addr):
@@ -125,8 +133,9 @@ class idManager:
         """
 
         (name, email) = self._decompose_addr(addr)
-
-        ID = self._query_user_id(name, email)
+        if not (name, email) in self._cache:
+            self._cache[(name, email)] = self._query_user_id(name, email)
+        ID = self._cache[(name, email)]
 
         # Construct a local instance of PersonInfo for the contributor
         # if it is not yet available

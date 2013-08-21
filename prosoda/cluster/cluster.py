@@ -35,7 +35,7 @@ from prosoda import kerninfo
 from prosoda.commit_analysis import (getSignoffCount, getSignoffEtcCount,
         getInvolvedPersons, tag_types)
 from prosoda.VCS import gitVCS
-from prosoda.dbmanager import tstamp_to_sql
+from prosoda.dbmanager import DBManager, tstamp_to_sql
 from .PersonInfo import PersonInfo
 from .idManager import idManager
 
@@ -1280,8 +1280,11 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
 
 
 ##################################################################
-def doProjectAnalysis(conf, dbm, from_rev, to_rev, rc_start, outdir,
+def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
                       git_repo, create_db, limit_history=False):
+    log.info("  -> Analysing revision range {0}..{1}: Commits...".
+             format(from_rev, to_rev))
+
     #--------------
     #folder setup
     #--------------
@@ -1302,10 +1305,7 @@ def doProjectAnalysis(conf, dbm, from_rev, to_rev, rc_start, outdir,
     #Perform appropriate analysis
     #----------------------------
     filename = os.path.join(outdir, "vcs_analysis.db")
-    #TODO:handle this in the interface to doProjectAnalysis
-    #this will likely break everything if its handled
-    #properly right now
-
+    dbm = DBManager(conf)
     performAnalysis(conf, dbm, filename, git_repo, [from_rev, to_rev],
 #                        kerninfo.subsysDescrLinux,
                         None,

@@ -24,10 +24,12 @@ import unittest
 import os
 from pkg_resources import resource_filename
 
+from glob import glob
+
 from .logger import set_log_level, start_logfile, log
 from .configuration import Configuration
 from .util import execute_command
-from .project import project_analyse
+from .project import project_analyse, mailinglist_analyse
 
 def get_parser():
     parser = argparse.ArgumentParser(prog='prosoda',
@@ -91,10 +93,10 @@ def cmd_run(args):
     # First make all the args absolute
     resdir, gitdir = map(os.path.abspath, (args.resdir, args.gitdir))
     prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
-    if logfile:
+    if args.logfile:
         logfile = os.path.abspath(args.logfile)
     project_analyse(resdir, gitdir, prosoda_conf, project_conf,
-                    args.no_report, args.loglevel, args.logfile, args.recreate)
+                    args.no_report, args.loglevel, args.logfile, args.recreate, args.jobs)
     return 0
 
 def cmd_ml(args):
@@ -102,7 +104,7 @@ def cmd_ml(args):
     # First make all the args absolute
     resdir, mldir = map(os.path.abspath, (args.resdir, args.mldir))
     prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
-    if logfile:
+    if args.logfile:
         logfile = os.path.abspath(args.logfile)
     mailinglist_analyse(resdir, mldir, prosoda_conf, project_conf,
                         args.loglevel, args.logfile, args.jobs)
