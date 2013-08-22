@@ -108,8 +108,11 @@ for (app in project.apps) {
       data.frame(id)
     }
   )
-  cat(toString(nav.list[[name]]$label()), "\n")
-  cat(toString(nav.list[[name]]$url()), '\n')
+  ## Note: We need to force evaluation of these functions here, since
+  ## otherwise the name and title variables will not be "captured" by
+  ## the closure; and will be overwritten in the next loop iteration.
+  force(nav.list[[name]]$label())
+  force(nav.list[[name]]$url())
 }
 
 ## Configure the project dashboard
