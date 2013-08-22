@@ -29,55 +29,77 @@ source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, session) {
 
-	loginfo(isolate(session$clientData$url_search)) # log query string
+	#loginfo(isolate(session$clientData$url_search)) # log query string
   
-	## values synchonizes the following reactive blocks  
-	values <- reactiveValues()
-	
-	## Reactive Block: process session variables and create breadcrumb
+	pid <- common.server.init(output, session, "dashboard")
+
 	observe({
 	
-		## (1) process session variable to get project id
-		paramstr <- session$clientData$url_search
-		args.list <- parseQueryString(paramstr)
-		pid <- args.list[["projectid"]]
-		loginfo(paste("projectid=<",as.character(pid),">"))
-		
-		## (2) use project id to generate breadcrumb
-		navData <- breadcrumbPanelData("dashboard", as.character(paramstr))
-		output$quantarchBreadcrumb <- renderUI({
-			breadcrumbPanel( navData )
-			})
-		
-		## (3) output headline and include project name
-		output$dashboardTitleOutput <- renderText({
-			paste( 	as.character(projects.list$name[projects.list$id == pid]),
-					"Dashboard")}
-			)
-		widget1 <- widget.list[[1]](pid)
-		output$widget1 <- renderWidget(widget1)
+		#loginfo(paste("Dashboard: ", pid()))
+	
+		widgetlist <- list()
+		##		
+		widgetlist[[1]] <- list(
+			html=tags$li( style="background-color: #DDD;box-shadow: 10px 10px 5px #CCC;", 
+						  justgageOutput("live_gauge", width=250, height=200)), 
+			size_x=1, size_y=1, col=1, row=1)
+		##
+		widgetlist[[2]] <- list(
+			html=tags$li(
+				style="background-color:yellow;box-shadow: 10px 10px 5px #CCC;",
+				plotOutput("tempWidget2", height="100%")
+				), 
+			size_x=2, size_y=1, col=2, row=1)
+		##	
+		widgetlist[[3]] <- list(
+		html=tags$li(
+			style="background-color:blue;box-shadow: 10px 10px 5px #CCC;", 
+			tags$p("Widget C")), 
+			size_x=1, size_y=1, col=1, row=2)
+		##
+		widgetlist[[4]] <- list(
+			html=tags$li(
+				style="background-color:green;box-shadow: 10px 10px 5px #CCC;", 
+				tags$p("Widget D")), 
+				size_x=1, size_y=1, col=2, row=2)
+		##
+		widgetlist[[5]] <- list(
+			html=tags$li(
+				style="background-color:white;box-shadow: 10px 10px 5px #CCC;", 
+				tags$p("Widget E")), 
+				size_x=1, size_y=1, col=3, row=2)	
 
-		widget2 <- widget.list[[2]](pid)
-		output$widget2 <- renderWidget(widget2)
+		## Process widget list
+		for ( w in widgetlist ) {
+			session$sendCustomMessage(
+				type = "GridsterMessage", 
+				message = list(
+					msgname = "addWidget", 				# Name of message to send
+					html = as.character(w$html),		# this is the html for the widget
+					size_x = as.character(w$size_x),	# in units of grid width
+					size_y = as.character(w$size_y),	# dto
+					col = as.character(w$col),			# column in grid
+					row = as.character(w$row)			# row in grid
+					)
+				)
+			}
 
-		widget3 <- widget.list[[4]](pid)
-		output$widget3 <- renderWidget(widget3)
-			
-		## IMPLEMENTATION: insert initial stuff depending on project id here   
- 
+		widget2 <- widget.list[[1]](pid())
+		output$tempWidget2 <- renderWidget(widget2)
+
 	}) # end observe
 
 	## Reactive Block: Set the value for the gauge
 	## TODO: improve the justgage integration to provide title and max values
 	output$live_gauge <- reactive({
 		## IMPLEMENTATION: provide some meaningful (reactive) value
-		10.0
+		10.0 * as.integer(pid())
 	  })
 
 	## Reactive Block: Status output
-	output$status <- reactive({
-		list(text="Warn", subtext = "Mean of last 10 approaching threshold (200)",
-			gridClass="warning")
-		})
+	# output$status <- reactive({
+		# list(text="Warn", subtext = "Mean of last 10 approaching threshold (200)",
+			# gridClass="warning")
+		# })
 
 })

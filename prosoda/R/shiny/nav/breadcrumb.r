@@ -57,7 +57,7 @@ nav.list$quantarch <- list(
 	},
   ## (2) configure URL for the breadcrumb entry 
   url = function(paramstr = NULL) {
-	"http://localhost:8081/apps/projects/"
+	"../projects/"
 	}, # params kann man z.B. zum highliten verwende
   
   ## (3) configure children displayed in dropdown
@@ -125,7 +125,7 @@ nav.list$dashboard <- list(
     },
   ## (2) configure URL for the breadcrumb entry
   url = function(paramstr) {
-    paste("http://localhost:8081/apps/dashboard/",paramstr, sep = "?")
+    paste("../dashboard/",paramstr, sep = "?")
     },
   ## (3) configure children displayed in dropdown
   childrenIds = function(paramstr) {
@@ -282,18 +282,15 @@ breadcrumbPanel <- function( breadcrumb ) {
   for (bc.element in breadcrumb) {
     childtags <- tagList(lapply(bc.element$children, popdown.tags))
     childlist <- tags$ul(class="dropdown-menu", childtags)
-	navtag <- tags$li(class = "dropdown",
-						a( "data-target"="#",
-						  href = as.character(bc.element$url),
-                          as.character(bc.element$label)), 
-						tags$b( class = "dropdown-toggle", "data-toggle" = "dropdown", class="caret" ), 
+	navtag <- tags$li(class = "dropdown", a( "data-target"="#", href = as.character(bc.element$url),
+                        as.character(bc.element$label)), 
+					tags$b( class="dropdown-toggle caret", "data-toggle" = "dropdown"  ), 
 						childlist, 
 						divider.tag( bc.element$active ))
     navul <- tagAppendChild(navul, navtag)
   }
     
   tagList(div(class = "span12", style = "padding: 10px 0px;", navul ))
-
 } # end breadcrumbBootstrap
 
 ## TODO: Move testing to test_breadcrumb.r

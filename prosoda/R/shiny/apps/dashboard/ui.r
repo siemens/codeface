@@ -20,51 +20,40 @@
 
 suppressPackageStartupMessages(library(shinyGridster))
 source('dashwidgets.r')
-source('../../nav/quantarch-shiny.r')
 
 shinyUI(bootstrapPage(
 
 	tags$head(
 		
-		## TODO: adapt the styles as needed (or ignore it)
+		## Adapt the styles as needed (some seem to be ignored)
 		tags$link(rel = 'stylesheet', type = 'text/css', href = 'styles.css'),
+		
 		## For JustGage, http://justgage.com/
 		tags$script(src = 'js/raphael.2.1.0.min.js'),
 		tags$script(src = 'js/justgage.1.0.1.min.js'),
 		# For the Shiny output binding for status text and JustGage
-		tags$script(src = 'shiny_status_binding.js'),
-		tags$script(src = 'justgage_binding.js')
+		#tags$script(src = 'shiny_status_binding.js'),
+		tags$script(src = 'justgage_binding.js'),
+		
+		# for adding widgets dynamically by Shiny customMessageHandler
+		tags$script(src = 'initwidgets.js')
 	
 	),
   
 	div(class = "container",
 		div(class = "row",
-			uiOutput("quantarchBreadcrumb"),
-			h1(div(id = "dashboardTitleOutput", class = "shiny-text-output span12"))),
+			uiOutput("quantarchBreadcrumb")
+			#, h1(div(id = "dashboardTitleOutput", class = "shiny-text-output span12"))
+			# ,tags$br()
+			# ,selectInput("variable", "Variable:",
+            # c("Cylinders" = "cyl",
+              # "Transmission" = "am",
+              # "Gears" = "gear"))
+			),
 		div(class = "row",
-			gridster(width = 250, height = 250,
-				gridsterItem(col = 1, row = 1, sizex = 1, sizey = 1,
-					plotOutput("widget3", height="100%")
-					),
-				## sample plotOutput for timeseries plot
-				## to assure that plot fits in widgets, must define height = "100%" or 200
-				gridsterItem(col = 2, row = 1, sizex = 2, sizey = 1,
-					plotOutput("widget1",height="100%")
-					),
-				gridsterItem(col = 1, row = 2, sizex = 1, sizey = 1,
-					justgageOutput("live_gauge", width=250, height=200)
-					),
-				gridsterItem(col = 2, row = 2, sizex = 1, sizey = 1,
-					tags$div(class = 'grid_title', 'Status'),
-					statusOutput('status'),
-					a(href="apps/contributors/","more")
-					),
-				gridsterItem(col = 3, row = 2, sizex = 1, sizey = 1,
-				  plotOutput("widget2",height="100%")
-					)
-				))
-	)
-	  ## Read Javascript code from a separate file
-	  ## if needed, init iframe communication
-	  #tags$script(src = "navigation/initiframecomm.js")
+			div(class = "span12",
+				gridster(width = 250, height = 250))
+			)
+		)
+
 	))

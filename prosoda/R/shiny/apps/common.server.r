@@ -38,6 +38,7 @@ source("../nav/breadcrumb.r", chdir = TRUE)
 common.server.init <- function(output, session, app.name) {
   ## Read and parse the query string
   paramstr <- reactive({session$clientData$url_search});
+  #loginfo(isolate(paramstr()))
   args.list <- reactive({
     parseQueryString(paramstr());
   });
@@ -56,6 +57,7 @@ common.server.init <- function(output, session, app.name) {
   ## Set up breadcrumb data
   observe({
     navData <- breadcrumbPanelData(app.name, paramstr())
+	#loginfo(as.character(breadcrumbPanel(navData)))
     output$quantarchBreadcrumb <- renderUI({breadcrumbPanel(navData)})
   })
   return(pid)
