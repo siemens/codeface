@@ -1,5 +1,0 @@
-Please call all dynamic visualisation scripts using:
-  prosoda dynamic <name>
-where <name> is the script name without the extension.
-Alternatively, these scripts can be called directly from the prosoda/R
-directory, this way, all include files can be found properly.
