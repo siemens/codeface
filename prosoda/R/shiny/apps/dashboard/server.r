@@ -21,7 +21,7 @@
 source("../common.server.r", chdir=TRUE)
 
 ## Load widgets
-source("../../widgets/timeseries.r", chdir=TRUE)
+source("../../widgets.r", chdir=TRUE)
 
 ##
 ## the server function
@@ -54,8 +54,14 @@ shinyServer(function(input, output, session) {
 			paste( 	as.character(projects.list$name[projects.list$id == pid]),
 					"Dashboard")}
 			)
-			
-		output$timeseriesWidget <- timeseries.plot.messages.per.day(reactive({pid}), reactive({"openssl.devel activity"}), reactive({0}), reactive({0}))
+		widget1 <- widget.list[[1]](pid)
+		output$widget1 <- renderWidget(widget1)
+
+		widget2 <- widget.list[[2]](pid)
+		output$widget2 <- renderWidget(widget2)
+
+		widget3 <- widget.list[[4]](pid)
+		output$widget3 <- renderWidget(widget3)
 			
 		## IMPLEMENTATION: insert initial stuff depending on project id here   
  

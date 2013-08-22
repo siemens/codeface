@@ -44,12 +44,12 @@ shinyUI(bootstrapPage(
 		div(class = "row",
 			gridster(width = 250, height = 250,
 				gridsterItem(col = 1, row = 1, sizex = 1, sizey = 1,
-					tags$p("Widget 1,1")
+					plotOutput("widget3", height="100%")
 					),
 				## sample plotOutput for timeseries plot
 				## to assure that plot fits in widgets, must define height = "100%" or 200
 				gridsterItem(col = 2, row = 1, sizex = 2, sizey = 1,
-					plotOutput("timeseriesWidget",height="250px")
+					plotOutput("widget1",height="100%")
 					),
 				gridsterItem(col = 1, row = 2, sizex = 1, sizey = 1,
 					justgageOutput("live_gauge", width=250, height=200)
@@ -60,7 +60,7 @@ shinyUI(bootstrapPage(
 					a(href="apps/contributors/","more")
 					),
 				gridsterItem(col = 3, row = 2, sizex = 1, sizey = 1,
-					tags$p("Widget 1,3")
+				  plotOutput("widget2",height="100%")
 					)
 				))
 	)
