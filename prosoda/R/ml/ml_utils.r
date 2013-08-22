@@ -174,7 +174,6 @@ fixup.network <- function(.net) {
 ## Fix some common problems that appear in mailing list author
 ## specifications.
 fixup.authors <- function(authors) {
-  authors <- gsub(pattern='"', x=authors, replacement="")
   authors <- gsub(pattern=" via [[:print:]]*>?|\\]?", x=authors,
                   replacement="")
 
