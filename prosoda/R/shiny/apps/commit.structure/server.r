@@ -25,8 +25,10 @@ shinyServer(function(input, output, clientData, session) {
     output$princompPlot <- renderWidget(make.widget.commit.structure.princomp(pid()))
     output$mdsPlot <- renderWidget(make.widget.commit.structure.mds(pid()))
   })
-  output$quantarchContent <- renderUI({
-    div(
+
+	output$quantarchHeader <- renderText("Commit Structure")
+	output$quantarchContent <- renderUI({
+    tags$div( class="span12",
       tabsetPanel(
         tabPanel("Principal components", plotOutput("princompPlot")),
         tabPanel("Multi-Dimensional Scaling", plotOutput("mdsPlot"))

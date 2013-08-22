@@ -271,9 +271,7 @@ breadcrumbBrandville <- function( breadcrumb ) {
 breadcrumbPanel <- function( breadcrumb ) {
   # create Bootstrap compatible XML
   
-  popdown.tags <- function(x) {
-    tags$li(a(href=as.character(x$url),as.character(x$label)))
-  }  
+  
   divider.tag <- function( x=FALSE ) {
 	if(x) { tags$span() } else { tags$span( class="divider","/")}}
 	
@@ -286,22 +284,27 @@ breadcrumbPanel <- function( breadcrumb ) {
 		}}
 	
 	bc.children <- function( bcchildren, x=FALSE ) {
-		if(x) {
+		popdown.tags <- function(x) {
+			tags$li(a(href=as.character(x$url),as.character(x$label)))
+			}  
+		if( length(bcchildren) == 0 ) {
 			tags$div()
 		} else {
+			childtags <- tagList(lapply(bcchildren, popdown.tags))
+			childlist <- tags$ul(class="dropdown-menu", childtags)
 			tagList(tags$b( class="dropdown-toggle caret", "data-toggle" = "dropdown"  ), 
-						bcchildren)
+						childlist)
 		}
 		}
   
   navul <- tags$ul(class = "breadcrumb")
   
   for (bc.element in breadcrumb) {
-    childtags <- tagList(lapply(bc.element$children, popdown.tags))
-    childlist <- tags$ul(class="dropdown-menu", childtags)
+    # childtags <- tagList(lapply(bc.element$children, popdown.tags))
+    # childlist <- tags$ul(class="dropdown-menu", childtags)
 	navtag <- tags$li(class = "dropdown", 
 					bc.link( bc.element$url ,bc.element$label, bc.element$active), 
-					bc.children( childlist, bc.element$active ),
+					bc.children( bc.element$children ),
 					divider.tag( bc.element$active ))
     navul <- tagAppendChild(navul, navtag)
   }
