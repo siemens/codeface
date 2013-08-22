@@ -78,7 +78,7 @@ function withCheckedConnection(response, func) {
         if (err) {
             msg = 'MySQL connection error: ' + err;
             logger.log('error', msg);
-            response.send(msg);
+            response.end(JSON.stringify({"error":msg}));
             connection.release();
         } else {
             try {
@@ -86,7 +86,7 @@ function withCheckedConnection(response, func) {
             } catch (exception) {
                 msg = 'Exception: ' + exception.message
                 logger.log('error', msg);
-                response.send(msg);
+                response.end(JSON.stringify({"error":msg}));
                 connection.destroy();
             }
         }
@@ -101,7 +101,7 @@ app.get('/getUsers', function(request, response) {
     logger.log('info', "/getUsers");
     withCheckedConnection(response, function(connection) {
         connection.query('SELECT * FROM person;', function(error, rows, fields) {
-            response.jsonp(rows);
+            response.end(JSON.stringify(rows));
         });
         connection.release();
     });
@@ -117,7 +117,7 @@ app.get('/getUser/:id', function(request, response) {
     var taskId = request.params.id;
     withCheckedConnection(response, function(connection) {
         connection.query('SELECT * FROM person WHERE id=' + taskId + ';', function(error, rows, fields) {
-            response.jsonp(rows);
+            response.end(JSON.stringify(rows));
         });
         connection.release();
     });
@@ -133,7 +133,7 @@ app.get('/getReleaseTimelines/:projectID', function(request, response) {
     var projectID = request.params.projectID;
     withCheckedConnection(response, function(connection) {
         connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ';', function(error, rows, fields) {
-            response.jsonp(rows);
+            response.end(JSON.stringify(rows));
         });
         connection.release();
     });
@@ -153,7 +153,7 @@ app.get('/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp', functio
     var end = request.params.endTimestamp;
     withCheckedConnection(response, function(connection) {
         connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ' and date >= \'' + begin + '\' and date <= \'' + end + '\';', function(error, rows, fields) {
-            response.jsonp(rows);
+            response.end(JSON.stringify(rows));
         });
         connection.release();
     });
@@ -173,7 +173,7 @@ app.get('/getPlotBinData/:projectID/:plotName/:plotType', function(request, resp
     var plotType = request.params.plotType;
     withCheckedConnection(response, function(connection) {
         connection.query('select plotId, type, data from plot_bin, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName + '\' and type = \'' + plotType + '\';', function(error, rows, fields) {
-            response.jsonp(rows);
+            response.end(JSON.stringify(rows));
         });
         connection.release();
     });
@@ -187,7 +187,7 @@ app.get('/getProjects', function(request, response) {
     logger.log('info', '/getProjects');
     withCheckedConnection(response, function(connection) {
         connection.query('SELECT * FROM project;', function(error, rows, fields) {
-            response.jsonp(rows);
+            response.end(JSON.stringify(rows));
         });
         connection.release();
     });
@@ -203,7 +203,7 @@ app.get('/getProjectsByName/:name', function(request, response) {
     var name = request.params.name;
     withCheckedConnection(response, function(connection) {
         connection.query('SELECT * FROM project where name = \'' + name + '\';', function(error, rows, fields) {
-            response.jsonp(rows);
+            response.end(JSON.stringify(rows));
         });
         connection.release();
     });
@@ -239,7 +239,7 @@ app.get('/getTimeSeriesData/:projectID/:plotName', function(request, response) {
     var plotName = request.params.plotName;
     withCheckedConnection(response, function(connection) {
         connection.query('select plotId, time, value, value_scaled from timeseries, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName + '\' order by time asc;', function(error, rows, fields) {
-            response.jsonp(rows);
+            response.end(JSON.stringify(rows));
         });
         connection.release();
     });
@@ -261,7 +261,7 @@ app.get('/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:end
     var end = request.params.endTimestamp;
     withCheckedConnection(response, function(connection) {
         connection.query('select plotId, time, value, value_scaled from timeseries, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName + '\' and time >= \'' + begin + '\'  and time <= \'' + end + '\' order by time asc;', function(error, rows, fields) {
-            response.jsonp(rows);
+            response.end(JSON.stringify(rows));
         });
         connection.release();
     });
@@ -314,7 +314,7 @@ function checkedWithID(name, email, projectID, response, connection, callback) {
         if (error) {
             msg = 'MySQL error: ' + error;
             logger.log('error', msg);
-            response.send(msg);
+            response.end(JSON.stringify({"error": msg}));
             connection.destroy();
         } else {
             try {
@@ -322,7 +322,7 @@ function checkedWithID(name, email, projectID, response, connection, callback) {
             } catch (exception) {
                 msg = 'Exception: ' + exception.message;
                 logger.log('error', msg);
-                response.send(msg);
+                response.end(JSON.stringify({"error": msg}));
                 connection.destroy();
             }
         }
@@ -349,12 +349,14 @@ app.getUserFromDB = function(name, email, projectID, response) {
     withCheckedConnection(response, function(connection) {
         // Return an error if ProjectId or name and email have been empty
         if (!projectID) {
-            logger.log('error', 'input error: projectID missing');
-            response.end(JSON.stringify("missing ProjectID"));
+            msg = 'input error: projectID missing';
+            logger.log('error', msg);
+            response.end(JSON.stringify({"error": msg}));
             connection.release()
         } else if ((!name) && (!email)) {
-            logger.log('error', 'input error: name and email missing');
-            response.end(JSON.stringify("missing name and email"));
+            msg = 'input error: name and email missing';
+            logger.log('error', msg);
+            response.end(JSON.stringify({"error": msg}));
             connection.release()
         } else {
             checkedWithID(name, email, projectID, response, connection, function(rows) {
@@ -364,14 +366,14 @@ app.getUserFromDB = function(name, email, projectID, response) {
                     response.end(JSON.stringify(id));
                 } else if (rows.length == 0) {
                     if (!email) {
-                        logger.log('error', 'name not found in database!');
-                        response.end(JSON.stringify("name not found"));
+                        logger.log('error', 'name ' + name + ' (no email ' + email + ') not found in database!');
+                        response.end(JSON.stringify({"error": "name not found"}));
                     } else {
                         app.getOrUpdateUserInDB(name, email, projectID, response)
                     }
                 } else {
                     logger.log('error', 'database error: duplicate entries!');
-                    response.end(JSON.stringify("duplicate entries"));
+                    response.end(JSON.stringify({"error": "duplicate entries"}));
                 }
                 connection.release()
             });
@@ -408,7 +410,7 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                             logger.log('trace', info)
                             msg = 'MySQL Error: ' + error
                             logger.log('error', msg)
-                            response.end(JSON.stringify(msg));
+                            response.end(JSON.stringify({"error": msg}));
                         }
                         connection.destroy()
                     }
@@ -446,7 +448,7 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                                             if (error) {
                                                 msg = 'MySQL error: ' + error;
                                                 logger.log('error', msg);
-                                                response.send(msg);
+                                                response.end(JSON.stringify({"error": msg}));
                                             } else {
                                                 var id = { id : info.insertId };
                                                 response.end(JSON.stringify(id));
@@ -463,7 +465,7 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                             if (error) {
                                 msg = 'MySQL error: ' + error;
                                 logger.log('error', msg);
-                                response.send(msg);
+                                response.end(JSON.stringify({"error": msg}));
                             } else {
                                 var id = { id : info.insertId };
                                 response.end(JSON.stringify(id));
@@ -472,14 +474,14 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                     }
                 } else {
                     logger.log('error', 'database error: duplicate entries!');
-                    response.end(JSON.stringify("duplicate entries"));
+                    response.end(JSON.stringify({"error": "duplicate entries"}));
                     connection.destroy()
                 }
             });
         } catch (exception) {
             msg = 'Exception: ' + exception.message
             logger.log('error', msg)
-            response.send(msg);
+            response.end(JSON.stringify({"error": msg}));
         }
     });
 }
