@@ -21,6 +21,8 @@ library(shiny)
 shinyUI(bootstrapPage(
 	tags$div( class = "container",
 		tags$div( class="row", uiOutput("quantarchBreadcrumb") ),
+	tags$div( class="row", 
+		tags$div( class="span12", style = "padding: 10px 0px;", tags$h1( textOutput("quantarchHeader")))),
     tags$div( class="row", uiOutput("quantarchContent") )
   )
 ))

@@ -23,20 +23,18 @@ shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "commit.info")
   splom <- reactive({make.widget.commit.info.splom(pid())})
   corrgram <- reactive({make.widget.commit.info.corrgram(pid())})
-
   observe({
     updateSelectInput(session, "cycle", choices=listViews(splom()))
   })
 
-  range.id <- reactive({input$cycle})
+	range.id <- reactive({input$cycle})
 
   observe({
     output$commitsSplom <- renderWidget(splom(), range.id())
     output$commitsCorrgram <- renderWidget(corrgram(), range.id())
   })
   output$quantarchContent <- renderUI({
-    pageWithSidebar(
-      headerPanel("Commit Information"),
+    tagList(
       sidebarPanel(
         selectInput("cycle", "Release Cycle", choices = list(1))
       ),
@@ -48,5 +46,4 @@ shinyServer(function(input, output, clientData, session) {
       )
     )
   })
-
 })

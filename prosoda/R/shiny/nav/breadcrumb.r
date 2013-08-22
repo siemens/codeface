@@ -275,18 +275,34 @@ breadcrumbPanel <- function( breadcrumb ) {
     tags$li(a(href=as.character(x$url),as.character(x$label)))
   }  
   divider.tag <- function( x=FALSE ) {
-	if(x) { tags$span() } else { tags$span( class="divider",">")}}
+	if(x) { tags$span() } else { tags$span( class="divider","/")}}
+	
+	bc.link <- function( bcurl, bclabel, x=FALSE ) {
+		if(x) {
+			tags$b( as.character(bclabel) )
+		} else {
+			a( "data-target"="#", href = as.character(bcurl),
+                        as.character(bclabel))
+		}}
+	
+	bc.children <- function( bcchildren, x=FALSE ) {
+		if(x) {
+			tags$div()
+		} else {
+			tagList(tags$b( class="dropdown-toggle caret", "data-toggle" = "dropdown"  ), 
+						bcchildren)
+		}
+		}
   
   navul <- tags$ul(class = "breadcrumb")
   
   for (bc.element in breadcrumb) {
     childtags <- tagList(lapply(bc.element$children, popdown.tags))
     childlist <- tags$ul(class="dropdown-menu", childtags)
-	navtag <- tags$li(class = "dropdown", a( "data-target"="#", href = as.character(bc.element$url),
-                        as.character(bc.element$label)), 
-					tags$b( class="dropdown-toggle caret", "data-toggle" = "dropdown"  ), 
-						childlist, 
-						divider.tag( bc.element$active ))
+	navtag <- tags$li(class = "dropdown", 
+					bc.link( bc.element$url ,bc.element$label, bc.element$active), 
+					bc.children( childlist, bc.element$active ),
+					divider.tag( bc.element$active ))
     navul <- tagAppendChild(navul, navtag)
   }
     
