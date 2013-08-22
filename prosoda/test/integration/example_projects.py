@@ -53,6 +53,7 @@ def get_example_project_1(tagging="tag", randomise_email_case=False):
     project.email("dev1", Adam, "2013-01-10T14:00:03", "Re: revert 2d Message", "I will revert the message!")
     project.email("dev1", Adam, "2013-01-10T14:00:04", "Re: revert 2e bug", "I will revert the bug!")
     project.email("dev1", Bill, "2013-01-10T14:05:04", "Re: Re: revert 2e bug", "Nooo!")
+    project.email("dev1", "=2134garbled-email-23489", "2013-01-10T14:05:04", "Spam", "foo")
     project.commit(Adam, Adam, "2013-01-10T18:00:00",
             {"README":"Foo\nBoo",
             "src/code.c":"int main() {\n    return 0;\n};"
