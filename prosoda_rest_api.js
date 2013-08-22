@@ -79,7 +79,7 @@ function withCheckedConnection(response, func) {
             msg = 'MySQL connection error: ' + err;
             logger.log('error', msg);
             response.send(msg);
-            connection.end();
+            connection.release();
         } else {
             try {
                 func(connection);
@@ -103,7 +103,7 @@ app.get('/getUsers', function(request, response) {
         connection.query('SELECT * FROM person;', function(error, rows, fields) {
             response.jsonp(rows);
         });
-        connection.end();
+        connection.release();
     });
 });
 
@@ -119,7 +119,7 @@ app.get('/getUser/:id', function(request, response) {
         connection.query('SELECT * FROM person WHERE id=' + taskId + ';', function(error, rows, fields) {
             response.jsonp(rows);
         });
-        connection.end();
+        connection.release();
     });
 });
 
@@ -135,7 +135,7 @@ app.get('/getReleaseTimelines/:projectID', function(request, response) {
         connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ';', function(error, rows, fields) {
             response.jsonp(rows);
         });
-        connection.end();
+        connection.release();
     });
 });
 
@@ -155,7 +155,7 @@ app.get('/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp', functio
         connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ' and date >= \'' + begin + '\' and date <= \'' + end + '\';', function(error, rows, fields) {
             response.jsonp(rows);
         });
-        connection.end();
+        connection.release();
     });
 });
 
@@ -175,7 +175,7 @@ app.get('/getPlotBinData/:projectID/:plotName/:plotType', function(request, resp
         connection.query('select plotId, type, data from plot_bin, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName + '\' and type = \'' + plotType + '\';', function(error, rows, fields) {
             response.jsonp(rows);
         });
-        connection.end();
+        connection.release();
     });
 });
 
@@ -189,7 +189,7 @@ app.get('/getProjects', function(request, response) {
         connection.query('SELECT * FROM project;', function(error, rows, fields) {
             response.jsonp(rows);
         });
-        connection.end();
+        connection.release();
     });
 });
 
@@ -205,7 +205,7 @@ app.get('/getProjectsByName/:name', function(request, response) {
         connection.query('SELECT * FROM project where name = \'' + name + '\';', function(error, rows, fields) {
             response.jsonp(rows);
         });
-        connection.end();
+        connection.release();
     });
 });
 
@@ -223,7 +223,7 @@ app.get('/getProjectsByNameAndMethod/:name/:method', function(request, response)
         connection.query('SELECT * FROM project where name = \'' + name + '\' and analysisMethod = \'' + method + '\';', function(error, rows, fields) {
             response.end(JSON.stringify(rows));
         });
-        connection.end();
+        connection.release();
     });
 });
 
@@ -241,7 +241,7 @@ app.get('/getTimeSeriesData/:projectID/:plotName', function(request, response) {
         connection.query('select plotId, time, value, value_scaled from timeseries, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName + '\' order by time asc;', function(error, rows, fields) {
             response.jsonp(rows);
         });
-        connection.end();
+        connection.release();
     });
 });
 
@@ -263,7 +263,7 @@ app.get('/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:end
         connection.query('select plotId, time, value, value_scaled from timeseries, plots where plotId = id and projectId = ' + projectID + ' and name = \'' + plotName + '\' and time >= \'' + begin + '\'  and time <= \'' + end + '\' order by time asc;', function(error, rows, fields) {
             response.jsonp(rows);
         });
-        connection.end();
+        connection.release();
     });
 });
 
@@ -351,11 +351,11 @@ app.getUserFromDB = function(name, email, projectID, response) {
         if (!projectID) {
             logger.log('error', 'input error: projectID missing');
             response.end(JSON.stringify("missing ProjectID"));
-            connection.end()
+            connection.release()
         } else if ((!name) && (!email)) {
             logger.log('error', 'input error: name and email missing');
             response.end(JSON.stringify("missing name and email"));
-            connection.end()
+            connection.release()
         } else {
             checkedWithID(name, email, projectID, response, connection, function(rows) {
                 if (rows.length == 1) {
@@ -373,7 +373,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
                     logger.log('error', 'database error: duplicate entries!');
                     response.end(JSON.stringify("duplicate entries"));
                 }
-                connection.end()
+                connection.release()
             });
         }
     });
