@@ -44,20 +44,28 @@ prepare.changes.table <- function(range.id) {
   return(dat)
 }
 
-contributors.table.pagerank <- function(pid, range.id) {
-  renderTable({prepare.prank.table(range.id(), 0)})
+make.widget.contributors.pagerank <- createRangeIdWidgetClass("widget.contributors.pagerank")
+renderWidget.widget.contributors.pagerank <- function(w, range.id) {
+  if (is.null(range.id)) { range.id <- w$range.ids[[1]] }
+  renderTable({prepare.prank.table(range.id, 0)})
 }
 
-contributors.table.pagerank.transposed <- function(pid, range.id) {
-  renderTable({prepare.prank.table(range.id(), 1)})
+make.widget.contributors.pagerank.transposed <- createRangeIdWidgetClass("widget.contributors.pagerank.transposed")
+renderWidget.widget.contributors.pagerank.transposed <- function(w, range.id) {
+  if (is.null(range.id)) { range.id <- w$range.ids[[1]] }
+  renderTable({prepare.prank.table(range.id, 1)})
 }
 
-contributors.table.commits <- function(pid, range.id) {
-  renderTable({prepare.commits.table(range.id())})
+make.widget.contributors.commits <- createRangeIdWidgetClass("widget.contributors.commits")
+renderWidget.widget.contributors.commits <-  function(w, range.id) {
+ if (is.null(range.id)) { range.id <- w$range.ids[[1]] }
+ renderTable({prepare.commits.table(range.id)})
 }
 
-contributors.table.changes <- function(pid, range.id) {
-  renderTable({prepare.changes.table(range.id())})
+make.widget.contributors.changes <- createRangeIdWidgetClass("widget.contributors.changes")
+renderWidget.widget.contributors.changes <- function(w, range.id) {
+ if (is.null(range.id)) { range.id <- w$range.ids[[1]] }
+ renderTable({prepare.changes.table(range.id)})
 }
 
 

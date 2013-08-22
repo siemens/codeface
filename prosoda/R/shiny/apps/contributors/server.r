@@ -17,24 +17,29 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets/contributors.r", chdir=TRUE)
+source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "contributors")
 
+  # Get widgets
+  pr <- reactive({make.widget.contributors.pagerank(pid())})
+  prt <- reactive({make.widget.contributors.pagerank.transposed(pid())})
+  commits <- reactive({make.widget.contributors.commits(pid())})
+  changes <- reactive({make.widget.contributors.changes(pid())})
+
   observe({
-    range.ids.list <- query.range.ids.con(conf$con, pid())
-    cycles <- reactive({get.cycles.con(conf$con, pid())})
-    names(range.ids.list) <- cycles()$cycle
-    updateSelectInput(session, "cycle", choices=range.ids.list)
+    updateSelectInput(session, "cycle", choices=listViews(pr()))
   })
 
   range.id <- reactive({input$cycle})
 
-  output$prTable <- contributors.table.pagerank(pid, range.id)
-  output$prTrTable <- contributors.table.pagerank.transposed(pid, range.id)
-  output$commitsTable <- contributors.table.commits(pid, range.id)
-  output$changesTable <- contributors.table.changes(pid, range.id)
+  observe({
+    output$prTable <- renderWidget(pr(), range.id())
+    output$prTrTable <- renderWidget(prt(), range.id())
+    output$commitsTable <- renderWidget(commits(), range.id())
+    output$changesTable <- renderWidget(changes(), range.id())
+  })
   output$quantarchContent <- renderUI({
     pageWithSidebar(
       headerPanel("Contributors"),

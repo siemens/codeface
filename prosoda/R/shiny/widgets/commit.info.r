@@ -18,18 +18,27 @@
 
 ## Get a commit.info.splom plot
 ## pid and range.id must be reactive expressions
-commit.info.splom <- function(pid, range.id) {
-  dat <- reactive({gen.commits.info(conf$con, pid(), range.id())})
+make.widget.commit.info.splom <- createRangeIdWidgetClass("widget.commit.info.splom")
+renderWidget.widget.commit.info.splom <- function(w, range.id=NULL) {
+  if (is.null(range.id)) {
+    range.id <- w$range.ids[[1]]
+  }
+  dat <- gen.commits.info(conf$con, w$pid, range.id)
   renderPlot({
-    gen.commits.splom(dat()$cmt.info, dat()$plot.types)
+    gen.commits.splom(dat$cmt.info, dat$plot.types)
   })
 }
 
 ## Get a commit.info.corrgram plot
 ## pid and range.id must be reactive expressions
-commit.info.corrgram <- function(pid, range.id) {
-  dat <- reactive({gen.commits.info(conf$con, pid(), range.id())})
+make.widget.commit.info.corrgram <- createRangeIdWidgetClass("widget.commit.info.corrgram")
+renderWidget.widget.commit.info.corrgram <- function(w, range.id=NULL) {
+  if (is.null(range.id)) {
+    range.id <- w$range.ids[[1]]
+  }
+  dat <- gen.commits.info(conf$con, w$pid, range.id)
   renderPlot({
-    gen.commits.corrgram(dat()$cmt.info, dat()$plot.types)
+    gen.commits.corrgram(dat$cmt.info, dat$plot.types)
   })
 }
+

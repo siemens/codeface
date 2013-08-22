@@ -17,13 +17,15 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets/contributions.r", chdir=TRUE)
+source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "contributions")
-  output$overview <- contributions.plot.overview(pid)
-  output$multiCycles <- contributions.plot.multiCycles(pid)
-  output$authorsPerCycle <- contributions.plot.authorsPerCycle(pid)
+  observe({
+    output$overview <- renderWidget(make.widget.contributions.overview(pid()))
+    output$multiCycles <- renderWidget(make.widget.contributions.multiCycles(pid()))
+    output$authorsPerCycle <- renderWidget(make.widget.contributions.authorsPerCycle(pid()))
+  })
   output$quantarchContent <- renderUI({
     div(
       tabsetPanel(

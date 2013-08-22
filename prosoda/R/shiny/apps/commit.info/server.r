@@ -17,20 +17,23 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets/commit.info.r", chdir=TRUE)
+source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "commit.info")
+  splom <- reactive({make.widget.commit.info.splom(pid())})
+  corrgram <- reactive({make.widget.commit.info.corrgram(pid())})
 
   observe({
-    range.ids.list <- query.range.ids.con(conf$con, pid())
-    cycles <- reactive({get.cycles.con(conf$con, pid())})
-    names(range.ids.list) <- cycles()$cycle
-    updateSelectInput(session, "cycle", choices=range.ids.list)
+    updateSelectInput(session, "cycle", choices=listViews(splom()))
   })
 
   range.id <- reactive({input$cycle})
 
+  observe({
+    output$commitsSplom <- renderWidget(splom(), range.id())
+    output$commitsCorrgram <- renderWidget(corrgram(), range.id())
+  })
   output$quantarchContent <- renderUI({
     pageWithSidebar(
       headerPanel("Commit Information"),
@@ -45,6 +48,5 @@ shinyServer(function(input, output, clientData, session) {
       )
     )
   })
-  output$commitsSplom <- commit.info.splom(pid, range.id)
-  output$commitsCorrgram <- commit.info.corrgram(pid, range.id)
+
 })

@@ -17,12 +17,14 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets/commit.structure.r", chdir=TRUE)
+source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "commit.structure")
-  output$princompPlot <- commit.structure.plot.princomp(pid)
-  output$mdsPlot <- commit.structure.plot.mds(pid)
+  observe({
+    output$princompPlot <- renderWidget(make.widget.commit.structure.princomp(pid()))
+    output$mdsPlot <- renderWidget(make.widget.commit.structure.mds(pid()))
+  })
   output$quantarchContent <- renderUI({
     div(
       tabsetPanel(

@@ -74,21 +74,30 @@ do.authors.per.cycle.plot <- function(project.stats, cycles) {
   print(g)
 }
 
-contributions.plot.multiCycles = function(pid) {
-  project.stats <- reactive({query.contributions.stats.project(conf$con, pid())})
-  cycles <- reactive({get.cycles.con(conf$con, pid())})
-  renderPlot({do.multi.cycle.plot(project.stats())})
+make.widget.contributions.multiCycles <- createWidgetClass("widget.contributions.multiCycles")
+renderWidget.widget.contributions.multiCycles = function(w, view=NULL) {
+  renderPlot({
+    project.stats <- query.contributions.stats.project(conf$con, w$pid)
+    cycles <- get.cycles.con(conf$con, w$pid)
+    do.multi.cycle.plot(project.stats)
+  })
 }
 
-contributions.plot.authorsPerCycle = function(pid) {
-  project.stats <- reactive({query.contributions.stats.project(conf$con, pid())})
-  cycles <- reactive({get.cycles.con(conf$con, pid())})
-  renderPlot({do.authors.per.cycle.plot(project.stats(), cycles())})
+make.widget.contributions.authorsPerCycle <- createWidgetClass("widget.contributions.authorsPerCycle")
+renderWidget.widget.contributions.authorsPerCycle = function(w, view=NULL) {
+  renderPlot({
+    project.stats <- query.contributions.stats.project(conf$con, w$pid)
+    cycles <- get.cycles.con(conf$con, w$pid)
+    do.authors.per.cycle.plot(project.stats, cycles)
+  })
 }
 
-contributions.plot.overview = function(pid) {
-  project.stats <- reactive({query.contributions.stats.project(conf$con, pid())})
-  cycles <- reactive({get.cycles.con(conf$con, pid())})
-  renderPlot({do.contrib.overview.plot(project.stats(), cycles())})
+make.widget.contributions.overview <- createWidgetClass("widget.contributions.overview")
+renderWidget.widget.contributions.overview = function(w, view=NULL) {
+  renderPlot({
+    project.stats <- query.contributions.stats.project(conf$con, w$pid)
+    cycles <- get.cycles.con(conf$con, w$pid)
+    do.contrib.overview.plot(project.stats, cycles)
+  })
 }
 

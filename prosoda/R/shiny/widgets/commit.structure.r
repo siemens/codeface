@@ -59,26 +59,40 @@ do.prcomp <- function(cmt.info.list, subset, method="euclidean") {
   return(res)
 }
 
-commit.structure.plot.mds <- function(pid) {
-  subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
-  cmt.info.list <- reactive({get.cmt.info.list(conf$con, pid(), subset)})
-  plot <- renderPlot({
-    dat <- reactive({do.mds(cmt.info.list(), method="euclidean")})
-    g <- ggplot(dat(), aes(x=x, y=y, colour=inRC)) + geom_point() +
-      facet_wrap(~cycle)
+make.widget.commit.structure.mds <- function(pid) {
+  w <- make.widget(pid)
+  w$subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
+  class(w) <- "widget.commit.structure.mds"
+  return (w)
+}
+widget.list$widget.commit.structure.mds <- make.widget.commit.structure.mds
+
+make.widget.commit.structure.princomp <- function(pid) {
+  w <- make.widget(pid)
+  w$subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
+  class(w) <- "widget.commit.structure.princomp"
+  return (w)
+}
+widget.list$widget.commit.structure.princomp <- make.widget.commit.structure.princomp
+
+renderWidget.widget.commit.structure.mds <- function(w, view=NULL) {
+  renderPlot({
+    if (is.null(w$pid)) stop("goo")
+    cmt.info.list <- get.cmt.info.list(conf$con, w$pid, w$subset)
+    dat <- do.mds(cmt.info.list, method="euclidean")
+    g <- ggplot(dat, aes(x=x, y=y, colour=inRC)) + geom <- point() +
+      facet <- wrap(~cycle)
     print(g)
   })
-  return(plot)
 }
 
-commit.structure.plot.princomp <- function(pid) {
-  subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
-  cmt.info.list <- reactive({get.cmt.info.list(conf$con, pid(), subset)})
-  plot <- renderPlot({
-    dat <- reactive({do.prcomp(cmt.info.list(), subset)})
-    g <- ggplot(dat(), aes(x=x, y=y, colour=prop, shape=inRC)) + geom_point() +
+renderWidget.widget.commit.structure.princomp <- function(w, view=NULL) {
+  renderPlot({
+    if (is.null(w$pid)) stop("goo")
+    cmt.info.list <- get.cmt.info.list(conf$con, w$pid, w$subset)
+    dat <- do.prcomp(cmt.info.list, w$subset)
+    g <- ggplot(dat, aes(x=x, y=y, colour=prop, shape=inRC)) + geom_point() +
       facet_wrap(~cycle)
     print(g)
   })
-  return(plot)
 }
