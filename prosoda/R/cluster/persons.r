@@ -852,7 +852,7 @@ save.all <- function(conf, .tags, .iddb, .prank.list, .comm, .filename.base=NULL
 
   ## Community visualization
   filename.comm <- paste(.filename.base, "community.dot", sep="")
-  save.graph.graphviz(conf$con, conf$pid, conf$range.id, filename.comm)
+  save.graph.graphviz(conf$con, conf$pid, conf$range.id, label, filename.comm)
 }
 
 

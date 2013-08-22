@@ -250,3 +250,127 @@ init.db.global <- function(conf) {
   dbGetQuery(con, "SET NAMES utf8")
   return(conf)
 }
+
+
+## computes a local graph representation
+get.graph.data.local <- function(con, p.id, range.id, cluster.method=NULL) {
+  g.id <- query.global.collab.con(con, p.id, range.id, cluster.method)
+  edgelist.db <- query.cluster.edges(con, g.id)
+  v.global.ids <- query.cluster.members(con, g.id)
+
+  ## compute global to local index map
+  id.map <- get.index.map(v.global.ids)
+
+  # compute local node ids
+  v.local.ids <- map.ids(v.global.ids, id.map)
+
+  ## map global edge list index to local
+  edgelist <- data.frame(from=map.ids(edgelist.db$fromId, id.map),
+      to=map.ids(edgelist.db$toId, id.map),
+      weight=edgelist.db$weight)
+
+  if(is.null(cluster.method)) {
+    comm=NULL
+    rank=NULL
+  }
+  else {
+    ## get graph communities 
+    local.comm <- get.communities.local(con, p.id, range.id, id.map,
+                                        cluster.method)
+  }
+
+  res <- list(edgelist=edgelist, v.global.ids=v.global.ids,
+              v.local.ids=v.local.ids, id.map=id.map, comm=local.comm$comm,
+              rank=local.comm$rank)
+
+  return(res)
+}
+
+get.communities.local <- function(con, p.id, range.id, id.map, cluster.method){
+  g.id <- query.global.collab.con(con, p.id, range.id, cluster.method)
+  ## get graph community
+  cluster.ids <- query.cluster.ids.con(con, p.id, range.id, cluster.method)
+  ## remove main graph cluster id
+  cluster.ids   <- cluster.ids[cluster.ids!=g.id]
+  cluster.data  <- lapply(cluster.ids,
+                         function(c.id)
+                           query.cluster.members(con, c.id,
+                           prank=TRUE, technique=0))
+  ## get the cluster members
+  cluster.mem <- lapply(cluster.data, function(cluster) cluster$personId)
+  ## reconstruct igraph style communities object 
+  comm <- clusters.2.communities(cluster.mem, cluster.method, id.map)
+
+  ## rank
+  node.rank.db          <- ldply(cluster.data, data.frame)
+  node.rank.db$personId <- map.ids(node.rank.db$personId, id.map)
+  node.rank <- c()
+  node.rank[node.rank.db$personId] <- node.rank.db$rankValue
+
+  res <- list(comm=comm, rank=node.rank)
+  return(res)
+}
+
+## Create an index mapping that maps unique person ids to consecutive numbers
+## from 1 to N where N is the number of nodes in the graph
+## Args:
+##  ids: vector of integers
+## Return:
+##  map: environment (hash table) mapping ids to consecutive integers starting
+##       from 1
+get.index.map <- function(ids) {
+  node.ids <- unique(ids)
+  N        <- length(node.ids)
+  map      <- new.env(size=N)
+  for(i in 1:N) {
+    map[[as.character(node.ids[i])]] <- i
+  }
+  return(map)
+}
+
+
+## Remap all ids in the given a mapping
+## Args:
+##  ids: id index vector (non-consecutive)
+##  map: environment (hash table) mapping global index to consecutive local 
+##       index
+## Returns:
+##  edgelist: edge list with remapped node index
+map.ids <- function(ids, map){
+  N       <- length(ids)
+  new.ids <- c()
+
+  ## Remap ids using the given mapping
+  new.ids <- sapply(ids, function(id) map[[as.character(id)]])
+
+  return(new.ids)
+}
+
+
+## Create communities object from clusters list
+## Args:
+##  clusters: list of global personId vectors mapping people to clusters
+##  map: environment (hash table) to map non-consecutive global index to 
+##       consecutive local index
+## Returns:
+##  comm: igraph-like communities object
+clusters.2.communities <- function(cluster.list, cluster.method, map) {
+  membership <- c()
+  csize      <- c()
+  ## create membership vector from cluster.list
+  for (i in 1:length(cluster.list)) {
+    p.global.ids <- cluster.list[[i]]
+    ## ids need to be consecutive, use global -> local index map
+    p.local.ids  <- map.ids(p.global.ids, map)
+    membership[p.local.ids] <- i
+    csize[i] <- length(p.local.ids)
+  }
+
+  ## Build igraph-like communities object
+  comm            <- list()
+  class(comm)     <- "communities"
+  comm$algorithm  <- cluster.method
+  comm$membership <- membership
+  comm$csize      <- csize
+  return(comm)
+}

@@ -325,69 +325,6 @@ format.color.weight <- function(colorL, weightL) {
 }
 
 
-## Create an index mapping that maps unique person ids to consecutive numbers
-## from 1 to N where N is the number of nodes in the graph
-## Args:
-##  ids: vector of integers
-## Return:
-##  map: environment (hash table) mapping ids to consecutive integers starting
-##       from 1
-get.index.map <- function(ids) {
-  node.ids <- unique(ids)
-  N        <- length(node.ids)
-  map      <- new.env(size=N)
-  for(i in 1:N) {
-    map[[as.character(node.ids[i])]] <- i
-  }
-  return(map)
-}
-
-
-## Remap all ids in the given a mapping
-## Args:
-##  ids: id index vector (non-consecutive)
-##  map: environment (hash table) mapping global index to consecutive local 
-##       index
-## Returns:
-##  edgelist: edge list with remapped node index
-map.ids <- function(ids, map){
-  N       <- length(ids)
-  new.ids <- c()
-
-  ## Remap ids using the given mapping
-  new.ids <- sapply(ids, function(id) map[[as.character(id)]])
-
-  return(new.ids)
-}
-
-
-## Create communities object from clusters list
-## Args:
-##  clusters: list of global personId vectors mapping people to clusters
-##  map: environment (hash table) to map non-consecutive global index to 
-##       consecutive local index
-## Returns:
-##  comm: igraph-like communities object
-clusters.2.communities <- function(cluster.list, map) {
-  membership <- c()
-  csize      <- c()
-  ## create membership vector from cluster.list
-  for (i in 1:length(cluster.list)) {
-    p.global.ids <- cluster.list[[i]]
-	## ids need to be consecutive, use global -> local index map
-	p.local.ids  <- map.ids(p.global.ids, map)
-    membership[p.local.ids] <- i
-	csize[i] <- length(p.local.ids)
-  }
-
-  ## Build igraph-like communities object
-  comm            <- list()
-  class(comm)     <- "communities"
-  comm$membership <- membership
-  comm$csize      <- csize
-
-  return(comm)
-}
 ################################################################################
 ## High Level Functions
 ################################################################################
@@ -433,7 +370,8 @@ save.graph.igraph <- function(g, comm, filename, plot.size=7, format="png") {
 }
 
 
-save.graph.graphviz <- function(con, pid, range.id, filename, plot.size=7) {
+save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
+                                plot.size=7) {
   ## Generate pie graph plot using graphviz package
   ## Args:
   ## 	g: igraph graph object
@@ -446,35 +384,15 @@ save.graph.graphviz <- function(con, pid, range.id, filename, plot.size=7) {
 
   ## Query Database
   ## Graph
-  cluster.method <- "Spin Glass Community"
-  g.id.complete    <- query.global.collab.con(con, pid, range.id, cluster.method)
-  node.global.ids  <- query.cluster.members(con, g.id.complete) 
-  node.label <- lapply(node.global.ids, function(id)
+  graph.data      <- get.graph.data.local(con, pid, range.id, cluster.method)
+  node.global.ids <- graph.data$v.global.ids
+  node.label      <- lapply(node.global.ids, function(id)
                        query.person.name(con, id))
-  edgelist.db    <- query.cluster.edges(con, g.id.complete) 
-  p.id.map       <- get.index.map(node.global.ids)
-  node.local.ids <- map.ids(node.global.ids, p.id.map)
-  edgelist		 <- data.frame(from=map.ids(edgelist.db$fromId, p.id.map),
-                                            to=map.ids(edgelist.db$toId, p.id.map),
-                                            weight=edgelist.db$weight)
-  ## Clusters
-  cluster.ids <- query.cluster.ids.con(con, pid, range.id, cluster.method)
-  ## remove main graph cluster id
-  cluster.ids   <- cluster.ids[cluster.ids!=g.id.complete]
-  cluster.data  <- lapply(cluster.ids,
-                         function(c.id)
-                           query.cluster.members(con, c.id,
-                           prank=TRUE, technique=0))
-  ## get the cluster members
-  cluster.mem <- lapply(cluster.data, function(cluster) cluster$personId)
-  ## reconstruct igraph style communities object 
-  comm <- clusters.2.communities(cluster.mem, p.id.map)
-
-  ## Rank
-  node.rank.db          <- ldply(cluster.data, data.frame)
-  node.rank.db$personId <- map.ids(node.rank.db$personId, p.id.map)
-  node.rank <- c()
-  node.rank[node.rank.db$personId] <- node.rank.db$rankValue
+  edgelist        <- graph.data$edgelist
+  p.id.map        <- graph.data$id.map
+  node.local.ids  <- graph.data$v.local.ids
+  comm            <- graph.data$comm
+  node.rank       <- graph.data$rank
 
   ## Create igraph object and perform manipulations
   g <- graph.data.frame(edgelist, directed=TRUE,
