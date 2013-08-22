@@ -510,9 +510,14 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
 
   dat.replies <- lapply(unique(forest[,"threadID"]), function(thread.id) {
     replies <- lapply(get.followup.emailIDs(thread.id), function(mail.id) {
-      return(data.frame(who=as.numeric(mailID.to.authorID[mail.id]),
-                        mailThreadID=ml.thread.loc.to.glob(ml.id.map, thread.id),
-                        mailDate=as.character(get.timestamp(mail.id))))
+      who <- as.numeric(mailID.to.authorID[mail.id])
+      if (!is.na(who)) {
+        return(data.frame(who=who,
+                          mailThreadID=ml.thread.loc.to.glob(ml.id.map, thread.id),
+                          mailDate=as.character(get.timestamp(mail.id))))
+      } else {
+        return(NULL)
+      }
     })
 
     return(do.call(rbind, replies))
