@@ -25,7 +25,12 @@ query.user.id.base <- function(host, port, pid, name, email) {
   res <- postForm(str_c("http://", host, ":", port, "/post_user_id"),
                   .params=list(projectID=pid, name=name, email=email),
                   style="post", binary=FALSE, .encoding="utf-8")
-  id <- fromJSON(rawToChar(res))$id
+  response <- fromJSON(rawToChar(res))
+  if (!is.null(response$error)) {
+    logwarn(response$error)
+    return(NA)
+  }
+  id <- response$id
   return(id)
 }
 
@@ -49,7 +54,12 @@ query.decompose.user.id.base <- function(host, port, pid, name.str) {
   res <- postForm(str_c("http://", host, ":", port, "/post_decompose_user_id"),
                   .params=list(projectID=pid, namestr=name.str),
                   style="post", binary=FALSE, .encoding="utf-8")
-  id <- fromJSON(rawToChar(res))$id
+  response <- fromJSON(rawToChar(res))
+  if (!is.null(response$error)) {
+    logwarn(response$error)
+    return(NA)
+  }
+  id <- response$id
   return(id)
 }
 
