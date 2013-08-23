@@ -83,9 +83,9 @@ shinyServer(function(input, output, session) {
 					)
 				)
 			}
-
-		widget2 <- widget.list[[1]](pid())
-		output$tempWidget2 <- renderWidget(widget2)
+		#names(widget.list)
+		#listViews(w)
+		output$tempWidget2 <- renderWidget(widget.list[[1]](pid()))
 
 	}) # end observe
 
