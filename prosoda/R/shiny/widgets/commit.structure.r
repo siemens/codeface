@@ -20,7 +20,7 @@
 ## multi-dimensional scaling
 do.mds <- function(cmt.info.list, k=2, method="euclidean") {
   res <- lapply(cmt.info.list, function(cmt.info) {
-    d <- dist(cmt.info, method=method)
+    d <- stats::dist(cmt.info, method=method)
     fit <- cmdscale(d, k=k)
     ## Alternative: fit <- isoMDS(d, k=2)
 
@@ -43,7 +43,8 @@ do.prcomp <- function(cmt.info.list, subset, method="euclidean") {
       subset <- subset[!(subset %in% c("NumTags", "NumSignedOffs"))]
     }
     cmt.info <- na.omit(cmt.info)
-    d <- dist(cmt.info, method=method)
+    d <- stats::dist(cmt.info, method=method)
+
     pr <- prcomp(cmt.info[subset], cor=TRUE, scale=TRUE)
 
     ## Sum up the proportion of variance for the first two
