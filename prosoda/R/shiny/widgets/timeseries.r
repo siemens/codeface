@@ -85,11 +85,22 @@ do.ts.plot.messages.per.day <- function(ts, boundaries, smooth, transform) {
   return(g)
 }
 
-timeseries.plot.messages.per.day <- function(pid, name, smooth, transform) {
+
+make.widget.timeseries.messages.per.day <- function(pid, name, smooth, transform) {
+  w <- make.widget(pid)
+  class(w) <- c("widget.timeseries.messages.per.day", w$class)
+  w$name <- name
+  w$smooth <- smooth
+  w$transform <- transform
+  return (w)
+}
+widget.list$widget.timeseries.messages.per.day <- make.widget.timeseries.messages.per.day
+
+renderWidget.widget.timeseries.messages.per.day <- function(w) {
   renderPlot({
-    ts <- get.ts.data(conf$con, pid(), name())
-    boundaries <- get.cycles.con(conf$con, pid())
-    print(do.ts.plot.messages.per.day(ts, boundaries, smooth(), transform()))
+    ts <- get.ts.data(conf$con, w$pid, w$name)
+    boundaries <- get.cycles.con(conf$con, w$pid)
+    print(do.ts.plot.messages.per.day(ts, boundaries, w$smooth, w$transform))
   })
 }
 

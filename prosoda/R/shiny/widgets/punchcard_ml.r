@@ -20,7 +20,7 @@ source("../../ts_utils.r", chdir=TRUE)
 
 ## Generate commity activity punch card datasets for all cycles
 ## of a given project
-gen.punchcard <- function(con, ml.id, range.id) {
+gen.punchcard.ml <- function(con, ml.id, range.id) {
 ##  dat <- query.ml.activity(conf$con, ml.id, range.id)
   dat <- query.ml.activity(conf$con, 9, range.id)
 
@@ -34,12 +34,12 @@ gen.punchcard <- function(con, ml.id, range.id) {
   return(res)
 }
 
-gen.punchcards <- function(con, pid) {
+gen.punchcards.ml <- function(con, pid) {
   range.ids.list <- query.range.ids.con(con, pid)
   cycles <- get.cycles.con(con, pid)
 
   res <- lapply(range.ids.list, function(range.id) {
-    res <- gen.punchcard(con, pid, range.id)
+    res <- gen.punchcard.ml(con, pid, range.id)
     if (!is.null(res)) {
       res <- cbind(res, cycle=cycles$cycle[cycles$range.id==range.id])
     }
@@ -51,13 +51,12 @@ gen.punchcards <- function(con, pid) {
   return(res)
 }
 
-
-punchcard.ml.plot <- function(pid) {
-  res <- reactive({gen.punchcards(conf$con, pid())})
+make.widget.punchcard.ml <- createWidgetClass("widget.punchcard.ml")
+renderWidget.widget.punchcard.ml <- function(w) {
   renderPlot({
-    g <- ggplot(res(), aes(x=hour, y=day, size=size)) + geom_point() +
+    res <- gen.punchcards.ml(conf$con, w$pid)
+    g <- ggplot(res, aes(x=hour, y=day, size=size)) + geom_point() +
       facet_wrap(~cycle)
-
     print(g)
   })
 }

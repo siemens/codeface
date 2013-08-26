@@ -17,11 +17,13 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets/punchcard_ml.r", chdir=TRUE)
+source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "punchcard_ml")
-  output$punchcardPlot <- punchcard.ml.plot(pid)
+  observe({
+    output$punchcardPlot <- renderWidget(make.widget.punchcard.ml(pid()))
+  })
   output$quantarchContent <- renderUI({
     plotOutput("punchcardPlot")
   })

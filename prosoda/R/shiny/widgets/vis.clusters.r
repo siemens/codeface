@@ -89,15 +89,17 @@ gen.cluster.summary <- function(clusters.list) {
   return(do.call(rbind, res))
 }
 
-vis.clusters.plot.clusters <- function(pid, range.id) {
-  cluster.list <- reactive({prepare.clusters(conf$con, pid(), range.id())})
+make.widget.clusters.clusters <- createRangeIdWidgetClass("widget.clusters.clusters")
+renderWidget.widget.clusters.clusters <- function(w, range.id) {
+  cluster.list <- reactive({prepare.clusters(conf$con, w$pid, range.id())})
   renderPlot({
     do.cluster.plots(cluster.list())
   }, height=1024, width=2048)
 }
 
-vis.clusters.plot.correlations <- function(pid, range.id) {
-  cluster.list <- reactive({prepare.clusters(conf$con, pid(), range.id())})
+make.widget.clusters.correlations <- createRangeIdWidgetClass("widget.clusters.correlations")
+renderWidget.widget.clusters.correlations <- function(w, range.id) {
+  cluster.list <- reactive({prepare.clusters(conf$con, w$pid, range.id())})
   renderPlot({
     dat <- {gen.cluster.summary(cluster.list())}
     dat <- dat[,c("Reciprocity", "Strength", "Degree", "Size",
@@ -108,8 +110,9 @@ vis.clusters.plot.correlations <- function(pid, range.id) {
   })
 }
 
-vis.clusters.plot.summary <- function(pid, range.id) {
-  cluster.list <- reactive({prepare.clusters(conf$con, pid(), range.id())})
+make.widget.clusters.summary <- createRangeIdWidgetClass("widget.clusters.summary")
+renderWidget.widget.clusters.summary <- function(w, range.id) {
+  cluster.list <- reactive({prepare.clusters(conf$con, w$pid, range.id())})
   renderTable({gen.cluster.summary(cluster.list())})
 }
 

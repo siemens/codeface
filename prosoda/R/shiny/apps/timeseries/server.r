@@ -17,7 +17,7 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets/timeseries.r", chdir=TRUE)
+source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "timeseries")
@@ -27,8 +27,12 @@ shinyServer(function(input, output, clientData, session) {
   name <- reactive({
     paste(projects.list[[as.integer(pid())]], ".devel activity", sep='')
   })
-
-  output$distancePlot <- timeseries.plot.messages.per.day(pid, name, smooth, transform)
+  ts <- reactive({
+    make.widget.timeseries.messages.per.day(pid(), name(), smooth(), transform())
+  })
+  observe({
+    output$distancePlot <- renderWidget(ts())
+  })
   output$quantarchContent <- renderUI({
     pageWithSidebar(
       headerPanel("Mailing list activity"),

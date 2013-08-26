@@ -56,11 +56,21 @@ do.release.distance.plot <- function(con, names.list) {
   return(g)
 }
 
-release.distance.plot <- function(pid, name2, name3) {
+make.widget.release.distance <- function(pid, name2, name3) {
+  w <- make.widget(pid)
+  class(w) <- c("widget.release.distance", w$class)
+  w$name2 <- name2
+  w$name3 <- name3
+  return (w)
+}
+widget.list$widget.release.distance <- make.widget.release.distance
+
+renderWidget.widget.release.distance <- function(w) {
+  cat("FOO")
   renderPlot({
     print(do.release.distance.plot(conf$con,
-                                   list(projects.list[[as.integer(pid())]],
-                                        name2(), name3())))
+                                   list(projects.list[[as.integer(w$pid)]],
+                                        w$name2(), w$name3())))
   })
 }
 

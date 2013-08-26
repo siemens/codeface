@@ -43,13 +43,12 @@ gen.punchcards <- function(con, pid) {
   return(res)
 }
 
-
-punchcard.plot <- function(pid) {
-  res <- reactive({gen.punchcards(conf$con, pid())})
+make.widget.punchcard <- createWidgetClass("widget.punchcard")
+renderWidget.widget.punchcard <- function(w) {
   renderPlot({
-    g <- ggplot(res(), aes(x=hour, y=day, size=size)) + geom_point() +
+    res <- gen.punchcards(conf$con, w$pid)
+    g <- ggplot(res, aes(x=hour, y=day, size=size)) + geom_point() +
       facet_wrap(~cycle)
-
     print(g)
   })
 }

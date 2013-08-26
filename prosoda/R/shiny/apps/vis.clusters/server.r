@@ -17,23 +17,24 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets/vis.clusters.r", chdir=TRUE)
+source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "vis.clusters")
 
+  clusters <- reactive({make.widget.clusters.clusters(pid())})
+  correlations <- reactive({make.widget.clusters.correlations(pid())})
+  summary <- reactive({make.widget.clusters.summary(pid())})
   observe({
-    range.ids.list <- query.range.ids.con(conf$con, pid())
-    cycles <- reactive({get.cycles.con(conf$con, pid())})
-    names(range.ids.list) <- cycles()$cycle
-    updateSelectInput(session, "cycle", choices=range.ids.list)
+    updateSelectInput(session, "cycle", choices=listViews(summary()))
   })
 
   range.id <- reactive({input$cycle})
-
-  output$clustersPlot <- vis.clusters.plot.clusters(pid, range.id)
-  output$correlationPlot <- vis.clusters.plot.correlations(pid, range.id)
-  output$clustersSummary <- vis.clusters.plot.summary(pid, range.id)
+  observe({
+    output$clustersPlot <- renderWidget(clusters(), range.id)
+    output$correlationPlot <- renderWidget(correlations(), range.id)
+    output$clustersSummary <- renderWidget(summary(), range.id)
+  })
   output$quantarchContent <- renderUI({
     pageWithSidebar(
       headerPanel("Collaboration clusters"),
