@@ -25,7 +25,8 @@ shinyServer(function(input, output, clientData, session) {
   smooth <- reactive({input$smooth})
   transform <- reactive({input$transform})
   name <- reactive({
-    paste(projects.list[[as.integer(pid())]], ".devel activity", sep='')
+    pname <- projects.list$name[[which(projects.list$id == as.integer(pid()))]]
+    paste(pname, ".devel activity", sep='')
   })
   ts <- reactive({
     make.widget.timeseries.messages.per.day(pid(), name(), smooth(), transform())

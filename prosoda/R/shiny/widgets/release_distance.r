@@ -68,9 +68,9 @@ widget.list$widget.release.distance <- make.widget.release.distance
 renderWidget.widget.release.distance <- function(w) {
   cat("FOO")
   renderPlot({
-    print(do.release.distance.plot(conf$con,
-                                   list(projects.list[[as.integer(w$pid)]],
-                                        w$name2(), w$name3())))
+    projectname <- projects.list$name[[which(projects.list$id == as.integer(w$pid))]]
+    print(do.release.distance.plot(conf$con, list(projectname,
+                                                  w$name2(), w$name3())))
   })
 }
 
