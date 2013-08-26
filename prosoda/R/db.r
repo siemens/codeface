@@ -139,6 +139,14 @@ get.release.dates <- function(conf) {
   return(res)
 }
 
+
+clear.all.clusters <- function(conf, range.id, method) {
+  dbGetQuery(conf$con, str_c("DELETE FROM cluster ",
+          "WHERE clusterMethod=", sq(method),
+          " AND projectId=", conf$pid,
+          " AND releaseRangeId=", range.id))
+}
+
 get.clear.cluster.id <- function(conf, range.id, method, num) {
   dbGetQuery(conf$con, str_c("DELETE FROM cluster ",
                              "WHERE clusterMethod=", sq(method),

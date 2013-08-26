@@ -1014,6 +1014,7 @@ detect.communities <- function(g, ids,
   ## NOTE: The cluster decomposition is independent of the page
   ## rank calculation technique -- only the edge strengths, but not the
   ## page rank values influence the decomposition.
+  clear.all.clusters(conf, conf$range.id, label)
   save.groups(conf, adjMatrix, ids,
               g.community, prank.list, outdir, prefix,
 			  comm.quality, label=label)
