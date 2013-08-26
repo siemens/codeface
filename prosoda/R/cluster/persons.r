@@ -469,8 +469,11 @@ minCommGraph <- function(graph, comm, min=10){
 	## 	res$community: resulting igraph communities object after small communities
 	##								have been removed
 	comm.idx <- which(comm$csize > min)
-	verts <- rle(unlist(sapply(comm.idx,
-					function(x) { return(which(comm$membership==x)) })))$values
+  if(length(comm.idx) == 0) {
+    res <- list(graph=integer(0), community=integer(0))
+  }
+  verts <- rle(unlist(as.vector(sapply(comm.idx,
+           function(x) { return(which(comm$membership==x)) }))))$values
 
 	V(graph)$key <- 1:vcount(graph)
 	graph.comm <- induced.subgraph(graph, verts)
