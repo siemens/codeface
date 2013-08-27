@@ -23,10 +23,10 @@ shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "contributors")
 
   # Get widgets
-  pr <- reactive({make.widget.contributors.pagerank(pid())})
-  prt <- reactive({make.widget.contributors.pagerank.transposed(pid())})
-  commits <- reactive({make.widget.contributors.commits(pid())})
-  changes <- reactive({make.widget.contributors.changes(pid())})
+  pr <- reactive({widget.contributors.pagerank$new(pid())})
+  prt <- reactive({widget.contributors.pagerank.transposed$new(pid())})
+  commits <- reactive({widget.contributors.commits$new(pid())})
+  changes <- reactive({widget.contributors.changes$new(pid())})
 
   observe({
     updateSelectInput(session, "cycle", choices=listViews(pr()))

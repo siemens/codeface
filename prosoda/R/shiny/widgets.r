@@ -33,9 +33,10 @@ createWidgetClass <- function(class.name, title, size.x=1, size.y=1) {
       new = maker,
       title = title,
       size.x = size.x,
-      size.y = size.y
+      size.y = size.y,
+      html = function(id) { plotOutput(id, width="100%", height="100%") }
   )
-  return(maker)
+  return(widget.list[[class.name]])
 }
 
 ## Create a new widget class with the generic constructor
@@ -49,9 +50,10 @@ createRangeIdWidgetClass <- function(class.name, title, size.x=1, size.y=1) {
       new = maker,
       title = title,
       size.x = size.x,
-      size.y = size.y
+      size.y = size.y,
+      html = function(id) { plotOutput(id, width="100%", height="100%") }
   )
-  return(maker)
+  return(widget.list[[class.name]])
 }
 
 ## The Default for a widget is to have one view, which is called using NULL
@@ -69,6 +71,7 @@ source("widgets/commit.info.r", chdir=TRUE)
 source("widgets/commit.structure.r", chdir=TRUE)
 source("widgets/contributions.r", chdir=TRUE)
 source("widgets/contributors.r", chdir=TRUE)
+source("widgets/general.info.r", chdir=TRUE)
 source("widgets/punchcard_ml.r", chdir=TRUE)
 source("widgets/punchcard.r", chdir=TRUE)
 source("widgets/release_distance.r", chdir=TRUE)

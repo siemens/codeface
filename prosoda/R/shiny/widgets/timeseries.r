@@ -85,22 +85,21 @@ do.ts.plot.messages.per.day <- function(ts, boundaries, smooth, transform) {
   return(g)
 }
 
-
-make.widget.timeseries.messages.per.day <- function(pid, name, smooth, transform) {
-  w <- make.widget(pid)
-  class(w) <- c("widget.timeseries.messages.per.day", w$class)
-  w$name <- name
-  w$smooth <- smooth
-  w$transform <- transform
-  return (w)
-}
-
-widget.list$widget.timeseries.messages.per.day <- list(
+widget.timeseries.messages.per.day <- list(
   title = "Messages per Day",
   size.x = 2,
   size.y = 1,
-  new = make.widget.timeseries.messages.per.day
+  new = function(pid, name, smooth, transform) {
+    w <- make.widget(pid)
+    class(w) <- c("widget.timeseries.messages.per.day", w$class)
+    w$name <- name
+    w$smooth <- smooth
+    w$transform <- transform
+    return (w)
+  },
+  html = function(id) { plotOutput(id, width="100%", height="100%") }
 )
+widget.list$widget.timeseries.messages.per.day <- widget.timeseries.messages.per.day
 
 renderWidget.widget.timeseries.messages.per.day <- function(w) {
   renderPlot({

@@ -22,9 +22,9 @@ source("../../widgets.r", chdir=TRUE)
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "contributions")
   observe({
-    output$overview <- renderWidget(make.widget.contributions.overview(pid()))
-    output$multiCycles <- renderWidget(make.widget.contributions.multiCycles(pid()))
-    output$authorsPerCycle <- renderWidget(make.widget.contributions.authorsPerCycle(pid()))
+    output$overview <- renderWidget(widget.contributions.overview$new(pid()))
+    output$multiCycles <- renderWidget(widget.contributions.multiCycles$new(pid()))
+    output$authorsPerCycle <- renderWidget(widget.contributions.authorsPerCycle$new(pid()))
   })
   output$quantarchContent <- renderUI({
     div(

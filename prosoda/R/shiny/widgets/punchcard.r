@@ -43,7 +43,7 @@ gen.punchcards <- function(con, pid) {
   return(res)
 }
 
-make.widget.punchcard <- createWidgetClass(
+widget.punchcard <- createWidgetClass(
   "widget.punchcard",
   "Commit Punchcard",
   2, 1

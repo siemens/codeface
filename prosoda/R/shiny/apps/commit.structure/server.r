@@ -22,8 +22,8 @@ source("../../widgets.r", chdir=TRUE)
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "commit.structure")
   observe({
-    output$princompPlot <- renderWidget(make.widget.commit.structure.princomp(pid()))
-    output$mdsPlot <- renderWidget(make.widget.commit.structure.mds(pid()))
+    output$princompPlot <- renderWidget(widget.commit.structure.princomp$new(pid()))
+    output$mdsPlot <- renderWidget(widget.commit.structure.mds$new(pid()))
   })
 
 	output$quantarchHeader <- renderText("Commit Structure")

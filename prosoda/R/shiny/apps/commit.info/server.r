@@ -21,8 +21,8 @@ source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "commit.info")
-  splom <- reactive({make.widget.commit.info.splom(pid())})
-  corrgram <- reactive({make.widget.commit.info.corrgram(pid())})
+  splom <- reactive({widget.commit.info.splom$new(pid())})
+  corrgram <- reactive({widget.commit.info.corrgram$new(pid())})
   observe({
     updateSelectInput(session, "cycle", choices=listViews(splom()))
   })

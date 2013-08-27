@@ -60,33 +60,33 @@ do.prcomp <- function(cmt.info.list, subset, method="euclidean") {
   return(res)
 }
 
-make.widget.commit.structure.mds <- function(pid) {
-  w <- make.widget(pid)
-  w$subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
-  class(w) <- "widget.commit.structure.mds"
-  return (w)
-}
-
-widget.list$widget.commit.structure.mds <- list(
+widget.commit.structure.mds <- list(
   title = "Commit Structure - Multidimensional Scaling",
   size.x = 2,
   size.y = 1,
-  new = make.widget.commit.structure.mds
+  new = function(pid) {
+    w <- make.widget(pid)
+    w$subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
+    class(w) <- "widget.commit.structure.mds"
+    return (w)
+  },
+  html = function(id) { plotOutput(id, width="100%", height="100%") }
 )
+widget.list$widget.commit.structure.mds <- widget.commit.structure.mds
 
-make.widget.commit.structure.princomp <- function(pid) {
-  w <- make.widget(pid)
-  w$subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
-  class(w) <- "widget.commit.structure.princomp"
-  return (w)
-}
-
-widget.list$widget.commit.structure.princomp <- list(
+widget.commit.structure.princomp <- list(
   title = "Commit Structure - Principal Components",
   size.x = 2,
   size.y = 1,
-  new = make.widget.commit.structure.princomp
+  new = function(pid) {
+    w <- make.widget(pid)
+    w$subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
+    class(w) <- "widget.commit.structure.princomp"
+    return (w)
+  },
+  html = function(id) { plotOutput(id, width="100%", height="100%") }
 )
+widget.list$widget.commit.structure.princomp <- widget.commit.structure.princomp
 
 renderWidget.widget.commit.structure.mds <- function(w, view=NULL) {
   renderPlot({

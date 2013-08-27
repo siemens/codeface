@@ -56,20 +56,20 @@ do.release.distance.plot <- function(con, names.list) {
   return(g)
 }
 
-make.widget.release.distance <- function(pid, name2, name3) {
-  w <- make.widget(pid)
-  class(w) <- c("widget.release.distance", w$class)
-  w$name2 <- name2
-  w$name3 <- name3
-  return (w)
-}
-
-widget.list$widget.release.distance <- list(
+widget.release.distance <- list(
   title = "Release distance",
   size.x = 1,
   size.y = 1,
-  new = make.widget.release.distance
+  new = function(pid, name2, name3) {
+    w <- make.widget(pid)
+    class(w) <- c("widget.release.distance", w$class)
+    w$name2 <- name2
+    w$name3 <- name3
+    return (w)
+  },
+  html = function(id) { plotOutput(id, width="100%", height="100%") }
 )
+widget.list$widget.release.distance <- widget.release.distance
 
 renderWidget.widget.release.distance <- function(w) {
   cat("FOO")

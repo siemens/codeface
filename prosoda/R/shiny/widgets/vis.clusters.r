@@ -89,7 +89,7 @@ gen.cluster.summary <- function(clusters.list) {
   return(do.call(rbind, res))
 }
 
-make.widget.clusters.clusters <- createRangeIdWidgetClass(
+widget.clusters.clusters <- createRangeIdWidgetClass(
   "widget.clusters.clusters",
   "Clusters"
 )
@@ -101,7 +101,7 @@ renderWidget.widget.clusters.clusters <- function(w, range.id) {
   }, height=1024, width=2048)
 }
 
-make.widget.clusters.correlations <- createRangeIdWidgetClass(
+widget.clusters.correlations <- createRangeIdWidgetClass(
   "widget.clusters.correlations",
   "Cluster Correlations"
 )
@@ -118,7 +118,7 @@ renderWidget.widget.clusters.correlations <- function(w, range.id) {
   })
 }
 
-make.widget.clusters.summary <- createRangeIdWidgetClass(
+widget.clusters.summary <- createRangeIdWidgetClass(
   "widget.clusters.summary",
   "Cluster Summary"
 )

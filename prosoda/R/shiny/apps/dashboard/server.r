@@ -47,7 +47,7 @@ shinyServer(function(input, output, session) {
 		widgetlist[[2]] <- list(
 			html=tags$li(
 				style="background-color:yellow;box-shadow: 10px 10px 5px #CCC;",
-				plotOutput("tempWidget2", height="100%")
+				htmlOutput("tempWidget2")
 				), 
 			size_x=2, size_y=1, col=2, row=1)
 		##	
@@ -85,7 +85,7 @@ shinyServer(function(input, output, session) {
 			}
 		#names(widget.list)
 		#listViews(w)
-		output$tempWidget2 <- renderWidget(widget.list[[1]]$new(pid()))
+		output$tempWidget2 <- renderWidget(widget.list[["widget.general.info.overview"]]$new(pid()))
 
 	}) # end observe
 

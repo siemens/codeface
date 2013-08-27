@@ -51,7 +51,7 @@ gen.punchcards.ml <- function(con, pid) {
   return(res)
 }
 
-make.widget.punchcard.ml <- createWidgetClass(
+widget.punchcard.ml <- createWidgetClass(
   "widget.punchcard.ml",
   "Mailing list punchcard",
   2, 1

@@ -17,7 +17,7 @@
 ## All Rights Reserved.
 
 ## Get a commit.info.splom widget
-make.widget.commit.info.splom <- createRangeIdWidgetClass(
+widget.commit.info.splom <- createRangeIdWidgetClass(
   "widget.commit.info.splom",
   "Commit Information - Splom"
 )
@@ -33,7 +33,7 @@ renderWidget.widget.commit.info.splom <- function(w, range.id=NULL) {
 }
 
 ## Get a commit.info.corrgram widget
-make.widget.commit.info.corrgram <- createRangeIdWidgetClass(
+widget.commit.info.corrgram <- createRangeIdWidgetClass(
   "widget.commit.info.corrgram",
   "Commit Information - Correlations",
   2, 1

@@ -74,7 +74,7 @@ do.authors.per.cycle.plot <- function(project.stats, cycles) {
   print(g)
 }
 
-make.widget.contributions.multiCycles <- createWidgetClass(
+widget.contributions.multiCycles <- createWidgetClass(
   "widget.contributions.multiCycles",
   "Author Turnover",
   2, 1
@@ -88,7 +88,7 @@ renderWidget.widget.contributions.multiCycles = function(w, view=NULL) {
   })
 }
 
-make.widget.contributions.authorsPerCycle <- createWidgetClass(
+widget.contributions.authorsPerCycle <- createWidgetClass(
   "widget.contributions.authorsPerCycle",
   "Authors per Cycle",
   2, 1
@@ -102,7 +102,7 @@ renderWidget.widget.contributions.authorsPerCycle = function(w, view=NULL) {
   })
 }
 
-make.widget.contributions.overview <- createWidgetClass(
+widget.contributions.overview <- createWidgetClass(
  "widget.contributions.overview",
  "Contributions - Overview",
  2, 1
