@@ -16,9 +16,12 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-## Get a commit.info.splom plot
-## pid and range.id must be reactive expressions
-make.widget.commit.info.splom <- createRangeIdWidgetClass("widget.commit.info.splom")
+## Get a commit.info.splom widget
+make.widget.commit.info.splom <- createRangeIdWidgetClass(
+  "widget.commit.info.splom",
+  "Commit Information - Splom"
+)
+
 renderWidget.widget.commit.info.splom <- function(w, range.id=NULL) {
   if (is.null(range.id)) {
     range.id <- w$range.ids[[1]]
@@ -29,9 +32,13 @@ renderWidget.widget.commit.info.splom <- function(w, range.id=NULL) {
   })
 }
 
-## Get a commit.info.corrgram plot
-## pid and range.id must be reactive expressions
-make.widget.commit.info.corrgram <- createRangeIdWidgetClass("widget.commit.info.corrgram")
+## Get a commit.info.corrgram widget
+make.widget.commit.info.corrgram <- createRangeIdWidgetClass(
+  "widget.commit.info.corrgram",
+  "Commit Information - Correlations",
+  2, 1
+)
+
 renderWidget.widget.commit.info.corrgram <- function(w, range.id=NULL) {
   if (is.null(range.id)) {
     range.id <- w$range.ids[[1]]

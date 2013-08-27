@@ -66,7 +66,13 @@ make.widget.commit.structure.mds <- function(pid) {
   class(w) <- "widget.commit.structure.mds"
   return (w)
 }
-widget.list$widget.commit.structure.mds <- make.widget.commit.structure.mds
+
+widget.list$widget.commit.structure.mds <- list(
+  title = "Commit Structure - Multidimensional Scaling",
+  size.x = 2,
+  size.y = 1,
+  new = make.widget.commit.structure.mds
+)
 
 make.widget.commit.structure.princomp <- function(pid) {
   w <- make.widget(pid)
@@ -74,7 +80,13 @@ make.widget.commit.structure.princomp <- function(pid) {
   class(w) <- "widget.commit.structure.princomp"
   return (w)
 }
-widget.list$widget.commit.structure.princomp <- make.widget.commit.structure.princomp
+
+widget.list$widget.commit.structure.princomp <- list(
+  title = "Commit Structure - Principal Components",
+  size.x = 2,
+  size.y = 1,
+  new = make.widget.commit.structure.princomp
+)
 
 renderWidget.widget.commit.structure.mds <- function(w, view=NULL) {
   renderPlot({

@@ -23,24 +23,34 @@ make.widget.range.id <- function(pid) {
 }
 
 ## Create a new widget class with the generic constructor
-createWidgetClass <- function(class.name) {
+createWidgetClass <- function(class.name, title, size.x=1, size.y=1) {
   maker <- function(pid) {
     w <- make.widget(pid)
-    class(w) <- c(class.name, w)
+    class(w) <- c(class.name, w$class)
     return (w)
   }
-  widget.list[[class.name]] <<- maker
+  widget.list[[class.name]] <<- list(
+      new = maker,
+      title = title,
+      size.x = size.x,
+      size.y = size.y
+  )
   return(maker)
 }
 
 ## Create a new widget class with the generic constructor
-createRangeIdWidgetClass <- function(class.name) {
+createRangeIdWidgetClass <- function(class.name, title, size.x=1, size.y=1) {
   maker <- function(pid) {
     w <- make.widget.range.id(pid)
     class(w) <- c(class.name, w$class)
     return (w)
   }
-  widget.list[[class.name]] <<- maker
+  widget.list[[class.name]] <<- list(
+      new = maker,
+      title = title,
+      size.x = size.x,
+      size.y = size.y
+  )
   return(maker)
 }
 
@@ -64,3 +74,4 @@ source("widgets/punchcard.r", chdir=TRUE)
 source("widgets/release_distance.r", chdir=TRUE)
 source("widgets/timeseries.r", chdir=TRUE)
 source("widgets/vis.clusters.r", chdir=TRUE)
+

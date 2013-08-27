@@ -63,7 +63,13 @@ make.widget.release.distance <- function(pid, name2, name3) {
   w$name3 <- name3
   return (w)
 }
-widget.list$widget.release.distance <- make.widget.release.distance
+
+widget.list$widget.release.distance <- list(
+  title = "Release distance",
+  size.x = 1,
+  size.y = 1,
+  new = make.widget.release.distance
+)
 
 renderWidget.widget.release.distance <- function(w) {
   cat("FOO")

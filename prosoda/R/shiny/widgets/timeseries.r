@@ -94,7 +94,13 @@ make.widget.timeseries.messages.per.day <- function(pid, name, smooth, transform
   w$transform <- transform
   return (w)
 }
-widget.list$widget.timeseries.messages.per.day <- make.widget.timeseries.messages.per.day
+
+widget.list$widget.timeseries.messages.per.day <- list(
+  title = "Messages per Day",
+  size.x = 2,
+  size.y = 1,
+  new = make.widget.timeseries.messages.per.day
+)
 
 renderWidget.widget.timeseries.messages.per.day <- function(w) {
   renderPlot({
