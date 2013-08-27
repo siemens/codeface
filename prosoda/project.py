@@ -17,13 +17,12 @@
 from logging import getLogger; log = getLogger(__name__)
 from pkg_resources import resource_filename
 from os.path import join as pathjoin, split as pathsplit
-from glob import glob
 
 from .dbmanager import DBManager
 from .configuration import Configuration
 from .cluster.cluster import doProjectAnalysis
 from .ts import dispatch_ts_analysis
-from .util import (execute_command, generate_report, layout_graph,
+from .util import (execute_command, generate_reports, layout_graph,
         check4ctags, BatchJob)
 
 def loginfo(msg):
@@ -67,7 +66,6 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
 
     project_id, dbm, all_range_ids = project_setup(conf, recreate)
     # Analyse new revision ranges
-    jobs = []
     for i, range_id in enumerate(all_range_ids):
         start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
         range_resdir = pathjoin(project_resdir, "{0}-{1}".
@@ -93,24 +91,18 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
         cmd.append(range_resdir)
         cmd.append(str(range_id))
 
-        BatchJob.add(loginfo, ["  -> Analysing revision range "
+        s2 = BatchJob.add(loginfo, ["  -> Analysing revision range "
             "{0}..{1}: Detecting clusters...".format(start_rev, end_rev)],
             deps=[s1])
-        s2 = BatchJob.add(execute_command, (cmd,), {"direct_io":True, "cwd":cwd}, deps=[s1])
-        jobs.append(s2)
+        s3 = BatchJob.add(execute_command, (cmd,), {"direct_io":True, "cwd":cwd}, deps=[s2])
 
         #########
         # STAGE 3: Generate cluster graphs
         if not no_report:
-            files = glob(pathjoin(range_resdir, "*.dot"))
-            lj = BatchJob.add(loginfo, ["  -> Analysing revision "
-                "range {0}..{1}: Generating Reports...".
-                format(start_rev, end_rev)],
-                deps=[s2])
-            dotjobs = [BatchJob.add(layout_graph, (file,), deps=[s2, lj]) for file in files]
-            jobs.append(BatchJob.add(generate_report, (start_rev, end_rev, range_resdir), deps=dotjobs))
+            BatchJob.add(generate_reports, (start_rev, end_rev, range_resdir), deps=[s3])
 
-    BatchJob.join(jobs)
+    # Wait until all batch jobs are finished
+    BatchJob.join()
 
     #########
     # Global stage 1: Time series generation

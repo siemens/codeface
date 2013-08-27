@@ -17,122 +17,232 @@
 Utility functions for running external commands
 '''
 import os
+import sys
 import re
 import math
 import shutil
+from collections import OrderedDict
 from time import sleep
-from multiprocessing import Process, Queue
+from random import getrandbits
+from multiprocessing import Process, Queue, JoinableQueue, current_process
+from threading import Thread
+from Queue import Empty
 from glob import glob
 from logging import getLogger; log = getLogger(__name__)
 from subprocess import Popen, PIPE
 from pkg_resources import resource_filename
 from tempfile import NamedTemporaryFile, mkdtemp
+from glob import glob
 
 class BatchJob(object):
     '''
-    Simple implementation of a dependency-respecting batch system
+    Implementation of a dependency-respecting batch system
 
-    This implementation spawns a set of n_cores processes, which pop work
-    items off the work_queue. If a work item is executed without an exception,
-    the worker puts its job id into the done_queue to signal completion. If
-    an exception occurs, a None object is put in the done_queue; which
-    triggers a RuntimeException in the main Process.
+    This system uses a pool of N worker processes to run jobs. Since the
+    multiprocessing module is used, all functions, args and kwargs must be
+    pickleable. Specifically, this means that only functions defined at
+    top-level in a module can be used here.
 
     Jobs can be created using BatchJob.add(function, args, kwargs, deps=deps))
     where deps can be a list of job handles previously returned by
-    BatchJob.add. After all jobs have been added, BatchJob.join() keeps up
-    execution and returns only after all jobs have finished.
-    '''
-    work_queue = Queue()
-    done_queue = Queue()
-    workers = []
-    jobs = []
-    n_cores = 1
+    BatchJob.add.
+    Call BatchJob.join() to wait until the execution of all jobs is complete.
+    If a work item raises an exception, the BatchJob system terminates and
+    calls to BatchJob.join() will return with an Exception.
 
+    Note that BatchJob.add can also be called from another BatchJob.
+    '''
+
+    ## Public methods
     @classmethod
     def set_parallel_jobs(cls, n=1):
-        '''Set the number of parallel processes'''
+        '''
+        Set the number of parallel processes to use to n.
+        This function only has an effect if called from the main process.
+        '''
         cls.n_cores = int(n)
 
     @classmethod
-    def join(cls, jobs=None):
-        '''Run until all jobs (or only the specified jobs) are finished.'''
-        cls._setup()
-        if jobs is None:
-            jobs = [j.id for j in jobs]
-        while True:
-            if all(cls.jobs[j].done for j in jobs):
-                break
-            for j in cls.jobs:
-                j.submit()
-            # Wait for a result from the done_queue
-            res = cls.done_queue.get(block=True)
-            if res is None:
-                # sleep for a bit to allow the original processes' exception
-                # to actually propagate.
-                sleep(1)
-                for w in cls.workers:
-                    w.terminate()
-                raise RuntimeError("Failed process. Terminating.")
-            cls.jobs[res].done = True
-        cls._shutdown()
-
-    @classmethod
     def add(cls, func, args, kwargs={}, deps=()):
-        '''Add a job that exceuted func(*args, **kwargs)'''
-        j = cls(func, args, kwargs, deps)
-        return j.id
+        '''
+        Add a job that executes func(*args, **kwargs) and depends on the
+        jobs with the ids listed in deps.
+        This function returns a job ID which can be used as a dependency
+        in other calls to add.
+        This function can be called from any process.
+        '''
+        # Generate a random job ID
+        job_id = getrandbits(32)
+        cls.add_queue.put((job_id, func, args, kwargs, deps))
+        cls.add_queue.join()
+        return job_id
 
     @classmethod
-    def _setup(cls):
+    def join(cls, jobs=None):
         '''
-        Internal setup function that spawns the necessary number of worker
-        threads. Can be called multiple times with no ill effect.
-        Will never decrease the number of worker threads, as jobs might
-        already be in progress.
+        Wait for all jobs (or all specified jobs) to finish.
+        This function can only be called from the main Process.
         '''
-        for i in range(cls.n_cores - len(cls.workers)):
-            w = Process(target=cls._worker_function, args=())
-            w.start()
-            cls.workers.append(w)
+        assert cls.main_process is current_process(), ("This function can"
+                " only be called from the main process!")
+        if jobs is None:
+            while not cls.error and not all(j.done for j in cls.jobs.values()):
+                sleep(0.1)
+        else:
+            while not cls.error and not all(cls.jobs[j].done for j in jobs):
+                sleep(0.1)
+        if cls.error:
+            raise Exception("Failure in Batch Job.")
+
+    ## End of public functions
+    error = False  # Set to True if a subprocess or thread had an exception
+    jobs = OrderedDict() # Dictionary of jobs (ordered for repeatability)
+    n_cores = 1 # Number of worker processes to use
+    main_process = None # Handle of main process
+
+    # The thread that submits jobs and its queues
+    submit_thread = None
+    work_queue = Queue()
+    done_queue = Queue()
+
+    # Communication for asynchronous out-of-process addition of jobs
+    add_thread = None
+    add_queue = JoinableQueue()
+
+    # Worker-Manager thread
+    worker_manager_thread = None
+    workers = []
+
+    @classmethod
+    def _add_thread_main(cls):
+        '''
+        This thread is necessary to allow subprocessesses to add jobs.
+        Since they cannot access the job dict directly, they put work requests
+        on the add_queue, and wait until task_done() has been called.
+        This ensures that the job id will be present in the job
+        dictionary once BatchJob.add() returns.
+        '''
+        log.debug("Starting add thread...")
+        while True:
+            job_id, func, args, kwargs, deps = cls.add_queue.get(block=True)
+            assert not job_id in cls.jobs, "Duplicate job ID - random number generator faulty"
+            cls.jobs[job_id] = cls(job_id, func, args, kwargs, deps)
+            cls.add_queue.task_done()
+
+    @classmethod
+    def _submit_thread_main(cls):
+        '''
+        This thread makes sure that exceptions from work items are handled
+        and new jobs are submitted if their dependencies are met.
+        The done_queue currently only contains the job id as a return value
+        from a successful job; if the BatchJob would be extended to deal with
+        return values, a tuple (job_id, return_value) would be necessary.
+        '''
+        try:
+            log.debug("Starting submit main thread...")
+            while not cls.error:
+                # Put jobs that are ready onto the work queue
+                for j in cls.jobs.values():
+                    j.submit()
+                # Wait for a result from the done_queue
+                # The timeout ensures that we regularly check for new jobs
+                # which might have been added in the meantime
+                try:
+                    res = cls.done_queue.get(block=True, timeout=0.1)
+                except Empty:
+                    continue
+                if res is None:
+                    log.fatal("Uncaught exception in worker thread! Terminating.")
+                    cls.error = True
+                    return
+                log.debug("Job {} has finished!".format(res))
+                cls.jobs[res].done = True
+        finally:
+            # Since this thread is responsible for stopping the BatchJob system
+            # we have to set error to True if there is an exception in here
+            # (e.g. KeyboardInterrupt)
+            cls.error = True
+
+    @classmethod
+    def _worker_manager_thread_main(cls):
+        '''
+        This thread creates worker processes as necessary.
+        '''
+        try:
+            log.debug("Starting worker management thread....")
+            while not cls.error:
+                # First, check if all workers are alive
+                for w in cls.workers[:]:
+                    if not w.is_alive():
+                        cls.workers.remove(w)
+                # Then, if the work queue is not empty, add workers
+                if not cls.work_queue.empty():
+                    for i in range(cls.n_cores - len(cls.workers)):
+                        w = Process(target=cls._worker_function, args=())
+                        w.start()
+                        cls.workers.append(w)
+                # Finally, sleep.
+                sleep(0.1)
+        finally:
+            for w in cls.workers:
+                w.terminate()
+            cls.error = True
+
+    @classmethod
+    def _start(cls):
+        '''
+        Internal setup function.
+        Set the main_process to the current process, and start the threads.
+        '''
+        if cls.main_process is None:
+            cls.main_process = current_process()
+        assert cls.main_process is current_process(), "This function can only be called from the main process!"
+
+        if not cls.add_thread:
+            cls.add_thread = Thread(target=cls._add_thread_main, name="BatchJobAsyncAddThread")
+            cls.add_thread.setDaemon(True)
+            cls.add_thread.start()
+        if not cls.worker_manager_thread:
+            cls.worker_manager_thread = Thread(target=cls._worker_manager_thread_main, name="BatchJobWorkerManagerThread")
+            cls.worker_manager_thread.setDaemon(True)
+            cls.worker_manager_thread.start()
+        if not cls.submit_thread:
+            cls.submit_thread = Thread(target=cls._submit_thread_main, name="BatchJobSubmitThread")
+            cls.submit_thread.setDaemon(True)
+            cls.submit_thread.start()
 
     @classmethod
     def _worker_function(cls):
         '''
         Worker function executed in a separate process.
-        This function pulls work items off the work queue; terminates in case
-        of None; otherwise executes the work item. Any exception is reraised
-        after putting a None onto the done_queue (triggering an exception in
-        the main process)
+        This function pulls work items off the work queue; terminates if there
+        is no item for 0.5s; otherwise executes the work item. Any exception
+        is reraised after putting a None onto the done_queue (triggering an
+        exception in the main process)
         '''
         while True:
-            workitem = cls.work_queue.get(block=True)
-            if workitem is None:
-                break # regular termination
+            try:
+                workitem = cls.work_queue.get(block=True, timeout=0.5)
+            except Empty:
+                break
             jobid, func, args, kwargs = workitem
+            log.debug("Starting work id {}".format(jobid))
             try:
                 func(*args, **kwargs)
                 cls.done_queue.put(jobid)
             except Exception as e:
                 cls.done_queue.put(None)
+                cls.done_queue.close()
+                cls.done_queue.join_thread()
                 raise
 
-    @classmethod
-    def _shutdown(cls):
-        '''Cooperatively shut down the worker processes'''
-        for i in range(len(cls.workers)):
-            cls.work_queue.put(None)
-        for w in cls.workers:
-            w.join()
-        cls.workers = []
-
-    def __init__(self, func, args, kwargs, deps):
+    def __init__(self, job_id, func, args, kwargs, deps):
         '''
-        Set up a new BatchJob object and insert it into the global job list
+        Set up a new BatchJob object
         '''
-        self.func, self.args, self.kwargs, self.deps = func, args, kwargs, deps
-        self.id = len(self.__class__.jobs)
-        self.__class__.jobs.append(self)
+        self.func, self.args, self.kwargs = func, args, kwargs
+        self.deps = deps
+        self.id = job_id
         self.submitted = False
         self.done = False
 
@@ -141,6 +251,9 @@ class BatchJob(object):
         Put this job onto the work queue if it is ready and not yet submitted
         '''
         if not self.submitted and self.ready:
+            log.debug("Submitting Job {} since all deps are OK: {}".
+                    format(self.id, [(j, self.__class__.jobs[j].done)
+                                     for j in self.deps]))
             workitem = (self.id, self.func, self.args, self.kwargs)
             self.__class__.work_queue.put(workitem)
             self.submitted = True
@@ -158,6 +271,8 @@ class BatchJob(object):
         '''
         return self.submitted and not self.done
 
+# Initialize the Batch Job system
+BatchJob._start()
 
 def execute_command(cmd, ignore_errors=False, direct_io=False, cwd=None):
     '''
@@ -282,6 +397,13 @@ def generate_report(start_rev, end_rev, resdir):
 
     os.chdir(orig_wd)
     shutil.rmtree(tmpdir)
+
+def generate_reports(start_rev, end_rev, range_resdir):
+    files = glob(os.path.join(range_resdir, "*.dot"))
+    log.info("  -> Analysing revision range {0}..{1}: Generating Reports...".
+        format(start_rev, end_rev))
+    dotjobs = [BatchJob.add(layout_graph, (file,)) for file in files]
+    return BatchJob.add(generate_report, (start_rev, end_rev, range_resdir), deps=dotjobs)
 
 def check4ctags():
     # check if the appropriate ctags is installed on the system
