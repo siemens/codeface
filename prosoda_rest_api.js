@@ -79,7 +79,6 @@ function withCheckedConnection(response, func) {
             msg = 'MySQL connection error: ' + err;
             logger.log('error', msg);
             response.end(JSON.stringify({"error":msg}));
-            connection.release();
         } else {
             try {
                 func(connection);
@@ -269,16 +268,27 @@ app.get('/getTimeSeriesDataForInterval/:projectID/:plotName/:startTimestamp/:end
 
 /**
  * LOCK Person table
- * There is no unlock function, since all locks are dropped anyway
- * once the connection is destroyed.
  */
-
 function lockTablePerson(connection) {
     logger.log('trace', 'lockTablePerson');
     // Lock table Person
     connection.query('LOCK TABLE person WRITE;', function(error, ret, fields) {
         if (error) {
             logger.log('error', 'Lock returned error: ' + error);
+        }
+    });
+    return true;
+}
+
+/**
+ * UNLOCK all tables
+ */
+function unlockTablePerson(connection) {
+    logger.log('trace', 'unlockTablePerson');
+    // Lock table Person
+    connection.query('UNLOCK TABLES;', function(error, ret, fields) {
+        if (error) {
+            logger.log('error', 'Unlock returned error: ' + error);
         }
     });
     return true;
@@ -391,16 +401,18 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
     withCheckedConnection(response, function(connection) {
         try {
             lockTablePerson(connection)
-            // From this point until connection.destroy(), all queued MySQL
+            // From this point until unlockTablePerson(), all queued MySQL
             // requests on this connection operate under the table lock
             // Note that we first have to check again if we missed an update
             // before we got the lock.
             checkedWithID(name, email, projectID, response, connection, function(rows) {
                 if (rows.length == 1) {
-                    // Someone else did the insert for us. Just return and destroy the connection
+                    // Someone else did the insert for us. Just return.
                     var id = { id : rows[0].id };
                     response.end(JSON.stringify(id));
-                    connection.destroy()
+
+                    unlockTablePerson(connection)
+                    connection.release()
                 } else if (rows.length == 0) {
                     // Now we have to insert or update the database
 
@@ -412,7 +424,8 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                             logger.log('error', msg)
                             response.end(JSON.stringify({"error": msg}));
                         }
-                        connection.destroy()
+                        unlockTablePerson(connection)
+                        connection.release()
                     }
 
                     if (name && email) {
@@ -444,7 +457,8 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                                         q = 'INSERT INTO person (projectId, name, email1) VALUES (\'' + projectID + '\',\'' + name + '\', \'' + email + '\');'
                                         logger.log('trace', q)
                                         connection.query(q, function(error, info) {
-                                            connection.destroy();
+                                            unlockTablePerson(connection)
+                                            connection.release()
                                             if (error) {
                                                 msg = 'MySQL error: ' + error;
                                                 logger.log('error', msg);
@@ -461,7 +475,8 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                     } else { // only email is set
                         q = 'INSERT INTO person (projectId, email1) VALUES (\'' + projectID + '\',\'' + email + '\');'
                         connection.query(q, function(error, info) {
-                            connection.destroy();
+                            unlockTablePerson(connection)
+                            connection.release()
                             if (error) {
                                 msg = 'MySQL error: ' + error;
                                 logger.log('error', msg);
@@ -475,7 +490,8 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                 } else {
                     logger.log('error', 'database error: duplicate entries!');
                     response.end(JSON.stringify({"error": "duplicate entries"}));
-                    connection.destroy()
+                    unlockTablePerson(connection)
+                    connection.release()
                 }
             });
         } catch (exception) {
