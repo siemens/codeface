@@ -27,9 +27,29 @@ widget.general.info.overview$html = htmlOutput
 
 renderWidget.widget.general.info.overview = function(w, view=NULL) {
   renderUI({
+    project.name <- query.project.name(conf$con, w$pid)
+    cycles <- get.cycles.con(conf$con, w$pid)
+    date.start <- as.Date(min(cycles$date.start))
+    date.end <- as.Date(max(cycles$date.end))
+    n.releases <- nrow(cycles)
+    n.releases.text <- paste("Analysed", n.releases, "Release cycles.")
+    n.commits <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM commit WHERE projectId=", w$pid)))
+    n.persons <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM person WHERE projectId=", w$pid)))
+    n.issues <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM issue WHERE projectId=", w$pid)))
+    n.mail.threads <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM mail_thread WHERE projectId=", w$pid)))
+    if (n.releases == 1) {
+      n.releases.text <- paste("Analysed one release cycle.")
+    }
     list(
-      h3("TestCaption"),
-      div(class="shiny-text-output", "Lines of Code: 42")
+      h3(HTML(paste("The <em>", project.name, "</em> project"))),
+      HTML(paste("<ul>",
+                 "<li>", n.releases.text,
+                 "<li>", paste("Analysis range: ", month.name[month(date.start)], year(date.start), "until",  month.name[month(date.end)], year(date.end)),
+                 "<li>", paste(n.commits, "commits."),
+                 "<li>", paste(n.persons, "persons."),
+                 "<li>", paste(n.issues, "bugtracker entries."),
+                 "<li>", paste(n.mail.threads, "mailing list threads."),
+                 "</ul>"))
     )
   })
 }
