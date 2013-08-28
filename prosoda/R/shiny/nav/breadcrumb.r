@@ -308,8 +308,8 @@ breadcrumbPanel <- function( breadcrumb ) {
 					divider.tag( bc.element$active ))
     navul <- tagAppendChild(navul, navtag)
   }
-    
-  tagList(div(class = "span12", style = "padding: 10px 0px;", navul ))
+  navul  
+  #tagList(div(class = "span12", style = "padding: 10px 0px;", navul ))
 } # end breadcrumbBootstrap
 
 ## TODO: Move testing to test_breadcrumb.r

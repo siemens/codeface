@@ -20,12 +20,19 @@
 $(function(){ //document ready
 
   Shiny.addCustomMessageHandler("GridsterMessage",
-  	function(message) {		
+  	function(message) {	
 			switch(message.msgname) {
 			case 'addWidget': 
 				var gridster = $(".gridster ul").gridster().data('gridster');
 				Shiny.unbindAll();
 				gridster.add_widget( message.html, message. size_x, message.size_y, message.col, message.row );
+        $(".icon-remove-sign").click(function(){
+          var gridster = $(".gridster ul").gridster().data('gridster');
+          var el = $(this).parent();
+          Shiny.unbindAll();
+          gridster.remove_widget(el);
+          Shiny.bindAll();
+        })
 				Shiny.bindAll();
 				break;
 			}
