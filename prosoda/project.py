@@ -16,7 +16,7 @@
 
 from logging import getLogger; log = getLogger(__name__)
 from pkg_resources import resource_filename
-from os.path import join as pathjoin, split as pathsplit
+from os.path import join as pathjoin, split as pathsplit, abspath
 
 from .dbmanager import DBManager
 from .configuration import Configuration
@@ -79,7 +79,7 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
 
         #########
         # STAGE 2: Cluster analysis
-        exe = resource_filename(__name__, "R/cluster/persons.r")
+        exe = abspath(resource_filename(__name__, "R/cluster/persons.r"))
         cwd, _ = pathsplit(exe)
         cmd = []
         cmd.append(exe)
@@ -112,7 +112,7 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
     #########
     # Global stage 2: Time series analysis
     log.info("=> Analysing time series")
-    exe = resource_filename(__name__, "R/analyse_ts.r")
+    exe = abspath(resource_filename(__name__, "R/analyse_ts.r"))
     cwd, _ = pathsplit(exe)
     cmd = [exe]
     if logfile:
@@ -129,7 +129,7 @@ def mailinglist_analyse(resdir, mldir, prosoda_conf, project_conf, loglevel,
     conf = Configuration.load(prosoda_conf, project_conf)
     ml_resdir = pathjoin(resdir, conf["project"], "ml")
 
-    exe = resource_filename(__name__, "R/ml/batch.r")
+    exe = abspath(resource_filename(__name__, "R/ml/batch.r"))
     cwd, _ = pathsplit(exe)
     cmd = []
     cmd.extend(("--loglevel", loglevel))
