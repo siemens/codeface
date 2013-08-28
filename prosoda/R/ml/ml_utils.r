@@ -338,13 +338,14 @@ compute.initiate.respond <- function(forest, network.red, cty.list) {
     ir.idx <- which(ir$name == cent$name[i])
 
     if (length(ir.idx) != 1) {
-      stop("Internal error: Name from communication network not in ",
-           "initiate.response list")
+      logwarn(paste("Name '", cent$name[i],
+                    "' from communication network not in ",
+                    "initiate.response list", sep=""))
+    } else {
+      cent$responses[i] <- ir$responses[ir.idx]
+      cent$responses.received[i] <- ir$responses.received[ir.idx]
+      cent$initiations[i] <- ir$initiations[ir.idx]
     }
-
-    cent$responses[i] <- ir$responses[ir.idx]
-    cent$responses.received[i] <- ir$responses.received[ir.idx]
-    cent$initiations[i] <- ir$initiations[ir.idx]
   }
 
 
