@@ -124,10 +124,15 @@ class BatchJob(object):
         '''
         log.debug("Starting add thread...")
         while True:
-            job_id, func, args, kwargs, deps = cls.add_queue.get(block=True)
-            assert not job_id in cls.jobs, "Duplicate job ID - random number generator faulty"
-            cls.jobs[job_id] = cls(job_id, func, args, kwargs, deps)
-            cls.add_queue.task_done()
+            try:
+                job_id, func, args, kwargs, deps = cls.add_queue.get(block=True)
+                assert not job_id in cls.jobs, "Duplicate job ID - random number generator faulty"
+                cls.jobs[job_id] = cls(job_id, func, args, kwargs, deps)
+                cls.add_queue.task_done()
+            except EOFError:
+                # This exception occurs if the main thread is being shut down.
+                # We can therefore just quit.
+                break
 
     @classmethod
     def _submit_thread_main(cls):
