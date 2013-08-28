@@ -25,7 +25,7 @@ shinyServer(function(input, output, clientData, session) {
   name2 <- reactive({input$name2})
   name3 <- reactive({input$name3})
 
-  w <- reactive({make.widget.release.distance(pid(), name2, name3)})
+  w <- reactive({widget.release.distance$new(pid(), name2, name3)})
   observe({
     output$distancePlot <- renderWidget(w())
   })

@@ -16,7 +16,7 @@
 ## Copyright 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-library(scales)
+suppressPackageStartupMessages(library(scales))
 source("../../ts_utils.r", chdir=TRUE)
 
 ## Visualise time series including release boundaries

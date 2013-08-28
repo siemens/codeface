@@ -21,7 +21,7 @@
 ## 	Functions are responsible for handling the visualization of network based
 ##	structures. These function make extensive use of igraph and persons.r
 ##  to support the heavy manipulation as a precursor to visualization.
-library(Rgraphviz)
+suppressPackageStartupMessages(library(Rgraphviz))
 ################################################################################
 ## Low Level Functions
 ################################################################################

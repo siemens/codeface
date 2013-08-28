@@ -29,7 +29,7 @@ shinyServer(function(input, output, clientData, session) {
     paste(pname, ".devel activity", sep='')
   })
   ts <- reactive({
-    make.widget.timeseries.messages.per.day(pid(), name(), smooth(), transform())
+    widget.timeseries.messages.per.day$new(pid(), name(), smooth(), transform())
   })
   observe({
     output$distancePlot <- renderWidget(ts())

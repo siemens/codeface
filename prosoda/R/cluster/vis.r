@@ -75,7 +75,7 @@ printcp(fit)
 plotcp(fit)
 plot(fit); text(fit, use.n=TRUE, all=TRUE, cex=.8)
 
-library(tree)
+s(library(tree))
 fit <- tree(inRC ~ ., data=cmt.info)
 summary(fit)
 
@@ -109,7 +109,7 @@ plot(fit)
 ## factors to enable the methods of correspondence analysis etc. to work.
 
 ## Subsystem classification via gam
-library(mgcv)
+s(library(mgcv))
 ## TODO: This does not work, but something like this is the way to go.
 gam(inRC~ChangedFiles + s(DiffSize) + s(CmtMsgBytes) +
               NumSignedOffs + NumTags, data=na.omit(cmt.info))

@@ -22,9 +22,9 @@ source("../../widgets.r", chdir=TRUE)
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "vis.clusters")
 
-  clusters <- reactive({make.widget.clusters.clusters(pid())})
-  correlations <- reactive({make.widget.clusters.correlations(pid())})
-  summary <- reactive({make.widget.clusters.summary(pid())})
+  clusters <- reactive({widget.clusters.clusters$new(pid())})
+  correlations <- reactive({widget.clusters.correlations$new(pid())})
+  summary <- reactive({widget.clusters.summary$new(pid())})
   observe({
     updateSelectInput(session, "cycle", choices=listViews(summary()))
   })

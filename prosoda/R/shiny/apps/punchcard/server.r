@@ -22,7 +22,7 @@ source("../../widgets.r", chdir=TRUE)
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "punchcard")
   observe({
-    output$punchcardPlot <- renderWidget(make.widget.punchcard(pid()))
+    output$punchcardPlot <- renderWidget(widget.punchcard$new(pid()))
   })
   output$quantarchContent <- renderUI({
     plotOutput("punchcardPlot")

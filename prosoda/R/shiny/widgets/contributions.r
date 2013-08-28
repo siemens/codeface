@@ -16,7 +16,7 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-library(reshape)
+suppressPackageStartupMessages(library(reshape))
 
 ## Determine how many authors repeatedly contributed to how many cycles
 gen.authors.multi.cycles <- function(project.stats) {
