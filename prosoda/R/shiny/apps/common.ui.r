@@ -16,13 +16,16 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-library(shiny)
+#library(shiny)
+#source("../nav/breadcrumb.shiny.r")
 
 shinyUI(bootstrapPage(
 	tags$div( class = "container",
-		tags$div( class="row", uiOutput("quantarchBreadcrumb") ),
-	tags$div( class="row", 
-		tags$div( class="span12", style = "padding: 10px 0px;", tags$h1( textOutput("quantarchHeader")))),
-    tags$div( class="row", uiOutput("quantarchContent") )
-  )
+		tags$div( class="row", 
+      breadcrumbOutput("quantarchBreadcrumb")),
+	  tags$div( class="row", 
+		  tags$div( class="span12", style = "padding: 10px 0px;", tags$h1( textOutput("quantarchHeader")))),
+    tags$div( class="row", 
+      uiOutput("quantarchContent") )
+    )
 ))

@@ -33,32 +33,5 @@ source("../../vis.ports.r", chdir=TRUE)
 conf <- config.from.args(require_project=FALSE)
 projects.list <- query.projects(conf$con)
 
-source("../nav/breadcrumb.r", chdir = TRUE)
-
-common.server.init <- function(output, session, app.name) {
-  ## Read and parse the query string
-  paramstr <- reactive({session$clientData$url_search});
-  #loginfo(isolate(paramstr()))
-  args.list <- reactive({
-    parseQueryString(paramstr());
-  });
-
-  ## Read out PID from the URL and check if it is valid
-  pid <- reactive({args.list()[["projectid"]]})
-  observe({
-    if (!is.vector(pid())) {
-      stop("No projectid parameter in URL")
-    } else if (is.na(as.numeric(pid()))) {
-      stop("projectid URL parameter is empty")
-    }
-    loginfo(paste("New Project ID: ", pid()))
-  })
-
-  ## Set up breadcrumb data
-  observe({
-    navData <- breadcrumbPanelData(app.name, paramstr())
-	#loginfo(as.character(breadcrumbPanel(navData)))
-    output$quantarchBreadcrumb <- renderUI({breadcrumbPanel(navData)})
-  })
-  return(pid)
-}
+## breadcrumb
+source("../nav/breadcrumb.shiny.r", chdir = TRUE)
