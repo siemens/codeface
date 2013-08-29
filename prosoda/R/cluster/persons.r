@@ -34,6 +34,7 @@
 ##        for learning, and then apply the inferred clustering on
 ##        the complete data set to infer subsystems in a quasi-Bayesian
 ##        way)
+suppressPackageStartupMessages(library(graph))
 suppressPackageStartupMessages(library(igraph))
 suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(xtable))

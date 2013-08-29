@@ -378,14 +378,14 @@ community.metric <- function(graph, community, test) {
     metric.vec <- sapply(community.id,
         function(x) {
           g.sub <- induced.subgraph(graph, members[[x]])
-          return (degree(g.sub, mode="out"))
+          return (igraph::degree(g.sub, mode="out"))
         })
   }
   else if(test == "in.deg") {
     metric.vec <- sapply(community.id,
         function(x) {
           g.sub <- induced.subgraph(graph, members[[x]])
-          return (degree(g.sub, mode="in"))
+          return (igraph::degree(g.sub, mode="in"))
         })
   }
   else if(test == "diameter") {
