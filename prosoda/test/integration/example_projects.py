@@ -30,6 +30,15 @@ def get_example_project_1(tagging="tag", randomise_email_case=False):
             {"README":"FOO\nBOO"}, signoff=[Adam])
     project.tag_rc(Adam, "2013-01-07T16:30:00")
     project.tag_release(Adam, "2013-01-07T16:59:00")
+
+    project.email("user1", Adam, "2013-01-08T10:00:00", "Project start", "Announce!")
+    project.email("user1", Bill, "2013-01-08T11:00:00", "Re: Project start", "Denounce!")
+    project.email("user1", Clara, "2013-01-08T11:30:00", "Re: Project start", "Praise!")
+    project.email("user1", Peter, "2013-01-08T11:31:00", "Re: Project start", "Praise!")
+    project.email("user1", Max, "2013-01-08T11:32:00", "Re: Project start", "Praise!")
+    project.email("user1", Peter, "2013-01-08T11:33:00", "Re: Project start", "Praise!")
+    project.email("user1", Adam, "2013-01-08T11:40:00", "Re: Project start", "Thanks!")
+
     project.email("dev1", Adam, "2013-01-08T14:00:00", "Mail 2a commit", "A commit!")
     project.email("dev1", Adam, "2013-01-08T14:00:01", "Mail 2b bug", "A bug!")
     project.email("dev1", Adam, "2013-01-08T14:00:02", "Mail 2c feature", "A feature!")
@@ -90,6 +99,13 @@ def get_example_project_1(tagging="tag", randomise_email_case=False):
             signoff=[Adam, Max, Clara])
     project.tag_rc(Max, "2013-01-15T13:42:42")
     project.email("dev2", Max, "2013-01-15T13:43:00", "RC", "A RC.")
+
+    project.email("user2", Max, "2013-01-15T13:43:00", "RC", "A RC.")
+    project.email("user2", Adam, "2013-01-15T13:43:01", "Re: RC", "A RC!")
+    project.email("user2", Bill, "2013-01-15T13:43:02", "Re: RC", "A RC!")
+    project.email("user2", Clara, "2013-01-15T13:43:03", "Re: RC", "A RC!")
+    project.email("user2", Peter, "2013-01-15T13:43:04", "Re: RC", "A RC!")
+
     project.email("dev2", Max, "2013-01-15T13:43:01", "RC A bug", "A RC bug.")
     project.email("dev2", Max, "2013-01-15T13:43:02", "RC B", "A RC.")
     project.email("dev2", Max, "2013-01-15T13:43:03", "RC C", "A RC.")
@@ -108,7 +124,12 @@ def get_example_project_1(tagging="tag", randomise_email_case=False):
     project.email("dev2", Max, "2013-01-23T13:40:00", "Release 2c", "A Release.")
     project.email("dev2", Max, "2013-01-23T13:40:00", "Release 2d", "A Release.")
     project.email("dev2", Max, "2013-01-23T13:40:00", "Release 2e", "A Release.")
-    project.tag_release(Max, "2013-01-23T13:42:42")
+    project.email("user2", Max, "2013-01-23T13:40:00", "Release 2", "A Release.")
+    project.email("user2", Adam, "2013-01-23T13:50:00", "Re: Release 2", "Great!")
+    project.email("user2", Bill, "2013-01-23T13:51:00", "Re: Release 2", "Buggy!")
+    project.email("user2", Clara, "2013-01-23T13:52:00", "Re: Release 2", "Great!")
+    project.email("user2", Peter, "2013-01-23T13:53:00", "Re: Release 2", "Great!")
+    project.tag_release(Max, "2013-01-23T15:42:42")
     return project
 
 example_project_func[1] = get_example_project_1

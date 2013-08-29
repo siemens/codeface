@@ -525,10 +525,14 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
 
   dat.replies <- do.call(rbind, dat.replies)
 
-  res <- dbWriteTable(conf$con, "thread_responses", dat.replies, append=T,
-                      row.names=F)
-  if (!res) {
-    stop("Could not add to table thread_responses!")
+  if (!is.null(dat.replies)) {
+    res <- dbWriteTable(conf$con, "thread_responses", dat.replies, append=T,
+                        row.names=F)
+    if (!res) {
+      stop("Could not add to table thread_responses!")
+    }
+  } else {
+    logwarn("No responses to add to thread_responses")
   }
 
   ## TODO: This should be represented by a class
