@@ -209,12 +209,16 @@ community.stat.significance <- function(graph, cluster.algo) {
 
   ## perform t-test on test statistic
   t.test.result <- t.test(rand.samps,  mu=mean(cluster.conductance))
+
+  ## output result
+  save.comm.sig.test(rand.samps, cluster.conductance,t.test.result,
+                     normality.test, outfile, format="png")
 }
 
 
 ## write the significance test results to pdf
 save.comm.sig.test <- function(rand.samps, cluster.conductance,t.result, 
-                               shap.result, outfile, format="png") {
+                               shap.result, outfile, size=7, format="png") {
 	m.c = sum(cluster.conductance)
 	m.r = mean(rand.samps)
 	s.r = sd(rand.samps)
