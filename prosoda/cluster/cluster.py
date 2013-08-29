@@ -48,6 +48,7 @@ class LinkType:
     tag              = "tag"
     proximity        = "proximity"
     committer2author = "committer2author"
+    file             = "file"
 
 
 def createDB(filename, git_repo, revrange, subsys_descr, link_type, rcranges=None):
@@ -61,17 +62,11 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type, rcranges=Non
 
     if rcranges != None:
         git.setRCRanges(rcranges)
-    if link_type == LinkType.proximity:
-        #add all files for proximity analysis
-        git.addFiles4Analysis()
-        blame_analysis = True
-    else:
-        blame_analysis = False
 
     #------------------------
     #data extraction
     #------------------------
-    git.extractCommitData(blameAnalysis=blame_analysis)
+    git.extractCommitData(link_type=link_type)
 
     #------------------------
     #save data
@@ -140,7 +135,7 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
     return sim
 
 
-def computeSnapshotCollaboration(file_commit, cmtList, id_mgr,
+def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
                                   startDate=None, random=False):
     '''Generates the collaboration data from a file snapshot at a particular
     point in time'''
@@ -195,7 +190,7 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr,
             clusters = groupFuncLines(file_commit, fileState_mod, cmtList)
 
             #calculate the collaboration coefficient for each code block
-            [computeCommitCollaboration(cluster, cmt, id_mgr,
+            [computeCommitCollaboration(cluster, cmt, id_mgr, link_type,
                                         maxDist, author) for cluster in clusters if cluster]
 
 
@@ -303,7 +298,7 @@ def randomizeCommitCollaboration(codeBlks, fileState):
     return codeBlksRand
 
 
-def computeCommitCollaboration(codeBlks, cmt, id_mgr, maxDist,
+def computeCommitCollaboration(codeBlks, cmt, id_mgr, link_type, maxDist,
                                author=False):
     '''
     Computes a value that represents the collaboration strength
@@ -361,12 +356,10 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, maxDist,
         #get all blocks for the oldCmtId
         oldRevBlks = [blk for blk in codeBlks if blk.cmtHash == oldCmtId]
 
-        #TODO: think about a more appropriate way to measure the collaboration
-        #     strength, at the moment this value can be interpreted as for every
-        #     commit in the neighborhood (no matter the size) is valued as 1
-        #     this means that the number of LOC has no impact on the perceived
-        #     collaboration which may negatively impact the further analysis
-        collaboration_strength = 1
+        # collaboration strength is seen as the sum of the newly contributed
+        # lines of code and previously committed code by the other person
+        collaboration_strength = computeBlksSize(revCmtBlks, oldRevBlks)
+
         #store result
         if author:
             personId = oldRevBlks[0].authorId
@@ -374,9 +367,9 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, maxDist,
             personId = oldRevBlks[0].committerId
 
         inEdgePerson = id_mgr.getPI(personId)
-        revPerson.addSendRelation      (LinkType.proximity, personId, cmt,
+        revPerson.addSendRelation      (link_type, personId, cmt,
                                         collaboration_strength)
-        inEdgePerson.addReceiveRelation(LinkType.proximity, revPerson.getID(),
+        inEdgePerson.addReceiveRelation(link_type, revPerson.getID(),
                                         collaboration_strength)
 
 
@@ -431,6 +424,15 @@ def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist):
         inEdgePerson = id_mgr.getPI(Id)
         person.addOutEdge(   Id   , avgStrength)
         inEdgePerson.addInEdge(personId, avgStrength)
+
+
+def computeBlksSize(blks1, blks2):
+    # compute the total size of two sets of codeBlock objects
+    blks_total = blks1 + blks2
+    size_total = 0
+    for blk in blks_total:
+        size_total += blk.end - blk.start + 1
+    return size_total
 
 
 def computeEdgeStrength(blk1, blk2, maxDist):
@@ -1043,7 +1045,8 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
         pi.addCommit(cmt)
 
         if link_type == LinkType.proximity or \
-           link_type == LinkType.committer2author:
+           link_type == LinkType.committer2author or \
+           link_type == LinkType.file:
             #create person for committer
             ID = id_mgr.getPersonID(cmt.getCommitterName())
             pi = id_mgr.getPI(ID)
@@ -1053,7 +1056,8 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
     return None
 
 
-def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None, speedUp=True):
+def computeProximityLinks(fileCommitList, cmtList, id_mgr, link_type, \
+                          startDate=None, speedUp=True):
     '''
     Constructs network based on commit proximity information
     '''
@@ -1067,11 +1071,11 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, startDate=None, speed
     for file_commit in fileCommitList.values():
 
         if speedUp:
-            computeSnapshotCollaboration(file_commit, cmtList, id_mgr,
+            computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
                                          startDate)
         else:
             [computeSnapshotCollaboration(fileSnapShot[1], [fileSnapShot[0]],
-                                    cmtList, id_mgr, startDate)
+                                    cmtList, id_mgr, link_type, startDate)
                                     for fileSnapShot
                                     in fileCommit.getFileSnapShots().items()]
 
@@ -1259,14 +1263,15 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     elif link_type == LinkType.committer2author:
         computeCommitterAuthorLinks(cmtlist, id_mgr)
 
-    elif link_type == LinkType.proximity:
+    elif link_type in (LinkType.proximity, LinkType.file):
         if limit_history:
             startDate = git.getRevStartDate()
         else:
             startDate = None
 
         fileCommitList = git.getFileCommitDict()
-        computeProximityLinks(fileCommitList, cmtdict, id_mgr, startDate)
+        computeProximityLinks(fileCommitList, cmtdict, id_mgr, link_type,
+                              startDate)
     #---------------------------------
     #compute statistical information
     #---------------------------------

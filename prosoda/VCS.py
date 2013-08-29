@@ -40,6 +40,7 @@ import fileCommit
 import re
 import os
 import ctags
+import tempfile
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from ctags import CTags, TagEntry
 from logging import getLogger; log = getLogger(__name__)
@@ -653,7 +654,7 @@ class gitVCS (VCS):
                 for logstring in reversed(clist)]
 
 
-    def extractCommitData(self, subsys="__main__", blameAnalysis=False):
+    def extractCommitData(self, subsys="__main__", link_type=None):
         if not(self._subsysIsValid(subsys)):
             log.critical("Subsys specification invalid: {0}\n".format(subsys))
             raise Error("Invalid subsystem specification.")
@@ -667,8 +668,9 @@ class gitVCS (VCS):
 
         self._prepareCommitLists()
 
-        if blameAnalysis:
-            self._prepareFileCommitList(self._fileNames)
+        if link_type in ("proximity", "file"):
+            self.addFiles4Analysis()
+            self._prepareFileCommitList(self._fileNames, link_type=link_type)
 
         # _commit_list_dict as computed by _prepareCommitLists() already
         # provides a decomposition of the commit list into subsystems:
@@ -748,7 +750,7 @@ class gitVCS (VCS):
         return (commitLineDict, codeLines)
 
 
-    def _prepareFileCommitList(self, fnameList, singleBlame=True,
+    def _prepareFileCommitList(self, fnameList, link_type, singleBlame=True,
                                ignoreOldCmts=True):
         '''
         uses git blame to determine the file layout of a revision
@@ -818,13 +820,13 @@ class gitVCS (VCS):
             # retrieve blame data
             if singleBlame: #only one set of blame data per file
                 self._addBlameRev(self.rev_end, file_commit,
-                                  blameMsgCmtIds)
+                                  blameMsgCmtIds, link_type)
             else: # get one set of blame data for every commit made
                 # this option is computationally intensive thus the alternative
                 # singleBlame option is possible when speed is a higher
                 # priority than precision
                 [self._addBlameRev(cmt.id, file_commit,
-                                      blameMsgCmtIds) for cmt in cmtList]
+                                      blameMsgCmtIds, link_type) for cmt in cmtList]
 
             #store fileCommit object to dictionary
             self._fileCommit_dict[fname] = file_commit
@@ -875,7 +877,7 @@ class gitVCS (VCS):
 
                 pbar.finish()
 
-    def _addBlameRev(self, rev, file_commit, blame_cmt_ids):
+    def _addBlameRev(self, rev, file_commit, blame_cmt_ids, link_type):
         '''
         saves the git blame output of a revision for a particular file
         '''
@@ -901,7 +903,11 @@ class gitVCS (VCS):
         file_commit.addFileSnapShot(rev, cmt_lines)
 
         # locate all function lines in the file
-        self._getFunctionLines(src_lines, file_commit)
+        if link_type=="proximity": # separate the file commits into code structures
+            self._getFunctionLines(src_lines, file_commit)
+        # else: do not separate file commits into code structures, 
+        #       this will result in all commits to a single file seen as 
+        #       related thus the more course grained analysis
 
         blame_cmt_ids.update( cmt_lines.values() )
 
@@ -927,37 +933,52 @@ class gitVCS (VCS):
         fileExt = os.path.splitext(file_commit.filename)[1]
 
         # temporary file where we write transient data needed for ctags
-        #TODO: use a unique id for the file
-        srcFn = self.rev_start + '_' + self.rev_end + 'srcTmp' + fileExt
-        tagFn = self.rev_start + '_' + self.rev_end + 'tagTmp'
+        srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
+        tagFile = tempfile.NamedTemporaryFile()
         # generate a source code file from the file_layout_src dictionary
         # and save it to a temporary location
-        srcFile = open(srcFn, 'w')
         for line in file_layout_src:
             srcFile.write(line)
-        srcFile.close()
+        srcFile.flush()
 
         # run ctags analysis on the file to create a tags file
-        cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tagFn, srcFn).split()
+        cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tagFile.name, srcFile.name).split()
         output = execute_command(cmd).splitlines()
 
-        # parse ctags generated file for the function line numbers
+        # parse ctags
         try:
-            tagFile = CTags(tagFn)
+            tags = CTags(tagFile.name)
         except:
             log.critical("failure to load ctags file")
             raise Error("failure to load ctags file")
 
-        # locate function line numbers and names
+        # locate line numbers and structure names
         entry = TagEntry()
         funcLines = {}
-        while(tagFile.next(entry)):
-            if 'f' == entry['kind']:
+        # select the language structures we are interested in identifying
+        # f = functions, s = structs, c = classes, n = namespace
+        # p = function prototype, g = enum, d = macro, t= typedef, u = union 
+        structures = ["f", "s", "c", "n", "p", "g", "d", "t", "u"]
+        # TODO: investigate other languages and how ctags assigns the structure
+        #       tags, we may need more languages specific assignments in
+        #       addition to java and c# files, use "ctags --list-kinds" to
+        #       see all tag meanings per language
+        if fileExt in (".java", ".j", ".jav", ".cs", ".js"):
+            structures.append("m") # methods
+            structures.append("i") # interface
+        elif fileExt in (".php"):
+            structures.append("i") # interface
+            structures.append("j") # functions
+        elif fileExt in (".py"):
+            structures.append("m") # class members
+
+        while(tags.next(entry)):
+            if entry['kind'] in structures:
                 funcLines[int(entry['lineNumber'])] = entry['name']
 
         # clean up temporary files
-        os.remove(srcFn)
-        os.remove(tagFn)
+        srcFile.close()
+        tagFile.close()
 
         # save result to the file commit instance
         file_commit.setFunctionLines(funcLines)

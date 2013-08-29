@@ -78,3 +78,25 @@ construct.cluster <- function(con, cluster.id, technique=0) {
   g <- graph.data.frame(edges, vertices=members)
   return(g)
 }
+
+
+## select from a variety of output devices
+## Args:
+##  filename: string containing the output path and filename
+##  size    : size of graphic output in inches
+##  format  : string to specifiy bmp, jpeg, png, tiff formats
+## Returns:
+##  output of device opening function
+select.graphics.dev <- function(filename, size, format="png") {
+  formats <- c(bmp, jpeg, png, tiff)
+  names(formats) <- c("bmp", "jpeg", "png", "tiff")
+
+  if (!(format %in% names(formats))) {
+    format <- "png"
+  }
+
+  dev <- formats[[format]](filename=filename, width=size, height=size,
+                         units="in", res=320)
+  return(dev)
+}
+

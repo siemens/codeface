@@ -352,15 +352,13 @@ def _convert_dot_file(dotfile):
     res.append("}\n")
     return res
 
-
-
 def layout_graph(filename):
     out = NamedTemporaryFile(mode="w", delete=False)
     out.writelines(_convert_dot_file(filename))
     out.close() # flushes the cache
     cmd = []
     cmd.append("dot")
-    cmd.append("-Ksfdp")
+    cmd.append("-Kfdp")
     cmd.append("-Tpdf")
     cmd.append("-Gcharset=utf-8")
     cmd.append("-o{0}.pdf".format(os.path.splitext(filename)[0]))
