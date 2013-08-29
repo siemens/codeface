@@ -109,8 +109,7 @@ graph.difference <- function(g1,g2, weighted=FALSE) {
 
 
 ## Compare the results of the tag and non tag based graphs
-graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2,
-    outputFileName) {
+graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2) {
   ## Normalize graphs to have edge weight between 0-1
   nonTagAdjMatrix.weighted <- scale.data(adjMatrix1, 0, 1000)
   tagAdjMatrix.weighted    <- scale.data(adjMatrix2, 0, 1000)
@@ -146,42 +145,17 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2,
       mode="directed", weighted=TRUE)
   g.Tag.connected.weighted <- graph.adjacency(tagAdj.connected.weighted,
       mode="directed", weighted=TRUE)
-  
-  ## Compute pagerank
-  pr.nonTag <- page.rank(g.nonTag.connected.weighted, damping=0.85,
-      directed=TRUE)
-  pr.Tag <- page.rank(g.Tag.connected.weighted, damping=0.85, directed=TRUE)
-  
+
   ## Match up ids between the two adjacency matrices
   ## Don't use email address, 1 person with multiple email addresses gets
   ## mapped to a single name except the arbitration rule for which email is
   ## noted doesn't provide consistent results between the tagged and
   ## non-tagged analysis
-  intersectNames <- intersect(ids.nonTag.connected$Name, ids.Tag.connected$Name)
+  intersect.global.ids <- intersect(ids.nonTag.connected, ids.Tag.connected)
   ## Get index of names from both ids sets
-  idx.nonTag <- match(intersectNames, ids.nonTag.connected$Name)
-  idx.Tag    <- match(intersectNames, ids.Tag.connected$Name   )
-  
-  
-  ## Now the ids indecies should be unified between the
-  ## tag and non-tag graphs
-  ids.nonTag.intersect <- ids.nonTag.connected[idx.nonTag,]
-  pr.nonTag.intersect  <- pr.nonTag[idx.nonTag]
-  
-  ids.Tag.intersect <- ids.Tag.connected[idx.Tag,]
-  pr.Tag.intersect <- pr.Tag[idx.Tag]
-  
-  if (all( ids.nonTag.intersect$Name == ids.Tag.intersect$Name )) {
-    ids.intersect <- ids.nonTag.intersect
-    ids.intersect$ID <- seq(1, length(ids.nonTag.intersect$eMail))
-    ids.intersect$pr.NonTag <- pr.nonTag$vector[idx.nonTag]
-    ids.intersect$pr.Tag <- pr.Tag$vector[idx.Tag]
-  } else {
-    e <- simpleError("id systems don't match!")
-    stop(e)
-  }
-  
-  
+  idx.nonTag <- match(intersect.global.ids, ids.nonTag.connected)
+  idx.Tag    <- match(intersect.global.ids, ids.Tag.connected   )
+
   ## Build adjacency matrix of interesecting ids
   nonTagAdj.intersect <- nonTagAdj.connected[idx.nonTag, idx.nonTag]
   tagAdj.intersect <- TagAdj.connected[idx.Tag, idx.Tag]
@@ -202,19 +176,37 @@ graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2,
   similiarityAdjMatrix.weighted <- similarity.adjMatrix * similarity.adjMatrix.weighted
 
   g.similarity <- graph.adjacency(similarity.adjMatrix.weighted, mode="directed", weighted=TRUE)
-  
-  graphSim <- graph.similarity(g.Tag, g.nonTag)
-  
-  ## Plot results/save results
-  pdf(outputFileName)
-  plot(sort(graphSim))
-  plot(graphSim, log(ids.intersect$pr.NonTag))
-  plot(graphSim, log(ids.intersect$pr.Tag))
-  plot(log(ids.intersect$pr.Tag), log(ids.intersect$pr.NonTag))
+
+  graphSim <- graph.difference(g.Tag, g.nonTag)
+
+  return(graphSim)
+}
+
+
+save.graph.comparison <- function(comp.vec, outfile, size=7, format="pdf") {
+  select.graphics.dev(filename=outfile, size=size, format=format)
+  plot(comp.vec, main="Developer Network Comparison", ylab="Percent Difference", xlab="Vertex Id")
   dev.off()
-  
-  performGraphAnalysis(conf, similarity.adjMatrix.weighted, ids.intersect,
-      "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments")
-  
-  ##write.graph.2.file("/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments/similarityGraph.dot", g.similarity, ids.intersect, ids.intersect$ID)
+}
+
+################################################################################
+## High Level Functions
+################################################################################
+run.graph.comparison <- function(con, pid.1, range.id.1, pid.2, range.id.2) {
+  ## get graph data
+  g.id1 <- query.global.collab.con(con, pid.1, range.id.1)
+  g.id2 <- query.global.collab.con(con, pid.2, range.id.2)
+  graph.data.1 <- get.graph.data.local(con, pid.1, range.id.1)
+  graph.data.2 <- get.graph.data.local(con, pid.2, range.id.2)
+  edgelist.1   <- graph.data.1$edgelist
+  edgelist.2   <- graph.data.2$edgelist
+  global.ids.1 <- graph.data.1$v.global.ids
+  global.ids.2 <- graph.data.2$v.global.ids
+
+  ## create adjacency matrix
+  adj.matrix1 <- get.adjacency(graph.data.frame(edgelist.1, directed=TRUE))
+  adj.matrix2 <- get.adjacency(graph.data.frame(edgelist.2, directed=TRUE))
+
+  res <- graphComparison(adj.matrix1, global.ids.1, adj.matrix2, global.ids.2)
+  return(res)
 }
