@@ -93,8 +93,8 @@ renderWidget.widget.commit.structure.mds <- function(w, view=NULL) {
     if (is.null(w$pid)) stop("goo")
     cmt.info.list <- get.cmt.info.list(conf$con, w$pid, w$subset)
     dat <- do.mds(cmt.info.list, method="euclidean")
-    g <- ggplot(dat, aes(x=x, y=y, colour=inRC)) + geom <- point() +
-      facet <- wrap(~cycle)
+    g <- ggplot(dat, aes(x=x, y=y, colour=inRC)) + geom_point() +
+      facet_wrap(~cycle)
     print(g)
   })
 }
