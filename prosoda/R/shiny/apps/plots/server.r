@@ -20,12 +20,12 @@ source("../common.server.r", chdir=TRUE)
 source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "timeseries")
+  pid = common.server.init(output, session, "plots")
 	plot.id <- reactive({input$plotSelect})
   smooth <- reactive({input$smooth})
   transform <- reactive({input$transform})
 
-  plot <- reactive({widget.timeseries.messages.per.day$new(pid(), smooth, transform)})
+  plot <- reactive({widget.timeseries.plots$new(pid(), smooth, transform)})
   observe({
     updateSelectInput(session, "plotSelect", choices=listViews(plot()))
   })
@@ -36,7 +36,7 @@ shinyServer(function(input, output, clientData, session) {
   output$quantarchContent <- renderUI({
     tagList(
       sidebarPanel(
-        selectInput("plotSelect", "Select Mailing list", choices = list(1)),
+        selectInput("plotSelect", "Select Plot", choices = list(1)),
         radioButtons("smooth", "Smoothing window size",
                         choices = c("None" = 0,
                                     "Weekly" = 1,

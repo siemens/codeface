@@ -82,6 +82,7 @@ project.apps <- list(
     c("contributors", "Contributors"),
     c("punchcard", "Activity punch cards"),
     c("punchcard_ml", "ML activity punch cards"),
+    c("plots", "Timeseries Plots"),
     c("release_distance", "Inter-Release Distance"),
     c("timeseries", "Mailing list activity"),
     c("vis.clusters", "Collaboration clusters")
