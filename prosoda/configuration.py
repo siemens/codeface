@@ -113,7 +113,7 @@ class Configuration(Mapping):
                         ''.format(key))
                 raise ConfigurationError('Missing configuration key.')
 
-        if not self['tagging'] in ('tag', 'committer2author', 'proximity'):
+        if not self['tagging'] in ('tag', 'committer2author', 'proximity', 'file'):
             log.critical('Unsupported tagging mechanism specified!')
             raise ConfigurationError('Unsupported tagging mechanism.')
 

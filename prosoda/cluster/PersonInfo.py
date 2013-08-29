@@ -17,7 +17,7 @@
 
 from logging import getLogger; log = getLogger(__name__)
 from prosoda.commit_analysis import tag_types, active_tag_types, proximity_relation \
-, committer2author_relation, all_link_types
+, file_relation, committer2author_relation, all_link_types
 
 class PersonInfo:
     """ Information about a commiter, and his relation to other commiters"""
@@ -87,6 +87,10 @@ class PersonInfo:
         #a given ID
         self.committer_links_recieved_by_id = {}
 
+        #count how many links based on commits in the same file were received by
+        #a given ID
+        self.file_links_recieved_by_id = {}
+
     def setID(self, ID):
         self.ID = ID
     def getID(self):
@@ -124,7 +128,8 @@ class PersonInfo:
             return self._getLinksReceivedByID(self.proximity_links_recieved_by_id, ID)
         elif link_type == committer2author_relation:
             return self._getLinksReceivedByID(self.committer_links_recieved_by_id, ID)
-
+        elif link_type == file_relation:
+            return self._getLinksReceivedByID(self.file_links_recieved_by_id, ID)
     def getAllTagsReceivedByID(self, ID):
         return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)
 
@@ -253,7 +258,7 @@ class PersonInfo:
         #sum other possible link types
         self._sum_relations(proximity_relation,        self.proximity_links_recieved_by_id)
         self._sum_relations(committer2author_relation, self.committer_links_recieved_by_id)
-
+        self._sum_relations(file_relation,             self.file_links_recieved_by_id)
 
     def getTagStats(self):
         return self.tag_fraction

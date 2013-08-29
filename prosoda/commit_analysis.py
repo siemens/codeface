@@ -29,8 +29,10 @@ tag_types = [ "Signed-off-by", "Acked-by", "CC", "Reviewed-by",
 active_tag_types = [ "Signed-off-by", "Acked-by", "Reviewed-by",
                     "Tested-by" ]
 proximity_relation = "proximity"
+file_relation = "file"
 committer2author_relation = "committer2author"
-all_link_types = tag_types + [proximity_relation, committer2author_relation]
+all_link_types = tag_types + [proximity_relation, file_relation, \
+                              committer2author_relation]
 
 def flatten(lst):
     for elem in lst:
