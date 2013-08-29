@@ -183,16 +183,13 @@ community.quality.modularity <- function(graph, community.vertices) {
 ## p-value: the result of the statistical significance test
 ############################################################################
 community.stat.significance <- function(graph, cluster.algo) {
-  ## extract largest connected component
-  graph.connected   <- largest.subgraph(graph)
   ## extract clusters
-  graph.clusters <- cluster.algo(graph.connected)
-  ## save communities that have more than 10 vertices
-                                        #graph.clusters.more <- select.communities.more(graph.clusters, 10)
+  graph.clusters <- community.detection.disconnected(graph, cluster.algo)
 
   ## compute cluster conductance values
-  cluster.conductance <- community.metric(graph.connected, graph.clusters,
+  cluster.conductance <- community.metric(graph, graph.clusters,
                                           "conductance")
+  cluster.conductance <- cluster.conductance[!is.na(cluster.conductance)]
   ## compute randomized conductance samples
   niter <- 1000
   rand.samps <- randomised.conductance.samples(graph, niter, cluster.algo)
@@ -273,19 +270,17 @@ randomised.conductance.samples <- function(graph, niter, cluster.algo) {
                                   niter = 10*ecount(graph.multi))
     E(rw.graph)$weight <- 1
     rw.graph <- simplify(rw.graph, remove.loops=FALSE)
-    rw.graph.connected   <- largest.subgraph(rw.graph)
 
     ## Find clusters
-    rw.graph.clusters <- cluster.algo(rw.graph.connected)
+    rw.graph.clusters <- community.detection.disconnected(rw.graph, cluster.algo)
 
     ## Only analyze clusters that are large than 10 vertices
     ##rw.graph.clusters.more <- select.communities.more(rw.graph.clusters, 10)
 
     ## Compute conductance
-    rw.cluster.conductance <- community.metric(rw.graph.connected,
-                                                            rw.graph.clusters,
-                                                            "conductance")
-    conduct.vec <- append(conduct.vec, mean(rw.cluster.conductance))
+    rw.cluster.conductance <- community.metric(rw.graph, rw.graph.clusters,
+                                               "conductance")
+    conduct.vec <- append(conduct.vec, mean(rw.cluster.conductance, na.rm=TRUE))
   }
   ## Close progress bar
   close(pb)
