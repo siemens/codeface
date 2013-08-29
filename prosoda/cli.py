@@ -73,6 +73,9 @@ def get_parser():
                 default='prosoda.conf')
     ml_parser.add_argument('-p', '--project', help="Project configuration file",
                 required=True)
+    ml_parser.add_argument('-m', '--mailinglist', help="Only run on the "
+                "specified mailing list (can be specified multiple times)",
+                default=[], action="append")
     ml_parser.add_argument('resdir',
                         help="Directory to store analysis results in")
     ml_parser.add_argument('mldir',
@@ -107,7 +110,7 @@ def cmd_ml(args):
     if args.logfile:
         logfile = os.path.abspath(args.logfile)
     mailinglist_analyse(resdir, mldir, prosoda_conf, project_conf,
-                        args.loglevel, args.logfile, args.jobs)
+                        args.loglevel, args.logfile, args.jobs, args.mailinglist)
     return 0
 
 def cmd_dynamic(args):

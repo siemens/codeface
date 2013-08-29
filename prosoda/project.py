@@ -125,7 +125,7 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
     log.info("=> Prosoda run complete!")
 
 def mailinglist_analyse(resdir, mldir, prosoda_conf, project_conf, loglevel,
-                        logfile, jobs):
+                        logfile, jobs, mailinglists):
     conf = Configuration.load(prosoda_conf, project_conf)
     ml_resdir = pathjoin(resdir, conf["project"], "ml")
 
@@ -138,7 +138,23 @@ def mailinglist_analyse(resdir, mldir, prosoda_conf, project_conf, loglevel,
     cmd.extend(("-j", str(jobs)))
     cmd.append(ml_resdir)
     cmd.append(mldir)
-    for i, ml in enumerate(conf["mailinglists"]):
+    if not mailinglists:
+        mailinglist_conf = conf["mailinglists"]
+    else:
+        mailinglist_conf = []
+        for mln in mailinglists:
+            match = [ml for ml in conf["mailinglists"] if ml["name"] == mln]
+            if not match:
+                log.fatal("Mailinglist '{}' not listed in configuration file!".
+                    format(ml))
+                raise Exception("Unknown mailing list")
+            if len(match) > 1:
+                log.fatal("Mailinglist '{}' specified twice in configuration file!".
+                    format(ml))
+                raise Exception("Invalid config file")
+            mailinglist_conf.append(match[0])
+
+    for i, ml in enumerate(mailinglist_conf):
         log.info("=> Analysing mailing list '{name}' of type '{type}'".
                 format(**ml))
         logargs = []
