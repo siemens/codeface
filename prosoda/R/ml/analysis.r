@@ -25,7 +25,7 @@ source("../id_manager.r", chdir=TRUE)
 gen.forest <- function(conf, repo.path, resdir) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
   ## lkml variant
-  corp.file <- file.path(resdir, "corp.base")
+  corp.file <- file.path(resdir, paste("corp.base", conf$listname, sep="."))
   doCompute <- !(file.exists(corp.file))
 
   if (doCompute) {
