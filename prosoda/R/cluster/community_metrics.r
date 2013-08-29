@@ -191,7 +191,7 @@ community.stat.significance <- function(graph, cluster.algo) {
                                           "conductance")
   cluster.conductance <- cluster.conductance[!is.na(cluster.conductance)]
   ## compute randomized conductance samples
-  niter <- 1000
+  niter <- 2
   rand.samps <- randomised.conductance.samples(graph, niter, cluster.algo)
 
   ## test for normality
@@ -270,8 +270,10 @@ randomised.conductance.samples <- function(graph, niter, cluster.algo) {
     setTxtProgressBar(pb, i)
 
     ## Rewire graph, randomize the graph while maintaining the degree distribution
-    rw.graph <- rewire(graph.multi, mode = rewire.mode,
-                                  niter = 10*ecount(graph.multi))
+    #rw.graph <- rewire(graph.multi, mode = rewire.mode,
+    #                              niter = 1)#10*ecount(graph.multi))
+    rw.graph <- degree.sequence.game(igraph::degree(graph.multi, mode="all"))
+
     E(rw.graph)$weight <- 1
     rw.graph <- simplify(rw.graph, remove.loops=FALSE)
 
