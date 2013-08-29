@@ -108,7 +108,7 @@ def layout_all_graphs(resdir):
         out.close() # flushes the cache
         cmd = []
         cmd.append("dot")
-        cmd.append("-Ksfdp")
+        cmd.append("-Kfdp")
         cmd.append("-Tpdf")
         cmd.append("-Gcharset=utf-8")
         cmd.append("-o{0}.pdf".format(os.path.splitext(file)[0]))
