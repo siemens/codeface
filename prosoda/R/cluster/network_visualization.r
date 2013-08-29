@@ -394,6 +394,11 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
   comm            <- graph.data$comm
   node.rank       <- graph.data$rank
 
+  if (nrow(edgelist) < 1) {
+    logwarn(paste("No edges to export into", filename))
+    return(NULL)
+  }
+
   ## Create igraph object and perform manipulations
   g <- graph.data.frame(edgelist, directed=TRUE,
                                      vertices=data.frame(node.local.ids))
@@ -445,8 +450,12 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
   ## node label
   nodeData(g.viz, n.idx, "label") <- as.character(node.global.ids)
 
-  ## Edge Attributes 
-  N   <- nrow(edge.df)
+  ## Require at least two edges, otherwise there will be errors down the line
+  N <- nrow(edge.df)
+  if (N <= 1) {
+    logwarn(paste("Only one edge to export into", filename))
+    return(NULL)
+  }
   rmv <- removedEdges(g.NEL)
   keep.edge        <- c()
   keep.edge[1:N]   <- TRUE
