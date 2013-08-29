@@ -21,11 +21,22 @@ source("../../widgets.r", chdir=TRUE)
 
 shinyServer(function(input, output, clientData, session) {
   pid = common.server.init(output, session, "punchcard_ml")
+  plot <- reactive({widget.punchcard.ml$new(pid())})
+	plot.id <- reactive({input$plotSelect})
   observe({
-    output$punchcardPlot <- renderWidget(widget.punchcard.ml$new(pid()))
+    updateSelectInput(session, "mlSelect", choices=listViews(plot()))
+  })
+  observe({
+    output$mlPunchcard <- renderWidget(plot(), plot.id())
   })
   output$quantarchContent <- renderUI({
-    plotOutput("punchcardPlot")
+    tagList(
+      sidebarPanel(
+        selectInput("mlSelect", "Select Mailing list", choices = list(1))
+      ),
+      mainPanel(
+          plotOutput("mlPunchcard")
+      )
+    )
   })
 })
-

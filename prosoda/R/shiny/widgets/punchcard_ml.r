@@ -21,8 +21,7 @@ source("../../ts_utils.r", chdir=TRUE)
 ## Generate commity activity punch card datasets for all cycles
 ## of a given project
 gen.punchcard.ml <- function(con, ml.id, range.id) {
-##  dat <- query.ml.activity(conf$con, ml.id, range.id)
-  dat <- query.ml.activity(conf$con, 9, range.id)
+  dat <- query.ml.activity(conf$con, ml.id, range.id)
 
   if (!is.null(dat)) {
     act.ts <- xts(x=1:length(dat), order.by=dat)
@@ -34,12 +33,12 @@ gen.punchcard.ml <- function(con, ml.id, range.id) {
   return(res)
 }
 
-gen.punchcards.ml <- function(con, pid) {
+gen.punchcards.ml <- function(con, pid, ml.id) {
   range.ids.list <- query.range.ids.con(con, pid)
   cycles <- get.cycles.con(con, pid)
 
   res <- lapply(range.ids.list, function(range.id) {
-    res <- gen.punchcard.ml(con, pid, range.id)
+    res <- gen.punchcard.ml(con, ml.id, range.id)
     if (!is.null(res)) {
       res <- cbind(res, cycle=cycles$cycle[cycles$range.id==range.id])
     }
@@ -51,17 +50,36 @@ gen.punchcards.ml <- function(con, pid) {
   return(res)
 }
 
-widget.punchcard.ml <- createWidgetClass(
-  "widget.punchcard.ml",
-  "Mailing list punchcard",
-  2, 1
+widget.punchcard.ml <- list(
+  title = "Mailing list punchcard",
+  size.x = 2,
+  size.y = 1,
+  new = function(pid) {
+    w <- make.widget(pid)
+    class(w) <- c("widget.punchcard.ml", w$class)
+    w$plots <- dbGetQuery(conf$con, str_c("SELECT id, name FROM mailing_list WHERE projectId=", pid))
+    w$boundaries <- get.cycles.con(conf$con, pid)
+    return (w)
+  },
+  html = function(id) { plotOutput(id, width="100%", height="100%") }
 )
+widget.list$widget.punchcard.ml <- widget.punchcard.ml
 
-renderWidget.widget.punchcard.ml <- function(w) {
+renderWidget.widget.punchcard.ml <- function(w, view=NULL) {
+  if (is.null(view)) {
+    view <- w$plots$id[[1]]
+  }
+  res <- gen.punchcards.ml(conf$con, w$pid, view)
   renderPlot({
-    res <- gen.punchcards.ml(conf$con, w$pid)
     g <- ggplot(res, aes(x=hour, y=day, size=size)) + geom_point() +
       facet_wrap(~cycle)
     print(g)
   })
 }
+
+listViews.widget.punchcard.ml <- function(w) {
+  l <- w$plots$id
+  names(l) <- w$plots$name
+  l
+}
+
