@@ -23,10 +23,15 @@ from logging import getLogger; log = getLogger(__name__)
 from contextlib import contextmanager
 
 @contextmanager
-def _log_db_error(action):
+def _log_db_error(action, args=None):
     try:
         yield
     except mdb.Error as e:
+        if args:
+            try:
+                action = action % args
+            except:
+                pass
         log.critical('MySQL error {e[0]} during "{action}": {e[1]}'
                 ''.format(e=e.args, action=action))
         raise
@@ -55,7 +60,7 @@ class DBManager:
             self.con.close()
 
     def doExec(self, stmt, args=None):
-        with _log_db_error(stmt):
+        with _log_db_error(stmt, args):
             while True:
                 try:
                     return self.cur.execute(stmt, args)
