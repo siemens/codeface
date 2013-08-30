@@ -66,6 +66,9 @@ renderWidget <- function(x, view=NULL) UseMethod("renderWidget", x)
 ## to a human-readable description of the specific view.
 listViews <- function(x) UseMethod("listViews", x)
 
+## Generic function returning the background color of the widget
+widgetColor <- function(x) UseMethod("widgetColor", x)
+
 ## Constructor function for a generic widget
 make.widget <- function(pid) {
   list(
@@ -86,36 +89,33 @@ make.widget.range.id <- function(pid) {
 }
 
 ## Helper function that creates a new widget 'class' with a generic constructor
-createWidgetClass <- function(class.name, title, size.x=1, size.y=1) {
-  maker <- function(pid) {
-    w <- make.widget(pid)
-    class(w) <- c(class.name, w$class)
-    return (w)
-  }
-  widget.list[[class.name]] <<- list(
-      new = maker,
-      title = title,
-      size.x = size.x,
-      size.y = size.y,
-      html = function(id) { plotOutput(id, width="100%", height="100%") }
-  )
-  return(widget.list[[class.name]])
+createWidgetClass <- function(class.name, title, size.x=1, size.y=1, html=NULL) {
+  int.createWidgetClass(class.name, title, size.x, size.y, html, make.widget)
 }
 
 ## Helper function that creates a new widget 'class' with a constructor
 ## that initializes w$range.ids
-createRangeIdWidgetClass <- function(class.name, title, size.x=1, size.y=1) {
+createRangeIdWidgetClass <- function(class.name, title, size.x=1, size.y=1,
+                                     html=NULL) {
+  int.createWidgetClass(class.name, title, size.x, size.y, html, make.widget.range.id)
+}
+
+## Internal createWidgetClass
+int.createWidgetClass <- function(class.name, title, size.x, size.y, html, ctor) {
   maker <- function(pid) {
-    w <- make.widget.range.id(pid)
+    w <- ctor(pid)
     class(w) <- c(class.name, w$class)
     return (w)
+  }
+  if (is.null(html)) {
+    html <- function(id) { plotOutput(id, width="100%", height="100%") }
   }
   widget.list[[class.name]] <<- list(
       new = maker,
       title = title,
       size.x = size.x,
       size.y = size.y,
-      html = function(id) { plotOutput(id, width="100%", height="100%") }
+      html = html
   )
   return(widget.list[[class.name]])
 }
@@ -130,6 +130,18 @@ listViews.default <- function(x) {
 listViews.widget.rangeid <- function(w) {
   return(w$range.ids)
 }
+
+widgetColor.default <- function(w) {
+  "white"
+}
+
+## Output HTML element for printing tables as widgets
+widgetTableOutput <- function(id) {
+  div(style="display: block; height: 100%; overflow: auto; width: 100%",
+      tableOutput(id)
+  )
+}
+
 
 ## Load all the widgets so that widget.list is populated
 source("widgets/commit.info.r", chdir=TRUE)

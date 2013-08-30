@@ -19,7 +19,6 @@
 ##
 
 suppressPackageStartupMessages(library(shinyGridster))
-source('dashwidgets.r')
 source('../../nav/breadcrumbOutput.r')
 source('gridsterWidgetsExt.r')
 
@@ -34,7 +33,7 @@ shinyUI(bootstrapPage(
 		tags$script(src = 'js/raphael.2.1.0.min.js'),
 		tags$script(src = 'js/justgage.1.0.1.min.js'),
 		# For the Shiny output binding for status text and JustGage
-		#tags$script(src = 'shiny_status_binding.js'),
+		tags$script(src = 'shiny_status_binding.js'),
 		tags$script(src = 'justgage_binding.js')
 		
 		# for adding widgets dynamically by Shiny customMessageHandler

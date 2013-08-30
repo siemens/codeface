@@ -19,13 +19,12 @@
 ## Get a commit.info.splom widget
 widget.commit.info.splom <- createRangeIdWidgetClass(
   "widget.commit.info.splom",
-  "Commit Information - Splom"
+  "Commit Information - Scatterplot",
+  2, 1
 )
 
 renderWidget.widget.commit.info.splom <- function(w, range.id=NULL) {
-  if (is.null(range.id)) {
-    range.id <- w$range.ids[[1]]
-  }
+  if (is.null(range.id)) { range.id <- w$range.ids[[length(w$range.ids)]] }
   dat <- gen.commits.info(conf$con, w$pid, range.id)
   renderPlot({
     gen.commits.splom(dat$cmt.info, dat$plot.types)
@@ -36,13 +35,11 @@ renderWidget.widget.commit.info.splom <- function(w, range.id=NULL) {
 widget.commit.info.corrgram <- createRangeIdWidgetClass(
   "widget.commit.info.corrgram",
   "Commit Information - Correlations",
-  2, 1
+  1, 1
 )
 
 renderWidget.widget.commit.info.corrgram <- function(w, range.id=NULL) {
-  if (is.null(range.id)) {
-    range.id <- w$range.ids[[1]]
-  }
+  if (is.null(range.id)) { range.id <- w$range.ids[[length(w$range.ids)]] }
   dat <- gen.commits.info(conf$con, w$pid, range.id)
   renderPlot({
     gen.commits.corrgram(dat$cmt.info, dat$plot.types)

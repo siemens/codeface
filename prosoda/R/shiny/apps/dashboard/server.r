@@ -15,7 +15,7 @@
 ## All Rights Reserved.
 
 ##
-## Software Project Dashboard (server.r) 
+## Software Project Dashboard (server.r)
 ##
 
 source("../common.server.r", chdir=TRUE)
@@ -28,47 +28,33 @@ source("../../widgets.r", chdir=TRUE)
 ##
 
 shinyServer(function(input, output, session) {
-
 	#loginfo(isolate(session$clientData$url_search)) # log query string
-  
 	pid <- common.server.init(output, session, "dashboard")
 
 	observe({
-	
-		#loginfo(paste("Dashboard: ", pid()))
-	
-		widgetlist <- list()
-		##		
-		widgetlist[[1]] <- list(
-			html=tags$li( style="background-color: #DDD;box-shadow: 10px 10px 5px #CCC;", 
-						  justgageOutput("live_gauge", width=250, height=200)), 
-			size_x=1, size_y=1, col=1, row=1)
-		##
-		widgetlist[[2]] <- list(
-			html=tags$li(
-				style="background-color:yellow;box-shadow: 10px 10px 5px #CCC;",
-				htmlOutput("tempWidget2")
-				), 
-			size_x=2, size_y=1, col=2, row=1)
-		##	
-		widgetlist[[3]] <- list(
-		html=tags$li(
-			style="background-color:blue;box-shadow: 10px 10px 5px #CCC;", 
-			tags$p("Widget C")), 
-			size_x=1, size_y=1, col=1, row=2)
-		##
-		widgetlist[[4]] <- list(
-			html=tags$li(
-				style="background-color:green;box-shadow: 10px 10px 5px #CCC;", 
-				tags$p("Widget D")), 
-				size_x=1, size_y=1, col=2, row=2)
-		##
-		widgetlist[[5]] <- list(
-			html=tags$li(
-				style="background-color:white;box-shadow: 10px 10px 5px #CCC;", 
-				tags$p("Widget E")), 
-				size_x=1, size_y=1, col=3, row=2)	
+    ## Widgets 3 and 16 take too long to load
+    widgets <- widget.list[c(1:2, 4:15, 17:length(widget.list))]
 
+		widgetlist <- list()
+    for (i in 1:length(widgets)) {
+      cls <- widgets[[i]]
+      w <- cls$new(pid())
+      #str(i)
+      #str(cls$title)
+      #str(cls$html("widget"))
+      id <- paste("widgetBox", i, sep="")
+      widgetlist[[i]] <- list(
+        id=id,
+        widget=w,
+        html=tags$li(
+          style=paste("background-color:",widgetColor(w),";box-shadow: 10px 10px 5px #CCC;", sep=""),
+          cls$html(id)
+        ),
+        size_x=cls$size.x,
+        size_y=cls$size.y,
+        col=1, row=i
+      )
+    }
 		## Process widget list
 		for ( w in widgetlist ) {
 			session$sendCustomMessage(
@@ -80,26 +66,13 @@ shinyServer(function(input, output, session) {
 					size_y = as.character(w$size_y),	# dto
 					col = as.character(w$col),			# column in grid
 					row = as.character(w$row)			# row in grid
-					)
 				)
-			}
-		#names(widget.list)
-		#listViews(w)
-		output[["tempWidget2"]] <- renderWidget(widget.list[["widget.general.info.overview"]]$new(pid()))
-
+			)
+		}
+    ## Render all widgets
+    for ( w in widgetlist ) {
+      output[[w$id]] <- renderWidget(w$widget)
+    }
 	}) # end observe
-
-	## Reactive Block: Set the value for the gauge
-	## TODO: improve the justgage integration to provide title and max values
-	output$live_gauge <- reactive({
-		## IMPLEMENTATION: provide some meaningful (reactive) value
-		10.0 * as.integer(pid())
-	  })
-
-	## Reactive Block: Status output
-	# output$status <- reactive({
-		# list(text="Warn", subtext = "Mean of last 10 approaching threshold (200)",
-			# gridClass="warning")
-		# })
 
 })

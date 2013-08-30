@@ -64,13 +64,15 @@ widget.timeseries.plots <- list(
   title = "Plot Time Series",
   size.x = 2,
   size.y = 1,
-  new = function(pid, smooth, transform) {
+  new = function(pid, smooth=NULL, transform=NULL) {
     w <- make.widget(pid)
     class(w) <- c("widget.timeseries.plots", w$class)
     w$plots <- dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", pid, " AND releaseRangeId IS NULL"))
     w$boundaries <- get.cycles.con(conf$con, pid)
     w$smooth = smooth
     w$transform = transform
+    if (is.null(smooth)) { w$smooth <- reactive({0}) }
+    if (is.null(transform)) { w$transform <- reactive({0}) }
     return (w)
   },
   html = function(id) { plotOutput(id, width="100%", height="100%") }

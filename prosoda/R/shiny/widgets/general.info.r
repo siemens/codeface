@@ -20,12 +20,12 @@
 widget.general.info.overview <- createWidgetClass(
   "widget.general.info.overview",
   "Overview",
-  1, 1
+  1, 1,
+  html=htmlOutput
 )
-widget.general.info.overview$html = htmlOutput
 
 
-renderWidget.widget.general.info.overview = function(w, view=NULL) {
+renderWidget.widget.general.info.overview <- function(w, view=NULL) {
   renderUI({
     project.name <- query.project.name(conf$con, w$pid)
     cycles <- get.cycles.con(conf$con, w$pid)
@@ -33,7 +33,7 @@ renderWidget.widget.general.info.overview = function(w, view=NULL) {
     date.end <- as.Date(max(cycles$date.end))
     n.releases <- nrow(cycles)
     n.releases.text <- paste("Analysed", n.releases, "Release cycles.")
-    n.commits <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM commit WHERE projectId=", w$pid)))
+    n.commits <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM commit WHERE projectId=", w$pid))[[1]]
     n.persons <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM person WHERE projectId=", w$pid)))
     n.issues <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM issue WHERE projectId=", w$pid)))
     n.mail.threads <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM mail_thread WHERE projectId=", w$pid)))
@@ -54,3 +54,97 @@ renderWidget.widget.general.info.overview = function(w, view=NULL) {
   })
 }
 
+widgetColor.widget.general.info.overview <- function(w) { "lightblue" }
+
+widget.gauge.commits <- createWidgetClass(
+  "widget.gauge.commits",
+  "Commits",
+  1, 1,
+  html = function(id) {
+    tagList(
+    tags$div(class="grid_title", "Total Commits"),
+    tags$div(id=id,
+             class="status_output",
+             tags$div(class = 'grid_bigtext'),
+             tags$p()
+    )
+    )
+  }
+)
+
+renderWidget.widget.gauge.commits <- function(w, view=NULL) {
+  commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid))
+  #reactive({as.character(commits.alltime$count)})
+  if (commits.alltime$count > 100000) {
+    subtext <- "A lot"
+  } else if (commits.alltime$count > 10000) {
+    subtext <- "Many"
+  } else if (commits.alltime$count > 1000) {
+    subtext <- "Average"
+  } else if (commits.alltime$count > 10) {
+    subtext <- "A few"
+  } else {
+    subtext <- "Possible error!"
+  }
+  reactive({list(text=as.character(commits.alltime$count), subtext=subtext)})
+}
+
+widgetColor.widget.gauge.commits <- function(w) {
+  commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid))
+  if (commits.alltime$count > 100) {
+    return("lightgreen")
+  } else {
+    return("red")
+  }
+}
+
+widget.gauge.commitspeed <- createWidgetClass(
+  "widget.gauge.commitspeed",
+  "Commit Speed",
+  1, 1,
+  html = function(id) {
+    tags$div(id = id,
+             class = "justgage_output",
+             title="Commits last month",
+             units="% of average",
+             min=0,
+             max=200,
+             style="width:250px; height:200px")
+  }
+)
+
+renderWidget.widget.gauge.commitspeed <- function(w, view=NULL) {
+  commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate LIMIT 1"))
+  commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate DESC LIMIT 1"))
+  commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid))
+  commits.lastmonth <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid, " AND commitDate >= (SELECT DATE_SUB(commitDate, INTERVAL 28 DAY) FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate DESC LIMIT 1)"))
+
+  length <- as.Date(commit.last$commitDate) - as.Date(commit.first$commitDate)
+  avg.commits <- commits.alltime$count*28.0/as.integer(length)
+  relative.commits <- commits.lastmonth$count/avg.commits
+  scaled <- relative.commits * 50.0
+  reactive({
+      as.integer(scaled)
+  })
+}
+
+widgetColor.widget.gauge.commitspeed <- function(w) {
+  commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate LIMIT 1"))
+  commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate DESC LIMIT 1"))
+  commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid))
+  commits.lastmonth <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid, " AND commitDate >= (SELECT DATE_SUB(commitDate, INTERVAL 28 DAY) FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate DESC LIMIT 1)"))
+
+  length <- as.Date(commit.last$commitDate) - as.Date(commit.first$commitDate)
+  avg.commits <- commits.alltime$count*28.0/as.integer(length)
+  relative.commits <- commits.lastmonth$count/avg.commits
+  scaled <- relative.commits * 50.0
+  if (scaled < 10) {
+    return("red")
+  } else if (scaled < 50) {
+    return("lightyellow")
+  } else if (scaled < 150) {
+    return("white")
+  } else {
+    return("lightgreen")
+  }
+}

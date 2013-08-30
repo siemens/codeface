@@ -31,9 +31,9 @@ shinyServer(function(input, output, clientData, session) {
 
   range.id <- reactive({input$cycle})
   observe({
-    output$clustersPlot <- renderWidget(clusters(), range.id)
-    output$correlationPlot <- renderWidget(correlations(), range.id)
-    output$clustersSummary <- renderWidget(summary(), range.id)
+    output$clustersPlot <- renderWidget(clusters(), range.id())
+    output$correlationPlot <- renderWidget(correlations(), range.id())
+    output$clustersSummary <- renderWidget(summary(), range.id())
   })
   output$quantarchContent <- renderUI({
     pageWithSidebar(

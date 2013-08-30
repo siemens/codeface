@@ -91,13 +91,15 @@ gen.cluster.summary <- function(clusters.list) {
 
 widget.clusters.clusters <- createRangeIdWidgetClass(
   "widget.clusters.clusters",
-  "Clusters"
+  "Clusters",
+  2, 1
 )
 
-renderWidget.widget.clusters.clusters <- function(w, range.id) {
-  cluster.list <- reactive({prepare.clusters(conf$con, w$pid, range.id())})
+renderWidget.widget.clusters.clusters <- function(w, range.id=NULL) {
+  if (is.null(range.id)) { range.id <- w$range.ids[[length(w$range.ids)]] }
+  cluster.list <- prepare.clusters(conf$con, w$pid, range.id)
   renderPlot({
-    do.cluster.plots(cluster.list())
+    do.cluster.plots(cluster.list)
   }, height=1024, width=2048)
 }
 
@@ -106,10 +108,11 @@ widget.clusters.correlations <- createRangeIdWidgetClass(
   "Cluster Correlations"
 )
 
-renderWidget.widget.clusters.correlations <- function(w, range.id) {
-  cluster.list <- reactive({prepare.clusters(conf$con, w$pid, range.id())})
+renderWidget.widget.clusters.correlations <- function(w, range.id=NULL) {
+  if (is.null(range.id)) { range.id <- w$range.ids[[length(w$range.ids)]] }
+  cluster.list <- prepare.clusters(conf$con, w$pid, range.id)
   renderPlot({
-    dat <- {gen.cluster.summary(cluster.list())}
+    dat <- {gen.cluster.summary(cluster.list)}
     dat <- dat[,c("Reciprocity", "Strength", "Degree", "Size",
                   "Cent.degree", "Cent.closeness", "Cent.betweenness",
                   "Cent.eigenvec")]
@@ -120,11 +123,14 @@ renderWidget.widget.clusters.correlations <- function(w, range.id) {
 
 widget.clusters.summary <- createRangeIdWidgetClass(
   "widget.clusters.summary",
-  "Cluster Summary"
+  "Cluster Summary",
+  3, 1,
+  html=widgetTableOutput
 )
 
-renderWidget.widget.clusters.summary <- function(w, range.id) {
-  cluster.list <- reactive({prepare.clusters(conf$con, w$pid, range.id())})
-  renderTable({gen.cluster.summary(cluster.list())})
+renderWidget.widget.clusters.summary <- function(w, range.id=NULL) {
+  if (is.null(range.id)) { range.id <- w$range.ids[[length(w$range.ids)]] }
+  cluster.list <- prepare.clusters(conf$con, w$pid, range.id)
+  renderTable({gen.cluster.summary(cluster.list)})
 }
 

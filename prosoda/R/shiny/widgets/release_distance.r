@@ -20,7 +20,6 @@
 ## for projects
 
 get.release.distance.data <- function(con, name.list) {
-  cat(toString(name.list), "\n")
   pid.list <- lapply(name.list, function(name) {
     return(projects.list[projects.list$name==name,]$id)
   })
@@ -60,9 +59,15 @@ widget.release.distance <- list(
   title = "Release distance",
   size.x = 1,
   size.y = 1,
-  new = function(pid, name2, name3) {
+  new = function(pid, name2=NULL, name3=NULL) {
     w <- make.widget(pid)
     class(w) <- c("widget.release.distance", w$class)
+    if (is.null(name2)) {
+      name2 <- reactive({projects.list$name[[1]]})
+    }
+    if (is.null(name3)) {
+      name3 <- reactive({projects.list$name[[1]]})
+    }
     w$name2 <- name2
     w$name3 <- name3
     return (w)
@@ -72,9 +77,8 @@ widget.release.distance <- list(
 widget.list$widget.release.distance <- widget.release.distance
 
 renderWidget.widget.release.distance <- function(w) {
-  cat("FOO")
+  projectname <- projects.list$name[[which(projects.list$id == as.integer(w$pid))]]
   renderPlot({
-    projectname <- projects.list$name[[which(projects.list$id == as.integer(w$pid))]]
     print(do.release.distance.plot(conf$con, list(projectname,
                                                   w$name2(), w$name3())))
   })

@@ -23,13 +23,15 @@ widget.timeseries.messages.per.day <- list(
   title = "Messages per Day",
   size.x = 2,
   size.y = 1,
-  new = function(pid, smooth, transform) {
+  new = function(pid, smooth=NULL, transform=NULL) {
     w <- make.widget(pid)
     # Note that this class 'derives' from "widget.timeseries.plots", which
     # means we can reuse the listViews command
     class(w) <- c("widget.timeseries.messages.per.day", "widget.timeseries.plots", w$class)
     w$plots <- dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", pid, " AND releaseRangeId IS NULL AND name LIKE '%activity'"))
     w$boundaries <- get.cycles.con(conf$con, pid)
+    if (is.null(smooth)) { smooth <- reactive({0}) }
+    if (is.null(transform)) { transform <- reactive({0}) }
     w$smooth = smooth
     w$transform = transform
     return (w)
