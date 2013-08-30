@@ -160,6 +160,7 @@ class DBManager:
         '''
         assert len(revs) >= 2
         assert len(revs) == len(rcs)
+        rcs = [rc if rc else rev for rc, rev in zip(rcs, revs)]
         pid = self.getProjectID(project, tagging)
 
         if not recreate_project:
@@ -271,7 +272,7 @@ class DBManager:
                                     "VALUES (%s, %s, %s)",
                                     ("release", rev, pid))
 
-                if previous_rev is not None and rc is not None:
+                if previous_rev is not None and rc:
                     self.doExecCommit("INSERT INTO release_timeline "
                                         "(type, tag, projectId) "
                                         "VALUES (%s, %s, %s)",
