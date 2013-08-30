@@ -30,7 +30,9 @@ gen.clusters.list <- function(l, con) {
     ## completely. Get rid of them, thus.
     ## NOTE: simplify must be called before the cluster is annotated
     ## because the function
-    g <- simplify(g, remove.loops=TRUE)
+    if(!is.null(g)) {
+      g <- simplify(g, remove.loops=TRUE)
+    }
 
     return(g)
   })

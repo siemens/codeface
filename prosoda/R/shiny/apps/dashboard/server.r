@@ -31,11 +31,11 @@ shinyServer(function(input, output, session) {
 	#loginfo(isolate(session$clientData$url_search)) # log query string
 	pid <- common.server.init(output, session, "dashboard")
 
-	observe({
-    ## Widgets 3 and 16 take too long to load
-    widgets <- widget.list[c(1:2, 4:15, 17:length(widget.list))]
+  ## Widgets 3 and 16 take too long to load
+  widgets <- widget.list[c(1:2, 4:15, 17:length(widget.list))]
 
-		widgetlist <- list()
+	widgetlist <- reactive({
+		lst <- list()
     for (i in 1:length(widgets)) {
       cls <- widgets[[i]]
       w <- cls$new(pid())
@@ -43,7 +43,7 @@ shinyServer(function(input, output, session) {
       #str(cls$title)
       #str(cls$html("widget"))
       id <- paste("widgetBox", i, sep="")
-      widgetlist[[i]] <- list(
+      lst[[i]] <- list(
         id=id,
         widget=w,
         html=tags$li(
@@ -52,13 +52,18 @@ shinyServer(function(input, output, session) {
         ),
         size_x=cls$size.x,
         size_y=cls$size.y,
-        col=1, row=i
+        col=1, row=i,
+        last.view=NA
       )
     }
+    lst
+  })
+
+  observe({
 		## Process widget list
-		for ( w in widgetlist ) {
+		for ( w in widgetlist() ) {
 			session$sendCustomMessage(
-				type = "GridsterMessage", 
+				type = "GridsterMessage",
 				message = list(
 					msgname = "addWidget", 				# Name of message to send
 					html = as.character(w$html),		# this is the html for the widget
@@ -69,10 +74,37 @@ shinyServer(function(input, output, session) {
 				)
 			)
 		}
-    ## Render all widgets
-    for ( w in widgetlist ) {
-      output[[w$id]] <- renderWidget(w$widget)
-    }
 	}) # end observe
 
+  ## Render all once-only widgets
+  observe({
+    cat("Rendering all once-only widgets!\n")
+    ## Render all widgets
+    for ( w in widgetlist() ) {
+      views <- listViews(w$widget)
+      if (length(views) <= 1) {
+        output[[w$id]] <- renderWidget(w$widget)
+      }
+    }
+  })
+
+  ## Render all animated views
+  dashboard.view.animation.i <<- 0
+  observe({
+    cat("Rendering all widgets!\n")
+    ## Render all widgets
+    for ( w in widgetlist() ) {
+      views <- listViews(w$widget)
+      if (length(views) > 1) {
+        view.id <- dashboard.view.animation.i %% length(views) + 1
+        view <- views[[view.id]]
+        cat("Rendering view :")
+        str(view)
+        output[[w$id]] <- renderWidget(w$widget, view)
+      }
+    }
+    cat("View animation ID: ", dashboard.view.animation.i, "\n")
+    dashboard.view.animation.i <<- dashboard.view.animation.i + 1
+    invalidateLater(4000, session)
+  })
 })
