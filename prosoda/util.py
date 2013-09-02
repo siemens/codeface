@@ -21,6 +21,9 @@ import sys
 import re
 import math
 import shutil
+import threading
+import traceback
+import signal
 from collections import OrderedDict
 from time import sleep
 from random import getrandbits
@@ -168,6 +171,13 @@ class BatchJob(object):
                         log.devinfo("Multiprocess info: Active workers: {} "
                             "Submitted/Ready/Blocked jobs: {}/{}/{}".format(
                                 workers, submitted, ready, blocked))
+                        log.devinfo("Queue info: work_queue {}, done_queue {},"
+                                    " add queue {}.".
+                                    format(cls.work_queue.qsize(),
+                                           cls.done_queue.qsize(),
+                                           cls.add_queue.qsize())
+                                    )
+
                 # Put jobs that are ready onto the work queue
                 for j in cls.jobs.values():
                     j.submit()
@@ -251,10 +261,10 @@ class BatchJob(object):
             try:
                 func(*args, **kwargs)
                 cls.done_queue.put(jobid)
+                log.debug("Finished work id {}".format(jobid))
             except Exception as e:
+                log.debug("Failed work id {}".format(jobid))
                 cls.done_queue.put(None)
-                cls.done_queue.close()
-                cls.done_queue.join_thread()
                 raise
 
     def __init__(self, job_id, func, args, kwargs, deps):
@@ -294,6 +304,28 @@ class BatchJob(object):
 
 # Initialize the Batch Job system
 BatchJob._start()
+
+# Function to dump the stacks of all threads
+def get_stack_dump():
+    id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
+    code = []
+    for threadId, stack in sys._current_frames().items():
+        code.append("\n# Thread: %s(%d)" % (id2name.get(threadId,""), threadId))
+        for filename, lineno, name, line in traceback.extract_stack(stack):
+            code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
+            if line:
+                code.append("  %s" % (line.strip()))
+    return code
+
+# Signal handler that dumps all stacks and terminates
+def dumpstacks_and_terminate(signal, frame):
+    for c in get_stack_dump():
+        log.info(c)
+    log.fatal("CTRL-C pressed!")
+    sys.exit(-1)
+
+# Dump all the stacks in case of CTRL-C
+signal.signal(signal.SIGINT, dumpstacks_and_terminate)
 
 def execute_command(cmd, ignore_errors=False, direct_io=False, cwd=None):
     '''
