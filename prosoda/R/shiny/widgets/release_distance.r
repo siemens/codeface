@@ -72,7 +72,7 @@ widget.release.distance <- list(
     w$name3 <- name3
     return (w)
   },
-  html = function(id) { plotOutput(id, width="100%", height="100%") }
+  html = widget.plotOutput.html("Release Distance")
 )
 widget.list$widget.release.distance <- widget.release.distance
 

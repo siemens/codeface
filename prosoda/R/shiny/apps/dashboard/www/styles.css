@@ -45,3 +45,20 @@ div .grid_bigtext {
   font-size: 80px;
   line-height: 90%;
 }
+
+div .grid_medtext {
+  font-weight: bold;
+  font-size: 40px;
+  line-height: 90%;
+  margin-bottom: 20px;
+  display: block;
+}
+
+div .widget_title {
+  margin-top: -20px;
+  margin-bottom: 0px;
+  font-size: 22px;
+  text-align: center;
+  line-height: normal;
+  z-index: 9999;
+}

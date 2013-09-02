@@ -36,7 +36,7 @@ widget.timeseries.messages.per.day <- list(
     w$transform = transform
     return (w)
   },
-  html = function(id) { plotOutput(id, width="100%", height="100%") }
+  html = widget.plotOutput.html("Messages per Day")
 )
 widget.list$widget.timeseries.messages.per.day <- widget.timeseries.messages.per.day
 

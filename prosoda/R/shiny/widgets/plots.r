@@ -75,7 +75,7 @@ widget.timeseries.plots <- list(
     if (is.null(transform)) { w$transform <- reactive({0}) }
     return (w)
   },
-  html = function(id) { plotOutput(id, width="100%", height="100%") }
+  html = widget.plotOutput.html("Time Series Data")
 )
 
 widget.list$widget.timeseries.plots <- widget.timeseries.plots

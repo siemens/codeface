@@ -70,7 +70,7 @@ widget.commit.structure.mds <- list(
     class(w) <- "widget.commit.structure.mds"
     return (w)
   },
-  html = function(id) { plotOutput(id, width="100%", height="100%") }
+  html = widget.plotOutput.html("Commit Structure (MDS)")
 )
 widget.list$widget.commit.structure.mds <- widget.commit.structure.mds
 
@@ -84,7 +84,7 @@ widget.commit.structure.princomp <- list(
     class(w) <- "widget.commit.structure.princomp"
     return (w)
   },
-  html = function(id) { plotOutput(id, width="100%", height="100%") }
+  html = widget.plotOutput.html("Commit Structure - Principal Components")
 )
 widget.list$widget.commit.structure.princomp <- widget.commit.structure.princomp
 

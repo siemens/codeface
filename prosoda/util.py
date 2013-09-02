@@ -25,7 +25,7 @@ from collections import OrderedDict
 from time import sleep
 from random import getrandbits
 from multiprocessing import Process, Queue, JoinableQueue, current_process
-from threading import Thread
+from threading import Thread, current_thread
 from Queue import Empty
 from glob import glob
 from logging import getLogger; log = getLogger(__name__)
@@ -69,8 +69,13 @@ class BatchJob(object):
         jobs with the ids listed in deps.
         This function returns a job ID which can be used as a dependency
         in other calls to add.
+        If n_cores is 1; this call immediately executes the given function
+        and returns None
         This function can be called from any process.
         '''
+        if cls.n_cores == 1:
+            func(*args, **kwargs)
+            return None
         # Generate a random job ID
         job_id = getrandbits(32)
         cls.add_queue.put((job_id, func, args, kwargs, deps))
@@ -99,18 +104,16 @@ class BatchJob(object):
     jobs = OrderedDict() # Dictionary of jobs (ordered for repeatability)
     n_cores = 1 # Number of worker processes to use
     main_process = None # Handle of main process
+    main_thread = None # Handle of main thread
 
     # The thread that submits jobs and its queues
-    submit_thread = None
     work_queue = Queue()
     done_queue = Queue()
 
     # Communication for asynchronous out-of-process addition of jobs
-    add_thread = None
     add_queue = JoinableQueue()
 
     # Worker-Manager thread
-    worker_manager_thread = None
     workers = []
 
     @classmethod
@@ -122,8 +125,7 @@ class BatchJob(object):
         This ensures that the job id will be present in the job
         dictionary once BatchJob.add() returns.
         '''
-        log.debug("Starting add thread...")
-        while True:
+        while cls.main_thread.is_alive() and not cls.error:
             try:
                 job_id, func, args, kwargs, deps = cls.add_queue.get(block=True)
                 assert not job_id in cls.jobs, "Duplicate job ID - random number generator faulty"
@@ -133,6 +135,8 @@ class BatchJob(object):
                 # This exception occurs if the main thread is being shut down.
                 # We can therefore just quit.
                 break
+        log.devinfo("Add thread terminated!")
+        cls.error = True
 
     @classmethod
     def _submit_thread_main(cls):
@@ -143,9 +147,27 @@ class BatchJob(object):
         from a successful job; if the BatchJob would be extended to deal with
         return values, a tuple (job_id, return_value) would be necessary.
         '''
+        i = 0
         try:
-            log.debug("Starting submit main thread...")
-            while not cls.error:
+            while cls.main_thread.is_alive() and not cls.error:
+                # Print the BatchJob status every 10 seconds if necessary
+                i += 1
+                if cls.n_cores > 1 and i % 100 == 0:
+                    workers = sum(1 for p in cls.workers if p.is_alive())
+                    submitted, ready, blocked = 0, 0, 0
+                    for j in cls.jobs.values():
+                        if j.done:
+                            continue
+                        if j.submitted:
+                            submitted += 1
+                        elif j.ready:
+                            ready += 1
+                        else:
+                            blocked += 1
+                    if submitted or ready or blocked or workers:
+                        log.devinfo("Multiprocess info: Active workers: {} "
+                            "Submitted/Ready/Blocked jobs: {}/{}/{}".format(
+                                workers, submitted, ready, blocked))
                 # Put jobs that are ready onto the work queue
                 for j in cls.jobs.values():
                     j.submit()
@@ -165,17 +187,18 @@ class BatchJob(object):
         finally:
             # Since this thread is responsible for stopping the BatchJob system
             # we have to set error to True if there is an exception in here
-            # (e.g. KeyboardInterrupt)
+            log.devinfo("Submit thread terminated!")
             cls.error = True
 
     @classmethod
     def _worker_manager_thread_main(cls):
         '''
         This thread creates worker processes as necessary.
+        Worker processes are terminated and this process is shut down if
+        the main thread terminates.
         '''
         try:
-            log.debug("Starting worker management thread....")
-            while not cls.error:
+            while cls.main_thread.is_alive() and not cls.error:
                 # First, check if all workers are alive
                 for w in cls.workers[:]:
                     if not w.is_alive():
@@ -189,6 +212,7 @@ class BatchJob(object):
                 # Finally, sleep.
                 sleep(0.1)
         finally:
+            log.devinfo("Worker manager thread terminated!")
             for w in cls.workers:
                 w.terminate()
             cls.error = True
@@ -201,20 +225,12 @@ class BatchJob(object):
         '''
         if cls.main_process is None:
             cls.main_process = current_process()
-        assert cls.main_process is current_process(), "This function can only be called from the main process!"
-
-        if not cls.add_thread:
-            cls.add_thread = Thread(target=cls._add_thread_main, name="BatchJobAsyncAddThread")
-            cls.add_thread.setDaemon(True)
-            cls.add_thread.start()
-        if not cls.worker_manager_thread:
-            cls.worker_manager_thread = Thread(target=cls._worker_manager_thread_main, name="BatchJobWorkerManagerThread")
-            cls.worker_manager_thread.setDaemon(True)
-            cls.worker_manager_thread.start()
-        if not cls.submit_thread:
-            cls.submit_thread = Thread(target=cls._submit_thread_main, name="BatchJobSubmitThread")
-            cls.submit_thread.setDaemon(True)
-            cls.submit_thread.start()
+            cls.main_thread = current_thread()
+            t = Thread(target=cls._add_thread_main, name="BatchJobAsyncAddThread")
+            t.setDaemon(True)
+            t.start()
+            Thread(target=cls._worker_manager_thread_main, name="BatchJobWorkerManagerThread").start()
+            Thread(target=cls._submit_thread_main, name="BatchJobSubmitThread").start()
 
     @classmethod
     def _worker_function(cls):
@@ -266,7 +282,7 @@ class BatchJob(object):
     @property
     def ready(self):
         '''a job is ready if all its dependencies are done'''
-        return all(self.__class__.jobs[j].done for j in self.deps)
+        return all(self.__class__.jobs[j].done for j in self.deps if j is not None)
 
     @property
     def running(self):

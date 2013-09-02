@@ -31,8 +31,11 @@ shinyServer(function(input, output, session) {
 	#loginfo(isolate(session$clientData$url_search)) # log query string
 	pid <- common.server.init(output, session, "dashboard")
 
-  ## Widgets 3 and 16 take too long to load
-  widgets <- widget.list[c(1:2, 4:15, 17:length(widget.list))]
+  ## Remove widgets that take too long to load
+  widgets <- widget.list[
+                         names(widget.list) != "widget.commit.structure.mds" &
+                         names(widget.list) != "widget.punchcard.ml"
+                         ]
 
 	widgetlist <- reactive({
 		lst <- list()

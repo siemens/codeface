@@ -34,7 +34,7 @@ renderWidget.widget.commit.info.splom <- function(w, range.id=NULL) {
 ## Get a commit.info.corrgram widget
 widget.commit.info.corrgram <- createRangeIdWidgetClass(
   "widget.commit.info.corrgram",
-  "Commit Information - Correlations",
+  "Commit Correlations",
   1, 1
 )
 

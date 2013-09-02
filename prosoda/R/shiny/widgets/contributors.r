@@ -48,7 +48,7 @@ widget.contributors.pagerank <- createRangeIdWidgetClass(
   "widget.contributors.pagerank",
   "PageRank of Contributors",
   2, 1,
-  html=widgetTableOutput
+  html=widget.tableOutput.html("PageRank of Contributors")
 )
 
 renderWidget.widget.contributors.pagerank <- function(w, range.id=NULL) {
@@ -60,7 +60,7 @@ widget.contributors.pagerank.transposed <- createRangeIdWidgetClass(
   "widget.contributors.pagerank.transposed",
   "Transposed PageRank of Contributors",
   2, 1,
-  html=widgetTableOutput
+  html=widget.tableOutput.html("Transposed PageRank of Contributors")
 )
 
 renderWidget.widget.contributors.pagerank.transposed <- function(w, range.id=NULL) {
@@ -72,7 +72,7 @@ widget.contributors.commits <- createRangeIdWidgetClass(
   "widget.contributors.commits",
   "Contributors by Commit",
   1, 1,
-  html=widgetTableOutput
+  html=widget.tableOutput.html("Contributors by Commit")
 )
 
 renderWidget.widget.contributors.commits <-  function(w, range.id=NULL) {
@@ -84,7 +84,7 @@ widget.contributors.changes <- createRangeIdWidgetClass(
   "widget.contributors.changes",
   "Contributors by Changes",
   2, 1,
-  html=widgetTableOutput
+  html=widget.tableOutput.html("Contributors by Changes")
 )
 
 renderWidget.widget.contributors.changes <- function(w, range.id=NULL) {

@@ -83,8 +83,8 @@ make.widget.range.id <- function(pid) {
   widget$class <- c("widget.rangeid", widget$class)
   widget$range.ids <- query.range.ids.con(conf$con, pid)
   # Also save names of range.ids
-  cycles <- get.cycles.con(conf$con, pid)
-  names(widget$range.ids) <- cycles$cycle
+  widget$cycles <- get.cycles.con(conf$con, pid)
+  names(widget$range.ids) <- widget$cycles$cycle
   return(widget)
 }
 
@@ -100,6 +100,24 @@ createRangeIdWidgetClass <- function(class.name, title, size.x=1, size.y=1,
   int.createWidgetClass(class.name, title, size.x, size.y, html, make.widget.range.id)
 }
 
+## Output HTML element for printing plots as widgets
+widget.plotOutput.html <- function(title) {
+  function(id) {
+    list(div(class="widget_title", title),
+         plotOutput(id, width="100%", height="100%"))
+  }
+}
+
+## Output HTML element for printing tables as widgets
+widget.tableOutput.html <- function(title){
+  function(id) {
+    list(div(class="widget_title", title),
+         div(style="display: block; height: 100%; overflow: auto; width: 100%",
+             tableOutput(id))
+    )
+  }
+}
+
 ## Internal createWidgetClass
 int.createWidgetClass <- function(class.name, title, size.x, size.y, html, ctor) {
   maker <- function(pid) {
@@ -108,7 +126,7 @@ int.createWidgetClass <- function(class.name, title, size.x, size.y, html, ctor)
     return (w)
   }
   if (is.null(html)) {
-    html <- function(id) { plotOutput(id, width="100%", height="100%") }
+    html <- widget.plotOutput.html(title)
   }
   widget.list[[class.name]] <<- list(
       new = maker,
@@ -135,12 +153,7 @@ widgetColor.default <- function(w) {
   "white"
 }
 
-## Output HTML element for printing tables as widgets
-widgetTableOutput <- function(id) {
-  div(style="display: block; height: 100%; overflow: auto; width: 100%",
-      tableOutput(id)
-  )
-}
+
 
 
 ## Load all the widgets so that widget.list is populated

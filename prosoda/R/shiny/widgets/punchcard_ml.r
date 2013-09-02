@@ -61,7 +61,7 @@ widget.punchcard.ml <- list(
     w$boundaries <- get.cycles.con(conf$con, pid)
     return (w)
   },
-  html = function(id) { plotOutput(id, width="100%", height="100%") }
+  html = widget.plotOutput.html("Mailing list punchcard")
 )
 widget.list$widget.punchcard.ml <- widget.punchcard.ml
 

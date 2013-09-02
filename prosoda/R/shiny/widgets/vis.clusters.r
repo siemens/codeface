@@ -127,7 +127,7 @@ widget.clusters.summary <- createRangeIdWidgetClass(
   "widget.clusters.summary",
   "Cluster Summary",
   3, 1,
-  html=widgetTableOutput
+  html=widget.tableOutput.html("Cluster Summary")
 )
 
 renderWidget.widget.clusters.summary <- function(w, range.id=NULL) {

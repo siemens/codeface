@@ -41,7 +41,7 @@ renderWidget.widget.general.info.overview <- function(w, view=NULL) {
       n.releases.text <- paste("Analysed one release cycle.")
     }
     list(
-      h3(HTML(paste("The <em>", project.name, "</em> project"))),
+      div(class="grid_title", HTML(paste("The <em>", project.name, "</em> project"))),
       HTML(paste("<ul>",
                  "<li>", n.releases.text,
                  "<li>", paste("Analysis range: ", month.name[month(date.start)], year(date.start), "until",  month.name[month(date.end)], year(date.end)),
@@ -65,7 +65,7 @@ widget.gauge.commits <- createWidgetClass(
     tags$div(class="grid_title", "Total Commits"),
     tags$div(id=id,
              class="status_output",
-             tags$div(class = 'grid_bigtext'),
+             tags$div(class = 'grid_inserttext grid_bigtext'),
              tags$p()
     )
     )
@@ -148,3 +148,68 @@ widgetColor.widget.gauge.commitspeed <- function(w) {
     return("lightgreen")
   }
 }
+
+
+widget.gauge.current.cycle <- createRangeIdWidgetClass(
+  "widget.gauge.current.cycle",
+  "Current Release Range",
+  1, 1,
+  html = function(id) {
+    tagList(
+    tags$div(class="grid_title", "Release Range"),
+    tags$div(id=id,
+             class="status_output",
+             tags$div(class = 'grid_inserttext grid_medtext'),
+             tags$p()
+    )
+    )
+  }
+)
+
+renderWidget.widget.gauge.current.cycle <- function(w, view=NULL) {
+  reactive({
+    cycle.index <- which(w$cycles$range.id == as.integer(view))
+    date.start <- as.Date(w$cycles$date.start[[cycle.index]])
+    date.end <- as.Date(w$cycles$date.end[[cycle.index]])
+    range.id.name <- w$cycles$cycle[[cycle.index]]
+    subtext <- paste(cycle.index, "of", nrow(w$cycles), "-",
+                          date.start, "to", date.end)
+
+    list(text=as.character(range.id.name), subtext=subtext)
+  })
+}
+
+widget.gauge.commits.per.cycle <- createRangeIdWidgetClass(
+  "widget.gauge.commits.per.cycle",
+  "Commit Speed in Cycle",
+  1, 1,
+  html = function(id) {
+    tags$div(id = id,
+             class = "justgage_output",
+             title="Commits this cycle",
+             units="% of average",
+             min=0,
+             max=200,
+             style="width:250px; height:200px")
+  }
+)
+
+renderWidget.widget.gauge.commits.per.cycle <- function(w, view=NULL) {
+  commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate LIMIT 1"))
+  commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate DESC LIMIT 1"))
+  commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid))
+
+  r.commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " AND releaseRangeId=", view, " ORDER BY commitDate LIMIT 1"))
+  r.commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " AND releaseRangeId=", view, " ORDER BY commitDate DESC LIMIT 1"))
+  r.commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid, " AND releaseRangeId=", view))
+
+  length <- as.Date(commit.last$commitDate) - as.Date(commit.first$commitDate)
+  r.length <- as.Date(r.commit.last$commitDate) - as.Date(r.commit.first$commitDate)
+  avg.commits <- commits.alltime$count*as.integer(r.length)*1.0/as.integer(length)
+  relative.commits <- r.commits.alltime$count/avg.commits
+  scaled <- relative.commits * 50.0
+  reactive({
+      as.integer(scaled)
+  })
+}
+
