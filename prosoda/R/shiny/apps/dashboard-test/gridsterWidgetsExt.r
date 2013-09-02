@@ -1,6 +1,6 @@
 gridsterButton <- function(inputId, widgetdialogId) {
   tagList(
-    singleton(tags$head(tags$script(src = "initwidgets.js"))),
+    #singleton(tags$head(tags$script(src = "initwidgets.js"))),
     #singleton(tags$head(tags$script(src = "gridsterWidgetsExt.js"))),
     tags$div( class="dropdown",
       tags$button( id = inputId, class = "btn gridsterButton dropdown-toggle", "data-toggle"="dropdown",
@@ -31,6 +31,8 @@ gridsterButton <- function(inputId, widgetdialogId) {
                 ),
               tags$div( class="modal-footer",
                 tags$button( class="btn", "data-dismiss"="modal", "aria-hidden"="true","Close"),
-                tags$button( type="submit", class="btn, btn-primary","Save changes" )))
+                #tags$button( type="submit", class="btn, btn-primary","Save changes" )))
+                # must replace submit button by actioButton to avoid global reactivity switch-off
+                tags$button( id="addWidgetButton", type="button", class="btn action-button btn-primary","Save changes" )))
     )
 }

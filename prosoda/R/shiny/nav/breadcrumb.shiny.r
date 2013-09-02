@@ -69,7 +69,7 @@ breadcrumbPanelData <- function (originId, paramstr = "") {
   while(!is.null(pid)) {
     count <- count + 1
     n <- nav.list[[as.character(pid)]] # point to nav.list element of current app
-    print(n)
+    #print(n)
     p <- n$parentId(paramstr) # get parent app id (p$id)
     cdf <- n$childrenIds(paramstr)
     child.list <- list()

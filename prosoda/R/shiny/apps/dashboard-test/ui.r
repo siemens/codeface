@@ -27,20 +27,18 @@ shinyUI(bootstrapPage(
 		## Adapt the styles as needed (some seem to be ignored)
 		tags$link(rel = 'stylesheet', type = 'text/css', href = 'styles.css'),
 		tags$script(src = "gridsterWidgetsExt.js")
-    #,		tags$script(src = "initwidgets.js")
 	),
   
 	div(class = "container",
+    div(class = "row",
+	    breadcrumbOutput("quantarchBreadcrumb" )),
 		div(class = "row",
+		  tags$div(textOutput("testid")),
 			div( class="span12", gridsterButton("gridsterActionMenu","addWidgetDialog") )
-		  #  div( class="span12", tags$b("TEST") )
-   
-	    , tags$div(textOutput("testid"))
 			),
 		div(class = "row",
 			div(class = "span12",
 				gridster(width = 250, height = 250))
 			)
 		)
-
 	))
