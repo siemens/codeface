@@ -438,8 +438,16 @@ class gitVCS (VCS):
                 deletions = match.group(1)
                 matched = True
 
+            # Check if this is a genuine empty commit
+            # Since the commit message is indented by 4 spaces
+            # we check if the last line of the commit still starts this way.
+            if not matched and msg[-1].startswith("    "):
+                log.devinfo("Empty commit. Commit <id {}> is: '{}'".
+                            format(cmt.id, msg))
+                matched = True
+
         except IndexError:
-            log.critical("Empty commit?! Commit <id {}> is: '{}'".
+            log.error("Empty commit?! Commit <id {}> is: '{}'".
                     format(cmt.id, msg))
             raise ParseError("Empty commit?", cmt.id)
 
