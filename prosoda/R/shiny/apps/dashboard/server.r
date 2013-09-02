@@ -38,23 +38,30 @@ shinyServer(function(input, output, session) {
 		lst <- list()
     for (i in 1:length(widgets)) {
       cls <- widgets[[i]]
-      w <- cls$new(pid())
-      #str(i)
-      #str(cls$title)
-      #str(cls$html("widget"))
-      id <- paste("widgetBox", i, sep="")
-      lst[[i]] <- list(
-        id=id,
-        widget=w,
-        html=tags$li(
-          style=paste("background-color:",widgetColor(w),";box-shadow: 10px 10px 5px #CCC;", sep=""),
-          cls$html(id)
-        ),
-        size_x=cls$size.x,
-        size_y=cls$size.y,
-        col=1, row=i,
-        last.view=NA
-      )
+      tryCatch({
+        w <- cls$new(pid())
+        #str(i)
+        #str(cls$title)
+        #str(cls$html("widget"))
+        id <- paste("widgetBox", i, sep="")
+        lst[[i]] <- list(
+          id=id,
+          widget=w,
+          widget.class=cls,
+          html=tags$li(
+            style=paste("background-color:",widgetColor(w),";box-shadow: 10px 10px 5px #CCC;", sep=""),
+            cls$html(id)
+          ),
+          size_x=cls$size.x,
+          size_y=cls$size.y,
+          col=1, row=i,
+          last.view=NA
+        )
+      }, warning = function(w) {
+        logwarn(paste("While adding widget", cls$title, ":", toString(w)))
+      }, error = function(e) {
+        logerror(paste("While adding widget", cls$title, ":", toString(w)))
+      }, {})
     }
     lst
   })
@@ -81,10 +88,16 @@ shinyServer(function(input, output, session) {
     cat("Rendering all once-only widgets!\n")
     ## Render all widgets
     for ( w in widgetlist() ) {
-      views <- listViews(w$widget)
-      if (length(views) <= 1) {
-        output[[w$id]] <- renderWidget(w$widget)
-      }
+      tryCatch({
+        views <- listViews(w$widget)
+        if (length(views) <= 1) {
+          output[[w$id]] <- renderWidget(w$widget)
+        }
+      }, warning = function(wr) {
+        logwarn(paste("While rendering widget", w$widget.class$title, ":", toString(wr)))
+      }, error = function(e) {
+        logerror(paste("While rendering widget", w$widget.class$title, ":", toString(e)))
+      }, {})
     }
   })
 
@@ -94,14 +107,21 @@ shinyServer(function(input, output, session) {
     cat("Rendering all widgets!\n")
     ## Render all widgets
     for ( w in widgetlist() ) {
-      views <- listViews(w$widget)
-      if (length(views) > 1) {
-        view.id <- dashboard.view.animation.i %% length(views) + 1
-        view <- views[[view.id]]
-        cat("Rendering view :")
-        str(view)
-        output[[w$id]] <- renderWidget(w$widget, view)
-      }
+      tryCatch({
+        views <- listViews(w$widget)
+        if (length(views) > 1) {
+          view.id <- dashboard.view.animation.i %% length(views) + 1
+          view <- views[[view.id]]
+          cat("Rendering view :")
+          str(view)
+          output[[w$id]] <- renderWidget(w$widget, view)
+
+        }
+      }, warning = function(wr) {
+        logwarn(paste("While rendering widget", w$widget.class$title, ":", toString(wr)))
+      }, error = function(e) {
+        logerror(paste("While rendering widget", w$widget.class$title, ":", toString(e)))
+      }, {})
     }
     cat("View animation ID: ", dashboard.view.animation.i, "\n")
     dashboard.view.animation.i <<- dashboard.view.animation.i + 1
