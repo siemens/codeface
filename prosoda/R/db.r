@@ -78,7 +78,7 @@ get.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
   res <- dbGetQuery(con, str_c("SELECT id", query))
   if (length(res) < 1) {
     stop("Internal error: Plot ", plot.name, " not found in DB",
-         "for project ID ", pid)
+         " for project ID ", pid)
   }
   return(res$id)
 }

@@ -96,10 +96,11 @@ def cmd_run(args):
     # First make all the args absolute
     resdir, gitdir = map(os.path.abspath, (args.resdir, args.gitdir))
     prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
-    if args.logfile:
-        logfile = os.path.abspath(args.logfile)
+    logfile = args.logfile
+    if logfile:
+        logfile = os.path.abspath(logfile)
     project_analyse(resdir, gitdir, prosoda_conf, project_conf,
-                    args.no_report, args.loglevel, args.logfile, args.recreate, args.jobs)
+                    args.no_report, args.loglevel, logfile, args.recreate, args.jobs)
     return 0
 
 def cmd_ml(args):
@@ -107,10 +108,11 @@ def cmd_ml(args):
     # First make all the args absolute
     resdir, mldir = map(os.path.abspath, (args.resdir, args.mldir))
     prosoda_conf, project_conf = map(os.path.abspath, (args.config, args.project))
-    if args.logfile:
-        logfile = os.path.abspath(args.logfile)
+    logfile = args.logfile
+    if logfile:
+        logfile = os.path.abspath(logfile)
     mailinglist_analyse(resdir, mldir, prosoda_conf, project_conf,
-                        args.loglevel, args.logfile, args.jobs, args.mailinglist)
+                        args.loglevel, logfile, args.jobs, args.mailinglist)
     return 0
 
 def cmd_dynamic(args):

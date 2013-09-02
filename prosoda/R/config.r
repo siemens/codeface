@@ -89,7 +89,7 @@ load.config <- function(global_file, project_file=NULL) {
 ## Set the default prosoda conf relative to this file
 default.prosoda.conf <- normalizePath("../../prosoda.conf")
 ## Set the default log file
-default.prosoda.log <- str_c(normalizePath("../../log"), "/prosoda.log.", Sys.getpid())
+default.prosoda.log <- str_c(normalizePath("../../log"), "/prosoda.log.R.", Sys.getpid())
 
 ## This function parses the command line accepting some default parameters,
 ## specifically the prosoda and project configuration files. It then creates
