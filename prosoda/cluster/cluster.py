@@ -1287,9 +1287,6 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
 ##################################################################
 def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
                       git_repo, create_db, limit_history=False):
-    log.info("  -> Analysing revision range {0}..{1}: Commits...".
-             format(from_rev, to_rev))
-
     #--------------
     #folder setup
     #--------------

@@ -23,7 +23,7 @@ from .configuration import Configuration
 from .cluster.cluster import doProjectAnalysis
 from .ts import dispatch_ts_analysis
 from .util import (execute_command, generate_reports, layout_graph,
-        check4ctags, BatchJob)
+        check4ctags, BatchJobPool)
 
 def loginfo(msg):
     ''' Pickleable function for multiprocessing '''
@@ -52,7 +52,7 @@ def project_setup(conf, recreate):
 
 def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
                     no_report, loglevel, logfile, recreate, n_jobs):
-    BatchJob.set_parallel_jobs(n_jobs)
+    pool = BatchJobPool(int(n_jobs))
     conf = Configuration.load(prosoda_conf, project_conf)
     revs = conf["revisions"]
     rcs = conf["rcs"] # release candidate tags
@@ -70,12 +70,17 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
         start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
         range_resdir = pathjoin(project_resdir, "{0}-{1}".
                 format(start_rev, end_rev))
+        prefix = "  -> Revision range {0}..{1}: ".format(start_rev, end_rev)
 
         #######
         # STAGE 1: Commit analysis
-        limit_history = True
-
-        s1 = BatchJob.add(doProjectAnalysis, (conf, start_rev, end_rev, rc_rev, range_resdir, repo, True, limit_history))
+        s1 = pool.add(
+                doProjectAnalysis,
+                (conf, start_rev, end_rev, rc_rev, range_resdir, repo,
+                    True, True),
+                startmsg=prefix + "Analysing commits...",
+                endmsg=prefix + "Commit analysis done."
+            )
 
         #########
         # STAGE 2: Cluster analysis
@@ -91,18 +96,28 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
         cmd.append(range_resdir)
         cmd.append(str(range_id))
 
-        s2 = BatchJob.add(loginfo, ["  -> Analysing revision range "
-            "{0}..{1}: Detecting clusters...".format(start_rev, end_rev)],
-            deps=[s1])
-        s3 = BatchJob.add(execute_command, (cmd,), {"direct_io":True, "cwd":cwd}, deps=[s2])
+        s2 = pool.add(
+                execute_command,
+                (cmd,),
+                {"direct_io":True, "cwd":cwd},
+                deps=[s1],
+                startmsg=prefix + "Detecting clusters...",
+                endmsg=prefix + "Detecting clusters done."
+            )
 
         #########
         # STAGE 3: Generate cluster graphs
         if not no_report:
-            BatchJob.add(generate_reports, (start_rev, end_rev, range_resdir), deps=[s3])
+            pool.add(
+                    generate_reports,
+                    (start_rev, end_rev, range_resdir),
+                    deps=[s2],
+                    startmsg=prefix + "Generating reports...",
+                    endmsg=prefix + "Report generation done."
+                )
 
     # Wait until all batch jobs are finished
-    BatchJob.join()
+    pool.join()
 
     #########
     # Global stage 1: Time series generation
