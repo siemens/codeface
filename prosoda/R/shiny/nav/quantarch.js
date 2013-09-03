@@ -1,12 +1,12 @@
-var Quantarch = {		
+var Quantarch = {
 // depends on siemens.breadcrumb.js		
 
 	subscribeToIframe: function() {
 		var iframe = document.getElementById("myFrame");
 
-		// Wird aufgerufen bei einer neuen Nachricht
-		// Auf Hauptseite nur um Höhe und Breite anzupassen und um die 
-		// Navigation zu erweitern
+		// Called when a new message arrived
+		// Use on main page to adapt height and width, and to extend
+		// the navigation bar
 		function listener(e){
 
 			var eventName = e.data[0],
@@ -28,7 +28,7 @@ var Quantarch = {
 
 		};
 
-		// Listener für alle Browser
+		// Listener for all browsers
 		if (window.addEventListener){
 			window.addEventListener("message", listener, false);
 		} else {
@@ -42,10 +42,10 @@ var Quantarch = {
 		
 		iframe.onload = function() {
 			
-			// Schicke aktuelle URL an Iframe
+			// Send current URL to Iframe
 			iframe.contentWindow.postMessage(['referrer', window.location.href], '*');
 
-			// Style-Eigenschaften an Iframe senden
+		        // Send style properties to iframe
 			iframe.contentWindow.postMessage(['styles', getIframeStyles(iframe)], '*');
 
 		};

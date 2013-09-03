@@ -1,4 +1,4 @@
-$(document).ready( function() {		// Wird aufgerufen bei einer neuen Nachricht
+$(document).ready( function() {		// Called when a new message arrives
 	// function listener(e){
 
 		// var eventName = e.data[0],
@@ -12,7 +12,7 @@ $(document).ready( function() {		// Wird aufgerufen bei einer neuen Nachricht
 	// }
 
 
-	// // Listener für alle Browser
+	// // Listener for all browsers
 	// if (window.addEventListener){
 		// window.addEventListener("message", listener, false);
 	// } else {
@@ -20,24 +20,24 @@ $(document).ready( function() {		// Wird aufgerufen bei einer neuen Nachricht
 	// }
 
 
-	// // Aktualisiere Base-URL
+	// // Bring base URL up to date
 	// function setNewBase(url) {
 	// //	document.getElementsByTagName('base')[0].href = url;
 	// }
 
-	// // Styles empfangen und auf <body> anwenden
+	// // Receive style and apply on <body>
 	// function injectStyles(styles) {
 		// $(document.body).css(styles);
 	// }
 
-	// Resize-Funktion zum Ermitteln der Höhe (getestet, funktioniert)
+	// Resize function to determine height (tested, works)
 	// TODO: sicherheit / letzten parameter spezifisch an site anpassen z.B. 'https://swi.siemens.de/'
 	function resize() {
 		window.parent.postMessage(['setHeight', $(document).height()], '*');
 		window.parent.postMessage(['setWidth', $(document).width()], '*');
 	}
 
-	// Alle 500 Millisekunden die Höhe des Frames anpassen
+	// Adapt height of frame eveyr 500 ms
 	window.setInterval(resize, 500);
 
 

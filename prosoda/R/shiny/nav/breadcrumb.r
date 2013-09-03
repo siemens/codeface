@@ -58,7 +58,7 @@ nav.list$quantarch <- list(
   ## (2) configure URL for the breadcrumb entry 
   url = function(paramstr = NULL) {
 	"../projects/"
-	}, # params kann man z.B. zum highliten verwende
+	}, # params can, for instance, be used for highlighting
   
   ## (3) configure children displayed in dropdown
   childrenIds = function(paramstr = NULL) {
