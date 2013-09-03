@@ -171,22 +171,12 @@ def batchjob_worker_function(work_queue, done_queue):
             job.func(*job.args, **job.kwargs)
             if job.endmsg:
                 log.info(job.endmsg)
-            done_queue.put(job.id)
             log.debug("Finished work id {}".format(job.id))
+            done_queue.put(job.id)
         except Exception as e:
             log.debug("Failed work id {}".format(job.id))
-            traceback_str = traceback.format_exc()
-            pickleable = False
-            try:
-                dumps(e)
-                # This is a pickleable exception - we send
-                # it back over the queue
-                done_queue.put(e)
-            except PicklingError:
-                # This exception can not be pickled.
-                # Create a new exception and put it on the queue
-                done_queue.put(Exception("Unpickleable Exception:"
-                    + str(e) + "\n" + traceback_str))
+            done_queue.put(Exception(e.__class__.__name__ + ": " +
+                    str(e) + "\n" + traceback.format_exc()))
 
 # Function to dump the stacks of all threads
 def get_stack_dump():

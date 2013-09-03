@@ -77,7 +77,8 @@ class Testpool(unittest.TestCase):
         # exception. Maybe because it has been pickled?
         try:
             pool.join()
-        except TypeError:
+        except Exception as e:
+            self.assertIn("TypeError", str(e))
             raised = True
         self.assertEqual(raised, True)
 
@@ -90,7 +91,8 @@ class Testpool(unittest.TestCase):
         # exception. Maybe because it has been pickled?
         try:
             pool.join()
-        except IOError:
+        except Exception as e:
+            self.assertIn("IOError", str(e))
             raised = True
         self.assertEqual(raised, True)
 
