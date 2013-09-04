@@ -20,6 +20,9 @@ from logging import getLogger; log = getLogger("prosoda.test.unit.batchjob")
 from time import sleep
 from random import random
 from prosoda.util import BatchJobPool
+from os import unlink
+
+TMPFILE="_prosoda_test_tmpfile"
 
 def test_function(i):
     sleep(0.05*random())
@@ -41,7 +44,7 @@ def ioerror_function():
 def unpickleable_error_function():
     class MyEx(Exception):
         def __init__(self):
-            self.handle = open("tmpfile", "wb")
+            self.handle = open(TMPFILE, "wb")
     raise MyEx()
 
 class Testpool(unittest.TestCase):
@@ -109,3 +112,4 @@ class Testpool(unittest.TestCase):
             self.assertIn("MyEx", str(e))
             raised = True
         self.assertEqual(raised, True)
+        unlink(TMPFILE)

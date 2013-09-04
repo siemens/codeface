@@ -17,7 +17,7 @@
 Utility functions for running external commands
 '''
 
-from logging import getLogger; log = getLogger(__name__)
+import logging; log = logging.getLogger(__name__)
 import os
 import re
 import shutil
@@ -199,6 +199,9 @@ def handle_sigint(signal, frame):
         log.fatal("CTRL-C pressed!")
         for c in get_stack_dump():
             log.devinfo(c)
+    # This call raises a SystemExit exception in the
+    # stack frame that was interrupted by the signal
+    # For the main thread, this is what we want.
     sys.exit(-1)
 
 # Signal handler that dumps all stacks and terminates silently
@@ -207,13 +210,18 @@ def handle_sigint_silent(signal, frame):
     with l:
         for c in get_stack_dump():
             log.devinfo(c)
-    sys.exit(-1)
+    logging.shutdown()
+    # Since we want to terminate worker threads with prejudice,
+    # we use os._exit, which directly terminates the process.
+    # otherwise the worker try/catch will also catch the SystemExit
+    os.exit_(-1)
 
 def handle_sigterm(signal, frame):
-    #for c in get_stack_dump():
-    #    log.info(c)
-    #log.fatal("SIGTERM!")
-    sys.exit(-1)
+    # Since we want to terminate worker threads with prejudice,
+    # we use os._exit, which directly terminates the process.
+    # otherwise the worker try/catch will also catch the SystemExit
+    logging.shutdown()
+    os._exit(-1)
 
 def handle_sigusr1(signal, frame):
     for c in get_stack_dump():
