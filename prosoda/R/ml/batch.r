@@ -41,6 +41,7 @@ s(library(optparse))
 s(library(xtable))
 s(library(reshape))
 s(library(plyr))
+source("../page.rank.r", chdir=TRUE)
 
 ## NOTE: This is _temporary_. After the changes to snatm are upstreamed,
 ## we can get rid of loading the files directly.

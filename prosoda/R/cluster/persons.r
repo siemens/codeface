@@ -47,6 +47,7 @@ source("../utils.r", chdir=TRUE)
 source("../config.r", chdir=TRUE)
 source("../db.r", chdir=TRUE)
 source("../query.r", chdir=TRUE)
+source("../page.rank.r", chdir=TRUE)
 source("community_metrics.r")
 source("network_visualization.r")
 
