@@ -31,11 +31,11 @@ shinyUI(bootstrapPage(
   
 	div(class = "container",
     div(class = "row",
-	    breadcrumbOutput("quantarchBreadcrumb" )),
-		div(class = "row",
-		  tags$div(textOutput("testid")),
-			div( class="span12", gridsterButton("gridsterActionMenu","addWidgetDialog") )
-			),
+	    breadcrumbOutput("quantarchBreadcrumb"),
+# 		  #tags$div(textOutput("testid")),
+ 			div( class="span2", style = "padding: 10px 0px;",
+            gridsterButton("gridsterActionMenu","addWidgetDialog") )
+ 			),
 		div(class = "row",
 			div(class = "span12",
 				gridster(width = 250, height = 250))

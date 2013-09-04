@@ -28,6 +28,7 @@ widget.general.info.overview <- createWidgetClass(
 renderWidget.widget.general.info.overview <- function(w, view=NULL) {
   renderUI({
     project.name <- query.project.name(conf$con, w$pid)
+    loginfo(paste("project.name=",project.name," (renderWidget.widget.general.info.overview)."))
     cycles <- get.cycles.con(conf$con, w$pid)
     date.start <- as.Date(min(cycles$date.start))
     date.end <- as.Date(max(cycles$date.end))
@@ -40,16 +41,15 @@ renderWidget.widget.general.info.overview <- function(w, view=NULL) {
     if (n.releases == 1) {
       n.releases.text <- paste("Analysed one release cycle.")
     }
-    list(
+    tagList(
       div(class="grid_title", HTML(paste("The <em>", project.name, "</em> project"))),
-      HTML(paste("<ul>",
-                 "<li>", n.releases.text,
-                 "<li>", paste("Analysis range: ", month.name[month(date.start)], year(date.start), "until",  month.name[month(date.end)], year(date.end)),
-                 "<li>", paste(n.commits, "commits."),
-                 "<li>", paste(n.persons, "persons."),
-                 "<li>", paste(n.issues, "bugtracker entries."),
-                 "<li>", paste(n.mail.threads, "mailing list threads."),
-                 "</ul>"))
+      HTML(paste("<pre>\n",n.releases.text,
+                 "\n", paste("Analysis range: ", month.name[month(date.start)], year(date.start), "until",  month.name[month(date.end)], year(date.end)),
+                 "\n", paste(n.commits, "commits."),
+                 "\n", paste(n.persons, "persons."),
+                 "\n", paste(n.issues, "bugtracker entries."),
+                 "\n", paste(n.mail.threads, "mailing list threads."),
+                 "</pre>"))
     )
   })
 }

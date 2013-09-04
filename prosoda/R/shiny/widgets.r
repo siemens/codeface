@@ -104,7 +104,7 @@ createRangeIdWidgetClass <- function(class.name, title, size.x=1, size.y=1,
 widget.plotOutput.html <- function(title) {
   function(id) {
     list(div(class="widget_title", title),
-         plotOutput(id, width="100%", height="100%"))
+         plotOutput(id, width="100%", height="90%"))
   }
 }
 

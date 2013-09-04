@@ -16,7 +16,7 @@ $(function(){ //document ready
         function($w, wgd) { 
           return {  col: wgd.col, row: wgd.row, 
                     size_x: wgd.size_x, size_y: wgd.size_y, 
-                    id: $w.children(".shiny-html-output").attr("id") } }
+                    id: $w.children("div[class^='shiny-']").attr("id") } }
     });
   });
 
@@ -35,6 +35,9 @@ $(function(){ //document ready
           Shiny.bindAll();
         })
 				Shiny.bindAll();
+        var toel = $(".gridsterButton");
+        toel.attr("gridster-action","saveconfig");
+        toel.trigger("change");
 				break;
 			}
 		}
