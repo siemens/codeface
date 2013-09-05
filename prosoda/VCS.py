@@ -234,7 +234,7 @@ class gitVCS (VCS):
                                           for logstring in clist])
 
     def _getCommitIDsLL(self, dir_list, rev_start=None, rev_end=None,
-                        rev_range = None, ignoreMerges=True):
+                        rev_range = None, ignoreMerges=True, sort=True):
         """Low-level routine to extract the commit list from the VCS.
 
         Must be implemented specifically for every VCS, and must
@@ -289,7 +289,8 @@ class gitVCS (VCS):
         # of commits can violate this for various reasons. Since these
         # outliers screw up the cumulative graph, we have to add an
         # extra sorting pass.
-        clist.sort(reverse=True)
+        if sort:
+            clist.sort(reverse=True)
 
         # Then, obtain the first and last commit in the desired range
         # and extract the desired subrange
@@ -300,7 +301,7 @@ class gitVCS (VCS):
         Return the date of the commit specified by the revision rev
         without inserting the commit in any global listings/
         '''
-        logmsg = self._getCommitIDsLL((), rev_range=rev)
+        logmsg = self._getCommitIDsLL((), rev_range=rev, sort=False)
         cmt = self._Logstring2Commit(logmsg[0])
         return cmt.cdate
 
