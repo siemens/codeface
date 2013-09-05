@@ -129,14 +129,16 @@ shinyServer(function(input, output, session) {
   widgets.for.rendering <- list() #all generated widgets created
 
   paramstr <- reactive({urlparameter.checked(session$clientData$url_search)})
-
+  paramlist <- reactive({urlparameter.as.list(paramstr())})
   pid <- reactive({
     ## get url parameter string and extract projectid
     loginfo(paste("valid paramstr =",paramstr()))
-    paramlist <- urlparameter.as.list(paramstr())
-    pid <- paramlist$projectid
+    pid <- paramlist()$projectid
     pid
   })
+  
+  topic <- reactive({t <- paramlist()$topic; if(is.null(t)) "0" else t })
+  config.file <- reactive({paste("widget",topic(),"config",sep=".")})
 
   ## observe context executed once on session start
   observe({
@@ -149,7 +151,7 @@ shinyServer(function(input, output, session) {
 
     ## get the stored widget configuration (TODO: select secure path)
     loginfo("Try to read widget.config")
-    widget.config <- dget("widget.config") # must exist
+    widget.config <- dget(config.file()) # must exist
     if (is.null(widget.config)) {
       widget.config <- list(widgets=list(), content=list())
     }
@@ -234,7 +236,7 @@ shinyServer(function(input, output, session) {
       ## TODO: save as cookie
       widget.config$widgets <- fromJSON(cjson)
       #widget.config$content <- widget.content
-       dput(widget.config, file = "widget.config",
+       dput(widget.config, file = config.file(),
             control = c("keepNA", "keepInteger", "showAttributes"))
       loginfo("Saved configuration file.")
       } #end if
