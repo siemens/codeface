@@ -16,7 +16,8 @@ $(function(){ //document ready
         function($w, wgd) { 
           return {  col: wgd.col, row: wgd.row, 
                     size_x: wgd.size_x, size_y: wgd.size_y, 
-                    id: $w.find("div[class^='shiny-']").attr("id") } }
+                    id: $w.children("div['qaid']").attr("qaid"),
+                    cls: $w.children("div['qaclass']").attr("qaclass")} }
     });
   });
 
@@ -39,6 +40,11 @@ $(function(){ //document ready
         toel.attr("gridster-action","saveconfig");
         toel.trigger("change");
 				break;
+      case 'getconfig':
+        var toel = $(".gridsterButton");
+        toel.attr("gridster-action","sendcookie");
+        toel.trigger("change");
+  			break;
 			}
 		}
 	);
@@ -97,7 +103,14 @@ $.extend(gridsterButtonBinding, {
       var gridster = $(".gridster ul").gridster().data('gridster');
       var widgetsconfig = gridster.serialize(); //TODO
       var wconfjson = JSON.stringify(widgetsconfig);
+      $.cookie('gridster',wconfjson, { expires: 7 });
       return wconfjson;
+      break;
+    case "sendcookie":
+      //$.cookie.json = true;
+      var cookieconf = $.cookie('gridster');
+      if (cookieconf === undefined) {cookieconf = '[]';}
+      return cookieconf;
       break;
     case "deletemode":
       
@@ -130,6 +143,5 @@ $.extend(gridsterButtonBinding, {
 });
 
 Shiny.inputBindings.register(gridsterButtonBinding);
-
 
 });

@@ -26,7 +26,8 @@ shinyUI(bootstrapPage(
 	  
 		## Adapt the styles as needed (some seem to be ignored)
 		tags$link(rel = 'stylesheet', type = 'text/css', href = 'styles.css'),
-		tags$script(src = "gridsterWidgetsExt.js")
+		tags$script(src = "gridsterWidgetsExt.js"),
+    tags$script(src = "jquery.cookie.js")
 	),
   
 	div(class = "container",

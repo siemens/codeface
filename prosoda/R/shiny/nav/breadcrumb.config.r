@@ -127,10 +127,10 @@ nav.list$dashboard <- list(
   },
   ## (3) configure children displayed in dropdown
   childrenIds = function(paramstr) {
-    #                   id <- c("timeseries","contributors")
-    #                   params <- c(paramstr)
-    #data.frame(id = sapply(project.apps, "[", 1), params = c(paramstr))
-    data.frame(id = sapply(project.apps, FUN = function(x) {x[1]}), params = c(paramstr))
+       id <- c("dashboard2")
+       topics <- c("Information","Collaboration","Communication","Complexity")
+       params <- as.character(paste(paramstr,"&topic=",topics,sep=""))
+       data.frame(id, params)
   },
   ## (4) configure parent
   parentId = function(paramstr) {
@@ -138,6 +138,32 @@ nav.list$dashboard <- list(
     data.frame(id)
   })
 
+##
+## Configure the sencond level project dashboard
+##
+
+nav.list$dashboard2 <- list(
+  ## (1) Configure he label displayed in the breadcrumb entry 
+  label = function(paramstr) {  # paramstr must contain project id, e.g. "projectid=4&..."
+    pel <- parseQueryString(paramstr)
+    as.character(pel$topic)
+  },
+  ## (2) configure URL for the breadcrumb entry
+  url = function(paramstr) {
+    paste("../dashboard2/",paramstr, sep = "?")
+  },
+  ## (3) configure children displayed in dropdown
+  childrenIds = function(paramstr) {
+    #                   id <- c("timeseries","contributors")
+    #                   params <- c(paramstr)
+    #data.frame(id = sapply(project.apps, "[", 1), params = c(paramstr))
+    data.frame(id = sapply(project.apps, FUN = function(x) {x[1]}), params = c(paramstr))
+  },
+  ## (4) configure parent
+  parentId = function(paramstr) {
+    id <- c("dashboard")
+    data.frame(id)
+  })
 ################## END CONFIGURATION SECTION #####################
 
 test.nav.list <- function(paramstr) {

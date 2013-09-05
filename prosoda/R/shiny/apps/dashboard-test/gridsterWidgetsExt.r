@@ -1,6 +1,5 @@
 gridsterButton <- function(inputId, widgetdialogId) {
   tagList(
-    #singleton(tags$head(tags$script(src = "initwidgets.js"))),
     #singleton(tags$head(tags$script(src = "gridsterWidgetsExt.js"))),
     tags$div( class="dropdown",
       tags$button( id = inputId, class = "btn gridsterButton dropdown-toggle", "data-toggle"="dropdown",
