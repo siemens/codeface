@@ -399,3 +399,52 @@ community.metric <- function(graph, community, test) {
 
   return(metric.vec)
 }
+
+
+## Compute SNA metrics using community centric perspective
+## ARGS:
+##  g: igraph graph object
+##  comm: igraph communities object
+## RETURNS:
+##  res: list containing all statistics
+compute.community.metrics <- function(g, comm) {
+  res <- list()
+
+  ## intra-community
+  res$intra.betweenness  <- community.metric(g, comm,
+      "betweenness")
+  res$intra.transitivity <- community.metric(g, comm,
+      "transitivity")
+  res$intra.in.deg     <- community.metric(g, comm, "in.deg")
+  res$intra.out.deg    <- community.metric(g, comm, "out.deg")
+  res$intra.in.weight  <- community.metric(g, comm, "in.weight")
+  res$intra.out.weight <- community.metric(g, comm, "out.weight")
+  res$intra.diameter   <- community.metric(g, comm, "diameter")
+  ## inter-community
+  g.con     <- contract.vertices(g, membership(comm), vertex.attr.comb=toString)
+  g.con.sim <- simplify(g.con)
+  res$inter.betweeness   <- betweenness(g.con.sim)
+  res$inter.transitivity <- transitivity(g.con.sim, type="local")
+  res$inter.in.deg       <- degree(g.con.sim, mode="in")
+  res$inter.out.deg      <- degree(g.con.sim, mode="out")
+  res$inter.in.weight    <- graph.strength(g.con.sim, mode="in")
+  res$inter.out.weight   <- graph.strength(g.con.sim, mode="out")
+  res$inter.diameter     <- diameter(g.con.sim)
+  res$num.comms          <- vcount(g.con.sim)
+  ## quality
+  res$conductance <- community.metric(g, comm, "conductance")
+  res$mean.conductance <- mean(res$conductance, na.rm=TRUE)
+  res$sd.conductance <- sd(res$conductance, na.rm=TRUE)
+  res$modularity     <- modularity(g, comm$membership)
+
+  ## global
+  res$mean.size <- mean(comm$csize)
+  res$sd.size   <- sd(comm$csize)
+  res$max.size  <- max(comm$csize)
+  intra.edges   <- unlist(lapply(res$intra.in.deg,sum))
+  res$mean.num.edges <- mean(intra.edges)
+  res$sd.num.edges   <- sd(intra.edges)
+  res$max.edges <- max(intra.edges)
+  res$vcount    <- vcount(g)
+  return(res)
+}
