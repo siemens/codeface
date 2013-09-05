@@ -260,6 +260,12 @@ init.db.global <- function(conf) {
   return(conf)
 }
 
+## provided with a configuration file connect to db and return connection object
+connect.db <- function(conf.file) {
+  conf <- load.config(conf.file)
+  conf <- init.db.global(conf)
+  return(conf)
+}
 
 ## computes a local graph representation
 get.graph.data.local <- function(con, p.id, range.id, cluster.method=NULL) {
