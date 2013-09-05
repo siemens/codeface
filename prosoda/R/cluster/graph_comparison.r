@@ -125,104 +125,54 @@ graph.difference <- function(g1,g2, weighted=FALSE) {
 
 
 ## Compare the results of the tag and non tag based graphs
-graphComparison <- function(adjMatrix1, ids1, adjMatrix2, ids2) {
-  ## Normalize graphs to have edge weight between 0-1
-  nonTagAdjMatrix.weighted <- scale.data(adjMatrix1, 0, 1000)
-  tagAdjMatrix.weighted    <- scale.data(adjMatrix2, 0, 1000)
+graph.comparison <- function(g.1, g.2) {
   ## Normalize graphs to have binary edge weight
-  nonTagAdjMatrix <- ceiling( scale.data(adjMatrix1, 0, 1) )
-  tagAdjMatrix    <- ceiling( scale.data(adjMatrix2, 0, 1) )
-  
-  ## Create igraph objects
-  g.nonTag <- graph.adjacency(nonTagAdjMatrix, mode="directed")
-  g.Tag    <- graph.adjacency(tagAdjMatrix   , mode="directed")
-  
-  ## Get largest connected cluster
-  idx.nonTag.connected <- largest.subgraph.idx(g.nonTag)
-  idx.Tag.connected    <- largest.subgraph.idx(g.Tag   )
-  ids.nonTag.connected <- ids1[idx.nonTag.connected,]
-  ids.Tag.connected    <- ids2[idx.Tag.connected,]
-  
-  nonTagAdj.connected <- nonTagAdjMatrix[idx.nonTag.connected,
-      idx.nonTag.connected]
-  TagAdj.connected <- tagAdjMatrix[idx.Tag.connected, idx.Tag.connected]
-  
-  nonTagAdj.connected.weighted <-
-      nonTagAdjMatrix.weighted[idx.nonTag.connected, idx.nonTag.connected]
-  tagAdj.connected.weighted <- tagAdjMatrix.weighted[idx.Tag.connected,
-      idx.Tag.connected]
-  
-  g.nonTag.connected <- graph.adjacency(nonTagAdj.connected,
-      mode="directed", weighted=TRUE)
-  g.Tag.connected    <- graph.adjacency(TagAdj.connected,
-      mode="directed")
-  
-  g.nonTag.connected.weighted <- graph.adjacency(nonTagAdj.connected.weighted,
-      mode="directed", weighted=TRUE)
-  g.Tag.connected.weighted <- graph.adjacency(tagAdj.connected.weighted,
-      mode="directed", weighted=TRUE)
-  
-  ## Match up ids between the two adjacency matrices
-  ## Don't use email address, 1 person with multiple email addresses gets
-  ## mapped to a single name except the arbitration rule for which email is
-  ## noted doesn't provide consistent results between the tagged and
-  ## non-tagged analysis
-  intersect.global.ids <- intersect(ids.nonTag.connected, ids.Tag.connected)
-  ## Get index of names from both ids sets
-  idx.nonTag <- match(intersect.global.ids, ids.nonTag.connected)
-  idx.Tag    <- match(intersect.global.ids, ids.Tag.connected   )
-  
+  E(g.1)$weight <- ceiling( scale.data(E(g.1)$weight, 0, 1) )
+  E(g.2)$weight <- ceiling( scale.data(E(g.2)$weight, 0, 1) )
+
+  intersectNames <- intersect(V(g.1)$Id, V(g.2)$Id)
+  idx.1 <- match(intersectNames, V(g.1)$Id)
+  idx.2 <- match(intersectNames, V(g.2)$Id)
+
   ## Build adjacency matrix of interesecting ids
-  nonTagAdj.intersect <- nonTagAdj.connected[idx.nonTag, idx.nonTag]
-  tagAdj.intersect <- TagAdj.connected[idx.Tag, idx.Tag]
-  
+  adj.matrix.1.intersect <- g.1[idx.1, idx.1]
+  adj.matrix.2.intersect <- g.2[idx.2, idx.2]
+
   ## Build igraph graph objects
-  g.nonTag <- graph.adjacency(nonTagAdj.intersect, mode = "directed",
-      weighted=TRUE)
-  g.Tag <- graph.adjacency(tagAdj.intersect, mode = "directed")
-  
-  ##sum(get.adjacency(g.nonTag) != get.adjacency(g.Tag))
-  similarity.adjMatrix <- nonTagAdj.intersect * tagAdj.intersect
-  
-  ## Take the average weights from the two adjacency matrix to assign
-  ## the weight for the graph that agrees between the two
-  similarity.adjMatrix.weighted <- (nonTagAdj.connected.weighted[idx.nonTag, idx.nonTag] + tagAdj.connected.weighted [idx.Tag, idx.Tag]) / 2
-  
-  #get average weighted agreed upon connections
-  similiarityAdjMatrix.weighted <- similarity.adjMatrix * similarity.adjMatrix.weighted
-  
-  g.similarity <- graph.adjacency(similarity.adjMatrix.weighted, mode="directed", weighted=TRUE)
-  
-  graphSim <- graph.difference(g.Tag, g.nonTag)
-  
-  return(graphSim)
+  g.1.intersect <- graph.adjacency(adj.matrix.1.intersect, mode = "directed")
+  g.2.intersect <- graph.adjacency(adj.matrix.2.intersect, mode = "directed")
+
+  graph.diff <- graph.difference(g.1.intersect, g.2.intersect)
+
+  return(graph.diff)
 }
 
-
-save.graph.comparison <- function(comp.vec, outfile, size=7, format="pdf") {
-  select.graphics.dev(filename=outfile, size=size, format=format)
-  plot(comp.vec, main="Developer Network Comparison", ylab="Percent Difference", xlab="Vertex Id")
-  dev.off()
-}
 
 ################################################################################
 ## High Level Functions
 ################################################################################
 run.graph.comparison <- function(con, pid.1, range.id.1, pid.2, range.id.2) {
-  ## get graph data
-  g.id1 <- query.global.collab.con(con, pid.1, range.id.1)
-  g.id2 <- query.global.collab.con(con, pid.2, range.id.2)
-  graph.data.1 <- get.graph.data.local(con, pid.1, range.id.1)
-  graph.data.2 <- get.graph.data.local(con, pid.2, range.id.2)
+  ## TODO: cluster method should not actually be required, we only need the main
+  ##       graph, unfortunatley the database scheme currently marries the graph
+  ##       to a clustering method
+  cluster.method="Spin Glass Community"
+  graph.data.1 <- get.graph.data.local(con, pid.1, range.id.1, cluster.method)
+  graph.data.2 <- get.graph.data.local(con, pid.2, range.id.2, cluster.method)
   edgelist.1   <- graph.data.1$edgelist
   edgelist.2   <- graph.data.2$edgelist
   global.ids.1 <- graph.data.1$v.global.ids
+  node.label.1 <- sapply(global.ids.1, function(id)
+        query.person.name(con, id))
   global.ids.2 <- graph.data.2$v.global.ids
-  
+  node.label.2 <- sapply(global.ids.2, function(id)
+        query.person.name(con, id))
+
   ## create adjacency matrix
-  adj.matrix1 <- get.adjacency(graph.data.frame(edgelist.1, directed=TRUE))
-  adj.matrix2 <- get.adjacency(graph.data.frame(edgelist.2, directed=TRUE))
-  
-  res <- graphComparison(adj.matrix1, global.ids.1, adj.matrix2, global.ids.2)
+  g.1 <- graph.data.frame(edgelist.1, directed=TRUE)
+  g.2 <- graph.data.frame(edgelist.2, directed=TRUE)
+  V(g.1)$Id <- node.label.1
+  V(g.2)$Id <- node.label.2
+
+  res <- graph.comparison(g.1, g.2)
   return(res)
 }
