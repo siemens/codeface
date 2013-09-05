@@ -43,16 +43,23 @@ gen.punchcards <- function(con, pid) {
   return(res)
 }
 
-widget.punchcard <- createWidgetClass(
+createWidgetClass(
   "widget.punchcard",
+  "Commit Punchcard",
   "Commit Punchcard",
   2, 1
 )
 
+initWidget.widget.punchcard <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$res <- reactive({gen.punchcards(conf$con, w$pid())})
+  return(w)
+}
+
 renderWidget.widget.punchcard <- function(w) {
   renderPlot({
-    res <- gen.punchcards(conf$con, w$pid)
-    g <- ggplot(res, aes(x=hour, y=day, size=size)) + geom_point() +
+    g <- ggplot(w$res(), aes(x=hour, y=day, size=size)) + geom_point() +
       facet_wrap(~cycle)
     print(g)
   })

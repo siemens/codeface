@@ -60,40 +60,51 @@ do.ts.plot <- function(ts, boundaries, title, y.label, smooth, transform) {
   return(g)
 }
 
-widget.timeseries.plots <- list(
-  title = "Plot Time Series",
+createWidgetClass(
+  "widget.timeseries.plots",
+  "Plot Time Series",
+  "Can show different time series calculated for this project",
   size.x = 2,
   size.y = 1,
-  new = function(pid, smooth=NULL, transform=NULL) {
-    w <- make.widget(pid)
-    class(w) <- c("widget.timeseries.plots", w$class)
-    w$plots <- dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", pid, " AND releaseRangeId IS NULL"))
-    w$boundaries <- get.cycles.con(conf$con, pid)
-    w$smooth = smooth
-    w$transform = transform
-    if (is.null(smooth)) { w$smooth <- reactive({0}) }
-    if (is.null(transform)) { w$transform <- reactive({0}) }
-    return (w)
-  },
-  html = widget.plotOutput.html("Time Series Data")
+  html = widget.plotOutput.html
 )
 
-widget.list$widget.timeseries.plots <- widget.timeseries.plots
-
-renderWidget.widget.timeseries.plots <- function(w, view=NULL) {
-  if (is.null(view)) {
-    view <- w$plots$id[[1]]
+initWidget.widget.timeseries.plots <- function(w) {
+  # Note: The superclass may use listViews on plots
+  # so we have to initialize w$plots before we pass w on
+  w$plots <- reactive({dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", w$pid(), " AND releaseRangeId IS NULL"))})
+  # Call superclass
+  w <- NextMethod(w)
+  w$boundaries <- reactive({get.cycles.con(conf$con, w$pid())})
+  if (!is.null(w$smooth)) {
+    w$smooth.or.def <- reactive({if (is.null(w$smooth())) { 0 } else { w$smooth() } })
+  } else {
+    w$smooth.or.def <- reactive({0})
   }
-  name <- w$plots$name[[which(w$plots$id==view)]]
-  ts <- get.ts.data(conf$con, w$pid, name)
+  if (!is.null(w$transform)) {
+    w$transform.or.def <- reactive({if (is.null(w$transform())) { 0 } else { w$transform() } })
+  } else {
+    w$transform.or.def <- reactive({0})
+  }
+  return(w)
+}
+
+renderWidget.widget.timeseries.plots <- function(w) {
   renderPlot({
-    print(do.ts.plot(ts, w$boundaries, name, name, w$smooth(), w$transform()))
+    name <- w$plots()$name[[which(w$plots()$id==w$view())]]
+    ts <- get.ts.data(conf$con, w$pid(), name)
+    print(do.ts.plot(ts, w$boundaries(), name, name, w$smooth.or.def(), w$transform.or.def()))
   })
 }
 
 listViews.widget.timeseries.plots <- function(w) {
-  l <- w$plots$id
-  names(l) <- w$plots$name
-  l
+  reactive({
+    if (is.null(w$plots)) {
+      stop("listViews.widget.timeseries.plots called with uninitialized widget!")
+    }
+    l <- w$plots()$id
+    names(l) <- w$plots()$name
+    l
+  })
 }
 
