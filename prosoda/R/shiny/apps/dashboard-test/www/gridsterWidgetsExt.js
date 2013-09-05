@@ -16,7 +16,7 @@ $(function(){ //document ready
         function($w, wgd) { 
           return {  col: wgd.col, row: wgd.row, 
                     size_x: wgd.size_x, size_y: wgd.size_y, 
-                    id: $w.children("div[class^='shiny-']").attr("id") } }
+                    id: $w.find("div[class^='shiny-']").attr("id") } }
     });
   });
 

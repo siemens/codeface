@@ -17,26 +17,4 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets.r", chdir=TRUE)
-
-shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "punchcard_ml")
-  plot <- reactive({widget.punchcard.ml$new(pid())})
-	plot.id <- reactive({input$plotSelect})
-  observe({
-    updateSelectInput(session, "mlSelect", choices=listViews(plot()))
-  })
-  observe({
-    output$mlPunchcard <- renderWidget(plot(), plot.id())
-  })
-  output$quantarchContent <- renderUI({
-    tagList(
-      sidebarPanel(
-        selectInput("mlSelect", "Select Mailing list", choices = list(1))
-      ),
-      mainPanel(
-          plotOutput("mlPunchcard")
-      )
-    )
-  })
-})
+shinyServer(detailPage("punchcard_ml", c("widget.punchcard.ml")))

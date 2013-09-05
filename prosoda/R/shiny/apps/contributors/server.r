@@ -17,45 +17,10 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets.r", chdir=TRUE)
 
-shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "contributors")
-
-  # Get widgets
-  pr <- reactive({widget.contributors.pagerank$new(pid())})
-  prt <- reactive({widget.contributors.pagerank.transposed$new(pid())})
-  commits <- reactive({widget.contributors.commits$new(pid())})
-  changes <- reactive({widget.contributors.changes$new(pid())})
-
-  observe({
-    updateSelectInput(session, "cycle", choices=listViews(pr()))
-  })
-
-  range.id <- reactive({input$cycle})
-
-  observe({
-    output$prTable <- renderWidget(pr(), range.id())
-    output$prTrTable <- renderWidget(prt(), range.id())
-    output$commitsTable <- renderWidget(commits(), range.id())
-    output$changesTable <- renderWidget(changes(), range.id())
-  })
-  output$quantarchContent <- renderUI({
-    pageWithSidebar(
-      headerPanel("Contributors"),
-      sidebarPanel(
-        selectInput("cycle", "Release Cycle", choices = list(1)),
-        helpText(paste("Interpretational aid: Page rank focuses on giving tags, ",
-                       "transposed page rank on being tagged."))
-      ),
-      mainPanel(
-        tabsetPanel(
-          tabPanel("Page Rank", tableOutput("prTable")),
-          tabPanel("Page Rank (tr)", tableOutput("prTrTable")),
-          tabPanel("Commits", tableOutput("commitsTable")),
-          tabPanel("Code Changes", tableOutput("changesTable"))
-        )
-      )
-    )
-  })
-})
+shinyServer(detailPage("contributors", c(
+    "widget.contributors.pagerank",
+    "widget.contributors.pagerank.transposed",
+    "widget.contributors.commits",
+    "widget.contributors.changes")
+))

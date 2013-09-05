@@ -35,3 +35,107 @@ projects.list <- query.projects(conf$con)
 
 ## breadcrumb
 source("../nav/breadcrumb.shiny.r", chdir = TRUE)
+source("../widgets.r", chdir=TRUE)
+
+common.server.init <- function(output, session, app.name) {
+  loginfo("Common server init...")
+  paramstr <- urlparameter.checked(isolate(session$clientData$url_search))
+  loginfo(paste("paramstr= ", paramstr))
+  output$quantarchBreadcrumb <- renderUI({renderBreadcrumbPanel(app.name,paramstr)})
+  args.list <- urlparameter.as.list(paramstr)
+  ## Read out PID from the URL and check if it is valid
+  pid <- reactive({args.list[["projectid"]]})
+  loginfo("Common server init done.")
+  return(pid)
+}
+
+detailPage <- function(app.name, widgets, additional.input=list()){
+  function(input, output, clientData, session) {
+    loginfo(paste("Creating detail page for", app.name))
+    pid = common.server.init(output, session, app.name)
+    observe({
+      if (!is.vector(pid())) {
+        stop("No projectid parameter in URL")
+      } else if (is.na(as.numeric(pid()))) {
+        stop("projectid URL parameter is empty")
+      }
+      loginfo(paste("New Project ID: ", pid()))
+    })
+    range.id <- reactive({input$view})
+
+    widget.classes <- widget.list[widgets]
+    widget.instances <- lapply(widget.classes,
+                               function(cls) {
+                                 w <- newWidget(cls, pid, range.id)
+                                 return(w)
+                               })
+    ## Note that since R always works by value, you CAN NOT change an
+    ## object in e.g. a for loop; you always have to get a copy
+    ## of the modified object out.
+    loginfo("Adding additional inputs to widgets and initializing...")
+    widget.instances <- lapply(widget.instances, function(w) {
+        w <- Reduce(function(w, name) {
+          input.value <- reactive({ input[[name]] })
+          observe({ print(paste(name, "is now", input.value())) })
+          #print("Isolated value:")
+          #print(isolate(input.value))
+          w[[name]] <- input.value
+          return(w)
+        },
+        names(additional.input),
+        w)
+        w <- initWidget(w)
+        if (is.null(w)) {
+          logfatal("Error in Widget initialization!")
+          stop("Error in Widget initialization!")
+        }
+        return(w)
+      }
+    )
+
+    # Render widgets into tabs
+    panel.tabs <- mapply(function(i, cls, w) {
+        id <- paste("widget", i, sep="")
+        output[[id]] <- renderWidget(w)
+        html <- div(style="width: 100%; height: 500px", cls$html(id))
+        return(reactive({
+          tabPanel(widgetTitle(w)(), html)
+        }))
+      },
+      1:length(widget.instances), widget.classes, widget.instances,
+      SIMPLIFY=FALSE
+    )
+
+    # Only show tabs in the main panel if >1 widget
+    if (length(widgets) == 1) {
+      main.panel <- reactive({panel.tabs[[1]]()})
+    } else {
+      main.panel <- reactive({do.call(tabsetPanel, lapply(panel.tabs, function(x){x()}))})
+    }
+
+    # Create user interface, using a sidebar if necessary
+    observe({
+      str(widget.instances)
+      choices <- listViews(widget.instances[[1]])()
+      sidebar <- list()
+      if (length(choices) > 1) {
+        sidebar <- c(sidebar, list(selectInput("view", "View:", choices=choices)))
+      }
+      sidebar <- c(sidebar, additional.input)
+      names(sidebar) <- NULL
+
+      if (length(sidebar) > 0) {
+        output$quantarchContent <- renderUI({
+          tagList(
+            sidebarPanel(sidebar),
+            mainPanel(main.panel())
+          )
+        })
+      } else {
+        output$quantarchContent <- renderUI({main.panel()})
+      }
+    })
+    loginfo(paste("Finished creating detail page for", app.name))
+  }
+}
+

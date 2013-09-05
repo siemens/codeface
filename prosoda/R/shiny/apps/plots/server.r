@@ -17,38 +17,16 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets.r", chdir=TRUE)
-
-shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "plots")
-	plot.id <- reactive({input$plotSelect})
-  smooth <- reactive({input$smooth})
-  transform <- reactive({input$transform})
-
-  plot <- reactive({widget.timeseries.plots$new(pid(), smooth, transform)})
-  observe({
-    updateSelectInput(session, "plotSelect", choices=listViews(plot()))
-  })
-
-  observe({
-    output$timeseriesPlot <- renderWidget(plot(), plot.id())
-  })
-  output$quantarchContent <- renderUI({
-    tagList(
-      sidebarPanel(
-        selectInput("plotSelect", "Select Plot", choices = list(1)),
-        radioButtons("smooth", "Smoothing window size",
+shinyServer(detailPage("timeseries", c("widget.timeseries.plots"),
+    additional.input = list(
+        smooth = radioButtons("smooth", "Smoothing window size",
                         choices = c("None" = 0,
                                     "Weekly" = 1,
                                     "Monthly" = 2)),
-        radioButtons("transform", "Transformation",
+        transform = radioButtons("transform", "Transformation",
                         choices = c("Normal" = 0,
                                     "Logarithmic" = 1,
                                     "Square root" = 2))
-      ),
-      mainPanel(
-          plotOutput("timeseriesPlot")
       )
     )
-  })
-})
+)
