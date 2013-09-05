@@ -448,3 +448,54 @@ compute.community.metrics <- function(g, comm) {
   res$vcount    <- vcount(g)
   return(res)
 }
+
+
+generate.community.tables <- function(con, cluster.method, analysis.method) {
+  projects   <- query.projects(con, analysis.method)
+  range.data <- lapply(projects$id, function(p.id) get.cycles.con(con, p.id))
+  metrics.df <- data.frame()
+
+  for(i in 1:nrow(projects)) {
+    p.id <- projects$id[i]
+    p.range.ids   <- range.data[[i]]$range.id
+    p.range.names <- range.data[[i]]$cycle
+    graph.data <- lapply(p.range.ids, function(r.id)
+          get.graph.data.local(con, p.id, r.id, cluster.method))
+    graph <- lapply(graph.data,
+        function(x) {
+          graph.data.frame(x$edgelist, directed=TRUE,
+              vertices=data.frame(x$v.local.ids))})
+
+    ## Compute community metrics
+    idx <- 1:length(p.range.ids)
+    graph.comm <- lapply(idx, function(j) minCommGraph(graph[[j]],
+              graph.data[[j]]$comm, min=4))
+    comm.stats <- lapply(idx, function(j)
+          compute.community.metrics(graph.comm[[j]]$graph,
+              graph.comm[[j]]$community))
+    comm.stat.rows <- lapply(idx, function(j) {
+          comm.stats[[j]]$p.id <- p.id
+          comm.stats[[j]]$r.id <- p.range.names[[j]]
+          return(comm.stats[[j]])})
+
+    rows <- lapply(comm.stat.rows, function(x)
+          rbind(list(id=x$p.id, network=analysis.method,
+                  release.range=x$r.id,
+                  developers=x$vcount, num.comms=x$num.comms,
+                  mean.conductance=x$mean.conductance,
+                  sd.conductance=x$sd.conductance,
+                  modularity=x$modularity,
+                  mean.size=x$mean.size,
+                  sd.size=x$sd.size,
+                  mean.edges=x$mean.num.edges,
+                  sd.edges=x$sd.num.edges)))
+
+    for(i in idx){
+      metrics.df <- rbind(metrics.df, rows[[i]])
+    }
+  }
+
+  df <- merge(projects, metrics.df, all=TRUE)
+
+  return(df)
+}
