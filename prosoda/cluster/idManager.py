@@ -68,6 +68,7 @@ class idManager:
         return self.subsys_names
 
     def _decompose_addr(self, addr):
+        addr = addr.replace("[", "").replace("]", "")
         (name, email) = parseaddr(addr)
 
         # The eMail parser cannot handle Surname, Name <email@domain.tld> properly.
