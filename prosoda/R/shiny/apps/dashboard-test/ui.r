@@ -27,7 +27,11 @@ shinyUI(bootstrapPage(
 		## Adapt the styles as needed (some seem to be ignored)
 		tags$link(rel = 'stylesheet', type = 'text/css', href = 'styles.css'),
 		tags$script(src = "gridsterWidgetsExt.js"),
-    tags$script(src = "jquery.cookie.js")
+    tags$script(src = "jquery.cookie.js"),
+    tags$script(src = 'js/raphael.2.1.0.min.js'),
+    tags$script(src = 'js/justgage.1.0.1.min.js'),
+    tags$script(src = "justgage_binding.js"),
+    tags$script(src = "shiny_status_binding.js")
 	),
   
 	div(class = "container",

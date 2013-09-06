@@ -195,19 +195,6 @@ newWidget = function(cls, pid, view=reactive({NULL}), pids.compare=reactive({lis
   return(widget)
 }
 
-## Initialization for widgets which have range.id views
-initWidget.widget.rangeid <- function(widget) {
-  widget$cycles <- reactive({get.cycles.con(conf$con, widget$pid())})
-  widget$range.ids <- reactive({
-    range.ids <- query.range.ids.con(conf$con, widget$pid())
-    # Set the names of the range IDs to human readable values
-    names(range.ids) <- widget$cycles()$cycle
-    range.ids
-  })
-  ## Call the next initialization method in the sequence
-  return(NextMethod(w))
-}
-
 ## Initialization function for widgets which do not need special initialization
 initWidget.widget <- function(w) {
   ## Create a variable that automatically takes on a default
@@ -220,6 +207,21 @@ initWidget.widget <- function(w) {
     }
   })
   w$view <- view.with.default
+  return(w)
+}
+
+## Initialization for widgets which have range.id views
+initWidget.widget.rangeid <- function(widget) {
+  widget$cycles <- reactive({get.cycles.con(conf$con, widget$pid())})
+  widget$range.ids <- reactive({
+    range.ids <- query.range.ids.con(conf$con, widget$pid())
+    # Set the names of the range IDs to human readable values
+    names(range.ids) <- widget$cycles()$cycle
+    range.ids
+  })
+  ## Call the superclass here, since the views are now defined
+  w <- NextMethod(w)
+  ## Call the next initialization method in the sequence
   return(w)
 }
 
@@ -243,6 +245,9 @@ widgetColor.default <- function(w) {
 widgetTitle.default <- function(w) {
   reactive({w$name})
 }
+
+## Include color scheme
+source("color.r")
 
 ## Load all the widgets so that widget.list is populated
 source("widgets/commit.info.r", chdir=TRUE)

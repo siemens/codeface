@@ -19,7 +19,7 @@
 
 createWidgetClass(
   c("widget.general.info.overview", "widget.general.info"),
-  "Overview",
+  "General Information",
   "General information",
   1, 1,
   html=htmlOutput
@@ -37,7 +37,7 @@ initWidget.widget.general.info <- function(w) {
 renderWidget.widget.general.info.overview <- function(w) {
   renderUI({
     pid <- w$pid()
-    project.name <- query.project.name(conf$con, pid)
+    project.name <- w$project.name()
     loginfo(paste("project.name=",project.name," (renderWidget.widget.general.info.overview)."))
     cycles <- w$cycles()
     date.start <- as.Date(min(cycles$date.start))
@@ -64,7 +64,7 @@ renderWidget.widget.general.info.overview <- function(w) {
   })
 }
 
-widgetColor.widget.general.info.overview <- function(w) { reactive({"lightblue"}) }
+widgetColor.widget.general.info.overview <- function(w) { reactive({color.neutral}) }
 
 ## ----------------------------
 
@@ -97,13 +97,13 @@ initWidget.widget.gauge.commits <- function(w) {
 renderWidget.widget.gauge.commits <- function(w) {
   reactive({
     count <- w$commits.alltime()$count
-    if (commits.alltime$count > 100000) {
+    if (count > 100000) {
       subtext <- "A lot"
-    } else if (commits.alltime$count > 10000) {
+    } else if (count > 10000) {
       subtext <- "Many"
-    } else if (commits.alltime$count > 1000) {
+    } else if (count > 1000) {
       subtext <- "Average"
-    } else if (commits.alltime$count > 10) {
+    } else if (count > 10) {
       subtext <- "A few"
     } else {
       subtext <- "Possible error!"
@@ -115,9 +115,9 @@ renderWidget.widget.gauge.commits <- function(w) {
 widgetColor.widget.gauge.commits <- function(w) {
   reactive({
     if (w$commits.alltime()$count > 100) {
-      "lightgreen"
+      color.good
     } else {
-      "red"
+      color.bad
     }
   })
 }
@@ -157,19 +157,23 @@ initWidget.widget.gauge.commitspeed <- function(w) {
 }
 
 renderWidget.widget.gauge.commitspeed <- function(w) {
-  reactive({as.integer(w$scaled.rate())})
+  reactive({
+    print("Gauge value: ")
+    str(w$scaled.rate())
+    as.integer(w$scaled.rate())
+  })
 }
 
 widgetColor.widget.gauge.commitspeed <- function(w) {
   reactive({
     if (w$scaled.rate() < 10) {
-      "red"
-    } else if (w$scaled.rate() < 50) {
-      "lightyellow"
+      color.bad
+    } else if (w$scaled.rate() < 60) {
+      color.warn
     } else if (w$scaled.rate() < 150) {
       "white"
     } else {
-      "lightgreen"
+      color.good
     }
   })
 }
@@ -196,13 +200,16 @@ createWidgetClass(
 renderWidget.widget.gauge.current.cycle <- function(w) {
   reactive({
     range.id <- w$view()
-    cycle.index <- which(w$cycles$range.id == as.integer(range.id))
-    date.start <- as.Date(w$cycles$date.start[[cycle.index]])
-    date.end <- as.Date(w$cycles$date.end[[cycle.index]])
-    range.id.name <- w$cycles$cycle[[cycle.index]]
-    subtext <- paste(cycle.index, "of", nrow(w$cycles), "-",
+    cycles <- w$cycles()
+    cycle.index <- which(cycles$range.id == as.integer(range.id))
+    date.start <- as.Date(cycles$date.start[[cycle.index]])
+    date.end <- as.Date(cycles$date.end[[cycle.index]])
+    range.id.name <- cycles$cycle[[cycle.index]]
+    subtext <- paste(cycle.index, "of", nrow(cycles), "-",
                           date.start, "to", date.end)
 
+    print("range id is")
+    str(range.id.name)
     list(text=as.character(range.id.name), subtext=subtext)
   })
 }
