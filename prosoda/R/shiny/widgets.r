@@ -79,6 +79,32 @@
 ## To get widget$range.ids and widget$cycles already initialized, specify
 ## c("widget.mywidget", "widget.rangeid") as a class in createWidgetClass,
 ## this will also call initWidget.widget.rangeid in the NextMethod() chain
+##
+## Object-oriented overview
+## --------------------
+## "Widget Class" cls in the widget.list:
+##   - name = "My Widget X"
+##   - widget.classes = c("widget.mywidget", "widget")
+##   - description = "This widget does X"
+##   - size.x, size.y = 1,2
+##   - compareable = TRUE/FALSE # Can accept additional PIDs
+##   - html = function(id) { plotOutput(id) }
+##
+## A "Widget class" cls can be passed to newWidget(cls, pid, view, com.pid)
+## returns a widget object. (Note: Technically, the Widget class is not any
+## kind of R class, it's just a list containing information usually found in
+## classes.
+##
+## "Widget object" widget returned from newWidget(cls, pid):
+##   - name = cls$name
+##   - class = cls$widget.classes
+## Generic functions accepting widget objects:
+##   - initWidget # must be called after newWidget
+##   - listViews # list possible settings for "view"
+##   - renderWidget # render the widget into a format suitable for shiny output
+##   - widgetColor # get a reactive string specifying the color
+##   - widgetTitle # human-readable title for the current view
+
 
 ## Global list of widget 'classes'
 widget.list <<- list()
