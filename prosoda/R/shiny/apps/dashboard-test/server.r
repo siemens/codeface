@@ -150,10 +150,27 @@ shinyServer(function(input, output, session) {
     output$quantarchBreadcrumb <- renderUI({renderBreadcrumbPanel("dashboard",paramstr())})
 
     ## get the stored widget configuration (TODO: select secure path)
-    loginfo("Try to read widget.config")
-    widget.config <- dget(config.file()) # must exist
-    if (is.null(widget.config)) {
-      widget.config <- list(widgets=list(), content=list())
+    if (is.null(pid())) {
+      str(projects.list)
+      #widget.config <- list(widgets=list()
+      widget.config <- list(
+        widgets=lapply(projects.list$id, function(pid) {
+          w <- list(col = 1, row = 1,
+               size_x = 1, size_y = 1,
+               id = paste("widget",pid,sep=""),
+               cls = "widget.overview.project",
+               pid = pid)
+          #force(w)
+          #str(w)
+          w
+        })
+      )
+    } else {
+      loginfo("Try to read widget.config")
+      widget.config <- dget(config.file()) # must exist
+      if (is.null(widget.config)) {
+        widget.config <- list(widgets=list(), content=list())
+      }
     }
     
 #     cat("Read widget.config:")
@@ -163,11 +180,17 @@ shinyServer(function(input, output, session) {
 
     ## render all widgets found in config
     for ( w in widget.config$widgets ) {
+      if (is.null(pid())) {
+        this.pid <- reactive({w$pid})
+        print(this.pid())
+      } else {
+        this.pid <- pid
+      }
       loginfo(paste("Creating widget from config: ", w$id, "for classname: ", w$cls ))
       widget.classname <- as.character(w$cls)       
       widget.class <- widget.list.filtered[[widget.classname]]
   
-      widgetbase <- widgetbase.output(w$id, widget.class, pid, w$size_x, w$size_y, w$col, w$row)
+      widgetbase <- widgetbase.output(w$id, widget.class, this.pid, w$size_x, w$size_y, w$col, w$row)
       
       cat("BASE WIDGET\n\n")
       print(widgetbase)    
@@ -231,15 +254,17 @@ shinyServer(function(input, output, session) {
           }) # end local
          } # end for
 
-      ## update configuration file
-      ## TODO: move to extra observe block
-      ## TODO: save as cookie
-      widget.config$widgets <- fromJSON(cjson)
-      #widget.config$content <- widget.content
-       dput(widget.config, file = config.file(),
-            control = c("keepNA", "keepInteger", "showAttributes"))
-      loginfo("Saved configuration file.")
-      } #end if
+      if (!is.null(pid())) {
+        ## update configuration file
+        ## TODO: move to extra observe block
+        ## TODO: save as cookie
+        widget.config$widgets <- fromJSON(cjson)
+        #widget.config$content <- widget.content
+        dput(widget.config, file = config.file(),
+              control = c("keepNA", "keepInteger", "showAttributes"))
+        loginfo("Saved configuration file.")
+      }
+    } #end if
 
     ## debug output to screen
     #output$testid <- renderText(paste(cjson,toJSON(widget.content)))

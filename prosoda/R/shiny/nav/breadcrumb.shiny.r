@@ -185,17 +185,7 @@ urlparameter.as.list <- function(urlsearch) {
 }
 
 urlparameter.list.checked <- function(urlparameter.list) {
-  args <- urlparameter.list
-  if (!exists("projects.list",1) || nrow(projects.list) == 0)
-    stop("ERROR: projects.list not found or empty." )
-  if (is.null(args$projectid) ||
-        args$projectid == "" ||
-        is.na(as.integer(args$projectid)) ||
-        (args$projectid != as.integer(args$projectid) ) ||
-        !(args$projectid %in% projects.list$id)) {
-    args$projectid <- as.character(projects.list$id[1])
-  }
-  args
+  urlparameter.list
 }
 
 urlparameter.as.string <- function( urlparameter.list, PREFIX = "?" ) {

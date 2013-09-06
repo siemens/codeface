@@ -10,10 +10,10 @@ $.extend(justgageOutputBinding, {
       $(el).data('gauge', new JustGage({
         id: this.getId(el),
         value: 0,
-        min: 0,
-        max: 200,
-        title: "Mean of last 10",
-        label: "units"
+        min: $(el).attr("min"),
+        max: $(el).attr("max"),
+        title: $(el).attr("title"),
+        label: $(el).attr("units")
       }));
     }
     $(el).data('gauge').refresh(data);
