@@ -361,11 +361,16 @@ map.ids <- function(ids, map){
 ##  map: environment (hash table) to map non-consecutive global index to 
 ##       consecutive local index
 ## Returns:
-##  comm: igraph-like communities object
+##  comm: igraph-like communities object; NULL if there are no communities
 clusters.2.communities <- function(cluster.list, cluster.method, map) {
+  if (length(cluster.list) == 0) {
+    return(NULL)
+  }
+
   membership <- c()
   csize      <- c()
-  ## create membership vector from cluster.list
+
+  ## Create membership vector from cluster.list
   for (i in 1:length(cluster.list)) {
     p.global.ids <- cluster.list[[i]]
     ## ids need to be consecutive, use global -> local index map
@@ -380,5 +385,6 @@ clusters.2.communities <- function(cluster.list, cluster.method, map) {
   comm$algorithm  <- cluster.method
   comm$membership <- membership
   comm$csize      <- csize
+
   return(comm)
 }

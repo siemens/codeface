@@ -997,16 +997,20 @@ writeClassicalStatistics <- function(outdir, ids.connected) {
 
 ## Detect, visualise and save communities with clustering algorithm FUN
 ## (for instance spinglass.communities or walktrap.communities)
-detect.communities <- function(g, ids,
-                               adjMatrix, prank.list, outdir,
+detect.communities <- function(g, ids, adjMatrix, prank.list, outdir,
                                prefix, label, min.fract, upper.bound, FUN) {
   set.seed(42)
   if (vcount(g) == 1) {
     ## If there is only one vertex in the graph (which can happen for
-    ## very short bug-fox cycles when a single contributor interacts
+    ## very short bug-fix cycles when a single contributor interacts
     ## with the repo), it does not make sense to try detecting communities.
     ## (besids, spinglass community detection would run into an infinite
-    ## loop in this case)
+    ## loop in this case).
+    ## Note: We don't construct a community with one member, but choose
+    ## the interpretation that there are no communities in this case.
+    ## This possibility needs to be supported anyway because the OSLOM
+    ## clustering method, for instance, can fail to detect significant communities
+    ## even for larger graphs if there aren't any.
     g.community <- NULL
     elems.selected <- logical(0)
   } else {
