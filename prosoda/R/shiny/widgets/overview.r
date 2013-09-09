@@ -17,23 +17,13 @@
 ## All Rights Reserved.
 
 ## This file should contain the overview widgets for the main dashboard
+source("../symbols.r", chdir=TRUE)
 
-## Here follow lists of Unicode symbols which are useful as status indicators
-##
-## Weather-type indicators, in order of severity
-symbol.weather.sunny <- intToUtf8(0x2600)
-symbol.weather.sun.and.cloud <- intToUtf8(0x26C5)
-symbol.weather.cloudy <- intToUtf8(0x2601)
-symbol.weather.rainy <- intToUtf8(0x2614)
-symbol.weather.snowy <- intToUtf8(0x2603)
-symbol.weather.thunderstorm <- intToUtf8(0x2608)
+## Global status indicators for the project processing overview widget:
+symbols.processing.status <- symbols.weather
 
-## Global status indicators for the project overview widget:
-indicator.project.status.all.good <- symbol.weather.sunny
-indicator.project.status.mostly.good <- symbol.weather.sun.and.cloud
-indicator.project.status.mostly.bad <- symbol.weather.cloudy
-indicator.project.status.bad <- symbol.weather.rainy
-indicator.project.status.error <- symbol.weather.thunderstorm
+## Global status indicators for the project status widget:
+symbols.project.status <- symbols.emotion
 
 ## Status codes as factors from one of good, warn, bad, error
 ## factors obtained with as.status obey good > warn > bad > error
@@ -48,8 +38,6 @@ status.error <- as.status("error")
 as.color <- function(status) {
   status.codes.colors[[which(status.codes == status)]]
 }
-
-
 
 ## Provide a round status indicator with the given background color
 ## and containing the specified symbol.
@@ -66,19 +54,6 @@ make.indicator <- function(symbol, color) {
                   symbol)
 }
 
-## List if interesting Unicode Symbols which might be useful (in hexadecimal)
-## 2388 -- steering wheel
-## 263a -- smiling face
-## 2705 -- check mark
-## 2B43 -- alternative collaboration
-## 1F3AF -- direct hit
-## 1F40C, 1f422 -- snail, turtle
-## 1F41C -- ant (for bugs)
-## 1f44d/e -- thumbs up/down
-## 1F4C8/9/A -- chart up/down/barchart
-## 1F4C8 -- cheering megaphone
-## 1F610 -- Neutral face
-## 1g612 -- unamused face
 
 ## Return HTML for an overview box
 overview.html <- function(title, link, subtitle.size="100%") {
@@ -148,17 +123,17 @@ renderWidget.widget.overview.project <- function(w) {
   renderUI({
     ## Collaboration indicator color
     if (w$status()$comm == status.good && w$status()$collab == status.good) {
-      indicator.summary <- indicator.project.status.all.good
+      indicator.summary <- symbols.processing.status$good
     } else if (w$status()$comm == status.good || w$status()$collab == status.good) {
-      indicator.summary <- indicator.project.status.mostly.good
+      indicator.summary <- symbols.processing.status$mostly.good
     } else if (w$data()$n.commits == 0 && w$data()$n.persons == 0 && w$data()$n.mail.threads == 0) {
-      indicator.summary <- indicator.project.status.error
+      indicator.summary <- symbols.processing.status$error
     } else {
-      indicator.summary <- indicator.project.status.bad
+      indicator.summary <- symbols.processing.status$bad
     }
-    indicator.collaboration <- make.indicator(intToUtf8(0x21c4), as.color(w$status()$collab))
-    indicator.communication <- make.indicator(intToUtf8(0x1f4e7), as.color(w$status()$comm))
-    indicator.complexity <- make.indicator(intToUtf8(0x2102), as.color(w$status()$complex))
+    indicator.collaboration <- make.indicator(symbol.collaboration, as.color(w$status()$collab))
+    indicator.communication <- make.indicator(symbol.communication, as.color(w$status()$comm))
+    indicator.complexity <- make.indicator(symbol.complexity, as.color(w$status()$complex))
 
     subtitle.size <- "100%"
     link <- paste("?projectid=", w$pid(), sep="")
