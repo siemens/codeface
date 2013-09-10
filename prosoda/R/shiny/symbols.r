@@ -10,13 +10,14 @@ symbol.weather.cloudy <- intToUtf8(0x2601)
 symbol.weather.rainy <- intToUtf8(0x2614)
 symbol.weather.snowy <- intToUtf8(0x2603)
 symbol.weather.thunderstorm <- intToUtf8(0x2608)
+symbol.volcano <-  intToUtf8(0x1F30B)
 symbols.weather <- list(
                         good = symbol.weather.sunny,
                         mostly.good = symbol.weather.sun.and.cloud,
-                        warn = symbol.weather.sun.and.cloud,
-                        mostly.bad = symbol.weather.cloudy,
-                        bad = symbol.weather.rainy,
-                        error = symbol.weather.thunderstorm
+                        warn = symbol.weather.cloudy,
+                        mostly.bad = symbol.weather.rainy,
+                        bad = symbol.weather.thunderstorm,
+                        error = symbol.volcano
                         )
 
 
@@ -31,7 +32,7 @@ symbols.emotion <- list(
                         good = symbol.emotion.happy,
                         mostly.good = symbol.emotion.confounded,
                         warn = symbol.emotion.neutral,
-                        mostly.bad = symbol.emotion.neutral,
+                        mostly.bad = symbol.emotion.disappointed,
                         bad = symbol.emotion.disappointed,
                         error = symbol.emotion.fear
                         )
@@ -77,14 +78,14 @@ symbols.animals <- list(
                         )
 
 
-symbols.gestures.good <- intToUtf8(0x1f44c)
+symbols.gestures.ok <- intToUtf8(0x1f44c)
 symbols.gestures.thumbsup <- intToUtf8(0x1f44d)
 symbols.gestures.hand <- intToUtf8(0x1f44b)
 symbols.gestures.thumbsdown <- intToUtf8(0x1f44e)
 symbols.gestures.twohands <- intToUtf8(0x1f450)
 symbols.gestures <- list(
-                        good = symbols.gestures.good,
-                        mostly.good = symbols.gestures.thumbsup,
+                        good = symbols.gestures.thumbsup,
+                        mostly.good = symbols.gestures.ok,
                         warn = symbols.gestures.hand,
                         mostly.bad = symbols.gestures.thumbsdown,
                         bad = symbols.gestures.thumbsdown,
@@ -109,16 +110,26 @@ symbols.arrows = list(
 
 ## Symbols for processing steps
 symbol.cluster <- intToUtf8(0x260D) # two connected nodes
-symbol.commit <- intToUtf8(0x207d) # Signing hand
+symbol.commit <- intToUtf8(0x1f4dd) # memo
+#symbol.commit <- intToUtf8(0x270d) # Signing hand
 symbol.email <- intToUtf8(0x1f4e7)
 symbol.analysis <- intToUtf8(0x1F50D) # magnifying glass
 symbol.bug <- intToUtf8(0x1F41C) # (actually, an Ant)
+symbol.timeseries <- intToUtf8(0x1f4c8) # chart
+
 
 ## Symbols for information groups
-symbol.communication <- intToUtf8(0x1f4ac)
-#symbol.collaboration <- intToUtf8(0x21c4) ## alternative, arrows
-symbol.collaboration <- paste(intToUtf8(0x1f464), intToUtf8(0x1f464), sep="")
-symbol.complexity <- intToUtf8(0x2102)
+symbol.communication <- intToUtf8(0x1f4e1)
+#symbol.communication <- intToUtf8(0x1f4ac) ## alternative communication, speech bubble
+
+#symbol.collaboration <- intToUtf8(0x21c4) ## alternative collaboration, arrows
+symbol.collaboration <- paste(intToUtf8(0x1f464), intToUtf8(0x1f464), sep="") ## Two persons
+#symbol.collaboration <- intToUtf8(0x1f517) ## link symbol
+#symbol.complexity <- intToUtf8(0x2102) ## Complex number sign
+symbol.complexity <- intToUtf8(0x1f3ef) ## japanese castle
+#symbol.construction <- intToUtf8(0x1f3ed) # Factory
+symbol.construction <- intToUtf8(0x1f528) # Hammer
+#symbol.construction <- intToUtf8(0x1f4d0) # Triangular ruler
 
 ## List of other interesting Unicode Symbols which might be useful:
 ## 2388 -- steering wheel
