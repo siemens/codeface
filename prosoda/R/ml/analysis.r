@@ -290,10 +290,16 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     return(do.normalise(conf, authors))
   }
 
+  ## NOTE: Everything that is supposed to be computed in parallel needs to
+  ## go into this loop.
   res <- mclapply(1:length(iter), function(i) {
+    ## A database connection is required for every worker thread.
+    conf <- init.db.global(conf)
+
     ## Determine the corpus subset for the interval
     ## under consideration
-    loginfo(paste("Processing interval ", i, ": ", labels[[i]]), logger="ml.analysis")
+    loginfo(paste("Processing interval ", i, ": ", labels[[i]]),
+            logger="ml.analysis")
 
     curr.int <- iter[[i]]
     idx <- which(timestamps >= int_start(curr.int) & timestamps < int_end(curr.int))
@@ -312,7 +318,10 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub,
                    cycles[i,], ml.id, activity.plot.id)
     loginfo(paste(" -> Finished interval ", i, ": ", labels[[i]]), logger="ml.analysis")
+
+    dbDisconnect(conf$con)
   })
+
   ## Check for errors in mclapply
   for (r in res) {
     if (inherits(r, "try-error")) {

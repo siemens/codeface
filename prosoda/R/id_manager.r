@@ -18,6 +18,7 @@
 suppressPackageStartupMessages(library(RCurl))
 suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(rjson))
+source("config.r")
 
 query.cache <- list()
 

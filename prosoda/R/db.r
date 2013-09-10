@@ -250,6 +250,7 @@ init.db <- function(conf) {
 
 ## Same in blue for use cases when no single project is considered.
 ## We augment the configuration with the con object in this case.
+## Can also be used to initialise connections inside parallel worker threads.
 init.db.global <- function(conf) {
   drv <- dbDriver("MySQL")
   con <- dbConnect(drv, host=conf$dbhost, user=conf$dbuser,
