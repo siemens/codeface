@@ -85,7 +85,7 @@ rm(s)
       lw <- function(msg) logwarn(msg, logger="ml.batch")
       lw("WARNING: http_proxy is set!")
       lw("This is often unintended for local communication with the ID service.")
-      lw("Are you shure this setup is correct? Continuing nevertheless.")
+      lw("Are you sure this setup is correct? Continuing nevertheless.")
     }
 
     if (conf$jobs > 1) {
