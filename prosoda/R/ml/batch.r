@@ -58,7 +58,7 @@ rm(s)
 ## file, and then delete all messages marked as SPAM.
 
 ######################### Dispatcher ###################################
-{
+config.script.run({
     option_list <- list(
                     make_option(c("-j", "--jobs"), type="integer", default=1,
                                 help="Number of parallel jobs for cluster analysis")
@@ -96,4 +96,4 @@ rm(s)
     }
 
     dispatch.all(conf, conf$mldir, conf$resdir)
-}
+})
