@@ -18,7 +18,8 @@ color.siemens.green.light <- "#aab414"
 color.siemens.gray.dark <- "#0f1923"
 color.siemens.gray.light <- "#505a64"
 
-color.neutral <- color.siemens.stone.35
+#color.neutral <- color.siemens.stone.35
+color.neutral <- "#ebf0f5" ## Siemens Stone lightest UI color
 color.good <- color.siemens.green.light
 color.warn <- color.siemens.yellow.light
 color.bad <- color.siemens.red.light
@@ -29,15 +30,15 @@ color.bad <- color.siemens.red.light
 ## using siemens petrol #009999 as a baseline
 
 #color.list.neutral <- c("#009999", "#1D7373", "#006363", "#33CCCC", "#5CCCCC")
-#color.list.good    <- c("#00B74A", "#228A4C", "#007730", "#37DB79", "#63DB93")
-#color.list.warn    <- c("#FF7400", "#BF7130", "#A64B00", "#FF9640", "#FFB273")
-#color.list.bad     <- c("#FF3100", "#BF4B30", "#A62000", "#FF6440", "#FF8E73")
+color.list.good    <- c("#00B74A", "#228A4C", "#007730", "#37DB79", "#63DB93")
+color.list.warn    <- c("#FF7400", "#BF7130", "#A64B00", "#FF9640", "#FFB273")
+color.list.bad     <- c("#FF3100", "#BF4B30", "#A62000", "#FF6440", "#FF8E73")
 
 ### Styles: 1 (normal), 2 (dark), 3 (darker), 4 (light), 5 (lighter)
-#color.style <- 4
+color.style <- 4
 #color.neutral <- color.list.neutral[[color.style]]
-#color.good <- color.list.good[[color.style]]
-#color.warn <- color.list.warn[[color.style]]
-#color.bad <- color.list.bad[[color.style]]
+color.good <- color.list.good[[color.style]]
+color.warn <- color.list.warn[[color.style]]
+color.bad <- color.list.bad[[color.style]]
 
 
