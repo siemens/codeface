@@ -64,12 +64,11 @@ breadcrumbPanelData <- function (originId, paramstr = "") {
   bclist <- list() # the resultlist
   count <- 0
 
-  pid <- originId
+  parent.id <- originId
 
-  while(!is.null(pid)) {
+  while(!is.null(parent.id)) {
     count <- count + 1
-    n <- nav.list[[as.character(pid)]] # point to nav.list element of current app
-    #print(n)
+    n <- nav.list[[as.character(parent.id)]] # point to nav.list element of current app
     p <- n$parentId(paramstr) # get parent app id (p$id)
     cdf <- n$childrenIds(paramstr)
     child.list <- list()
@@ -81,9 +80,8 @@ breadcrumbPanelData <- function (originId, paramstr = "") {
       }
     }
     bclist[[count]] <- list(label = n$label(paramstr), url = n$url(paramstr), active=(count == 1), children = child.list)
-    ##print(count)
-    ##print(bclist)
-    pid <- p$id
+    parent.id <- p$id
+    paramstr <- as.character(p$paramstr)
   }
 
   ## reshuffle bclist in reverse order

@@ -147,7 +147,15 @@ shinyServer(function(input, output, session) {
     loginfo(paste("Current PID =",pid()))
 
     ## output breadcrumb
-    output$quantarchBreadcrumb <- renderUI({renderBreadcrumbPanel("dashboard",paramstr())})
+    output$quantarchBreadcrumb <- renderUI({
+      if (is.null(pid())) {
+        renderBreadcrumbPanel("projects",paramstr())
+      } else if (topic() == "0") {
+        renderBreadcrumbPanel("dashboard",paramstr())
+      } else {
+        renderBreadcrumbPanel("dashboard2",paramstr())
+      }
+    })
 
     ## get the stored widget configuration (TODO: select secure path)
     if (is.null(pid())) {
