@@ -147,21 +147,15 @@ renderWidget.widget.overview.processing <- function(w) {
     indicator.complexity <- make.indicator(symbol.analysis, as.color(w$status()$complexity))
 
     link <- paste("?projectid=", w$pid(), sep="")
-    tagList(
-      tags$div(class="grid_title", style="margin-top: 10px; margin-bottom: 20px;", w$project.name()),
-      tags$div(class='grid_bigtext', style="font-size:110px; text-align: center",
-               indicator.summary
-              ),
-      tags$p(#style=paste("text-align: center; vertical-align: middle;"),
+    overview.html(w$project.name(), indicator.summary,
               tags$table(width="100%", tags$tr(
                                  tags$td(indicator.commits),
                                  tags$td(indicator.timeseries),
                                  tags$td(indicator.issues),
                                  tags$td(indicator.ml),
                                  tags$td(indicator.complexity)
-                                 ))
-            ),
-      p(a(href=link, "details..."))
+                                 )),
+              link
     )
   })
 }
@@ -200,20 +194,14 @@ renderWidget.widget.overview.project <- function(w) {
     indicator.complexity <- make.indicator(symbol.complexity, as.color(w$status()$complex))
 
     link <- paste("?projectid=", w$pid(), sep="")
-    tagList(
-      tags$div(class="grid_title", style="margin-top: 10px; margin-bottom: 20px;", w$project.name()),
-      tags$div(class='grid_bigtext', style="font-size:110px; text-align: center",
-               indicator.summary
-              ),
-      tags$p(#style=paste("text-align: center; vertical-align: middle;"),
+    overview.html(w$project.name(), indicator.summary,
               tags$table(width="100%", tags$tr(
                                  tags$td(indicator.collaboration),
                                  tags$td(indicator.construction),
                                  tags$td(indicator.communication),
                                  tags$td(indicator.complexity)
-                                 ))
-            ),
-      p(a(href=link, "details..."))
+                                 )),
+              link
     )
   })
 }
