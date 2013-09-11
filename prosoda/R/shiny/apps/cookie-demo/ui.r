@@ -1,13 +1,14 @@
+source("qa_cookie.r")
+
 shinyUI(bootstrapPage(
-    
+    singleton(tags$head(tags$link(rel = "stylesheet", type = "text/css",  href = "chosen.min.css"), tags$script(src = "chosen.jquery.min.js"))),
     div(class = "container",
         div(class = "row",
             div( class="span4", style = "padding: 10px 0px;",  
                  textOutput("monitor"))),
         div(class = "row",
             div( class="span8", style = "padding: 10px 0px;",  
-                 modalDialogButton( "selectpidsui", modalDialogTitle="Select Projects to compare with", 
-                                    "selected", actionButtonLabel="OK", dismissButtonLabel="Close" ) ))
+                 htmlOutput("selectpidsui")))
     )
     ,
     cookieInput("qacompareids")
