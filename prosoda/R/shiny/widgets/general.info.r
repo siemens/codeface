@@ -59,7 +59,8 @@ renderWidget.widget.general.info.overview <- function(w) {
                  "\n", paste(n.persons, "persons."),
                  "\n", paste(n.issues, "bugtracker entries."),
                  "\n", paste(n.mail.threads, "mailing list threads."),
-                 "</pre>"))
+                 "</pre>")),
+      p(a(href=paste("?projectid=", w$pid(), "&topic=basics", sep=""), "details..."))
     )
   })
 }

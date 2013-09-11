@@ -119,6 +119,9 @@ symbol.timeseries <- intToUtf8(0x1f4c8) # chart
 
 
 ## Symbols for information groups
+symbol.basics <- intToUtf8(0x1F481) # Information desk person
+#symbol.basics <- intToUtf8(0x1F4ca) ## alternative: bar chart
+
 symbol.communication <- intToUtf8(0x1f4e1)
 #symbol.communication <- intToUtf8(0x1f4ac) ## alternative communication, speech bubble
 

@@ -63,7 +63,9 @@ nav.list$projects <- list(
 ## Configure contributors app
 ##
 
-topic.ids <- c("communication", "construction", "complexity", "collaboration")
+topic.ids <- c("basics", "communication", "construction", "complexity", "collaboration")
+
+project.apps.basics <- list()
 
 project.apps.communication <- list(
   c("punchcard_ml", "ML activity punch cards"),
@@ -178,6 +180,9 @@ nav.list$dashboard2 <- list(
     #data.frame(id = sapply(project.apps, "[", 1), params = c(paramstr))
     pel <- parseQueryString(paramstr)
     apps <- get(paste("project.apps", pel$topic, sep="."))
+    if (length(apps) == 0) {
+      return(data.frame())
+    }
     data.frame(id = sapply(apps, FUN = function(x) {x[1]}), params = c(paramstr))
   },
   ## (4) configure parent
