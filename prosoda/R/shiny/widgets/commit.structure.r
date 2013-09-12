@@ -64,6 +64,7 @@ createWidgetClass(
   c("widget.commit.structure.mds", "widget.commit.structure"),
   "Commit Structure - Multidimensional Scaling",
   "Multidimensional scaling of the commit structure",
+  topics = c("construction"),
   size.x = 2,
   size.y = 1
 )
@@ -72,6 +73,7 @@ createWidgetClass(
   c("widget.commit.structure.princomp", "widget.commit.structure"),
   "Commit Structure - Principal Components",
   "Principal component analysis of the commit structure",
+  topics = c("construction"),
   size.x = 2,
   size.y = 1
 )

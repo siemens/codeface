@@ -21,6 +21,7 @@ createWidgetClass(
   class = c("widget.commit.info.splom", "widget.commit.info", "widget.rangeid"),
   name = "Commit Information - Scatterplot",
   description = "Shows the commit information in a scatterplot.",
+  topics = c("basics", "construction"),
   size.x = 2,
   size.y = 1,
   compareable = FALSE
@@ -31,6 +32,7 @@ createWidgetClass(
   class = c("widget.commit.info.corrgram", "widget.commit.info", "widget.rangeid"),
   name = "Commit Information - Correlations",
   description = "Shows correlations in the commits.",
+  topics = c("construction"),
   size.x = 1,
   size.y = 1,
   compareable = FALSE

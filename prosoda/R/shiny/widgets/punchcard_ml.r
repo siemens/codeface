@@ -54,6 +54,7 @@ createWidgetClass(
   "widget.punchcard.ml",
   "Mailing list punchcard",
   "Mailing list punchcard",
+  c("communication"),
   size.x = 2,
   size.y = 1
 )

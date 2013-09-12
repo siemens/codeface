@@ -47,6 +47,7 @@ createWidgetClass(
   "widget.punchcard",
   "Commit Punchcard",
   "Commit Punchcard",
+  c("collaboration"),
   2, 1
 )
 

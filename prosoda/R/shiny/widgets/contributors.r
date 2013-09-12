@@ -48,6 +48,7 @@ createWidgetClass(
   c("widget.contributors.pagerank", "widget.rangeid"),
   "PageRank of Contributors",
   "Interpretational aid: This Page rank focuses on giving tags",
+  c("basics", "collaboration"),
   2, 1,
   html=widget.tableOutput.html
 )
@@ -56,6 +57,7 @@ createWidgetClass(
   c("widget.contributors.pagerank.transposed", "widget.rangeid"),
   "Transposed PageRank of Contributors",
   "Interpretational aid: The transposed Page rank focuses on being tagged",
+  c("basics", "collaboration"),
   2, 1,
   html=widget.tableOutput.html
 )
@@ -64,6 +66,7 @@ createWidgetClass(
   c("widget.contributors.commits", "widget.rangeid"),
   "Contributors by Commit",
   "List of contributors and their commits",
+  c("basics", "collaboration"),
   1, 1,
   html=widget.tableOutput.html
 )
@@ -72,6 +75,7 @@ createWidgetClass(
   c("widget.contributors.changes", "widget.rangeid"),
   "Contributors by Changes",
   "List of Contributors by code changes",
+  c("basics", "collaboration"),
   2, 1,
   html=widget.tableOutput.html
 )

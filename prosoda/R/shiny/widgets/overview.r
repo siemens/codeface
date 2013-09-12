@@ -115,6 +115,7 @@ widgetColor.widget.overview <- function(w) {
 createWidgetClass(
   c("widget.overview.processing", "widget.overview"),
   "Project Processing Status", "Short, one-widget project processing status",
+  c("invisible"),
   1, 1,
   html=htmlOutput
 )
@@ -164,6 +165,7 @@ renderWidget.widget.overview.processing <- function(w) {
 createWidgetClass(
   c("widget.overview.project", "widget.overview"),
   "Project Summary", "Short, one-widget project summary",
+  NULL, # no topical restrictions
   1, 1,
   html=htmlOutput
 )
@@ -211,6 +213,7 @@ renderWidget.widget.overview.project <- function(w) {
 createWidgetClass(
   c("widget.overview.communication", "widget.overview.topic"),
   "Communication", "Information on how developers communicate",
+  c("overview", "communication"),
   1, 1,
   html=htmlOutput
 )
@@ -218,6 +221,7 @@ createWidgetClass(
 createWidgetClass(
   c("widget.overview.collaboration", "widget.overview.topic"),
   "Collaboration", "Information on how developers communicate",
+  c("overview", "collaboration"),
   1, 1,
   html=htmlOutput
 )
@@ -225,6 +229,7 @@ createWidgetClass(
 createWidgetClass(
   c("widget.overview.complexity", "widget.overview.topic"),
   "Complexity", "Information on how developers communicate",
+  c("overview", "complexity"),
   1, 1,
   html=htmlOutput
 )
@@ -232,6 +237,7 @@ createWidgetClass(
 createWidgetClass(
   c("widget.overview.construction", "widget.overview.topic"),
   "Construction", "Information on the construction and architecture of the project",
+  c("overview", "construction"),
   1, 1,
   html=htmlOutput
 )

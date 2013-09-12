@@ -21,6 +21,7 @@ createWidgetClass(
   c("widget.general.info.overview", "widget.general.info"),
   "General Information",
   "General information",
+  NULL, # no topical restrictions
   1, 1,
   html=htmlOutput
 )
@@ -73,6 +74,7 @@ createWidgetClass(
   "widget.gauge.commits",
   "Commits",
   "Number of commits in this project",
+  NULL, # no topical restrictions
   1, 1,
   html = function(id) {
     tagList(
@@ -129,6 +131,7 @@ createWidgetClass(
   "widget.gauge.commitspeed",
   "Commit Speed",
   "Number of commits last month compared to the average number of commits per month",
+  NULL, # no topical restrictions
   1, 1,
   html = function(id) {
     tags$div(id = id,
@@ -185,6 +188,7 @@ createWidgetClass(
   c("widget.gauge.current.cycle", "widget.rangeid"),
   "Current Release Range",
   "Specifies the release range currently viewed",
+  NULL, # no topical restrictions
   1, 1,
   html = function(id) {
     tagList(
@@ -221,6 +225,7 @@ createWidgetClass(
   c("widget.gauge.commits.per.cycle", "widget.rangeid"),
   "Commit Speed in Cycle",
   "Rate of commits in this release range compared to the average commit rate",
+  NULL, # no topical restrictions
   1, 1,
   html = function(id) {
     tags$div(id = id,

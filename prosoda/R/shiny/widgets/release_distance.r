@@ -59,6 +59,7 @@ createWidgetClass(
   "widget.release.distance",
   "Release distance",
   "Time distance of releases",
+  c("construction"),
   size.x = 1,
   size.y = 1
 )

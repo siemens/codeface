@@ -145,9 +145,25 @@ widget.tableOutput.html <- function(id) {
       tableOutput(id))
 }
 
-## Helper function that creates a new widget 'class' with a constructor
-## that initializes w$range.ids
-createWidgetClass <- function(class, name, description,
+#' Create and registers a new widget type
+#'
+#' This function creates a new widget 'class' (a list of information on
+#' how to create an instance of a widget). The class is then inserted into
+#' the global widget.list. The widget 'class' can be used to get general
+#' information on widgets of this type as well as creating new widgets
+#' by passing it to \code{\link{newWidget}}.
+#' This function is intended to be used in a declarative way at the top
+#' level of source files.
+#'
+#' @param class string or vector of strings defining the S3 class of the widget
+#' @param name the string presented as the title of the widget to the user
+#' @param description a longer description of the widgets function
+#' @param topics restrict the widget to these "topics", if not NULL
+#' @param size.x the width in gridster-units if shown on a dashboard
+#' @param size.y the height in gridster-units if shown on a dashboard
+#' @param compareable if true, this widget can display project comparisons
+#' @param html a function(id) returning shiny HTML for this widget
+createWidgetClass <- function(class, name, description, topics=NULL,
                                      size.x=1, size.y=1,
                                      compareable=FALSE,
                                      html=widget.plotOutput.html) {
@@ -156,6 +172,7 @@ createWidgetClass <- function(class, name, description,
     widget.classes = c(class, "widget"),
     name = name,
     description = description,
+    topics = topics,
     size.x = size.x,
     size.y = size.y,
     compareable = compareable,

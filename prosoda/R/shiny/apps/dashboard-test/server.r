@@ -224,7 +224,10 @@ shinyServer(function(input, output, session) {
       }
 
     ## render the add widget dialog
-    widget.titles <- vapply(widget.list.filtered, FUN=function(x){x$name},FUN.VALUE=character(1))
+    topical.widgets <- sapply(widget.list, function(x) {
+                              is.null(x$topics) || topic() %in% x$topics })
+    widget.titles <- vapply(widget.list[topical.widgets], FUN=function(x){
+                            x$name},FUN.VALUE=character(1))
     select.list <- names(widget.titles)
     names(select.list) <- widget.titles
     #print(widget.titles)

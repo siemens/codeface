@@ -95,6 +95,7 @@ createWidgetClass(
   c("widget.clusters.clusters", "widget.clusters", "widget.rangeid"),
   "Clusters",
   "Developer collaboration Clusters",
+  c("collaboration"),
   2, 1
 )
 
@@ -114,7 +115,8 @@ renderWidget.widget.clusters.clusters <- function(w) {
 createWidgetClass(
   c("widget.clusters.correlations", "widget.clusters", "widget.rangeid"),
   "Cluster Correlations",
-  "Cluster Correlations"
+  "Cluster Correlations",
+  c("collaboration")
 )
 
 initWidget.widget.clusters.correlations <- function(w) {
@@ -141,6 +143,7 @@ createWidgetClass(
   c("widget.clusters.summary", "widget.clusters", "widget.rangeid"),
   "Cluster Summary",
   "Tabular summary of clusters",
+  c("collaboration"),
   3, 1,
   html=widget.tableOutput.html
 )

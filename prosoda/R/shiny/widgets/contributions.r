@@ -77,18 +77,21 @@ do.authors.per.cycle.plot <- function(project.stats, cycles) {
 createWidgetClass(
   c("widget.contributions.multiCycles", "widget.contributions"),
   "Author Turnover", "Time Authors stayed on the Project",
+  c("basics", "collaboration"),
   1, 1
 )
 
 createWidgetClass(
   c("widget.contributions.authorsPerCycle", "widget.contributions"),
   "Authors per Cycle", "Number of Authors in each cycle",
+  c("basics", "collaboration"),
   1, 1
 )
 
 createWidgetClass(
   c("widget.contributions.overview", "widget.contributions"),
   "Contributions - Overview", "Numerical overview of contributions",
+  c("basics", "collaboration"),
   2, 1
 )
 

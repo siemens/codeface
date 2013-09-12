@@ -23,6 +23,7 @@ createWidgetClass(
   c("widget.timeseries.messages.per.day", "widget.timeseries"),
   "Messages per Day",
   "Number of messages on the mailing list per day",
+  c("communication"),
   size.x = 2,
   size.y = 1,
 )
