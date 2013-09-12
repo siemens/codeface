@@ -61,7 +61,7 @@ do.ts.plot <- function(ts, boundaries, title, y.label, smooth, transform) {
 }
 
 createWidgetClass(
-  "widget.timeseries.plots",
+  c("widget.timeseries.plots", "widget.timeseries"),
   "Plot Time Series",
   "Can show different time series calculated for this project",
   size.x = 2,
@@ -69,10 +69,7 @@ createWidgetClass(
   html = widget.plotOutput.html
 )
 
-initWidget.widget.timeseries.plots <- function(w) {
-  # Note: The superclass may use listViews on plots
-  # so we have to initialize w$plots before we pass w on
-  w$plots <- reactive({dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", w$pid(), " AND releaseRangeId IS NULL"))})
+initWidget.widget.timeseries <- function(w) {
   # Call superclass
   w <- NextMethod(w)
   w$boundaries <- reactive({get.cycles.con(conf$con, w$pid())})
@@ -89,7 +86,16 @@ initWidget.widget.timeseries.plots <- function(w) {
   return(w)
 }
 
-renderWidget.widget.timeseries.plots <- function(w) {
+initWidget.widget.timeseries.plots <- function(w) {
+  # Note: The superclass may use listViews on plots
+  # so we have to initialize w$plots before we pass w on
+  w$plots <- reactive({dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", w$pid(), " AND releaseRangeId IS NULL"))})
+  # Call superclass
+  w <- NextMethod(w)
+  return(w)
+}
+
+renderWidget.widget.timeseries <- function(w) {
   renderPlot({
     name <- w$plots()$name[[which(w$plots()$id==w$view())]]
     ts <- get.ts.data(conf$con, w$pid(), name)
@@ -97,7 +103,7 @@ renderWidget.widget.timeseries.plots <- function(w) {
   })
 }
 
-listViews.widget.timeseries.plots <- function(w) {
+listViews.widget.timeseries <- function(w) {
   reactive({
     if (is.null(w$plots)) {
       stop("listViews.widget.timeseries.plots called with uninitialized widget!")

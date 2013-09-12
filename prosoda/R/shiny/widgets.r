@@ -201,6 +201,8 @@ initWidget.widget <- function(w) {
   ## if it is NULL
   view.with.default <- reactive({
     if (is.null(w$view.raw())) {
+      ## If this fails; check that the initWidget only calls the superclass
+      ## after all the variables necessary for listViews have been filled!
       l <- listViews(w)()
       l[[max(1, length(l)/2)]]
       #listViews(w)()[[1]]

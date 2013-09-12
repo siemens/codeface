@@ -20,7 +20,7 @@ suppressPackageStartupMessages(library(scales))
 source("../../ts_utils.r", chdir=TRUE)
 
 createWidgetClass(
-  c("widget.timeseries.messages.per.day", "widget.timeseries.plots"),
+  c("widget.timeseries.messages.per.day", "widget.timeseries"),
   "Messages per Day",
   "Number of messages on the mailing list per day",
   size.x = 2,
@@ -30,10 +30,10 @@ createWidgetClass(
 initWidget.widget.timeseries.messages.per.day <- function(w) {
   # Note that this class 'derives' from "widget.timeseries.plots", which
   # means we can reuse the listViews command and use the initialization
-  w <- NextMethod(w)
   w$plots <- reactive({
     dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", w$pid(), " AND releaseRangeId IS NULL AND name LIKE '%activity'"))
   })
+  w <- NextMethod(w)
   return(w)
 }
 

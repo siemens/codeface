@@ -59,12 +59,12 @@ createWidgetClass(
 )
 
 initWidget.widget.punchcard.ml <- function(w) {
-  # Call superclass
-  w <- NextMethod(w)
   w$plots <- reactive({
     query <- str_c("SELECT id, name FROM mailing_list WHERE projectId=", w$pid())
     dbGetQuery(conf$con, query)
   })
+  # Call superclass
+  w <- NextMethod(w)
   w$boundaries <- reactive({get.cycles.con(conf$con, w$pid())})
   w$res <- reactive({gen.punchcards.ml(conf$con, w$pid(), w$view())})
   return(w)
