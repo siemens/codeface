@@ -173,6 +173,18 @@ shinyServer(function(input, output, session) {
           w
         })
       )
+    } else if (topic() == "testall") {
+      widget.config <- list(
+        widgets=lapply(1:length(widget.list), function(i) {
+          cls <- widget.list[[i]]
+          w <- list(col = 1, row = 1,
+               size_x = cls$size.x, size_y = cls$size.y,
+               id = paste("widget", i, sep=""),
+               cls = cls$widget.classes[[1]],
+               pid = pid)
+          w
+        })
+      )
     } else {
       loginfo("Try to read widget.config")
       widget.config <- dget(config.file()) # must exist
@@ -196,7 +208,7 @@ shinyServer(function(input, output, session) {
       }
       loginfo(paste("Creating widget from config: ", w$id, "for classname: ", w$cls ))
       widget.classname <- as.character(w$cls)       
-      widget.class <- widget.list.filtered[[widget.classname]]
+      widget.class <- widget.list[[widget.classname]]
   
       widgetbase <- widgetbase.output(w$id, widget.class, this.pid, w$size_x, w$size_y, w$col, w$row)
       
@@ -262,7 +274,7 @@ shinyServer(function(input, output, session) {
           }) # end local
          } # end for
 
-      if (!is.null(pid())) {
+      if (!is.null(pid()) || (topic() == "testall")) {
         ## update configuration file
         ## TODO: move to extra observe block
         ## TODO: save as cookie
@@ -302,7 +314,7 @@ shinyServer(function(input, output, session) {
       ## not needed in future
     
       ## create the widget class
-      widget.class <- widget.list.filtered[[widget.classname]]
+      widget.class <- widget.list[[widget.classname]]
 
       ## add html to widget instance which wraps into gridster item
       widgetbase <- widgetbase.output.new(id, widget.class, pid)
