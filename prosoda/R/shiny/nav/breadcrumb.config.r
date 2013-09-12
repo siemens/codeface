@@ -162,7 +162,7 @@ nav.list$dashboard2 <- list(
   label = function(paramstr) {  # paramstr must contain project id, e.g. "projectid=4&..."
     pel <- parseQueryString(paramstr)
     if (is.null(pel$topic) || !pel$topic %in% topic.ids) {
-      return("General")
+      pel$topic <- topic.ids[[1]]
     }
     symbol <- get(paste("symbol", pel$topic, sep="."))
     s <- pel$topic
@@ -179,6 +179,9 @@ nav.list$dashboard2 <- list(
     #                   params <- c(paramstr)
     #data.frame(id = sapply(project.apps, "[", 1), params = c(paramstr))
     pel <- parseQueryString(paramstr)
+    if (is.null(pel$topic) || !pel$topic %in% topic.ids) {
+      pel$topic <- topic.ids[[1]]
+    }
     apps <- get(paste("project.apps", pel$topic, sep="."))
     if (length(apps) == 0) {
       return(data.frame())

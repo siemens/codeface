@@ -138,7 +138,7 @@ breadcrumbPanel <- function( breadcrumb ) {
       tags$li(a(href=as.character(x$url),as.character(x$label)))
     }
     if( length(bcchildren) == 0 ) {
-      tags$div()
+      NULL
     } else {
       childtags <- tagList(lapply(bcchildren, popdown.tags))
       childlist <- tags$ul(class="dropdown-menu", childtags)
@@ -152,10 +152,14 @@ breadcrumbPanel <- function( breadcrumb ) {
   for (bc.element in breadcrumb) {
     # childtags <- tagList(lapply(bc.element$children, popdown.tags))
     # childlist <- tags$ul(class="dropdown-menu", childtags)
+
     navtag <- tags$li(class = "dropdown",
-                      bc.link( bc.element$url ,bc.element$label, bc.element$active),
-                      bc.children( bc.element$children ),
-                      divider.tag( bc.element$active ))
+                      bc.link( bc.element$url ,bc.element$label, bc.element$active))
+    child.menu <- bc.children( bc.element$children )
+    if(!is.null(child.menu)) {
+      navtag <- tagAppendChild(navtag, child.menu)
+    }
+    navtag <- tagAppendChild(navtag, divider.tag( bc.element$active ))
     navul <- tagAppendChild(navul, navtag)
   }
   navul
