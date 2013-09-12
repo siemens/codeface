@@ -137,7 +137,7 @@ shinyServer(function(input, output, session) {
     pid
   })
   
-  topic <- reactive({t <- paramlist()$topic; if(is.null(t)) "0" else t })
+  topic <- reactive({t <- paramlist()$topic; if(is.null(t)) "overview" else t })
   config.file <- reactive({paste("widget",topic(),"config",sep=".")})
 
   ## observe context executed once on session start
@@ -150,7 +150,7 @@ shinyServer(function(input, output, session) {
     output$quantarchBreadcrumb <- renderUI({
       if (is.null(pid())) {
         renderBreadcrumbPanel("projects",paramstr())
-      } else if (topic() == "0") {
+      } else if (topic() == "overview") {
         renderBreadcrumbPanel("dashboard",paramstr())
       } else {
         renderBreadcrumbPanel("dashboard2",paramstr())
