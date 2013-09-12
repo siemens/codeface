@@ -119,7 +119,7 @@ $.extend( cookieInputBinding, {
 });
 
 Shiny.inputBindings.register(cookieInputBinding, 'qa.cookieInputBinding');
-  
+
   
 })(jQuery, document);
 
