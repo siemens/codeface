@@ -36,6 +36,7 @@ projects.list <- query.projects(conf$con)
 ## breadcrumb
 source("../nav/breadcrumb.shiny.r", chdir = TRUE)
 source("../widgets.r", chdir=TRUE)
+source("../nav/qa_cookie.r", chdir = TRUE)
 
 common.server.init <- function(output, session, app.name) {
   loginfo("Common server init...")
@@ -45,14 +46,35 @@ common.server.init <- function(output, session, app.name) {
   args.list <- urlparameter.as.list(paramstr)
   ## Read out PID from the URL and check if it is valid
   pid <- reactive({args.list[["projectid"]]})
-  loginfo("Common server init done.")
-  return(pid)
+  
+  ## returns the choices named vector
+  choices <- projects.choices(projects.list)
+  ## returns a reactive list containing selected projects
+  selected <- reactive({ projects.selected( projects.list, input$qacompareids) })
+  
+  ## demoes how to use the choices and adding options for chosen.jquery.js
+  output$selectpidsui <- renderCompareWithProjectsInput(
+    "selectedpids","",choices, selected(), list(width="100%"))
+  
+  ## demoes how to update the cookies from the "selectedpids" ui input
+  ## also available via choices (but beware of duplicate project names)
+  observe({
+    updateCookieInput(session, "qacompareids", input$selectedpids, pathLevel=0, expiresInDays=1 )
+  })
+  
+  loginfo("Common server init done.")  
+  return(list(pid=pid,selected=selected,args.list=args.list ))
 }
+
 
 detailPage <- function(app.name, widgets, additional.input=list()){
   function(input, output, clientData, session) {
     loginfo(paste("Creating detail page for", app.name))
-    pid = common.server.init(output, session, app.name)
+    
+    allpids = common.server.init(output, session, app.name)
+    pid = allpids$pid
+    selected = allpids$selected  # to be used for comparisons
+    
     observe({
       if (!is.vector(pid())) {
         stop("No projectid parameter in URL")
@@ -61,6 +83,7 @@ detailPage <- function(app.name, widgets, additional.input=list()){
       }
       loginfo(paste("New Project ID: ", pid()))
     })
+      
     range.id <- reactive({input$view})
 
     widget.classes <- widget.list[widgets]

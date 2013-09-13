@@ -87,4 +87,41 @@
 		return false;
 	};
   
+//
+// Shiny
+//
+// This input binding handles cookieInputBindings
+var cookieInputBinding = new Shiny.InputBinding();
+$.extend( cookieInputBinding, {
+  find: function(scope) {
+   return $(scope).find(".quantarch-cookie-input");
+  },
+  getValue: function(el) {
+      var cval = $.cookie(this.getId(el));
+      return cval;
+  },
+  setValue: function(el, value) {
+    var opt={};
+    if (value.hasOwnProperty("options")) {opt=value.options;}
+    var val = value.value;  
+    $.cookie(this.getId(el), val, opt );
+  },
+  receiveMessage: function(el, data) {
+     this.setValue(el, data)
+     $(el).trigger('change');
+    },
+  subscribe: function(el, callback) {
+    $(el).on("change.cookieInputBinding", function(e) {
+      callback();
+    });
+  },
+  unsubscribe: function(el) {
+    $(el).off(".cookieInputBinding");
+  }
+});
+
+Shiny.inputBindings.register(cookieInputBinding, 'qa.cookieInputBinding');
+
+  
 })(jQuery, document);
+

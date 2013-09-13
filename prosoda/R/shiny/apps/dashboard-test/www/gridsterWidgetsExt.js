@@ -40,10 +40,15 @@ $(function(){ //document ready
         toel.attr("gridster-action","saveconfig");
         toel.trigger("change");
 				break;
-      case 'getconfig':
-        var toel = $(".gridsterButton");
-        toel.attr("gridster-action","sendcookie");
-        toel.trigger("change");
+      case 'options':
+        if (message.options.addwidget===undefined) message.options.addwidget=true;
+        if (message.options.addwidget) {
+          $("a.gridsterAction[gridster-action='addwidget']").parent('li').removeClass('disabled');
+          $("a.gridsterAction[gridster-action='addwidget']").attr('href','#modalAddWidget');
+        } else {
+          $("a.gridsterAction[gridster-action='addwidget']").parent('li').addClass('disabled');
+          $("a.gridsterAction[gridster-action='addwidget']").attr('href','#');
+        }
   			break;
 			}
 		}
