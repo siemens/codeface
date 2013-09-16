@@ -66,7 +66,7 @@ widgetbase.output <- function(id, w, pid, size_x, size_y, col, row, selected.pid
     wb$row <- row
     
     ## Hilfetext
-    wb$help <- list(title="Help title", content="help body", html=FALSE, trigger="click" )
+    wb$help <- list(title=widgetTitle(inst)(), content=widgetExplanation(inst)(), html=TRUE, trigger="click" )
     
   }, warning = function(warn) {
     logwarn(paste("widgetbase.output.new(id=", id, " w=<", w$name,">, pid=",isolate(pid()),":", toString(warn)))

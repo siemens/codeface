@@ -128,6 +128,11 @@ widgetColor <- function(x) UseMethod("widgetColor", x)
 ## as a reactive string.
 widgetTitle <- function(x) UseMethod("widgetTitle", x)
 
+## Generic function returning an explanation what the widget shows
+## or why (in the case of widgets which show good/bad status.
+## This function returns a reactive HTML string.
+widgetExplanation <- function(x) UseMethod("widgetExplanation", x)
+
 ## Generic function calling widget initialization routines.
 ## If you write a initialization routine that is shared between widget classes,
 ## use NextMethod() to continue calling all initialization routines.
@@ -265,6 +270,11 @@ widgetColor.default <- function(w) {
 ## Default widget title is the class human-readable name
 widgetTitle.default <- function(w) {
   reactive({w$name})
+}
+
+## Default widget explanation is the widget class description
+widgetExplanation.default <- function(w) {
+  reactive({ widget.list[[w$main.class]]$description })
 }
 
 ## Include color scheme
