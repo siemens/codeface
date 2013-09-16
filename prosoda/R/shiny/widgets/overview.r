@@ -222,7 +222,7 @@ createWidgetClass(
 
 createWidgetClass(
   c("widget.overview.collaboration", "widget.overview.topic"),
-  "Collaboration", "Information on how developers communicate",
+  "Collaboration", "Information on how developers collaborate",
   c("overview", "collaboration"),
   1, 1,
   html=htmlOutput
@@ -230,7 +230,7 @@ createWidgetClass(
 
 createWidgetClass(
   c("widget.overview.complexity", "widget.overview.topic"),
-  "Complexity", "Information on how developers communicate",
+  "Complexity", "Information on code complexity",
   c("overview", "complexity"),
   1, 1,
   html=htmlOutput
