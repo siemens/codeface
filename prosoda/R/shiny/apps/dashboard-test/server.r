@@ -233,12 +233,16 @@ shinyServer(function(input, output, session) {
       ##
       ## Create a volatile configuration  (not stored) if no projectid was found in Url
       ##
+      cls <- "widget.overview.processing"
+      if(!is.null(paramlist()$widget)) {
+        cls <- paramlist()$widget
+      }
       widget.config <- list(
         widgets=lapply(projects.list$id, function(pid) {
           w <- list(col = 1, row = 1,
                size_x = 1, size_y = 1,
                id = paste("widget",pid,sep=""),
-               cls = "widget.overview.processing",
+               cls = cls,
                pid = pid)
           #force(w)
           #str(w)
