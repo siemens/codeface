@@ -31,7 +31,7 @@
 # source("../../query.r", chdir=TRUE)
 # conf <- config.from.args(require_project=FALSE)
 # projects.list <- query.projects(conf$con)
-
+library(RJSONIO)
 source("breadcrumb.config.r")  # source in this environment
 
 ## Creates a data structure (list of lists) describing the breadcrumb
@@ -232,8 +232,7 @@ projectIdChecked <- function(urlsearch) {
 ##
 
 breadcrumbOutput <- function( outputId ) {
-  div(class = "span10", style = "padding: 10px 0px;",
-      div(id = outputId, class = "shiny-html-output") )
+  div(id = outputId, class = "shiny-html-output")
 }
 
 pageWithBreadcrumbAndHeader <- function (breadcrumbPanel, headerPanel, mainPanel) {
@@ -256,3 +255,80 @@ renderBreadcrumbPanel <- function(originid = "", paramstr = "") {
       paste("ERROR (renderBreadcrumbPanel): originid=", originid, "is not a configured app id.")
     }
 }
+
+
+########################
+## Compare Project Ids #
+########################
+addResourcePath(
+  prefix = 'nav',
+  ## assuming that js is the relative path to css and js files
+  directoryPath = file.path(getwd(),"js"))
+
+##
+## Ui.r function to create the CompareWithProjects selector (currently synonym with outputUI etc.)
+##
+compareWithProjectsOutput <- function( outputId ) {
+  
+  tagList(
+    singleton(tags$head(
+      tags$link(rel = "stylesheet", type = "text/css", href = 'nav/chosen.min.css'),
+      tags$script(src = "nav/qa_cookie.js"),
+      tags$script(src = "nav/chosen.jquery.min.js")
+      )),
+    
+    div(id = outputId, class = "shiny-html-output")
+    )
+}
+
+##
+## server.r function to render the output elements
+##
+renderCompareWithProjectsInput <- function( inputId, label, choices, selected = NULL , options = list() ) {
+  renderUI({
+    select <- selectInput(inputId, label, choices, multiple=TRUE, selected=selected )
+    select.tag <- select[[2]]
+    select.tag$attribs$class <- "chosen-select"
+    select[[2]] <- select.tag
+    opts <- toJSON(options, collapse="")
+    if (length(options) == 0) opts <- ""
+    js <- paste("$('.chosen-select#",inputId,"').chosen(",opts,");", sep="",collapse="")
+    tl <- tagList(select, tags$script(js))
+    cat(as.character(tl))
+    tl
+  })
+}
+
+##
+## utility function to get a selection list of projects list(id=list(),name=list())
+## from projects.list and a comma separated list of selected pids
+##
+
+projects.choices <- function(projects.list = list(id=list(),name=list())) {
+  pids.vector <- projects.list$id
+  names(pids.vector) <- projects.list$name
+  pids.vector
+}
+projects.selected <- function(projects.list = list(id=list(),name=list()), pids.selected.css = "" ) {
+  if(is.null(pids.selected.css)) {
+    pids.selected.css <-  ""
+  }
+  pids.selected <- unlist(strsplit(pids.selected.css,","))
+  projects.list.index <- projects.list$id %in% pids.selected
+  pnames.selected.vector <- unlist(projects.list$name[projects.list.index])
+  if (length(pnames.selected.vector) == 0)    pnames.selected.vector <- NULL
+  pnames.selected.vector
+}
+
+projects.selector <- function(projects.list = list(id=list(),name=list()), pids.selected.css = "" ) {
+  if(is.null(pids.selected.css)) {
+    pids.selected.css <-  ""
+  }
+  pids.vector <- projects.list$id
+  names(pids.vector) <- projects.list$name
+  pids.selected <- unlist(strsplit(pids.selected.css,","))
+  projects.list.index <- pids.vector %in% pids.selected
+  pnames.selected.vector <- unlist(projects.list$name[projects.list.index])
+  if (length(pnames.selected.vector) == 0)    pnames.selected.vector <- NULL
+  list(choices=pids.vector, selected=pnames.selected.vector)
+  }

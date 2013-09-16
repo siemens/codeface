@@ -1,0 +1,9 @@
+Integration notes for shiny-server
+==================================
+
+(1) In server.r find the following line and change pathLevel to 1:
+
+observe({
+    ## TODO: when integrated in Shiny-Server, change pathLevel=1
+    updateCookieInput(session, "qacompareids", input$selectedpids, pathLevel=0, expiresInDays=1 )
+  })

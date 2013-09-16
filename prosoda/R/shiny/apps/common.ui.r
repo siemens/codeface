@@ -16,16 +16,26 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-#library(shiny)
-#source("../nav/breadcrumb.shiny.r")
-
 shinyUI(bootstrapPage(
-	tags$div( class = "container",
-		tags$div( class="row", 
-      breadcrumbOutput("quantarchBreadcrumb")),
-	  tags$div( class="row", 
-		  tags$div( class="span12", style = "padding: 10px 0px;", tags$h1( textOutput("quantarchHeader")))),
-    tags$div( class="row", 
-      uiOutput("quantarchContent") )
-    )
+	
+  tagList(
+    tags$div( class = "container",
+      ## first row contains breadcrumb and selectors for projects to compare with
+  		tags$div( class="row", 
+  		    tags$div( class = "span8", style = "padding: 10px 0px;",
+                   breadcrumbOutput("quantarchBreadcrumb")),
+  		    tags$div( class = "span4", style = "padding: 10px 0px;",
+  		              compareWithProjectsOutput("selectpidsui"))
+          ),
+      ## second row contains some header or title
+  	  tags$div( class="row", 
+  		  tags$div( class="span12", style = "padding: 10px 0px;", 
+                  tags$h1( textOutput("quantarchHeader")))
+        ),
+      ## third row is the content
+      tags$div( class="row", 
+        uiOutput("quantarchContent") )
+      ),
+  	  ## finally some hidden input
+  	  cookieInput("qacompareids"))
 ))
