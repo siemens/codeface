@@ -17,37 +17,4 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets.r", chdir=TRUE)
-
-shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "vis.clusters")
-
-  clusters <- reactive({widget.clusters.clusters$new(pid())})
-  correlations <- reactive({widget.clusters.correlations$new(pid())})
-  summary <- reactive({widget.clusters.summary$new(pid())})
-  observe({
-    updateSelectInput(session, "cycle", choices=listViews(summary()))
-  })
-
-  range.id <- reactive({input$cycle})
-  observe({
-    output$clustersPlot <- renderWidget(clusters(), range.id())
-    output$correlationPlot <- renderWidget(correlations(), range.id())
-    output$clustersSummary <- renderWidget(summary(), range.id())
-  })
-  output$quantarchContent <- renderUI({
-    pageWithSidebar(
-      headerPanel("Collaboration clusters"),
-      sidebarPanel(
-        selectInput("cycle", "Release Cycle", choices = list(1))
-      ),
-      mainPanel(
-        tabsetPanel(
-          tabPanel("Clusters", plotOutput("clustersPlot")),
-          tabPanel("Correlations", plotOutput("correlationPlot")),
-          tabPanel("Numeric", tableOutput("clustersSummary"))
-        )
-      )
-    )
-  })
-})
+shinyServer(detailPage("vis.clusters", c("widget.clusters.clusters", "widget.clusters.correlations", "widget.clusters.summary")))

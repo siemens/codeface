@@ -91,48 +91,64 @@ gen.cluster.summary <- function(clusters.list) {
   return(do.call(rbind, res))
 }
 
-widget.clusters.clusters <- createRangeIdWidgetClass(
-  "widget.clusters.clusters",
+createWidgetClass(
+  c("widget.clusters.clusters", "widget.clusters", "widget.rangeid"),
   "Clusters",
+  "Developer collaboration Clusters",
+  c("collaboration"),
   2, 1
 )
 
-renderWidget.widget.clusters.clusters <- function(w, range.id=NULL) {
-  if (is.null(range.id)) { range.id <- w$range.ids[[length(w$range.ids)]] }
-  cluster.list <- prepare.clusters(conf$con, w$pid, range.id)
+initWidget.widget.clusters <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$cluster.list <- reactive({prepare.clusters(conf$con, w$pid(), w$view())})
+  return(w)
+}
+
+renderWidget.widget.clusters.clusters <- function(w) {
   renderPlot({
-    do.cluster.plots(cluster.list)
+    do.cluster.plots(w$cluster.list())
   }, height=1024, width=2048)
 }
 
-widget.clusters.correlations <- createRangeIdWidgetClass(
-  "widget.clusters.correlations",
-  "Cluster Correlations"
+createWidgetClass(
+  c("widget.clusters.correlations", "widget.clusters", "widget.rangeid"),
+  "Cluster Correlations",
+  "Cluster Correlations",
+  c("collaboration")
 )
 
-renderWidget.widget.clusters.correlations <- function(w, range.id=NULL) {
-  if (is.null(range.id)) { range.id <- w$range.ids[[length(w$range.ids)]] }
-  cluster.list <- prepare.clusters(conf$con, w$pid, range.id)
-  renderPlot({
-    dat <- {gen.cluster.summary(cluster.list)}
+initWidget.widget.clusters.correlations <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$dat <- reactive({
+    dat <- gen.cluster.summary(w$cluster.list())
     dat <- dat[,c("Reciprocity", "Strength", "Degree", "Size",
                   "Cent.degree", "Cent.closeness", "Cent.betweenness",
                   "Cent.eigenvec")]
-    corrgram(dat, order=FALSE, lower.panel=panel.shade, upper.panel=panel.pie,
+    dat
+  })
+  return(w)
+}
+
+renderWidget.widget.clusters.correlations <- function(w) {
+  renderPlot({
+    corrgram(w$dat(), order=FALSE, lower.panel=panel.shade, upper.panel=panel.pie,
               text.panel=panel.txt, main="")
   })
 }
 
-widget.clusters.summary <- createRangeIdWidgetClass(
-  "widget.clusters.summary",
+createWidgetClass(
+  c("widget.clusters.summary", "widget.clusters", "widget.rangeid"),
   "Cluster Summary",
+  "Tabular summary of clusters",
+  c("collaboration"),
   3, 1,
-  html=widget.tableOutput.html("Cluster Summary")
+  html=widget.tableOutput.html
 )
 
 renderWidget.widget.clusters.summary <- function(w, range.id=NULL) {
-  if (is.null(range.id)) { range.id <- w$range.ids[[length(w$range.ids)]] }
-  cluster.list <- prepare.clusters(conf$con, w$pid, range.id)
-  renderTable({gen.cluster.summary(cluster.list)})
+  renderTable({gen.cluster.summary(w$cluster.list())})
 }
 

@@ -74,45 +74,47 @@ do.authors.per.cycle.plot <- function(project.stats, cycles) {
   print(g)
 }
 
-widget.contributions.multiCycles <- createWidgetClass(
-  "widget.contributions.multiCycles",
-  "Author Turnover",
+createWidgetClass(
+  c("widget.contributions.multiCycles", "widget.contributions"),
+  "Author Turnover", "Time Authors stayed on the Project",
+  c("basics", "collaboration"),
   1, 1
 )
 
-renderWidget.widget.contributions.multiCycles = function(w, view=NULL) {
-  renderPlot({
-    project.stats <- query.contributions.stats.project(conf$con, w$pid)
-    cycles <- get.cycles.con(conf$con, w$pid)
-    do.multi.cycle.plot(project.stats)
-  })
-}
-
-widget.contributions.authorsPerCycle <- createWidgetClass(
-  "widget.contributions.authorsPerCycle",
-  "Authors per Cycle",
+createWidgetClass(
+  c("widget.contributions.authorsPerCycle", "widget.contributions"),
+  "Authors per Cycle", "Number of Authors in each cycle",
+  c("basics", "collaboration"),
   1, 1
 )
 
-renderWidget.widget.contributions.authorsPerCycle = function(w, view=NULL) {
-  renderPlot({
-    project.stats <- query.contributions.stats.project(conf$con, w$pid)
-    cycles <- get.cycles.con(conf$con, w$pid)
-    do.authors.per.cycle.plot(project.stats, cycles)
-  })
-}
-
-widget.contributions.overview <- createWidgetClass(
- "widget.contributions.overview",
- "Contributions - Overview",
- 2, 1
+createWidgetClass(
+  c("widget.contributions.overview", "widget.contributions"),
+  "Contributions - Overview", "Numerical overview of contributions",
+  c("basics", "collaboration"),
+  2, 1
 )
 
-renderWidget.widget.contributions.overview = function(w, view=NULL) {
-  renderPlot({
-    project.stats <- query.contributions.stats.project(conf$con, w$pid)
-    cycles <- get.cycles.con(conf$con, w$pid)
-    do.contrib.overview.plot(project.stats, cycles)
+initWidget.widget.contributions <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$project.stats <- reactive({
+    query.contributions.stats.project(conf$con, w$pid())
   })
+  w$cycles <- reactive({get.cycles.con(conf$con, w$pid())})
+  #NextMethod(w)
+  return(w)
+}
+
+renderWidget.widget.contributions.multiCycles = function(w) {
+  renderPlot({do.multi.cycle.plot(w$project.stats())})
+}
+
+renderWidget.widget.contributions.authorsPerCycle = function(w) {
+  renderPlot({do.authors.per.cycle.plot(w$project.stats(), w$cycles())})
+}
+
+renderWidget.widget.contributions.overview = function(w) {
+  renderPlot({do.contrib.overview.plot(w$project.stats(), w$cycles())})
 }
 

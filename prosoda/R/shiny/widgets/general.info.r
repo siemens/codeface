@@ -17,48 +17,64 @@
 ## All Rights Reserved.
 
 
-widget.general.info.overview <- createWidgetClass(
-  "widget.general.info.overview",
-  "Overview",
+createWidgetClass(
+  c("widget.general.info.overview", "widget.general.info"),
+  "General Information",
+  "General information",
+  NULL, # no topical restrictions
   1, 1,
   html=htmlOutput
 )
 
+## Common queries for all widgets in the following go here
+initWidget.widget.general.info <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$project.name <- reactive({query.project.name(conf$con, w$pid())})
+  w$cycles <- reactive({get.cycles.con(conf$con, w$pid())})
+  return(w)
+}
 
-renderWidget.widget.general.info.overview <- function(w, view=NULL) {
+renderWidget.widget.general.info.overview <- function(w) {
   renderUI({
-    project.name <- query.project.name(conf$con, w$pid)
-    cycles <- get.cycles.con(conf$con, w$pid)
+    pid <- w$pid()
+    project.name <- w$project.name()
+    loginfo(paste("project.name=",project.name," (renderWidget.widget.general.info.overview)."))
+    cycles <- w$cycles()
     date.start <- as.Date(min(cycles$date.start))
     date.end <- as.Date(max(cycles$date.end))
     n.releases <- nrow(cycles)
     n.releases.text <- paste("Analysed", n.releases, "Release cycles.")
-    n.commits <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM commit WHERE projectId=", w$pid))[[1]]
-    n.persons <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM person WHERE projectId=", w$pid)))
-    n.issues <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM issue WHERE projectId=", w$pid)))
-    n.mail.threads <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM mail_thread WHERE projectId=", w$pid)))
+    n.commits <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM commit WHERE projectId=", pid))[[1]]
+    n.persons <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM person WHERE projectId=", pid)))
+    n.issues <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM issue WHERE projectId=", pid)))
+    n.mail.threads <- nrow(dbGetQuery(conf$con, str_c("SELECT 1 FROM mail_thread WHERE projectId=", pid)))
     if (n.releases == 1) {
       n.releases.text <- paste("Analysed one release cycle.")
     }
-    list(
+    tagList(
       div(class="grid_title", HTML(paste("The <em>", project.name, "</em> project"))),
-      HTML(paste("<ul>",
-                 "<li>", n.releases.text,
-                 "<li>", paste("Analysis range: ", month.name[month(date.start)], year(date.start), "until",  month.name[month(date.end)], year(date.end)),
-                 "<li>", paste(n.commits, "commits."),
-                 "<li>", paste(n.persons, "persons."),
-                 "<li>", paste(n.issues, "bugtracker entries."),
-                 "<li>", paste(n.mail.threads, "mailing list threads."),
-                 "</ul>"))
+      HTML(paste("<pre>\n",n.releases.text,
+                 "\n", paste("Analysis range: ", month.name[month(date.start)], year(date.start), "until",  month.name[month(date.end)], year(date.end)),
+                 "\n", paste(n.commits, "commits."),
+                 "\n", paste(n.persons, "persons."),
+                 "\n", paste(n.issues, "bugtracker entries."),
+                 "\n", paste(n.mail.threads, "mailing list threads."),
+                 "</pre>")),
+      p(a(href=paste("?projectid=", w$pid(), "&topic=basics", sep=""), "details..."))
     )
   })
 }
 
-widgetColor.widget.general.info.overview <- function(w) { "lightblue" }
+widgetColor.widget.general.info.overview <- function(w) { reactive({color.neutral}) }
 
-widget.gauge.commits <- createWidgetClass(
+## ----------------------------
+
+createWidgetClass(
   "widget.gauge.commits",
   "Commits",
+  "Number of commits in this project",
+  NULL, # no topical restrictions
   1, 1,
   html = function(id) {
     tagList(
@@ -72,35 +88,50 @@ widget.gauge.commits <- createWidgetClass(
   }
 )
 
-renderWidget.widget.gauge.commits <- function(w, view=NULL) {
-  commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid))
-  #reactive({as.character(commits.alltime$count)})
-  if (commits.alltime$count > 100000) {
-    subtext <- "A lot"
-  } else if (commits.alltime$count > 10000) {
-    subtext <- "Many"
-  } else if (commits.alltime$count > 1000) {
-    subtext <- "Average"
-  } else if (commits.alltime$count > 10) {
-    subtext <- "A few"
-  } else {
-    subtext <- "Possible error!"
-  }
-  reactive({list(text=as.character(commits.alltime$count), subtext=subtext)})
+initWidget.widget.gauge.commits <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$commits.alltime <- reactive({
+    dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid()))
+  })
+  return(w)
+}
+
+renderWidget.widget.gauge.commits <- function(w) {
+  reactive({
+    count <- w$commits.alltime()$count
+    if (count > 100000) {
+      subtext <- "A lot"
+    } else if (count > 10000) {
+      subtext <- "Many"
+    } else if (count > 1000) {
+      subtext <- "Average"
+    } else if (count > 10) {
+      subtext <- "A few"
+    } else {
+      subtext <- "Possible error!"
+    }
+    list(text=as.character(count), subtext=subtext)
+  })
 }
 
 widgetColor.widget.gauge.commits <- function(w) {
-  commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid))
-  if (commits.alltime$count > 100) {
-    return("lightgreen")
-  } else {
-    return("red")
-  }
+  reactive({
+    if (w$commits.alltime()$count > 100) {
+      color.good
+    } else {
+      color.bad
+    }
+  })
 }
 
-widget.gauge.commitspeed <- createWidgetClass(
+# ----------------------
+
+createWidgetClass(
   "widget.gauge.commitspeed",
   "Commit Speed",
+  "Number of commits last month compared to the average number of commits per month",
+  NULL, # no topical restrictions
   1, 1,
   html = function(id) {
     tags$div(id = id,
@@ -113,46 +144,51 @@ widget.gauge.commitspeed <- createWidgetClass(
   }
 )
 
-renderWidget.widget.gauge.commitspeed <- function(w, view=NULL) {
-  commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate LIMIT 1"))
-  commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate DESC LIMIT 1"))
-  commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid))
-  commits.lastmonth <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid, " AND commitDate >= (SELECT DATE_SUB(commitDate, INTERVAL 28 DAY) FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate DESC LIMIT 1)"))
+initWidget.widget.gauge.commitspeed <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$scaled.rate <- reactive({
+    commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid(), " ORDER BY commitDate LIMIT 1"))
+    commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid(), " ORDER BY commitDate DESC LIMIT 1"))
+    commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid()))
+    commits.lastmonth <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid(), " AND commitDate >= (SELECT DATE_SUB(commitDate, INTERVAL 28 DAY) FROM commit WHERE projectId=", w$pid(), " ORDER BY commitDate DESC LIMIT 1)"))
+    length <- as.Date(commit.last$commitDate) - as.Date(commit.first$commitDate)
+    avg.commits <- commits.alltime$count*28.0/as.integer(length)
+    relative.commits <- commits.lastmonth$count/avg.commits
+    relative.commits * 100.0
+  })
+  return(w)
+}
 
-  length <- as.Date(commit.last$commitDate) - as.Date(commit.first$commitDate)
-  avg.commits <- commits.alltime$count*28.0/as.integer(length)
-  relative.commits <- commits.lastmonth$count/avg.commits
-  scaled <- relative.commits * 50.0
+renderWidget.widget.gauge.commitspeed <- function(w) {
   reactive({
-      as.integer(scaled)
+    print("Gauge value: ")
+    str(w$scaled.rate())
+    as.integer(w$scaled.rate())
   })
 }
 
 widgetColor.widget.gauge.commitspeed <- function(w) {
-  commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate LIMIT 1"))
-  commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate DESC LIMIT 1"))
-  commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid))
-  commits.lastmonth <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid, " AND commitDate >= (SELECT DATE_SUB(commitDate, INTERVAL 28 DAY) FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate DESC LIMIT 1)"))
-
-  length <- as.Date(commit.last$commitDate) - as.Date(commit.first$commitDate)
-  avg.commits <- commits.alltime$count*28.0/as.integer(length)
-  relative.commits <- commits.lastmonth$count/avg.commits
-  scaled <- relative.commits * 50.0
-  if (scaled < 10) {
-    return("red")
-  } else if (scaled < 50) {
-    return("lightyellow")
-  } else if (scaled < 150) {
-    return("white")
-  } else {
-    return("lightgreen")
-  }
+  reactive({
+    if (w$scaled.rate() < 10) {
+      color.bad
+    } else if (w$scaled.rate() < 60) {
+      color.warn
+    } else if (w$scaled.rate() < 150) {
+      "white"
+    } else {
+      color.good
+    }
+  })
 }
 
+## ---------------------------
 
-widget.gauge.current.cycle <- createRangeIdWidgetClass(
-  "widget.gauge.current.cycle",
+createWidgetClass(
+  c("widget.gauge.current.cycle", "widget.rangeid"),
   "Current Release Range",
+  "Specifies the release range currently viewed",
+  NULL, # no topical restrictions
   1, 1,
   html = function(id) {
     tagList(
@@ -166,22 +202,30 @@ widget.gauge.current.cycle <- createRangeIdWidgetClass(
   }
 )
 
-renderWidget.widget.gauge.current.cycle <- function(w, view=NULL) {
+renderWidget.widget.gauge.current.cycle <- function(w) {
   reactive({
-    cycle.index <- which(w$cycles$range.id == as.integer(view))
-    date.start <- as.Date(w$cycles$date.start[[cycle.index]])
-    date.end <- as.Date(w$cycles$date.end[[cycle.index]])
-    range.id.name <- w$cycles$cycle[[cycle.index]]
-    subtext <- paste(cycle.index, "of", nrow(w$cycles), "-",
+    range.id <- w$view()
+    cycles <- w$cycles()
+    cycle.index <- which(cycles$range.id == as.integer(range.id))
+    date.start <- as.Date(cycles$date.start[[cycle.index]])
+    date.end <- as.Date(cycles$date.end[[cycle.index]])
+    range.id.name <- cycles$cycle[[cycle.index]]
+    subtext <- paste(cycle.index, "of", nrow(cycles), "-",
                           date.start, "to", date.end)
 
+    print("range id is")
+    str(range.id.name)
     list(text=as.character(range.id.name), subtext=subtext)
   })
 }
 
-widget.gauge.commits.per.cycle <- createRangeIdWidgetClass(
-  "widget.gauge.commits.per.cycle",
+## ---------------------------
+
+createWidgetClass(
+  c("widget.gauge.commits.per.cycle", "widget.rangeid"),
   "Commit Speed in Cycle",
+  "Rate of commits in this release range compared to the average commit rate",
+  NULL, # no topical restrictions
   1, 1,
   html = function(id) {
     tags$div(id = id,
@@ -194,22 +238,26 @@ widget.gauge.commits.per.cycle <- createRangeIdWidgetClass(
   }
 )
 
-renderWidget.widget.gauge.commits.per.cycle <- function(w, view=NULL) {
-  commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate LIMIT 1"))
-  commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " ORDER BY commitDate DESC LIMIT 1"))
-  commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid))
+initWidget.widget.gauge.commits.per.cycle <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$scaled.rate <- reactive({
+    commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid(), " ORDER BY commitDate LIMIT 1"))
+    commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid(), " ORDER BY commitDate DESC LIMIT 1"))
+    commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid()))
 
-  r.commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " AND releaseRangeId=", view, " ORDER BY commitDate LIMIT 1"))
-  r.commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid, " AND releaseRangeId=", view, " ORDER BY commitDate DESC LIMIT 1"))
-  r.commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid, " AND releaseRangeId=", view))
+    r.commit.first <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid(), " AND releaseRangeId=", w$view(), " ORDER BY commitDate LIMIT 1"))
+    r.commit.last <- dbGetQuery(conf$con, str_c("SELECT commitDate FROM commit WHERE projectId=", w$pid(), " AND releaseRangeId=", w$view(), " ORDER BY commitDate DESC LIMIT 1"))
+    r.commits.alltime <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) as count FROM commit WHERE projectId=", w$pid(), " AND releaseRangeId=", w$view()))
 
-  length <- as.Date(commit.last$commitDate) - as.Date(commit.first$commitDate)
-  r.length <- as.Date(r.commit.last$commitDate) - as.Date(r.commit.first$commitDate)
-  avg.commits <- commits.alltime$count*as.integer(r.length)*1.0/as.integer(length)
-  relative.commits <- r.commits.alltime$count/avg.commits
-  scaled <- relative.commits * 50.0
-  reactive({
-      as.integer(scaled)
+    length <- as.Date(commit.last$commitDate) - as.Date(commit.first$commitDate)
+    r.length <- as.Date(r.commit.last$commitDate) - as.Date(r.commit.first$commitDate)
+    avg.commits <- commits.alltime$count*as.integer(r.length)*1.0/as.integer(length)
+    relative.commits <- r.commits.alltime$count/avg.commits
+    relative.commits * 100.0
   })
+  return(w)
 }
 
+renderWidget.widget.gauge.commits.per.cycle <- renderWidget.widget.gauge.commitspeed
+widgetColor.widget.gauge.commits.per.cycle <- widgetColor.widget.gauge.commitspeed

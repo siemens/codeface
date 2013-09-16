@@ -17,33 +17,4 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets.r", chdir=TRUE)
-
-shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "commit.info")
-  splom <- reactive({widget.commit.info.splom$new(pid())})
-  corrgram <- reactive({widget.commit.info.corrgram$new(pid())})
-  observe({
-    updateSelectInput(session, "cycle", choices=listViews(splom()))
-  })
-
-	range.id <- reactive({input$cycle})
-
-  observe({
-    output$commitsSplom <- renderWidget(splom(), range.id())
-    output$commitsCorrgram <- renderWidget(corrgram(), range.id())
-  })
-  output$quantarchContent <- renderUI({
-    tagList(
-      sidebarPanel(
-        selectInput("cycle", "Release Cycle", choices = list(1))
-      ),
-      mainPanel(
-        tabsetPanel(
-          tabPanel("Scatter Plot", plotOutput("commitsSplom")),
-          tabPanel("Correlations", plotOutput("commitsCorrgram"))
-        )
-      )
-    )
-  })
-})
+shinyServer(detailPage("commit.info", c("widget.commit.info.splom", "widget.commit.info.corrgram")))

@@ -16,9 +16,43 @@ $(function(){ //document ready
         function($w, wgd) { 
           return {  col: wgd.col, row: wgd.row, 
                     size_x: wgd.size_x, size_y: wgd.size_y, 
-                    id: $w.children(".shiny-html-output").attr("id") } }
+                    id: $w.children("div['qaid']").attr("qaid"),
+                    cls: $w.children("div['qaclass']").attr("qaclass")} }
     });
   });
+
+  Shiny.addCustomMessageHandler("GridsterMessage",
+    function(message) {	
+			switch(message.msgname) {
+			case 'addWidget': 
+				var gridster = $(".gridster ul").gridster().data('gridster');
+				Shiny.unbindAll();
+				gridster.add_widget( message.html, message. size_x, message.size_y, message.col, message.row );
+        $(".icon-remove-sign").click(function(){
+          var gridster = $(".gridster ul").gridster().data('gridster');
+          var el = $(this).parent();
+          Shiny.unbindAll();
+          gridster.remove_widget(el);
+          Shiny.bindAll();
+        })
+				Shiny.bindAll();
+        var toel = $(".gridsterButton");
+        toel.attr("gridster-action","saveconfig");
+        toel.trigger("change");
+				break;
+      case 'options':
+        if (message.options.addwidget===undefined) message.options.addwidget=true;
+        if (message.options.addwidget) {
+          $("a.gridsterAction[gridster-action='addwidget']").parent('li').removeClass('disabled');
+          $("a.gridsterAction[gridster-action='addwidget']").attr('href','#modalAddWidget');
+        } else {
+          $("a.gridsterAction[gridster-action='addwidget']").parent('li').addClass('disabled');
+          $("a.gridsterAction[gridster-action='addwidget']").attr('href','#');
+        }
+  			break;
+			}
+		}
+	);
 
 // kann man eventuell zusammenfassen:
 
@@ -73,7 +107,15 @@ $.extend(gridsterButtonBinding, {
     case "saveconfig":
       var gridster = $(".gridster ul").gridster().data('gridster');
       var widgetsconfig = gridster.serialize(); //TODO
-      return JSON.stringify(widgetsconfig);
+      var wconfjson = JSON.stringify(widgetsconfig);
+      $.cookie('gridster',wconfjson, { expires: 7 });
+      return wconfjson;
+      break;
+    case "sendcookie":
+      //$.cookie.json = true;
+      var cookieconf = $.cookie('gridster');
+      if (cookieconf === undefined) {cookieconf = '[]';}
+      return cookieconf;
       break;
     case "deletemode":
       
@@ -106,6 +148,5 @@ $.extend(gridsterButtonBinding, {
 });
 
 Shiny.inputBindings.register(gridsterButtonBinding);
-
 
 });

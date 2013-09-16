@@ -15,7 +15,7 @@
 ## All Rights Reserved.
 
 ##
-## Software Projects Navigation Sidebar (server.r) 
+## Software Projects Navigation Sidebar (server.r)
 ##
 
 source("../common.server.r", chdir=TRUE)  # this activates logging
@@ -24,93 +24,52 @@ source("../common.server.r", chdir=TRUE)  # this activates logging
 ## the server function
 ##
 shinyServer(function(input, output, session) {
-  
-	loginfo(isolate(session$clientData$url_search)) # log query string
+  paramstr <- reactive({urlparameter.checked(session$clientData$url_search)})
+  observe({
+    output$quantarchBreadcrumb <- renderUI({renderBreadcrumbPanel("projects",paramstr())})
+  })
+  args.list <- reactive({urlparameter.as.list(paramstr())})
+  ## Read out PID from the URL and check if it is valid
+  pid <- reactive({ args.list()[["projectid"]] })
 
-	## values synchonizes the following reactive blocks  
-	values <- reactiveValues()
-
-	## Reactive Block
-	observe({
-
-		## (1) Handle parameters
-
-		paramstr <- session$clientData$url_search
-		args.list <- parseQueryString(paramstr)
-		pid <- args.list[["projectid"]]
-		#loginfo(paste("projectid=<",as.character(pid),">"))
-		
-		## (2) Create and render breadcrumb navigation as HTML 
-		
-		navData <- breadcrumbPanelData("quantarch", as.character(paramstr))
-		
-		## this is needed for iframe integration only
-		#print(navData)
-		##breadcrumbhtml <- as.character(breadcrumbBrandville( navData ))
-		#logdebug(breadcrumbhtml)
-		# session$sendCustomMessage(
-		  # type = "sendToIframeParent", 
-		  # message = list(
-			# # Name of message to send
-			# msgname = "setNav",
-			# navhtml = breadcrumbhtml
-			# ))
-		
-		## this is needed for direct integration
-		output$quantarchBreadcrumb <- renderUI({
-			breadcrumbPanel( navData )
-			})
-			
-		## (3) Handle project selected by URL parameter "projectid" (if any)
-		
-		selectedId <- 0 # assume that nothing was selected (no URL parameter)
-		projects.n <- nrow(projects.list) # get number of projects
+	## Calculate valid selected PID
+	valid.pid <- reactive({
+    projects.n <- nrow(projects.list);
 		if (projects.n == 0) stop("no projects") # must be non-zero
+    valid.pid <- 0
 		## if URL parameter supplied a project id, check valid range
-		if (!is.null(pid) && !(str_trim(as.character(pid)) == "")) {
-			selectedId <- as.integer(pid)
-			if (selectedId < 1) selectedId <- 1
-			if (selectedId > projects.n) selectedId <- projects.n  
-			}
+		if (!is.null(pid()) && !(str_trim(as.character(pid())) == "")) {
+			valid.pid <- as.integer(pid())
+			if (valid.pid < 1) valid.pid <- 1
+			if (valid.pid > projects.n) valid.pid <- projects.n
+    }
+    valid.pid
+  })
 
-		## finally ends with a valid selection
-		## store in values to trigger output
-		values$sid <- selectedId
-
-		}) # end observe
-    
-	
 	## Reactive Block: Output navigation sidebar with current projects
-	output$selectionlistelements <- renderUI({      
-	
-		selectedItem <- values$sid
-		childrenIds <- nav.list$quantarch$childrenIds(paramstr) # reuse info from nav.list
-		#print(childrenIds)
-		
+	output$selectionlistelements <- renderUI({
+		childrenIds <- nav.list$projects$childrenIds(paramstr()) # reuse info from nav.list
 		## childtags holds the html for the list elements
 		childtags <- tagList()
-		
+
 		if (nrow(childrenIds) > 0) {
 		  for (i in 1:nrow(childrenIds)) {
-			
-			ptr <- nav.list[[as.character(childrenIds$id[i])]]
-			
-			cparamstr <- as.character(childrenIds$params[i])
-			
-			if ( i == selectedItem) {
-			  childtags <- tagAppendChild(childtags, 
+			  ptr <- nav.list[[as.character(childrenIds$id[i])]]
+  			cparamstr <- as.character(childrenIds$params[i])
+  			if ( i == valid.pid()) {
+	  		  childtags <- tagAppendChild(childtags,
 				  tags$li( class = "active", a(href = ptr$url(cparamstr), ptr$label(cparamstr))))
-			} else {
-			  childtags <- tagAppendChild(childtags, 
+		  	} else {
+			    childtags <- tagAppendChild(childtags,
 				  tags$li(a(href = ptr$url(cparamstr), ptr$label(cparamstr))))
-			}
-			#print(childtags)
+  			}
+	  		#print(childtags)
 		  }
 		}
-    	#print(childtags)
-		
+    #print(childtags)
+
 		## finally return the html
-		tagsul <- tags$ul( class = "nav nav-list", 
+		tagsul <- tags$ul( class = "nav nav-list",
 							tags$li( class="nav-header",  "Open Source Projects"))
 		tagAppendChild( tagsul, childtags )
 		})

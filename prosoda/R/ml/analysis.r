@@ -17,6 +17,9 @@
 suppressPackageStartupMessages(library(zoo))
 suppressPackageStartupMessages(library(xts))
 suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(tm))
+suppressPackageStartupMessages(library(tm.plugin.mail))
+
 source("../db.r", chdir=TRUE)
 source("../utils.r", chdir=TRUE)
 source("../query.r", chdir=TRUE)

@@ -60,52 +60,58 @@ do.prcomp <- function(cmt.info.list, subset, method="euclidean") {
   return(res)
 }
 
-widget.commit.structure.mds <- list(
-  title = "Commit Structure - Multidimensional Scaling",
+createWidgetClass(
+  c("widget.commit.structure.mds", "widget.commit.structure"),
+  "Commit Structure - Multidimensional Scaling",
+  "Multidimensional scaling of the commit structure",
+  topics = c("construction"),
   size.x = 2,
-  size.y = 1,
-  new = function(pid) {
-    w <- make.widget(pid)
-    w$subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
-    class(w) <- "widget.commit.structure.mds"
-    return (w)
-  },
-  html = widget.plotOutput.html("Commit Structure (MDS)")
+  size.y = 1
 )
-widget.list$widget.commit.structure.mds <- widget.commit.structure.mds
 
-widget.commit.structure.princomp <- list(
-  title = "Commit Structure - Principal Components",
+createWidgetClass(
+  c("widget.commit.structure.princomp", "widget.commit.structure"),
+  "Commit Structure - Principal Components",
+  "Principal component analysis of the commit structure",
+  topics = c("construction"),
   size.x = 2,
-  size.y = 1,
-  new = function(pid) {
-    w <- make.widget(pid)
-    w$subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
-    class(w) <- "widget.commit.structure.princomp"
-    return (w)
-  },
-  html = widget.plotOutput.html("Commit Structure - Principal Components")
+  size.y = 1
 )
-widget.list$widget.commit.structure.princomp <- widget.commit.structure.princomp
 
-renderWidget.widget.commit.structure.mds <- function(w, view=NULL) {
+initWidget.widget.commit.structure <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$subset <- c("CmtMsgBytes", "ChangedFiles", "DiffSize", "NumTags", "NumSignedOffs")
+  w$cmt.info.list <- reactive({get.cmt.info.list(conf$con, w$pid(), w$subset)})
+  return(w)
+}
+
+initWidget.widget.commit.structure.mds <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$data <- reactive({do.mds(w$cmt.info.list(), method="euclidean")})
+  return(w)
+}
+
+initWidget.widget.commit.structure.princomp <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$data <- reactive({do.prcomp(w$cmt.info.list(), w$subset)})
+  return(w)
+}
+
+renderWidget.widget.commit.structure.mds <- function(w) {
   renderPlot({
-    if (is.null(w$pid)) stop("goo")
-    cmt.info.list <- get.cmt.info.list(conf$con, w$pid, w$subset)
-    dat <- do.mds(cmt.info.list, method="euclidean")
-    g <- ggplot(dat, aes(x=x, y=y, colour=inRC)) + geom_point() +
+    g <- ggplot(w$data(), aes(x=x, y=y, colour=inRC)) + geom_point() +
       facet_wrap(~cycle)
     print(g)
   })
 }
 
-renderWidget.widget.commit.structure.princomp <- function(w, view=NULL) {
+renderWidget.widget.commit.structure.princomp <- function(w) {
   renderPlot({
-    if (is.null(w$pid)) stop("goo")
-    cmt.info.list <- get.cmt.info.list(conf$con, w$pid, w$subset)
-    dat <- do.prcomp(cmt.info.list, w$subset)
-    g <- ggplot(dat, aes(x=x, y=y, colour=prop, shape=inRC)) + geom_point() +
-      facet_wrap(~cycle)
+    g <- ggplot(w$data(), aes(x=x, y=y, colour=prop, shape=inRC)) +
+      geom_point() + facet_wrap(~cycle)
     print(g)
   })
 }

@@ -5,12 +5,25 @@ body {
 
 h1 {
   margin-bottom: 12px;
-  text-align: left; 
+  text-align: left;
   font-size: 30px;
   font-weight: 400;
   color: #000;
 }
 
+a {
+  color: #666666;
+  cursor: pointer;
+}
+a:visited {
+  color: #666666;
+  cursor: pointer;
+}
+a:hover {
+  color: #990000;
+  cursor: pointer;
+  text-decoration: none;
+}
 
 .gridster .gs_w {
   border-radius: 5px;
@@ -43,5 +56,11 @@ div .grid_title {
 div .grid_bigtext {
   font-weight: bold;
   font-size: 80px;
+  line-height: 90%;
+}
+
+div .grid_medtext {
+  font-weight: bold;
+  font-size: 40px;
   line-height: 90%;
 }

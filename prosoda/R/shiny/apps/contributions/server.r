@@ -17,22 +17,8 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets.r", chdir=TRUE)
-
-shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "contributions")
-  observe({
-    output$overview <- renderWidget(widget.contributions.overview$new(pid()))
-    output$multiCycles <- renderWidget(widget.contributions.multiCycles$new(pid()))
-    output$authorsPerCycle <- renderWidget(widget.contributions.authorsPerCycle$new(pid()))
-  })
-  output$quantarchContent <- renderUI({
-    div(
-      tabsetPanel(
-        tabPanel("Overview", plotOutput("overview")),
-        tabPanel("Repeated Contributions", plotOutput("multiCycles")),
-        tabPanel("Authors per cycle", plotOutput("authorsPerCycle"))
-      )
-    )
-  })
-})
+shinyServer(detailPage("contributions", c(
+                              "widget.contributions.overview",
+                              "widget.contributions.multiCycles",
+                              "widget.contributions.authorsPerCycle"
+                              )))

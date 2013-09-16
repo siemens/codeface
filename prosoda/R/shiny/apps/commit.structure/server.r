@@ -17,23 +17,5 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets.r", chdir=TRUE)
-
-shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "commit.structure")
-  observe({
-    output$princompPlot <- renderWidget(widget.commit.structure.princomp$new(pid()))
-    output$mdsPlot <- renderWidget(widget.commit.structure.mds$new(pid()))
-  })
-
-	output$quantarchHeader <- renderText("Commit Structure")
-	output$quantarchContent <- renderUI({
-    tags$div( class="span12",
-      tabsetPanel(
-        tabPanel("Principal components", plotOutput("princompPlot")),
-        tabPanel("Multi-Dimensional Scaling", plotOutput("mdsPlot"))
-      )
-    )
-  })
-})
+shinyServer(detailPage("commit.structure", c("widget.commit.structure.princomp", "widget.commit.structure.mds")))
 

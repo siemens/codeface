@@ -50,36 +50,40 @@ gen.punchcards.ml <- function(con, pid, ml.id) {
   return(res)
 }
 
-widget.punchcard.ml <- list(
-  title = "Mailing list punchcard",
+createWidgetClass(
+  "widget.punchcard.ml",
+  "Mailing list punchcard",
+  "Mailing list punchcard",
+  c("communication"),
   size.x = 2,
-  size.y = 1,
-  new = function(pid) {
-    w <- make.widget(pid)
-    class(w) <- c("widget.punchcard.ml", w$class)
-    w$plots <- dbGetQuery(conf$con, str_c("SELECT id, name FROM mailing_list WHERE projectId=", pid))
-    w$boundaries <- get.cycles.con(conf$con, pid)
-    return (w)
-  },
-  html = widget.plotOutput.html("Mailing list punchcard")
+  size.y = 1
 )
-widget.list$widget.punchcard.ml <- widget.punchcard.ml
 
-renderWidget.widget.punchcard.ml <- function(w, view=NULL) {
-  if (is.null(view)) {
-    view <- w$plots$id[[1]]
-  }
-  res <- gen.punchcards.ml(conf$con, w$pid, view)
+initWidget.widget.punchcard.ml <- function(w) {
+  w$plots <- reactive({
+    query <- str_c("SELECT id, name FROM mailing_list WHERE projectId=", w$pid())
+    dbGetQuery(conf$con, query)
+  })
+  # Call superclass
+  w <- NextMethod(w)
+  w$boundaries <- reactive({get.cycles.con(conf$con, w$pid())})
+  w$res <- reactive({gen.punchcards.ml(conf$con, w$pid(), w$view())})
+  return(w)
+}
+
+renderWidget.widget.punchcard.ml <- function(w) {
   renderPlot({
-    g <- ggplot(res, aes(x=hour, y=day, size=size)) + geom_point() +
+    g <- ggplot(w$res(), aes(x=hour, y=day, size=size)) + geom_point() +
       facet_wrap(~cycle)
     print(g)
   })
 }
 
 listViews.widget.punchcard.ml <- function(w) {
-  l <- w$plots$id
-  names(l) <- w$plots$name
-  l
+  reactive({
+    l <- w$plots()$id
+    names(l) <- w$plots()$name
+    l
+  })
 }
 

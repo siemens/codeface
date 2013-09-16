@@ -17,32 +17,48 @@
 ## All Rights Reserved.
 
 ## Get a commit.info.splom widget
-widget.commit.info.splom <- createRangeIdWidgetClass(
-  "widget.commit.info.splom",
-  "Commit Information - Scatterplot",
-  2, 1
+createWidgetClass(
+  class = c("widget.commit.info.splom", "widget.commit.info", "widget.rangeid"),
+  name = "Commit Information - Scatterplot",
+  description = "Shows the commit information in a scatterplot.",
+  topics = c("basics", "construction"),
+  size.x = 2,
+  size.y = 1,
+  compareable = FALSE
 )
 
-renderWidget.widget.commit.info.splom <- function(w, range.id=NULL) {
-  if (is.null(range.id)) { range.id <- w$range.ids[[length(w$range.ids)]] }
-  dat <- gen.commits.info(conf$con, w$pid, range.id)
+## Get a commit.info.corrgram widget
+createWidgetClass(
+  class = c("widget.commit.info.corrgram", "widget.commit.info", "widget.rangeid"),
+  name = "Commit Information - Correlations",
+  description = "Shows correlations in the commits.",
+  topics = c("construction"),
+  size.x = 1,
+  size.y = 1,
+  compareable = FALSE
+)
+
+## Common initialization of commit.info widgets
+initWidget.widget.commit.info <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  w$data <- reactive({
+    gen.commits.info(conf$con, w$pid(), w$view())
+  })
+  return(w)
+}
+
+# Render a Scatterplot
+renderWidget.widget.commit.info.splom <- function(w) {
   renderPlot({
-    gen.commits.splom(dat$cmt.info, dat$plot.types)
+    gen.commits.splom(w$data()$cmt.info, w$data()$plot.types)
   })
 }
 
-## Get a commit.info.corrgram widget
-widget.commit.info.corrgram <- createRangeIdWidgetClass(
-  "widget.commit.info.corrgram",
-  "Commit Correlations",
-  1, 1
-)
-
-renderWidget.widget.commit.info.corrgram <- function(w, range.id=NULL) {
-  if (is.null(range.id)) { range.id <- w$range.ids[[length(w$range.ids)]] }
-  dat <- gen.commits.info(conf$con, w$pid, range.id)
+# Render Correlations
+renderWidget.widget.commit.info.corrgram <- function(w) {
   renderPlot({
-    gen.commits.corrgram(dat$cmt.info, dat$plot.types)
+    gen.commits.corrgram(w$data()$cmt.info, w$data()$plot.types)
   })
 }
 

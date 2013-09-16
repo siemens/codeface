@@ -6,7 +6,7 @@ $.extend(statusOutputBinding, {
   },
   renderValue: function(el, data) {
     var $el = $(el);
-    $el.children('.grid_bigtext').text(data.text || '');
+    $el.children('.grid_inserttext').text(data.text || '');
     $el.children('p').text(data.subtext || '');
     
     var $grid = $el.parent('li.gs_w');

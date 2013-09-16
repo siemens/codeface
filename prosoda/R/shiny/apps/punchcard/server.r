@@ -17,15 +17,5 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-source("../../widgets.r", chdir=TRUE)
-
-shinyServer(function(input, output, clientData, session) {
-  pid = common.server.init(output, session, "punchcard")
-  observe({
-    output$punchcardPlot <- renderWidget(widget.punchcard$new(pid()))
-  })
-  output$quantarchContent <- renderUI({
-    plotOutput("punchcardPlot")
-  })
-})
+shinyServer(detailPage("punchcard", c("widget.punchcard")))
 
