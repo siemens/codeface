@@ -17,8 +17,4 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-shinyServer(detailPage("release_distance", c("widget.release.distance"),
-                       additional.input = list(
-                         name2 = selectInput("name2", "Also show project:", choices=projects.list$name),
-                         name3 = selectInput("name3", "Also show project:", choices=projects.list$name)
-                       )))
+shinyServer(detailPage("release_distance", c("widget.release.distance")))

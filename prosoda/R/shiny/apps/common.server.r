@@ -51,7 +51,7 @@ common.server.init <- function(input, output, session, app.name) {
   output$quantarchBreadcrumb <- renderUI({renderBreadcrumbPanel(app.name, paramstr())})
 
   ## Read out PID from the URL and check if it is valid
-  pid <- reactive({ args.list$projectid })
+  pid <- reactive({ args.list()$projectid })
 
   ## returns the choices named vector
   choices <- projects.choices(projects.list)
@@ -152,9 +152,11 @@ detailPage <- function(app.name, widgets, additional.input=list()){
       choices <- listViews(widget.instances[[1]])()
       sidebar <- list()
       if (length(choices) > 1) {
-        sidebar <- c(sidebar, list(selectInput("view", "View:", choices=choices)))
+        sidebar <- c(sidebar, list(selectInput("view", h3("View:"), choices=choices)))
       }
       sidebar <- c(sidebar, additional.input)
+      sidebar <- c(sidebar, tagList(h3("Detail Information:")))
+      sidebar <- c(sidebar, lapply(widget.instances, function(w) { tagList(h4(widgetTitle(w)()), p(widgetExplanation(w)())) }))
       names(sidebar) <- NULL
 
       if (length(sidebar) > 0) {
