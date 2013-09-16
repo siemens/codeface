@@ -52,8 +52,8 @@ widgetbase.output <- function(id, w, pid, size_x, size_y, col, row, selected.pid
     ##
     ## Widget creation and initialization (see: widget.r)
     ##
-    inst <- initWidget(newWidget(w, pid, NULL, selected.pids))
-    loginfo(paste("Finished initialising new widget", w$name))
+    inst <- initWidget(newWidget(w, pid, reactive({NULL}), selected.pids))
+    loginfo(paste("Finished initialising new widget:", w$name))
     
     ## build the widget's property list
     wb$id <- id
