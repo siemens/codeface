@@ -45,14 +45,14 @@ widgetbase.output.new <- function(id, w, pid) {
 ##
 ## Widget builder for fully configured widgets
 ##
-widgetbase.output <- function(id, w, pid, size_x, size_y, col, row) {
+widgetbase.output <- function(id, w, pid, size_x, size_y, col, row, selected.pids) {
   wb <- list()
   tryCatch({
     
     ##
     ## Widget creation and initialization (see: widget.r)
     ##
-    inst <- initWidget(newWidget(w, pid))
+    inst <- initWidget(newWidget(w, pid, NULL, selected.pids))
     loginfo(paste("Finished initialising new widget", w$name))
     
     ## build the widget's property list
@@ -190,6 +190,7 @@ shinyServer(function(input, output, session) {
   ## Returns a list of selected project names (reactive statement)
   ##
   selected <- reactive({ projects.selected( projects.list, input$qacompareids) })
+  selected.pids <- reactive({  unlist(strsplit(input$qacompareids,",")) })
   
   ##
   ## Outputs an enhanced selectInput "selectedpids" (reactive assignment)
@@ -268,8 +269,8 @@ shinyServer(function(input, output, session) {
       ## Build widget using the widgetbase.output builder
       ##
       widget.classname <- as.character(w$cls)       
-      widget.class <- widget.list.filtered[[widget.classname]]
-      widgetbase <- widgetbase.output(w$id, widget.class, this.pid, w$size_x, w$size_y, w$col, w$row)
+      widget.class <- widget.list[[widget.classname]]
+      widgetbase <- widgetbase.output(w$id, widget.class, this.pid, w$size_x, w$size_y, w$col, w$row, selected.pids)
       
       #loginfo(paste("Preparing widget: ", w$id, "for class: ", widget.classname ))
       

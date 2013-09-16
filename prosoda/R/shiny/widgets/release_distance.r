@@ -66,18 +66,20 @@ createWidgetClass(
 renderWidget.widget.release.distance <- function(w) {
   renderPlot({
     projectname <- projects.list$name[[which(projects.list$id == as.integer(w$pid()))]]
-    if (!is.null(w$name2) && !is.null(w$name2())) {
-      name2 <- w$name2()
+    if(is.null(w$pids.compare())) {
+      compare.projectnames <- list()
+      if (!is.null(w$name2) && !is.null(w$name2())) {
+        compare.projectnames <- c(compare.projectnames, w$name2())
+      }
+      if (!is.null(w$name3) && !is.null(w$name3())) {
+        compare.projectnames <- c(compare.projectnames, w$name3())
+      }
     } else {
-      name2 <- "qemu"
+      compare.projectnames <- lapply(w$pids.compare(), function(pid) {
+        return(projects.list[projects.list$id==pid,]$name)
+      })
     }
-    if (!is.null(w$name3) && !is.null(w$name3())) {
-      name3 <- w$name3()
-    } else {
-      name3 <- "qemu"
-    }
-    print(do.release.distance.plot(conf$con, list(projectname,
-                                                  name2, name3)))
+    print(do.release.distance.plot(conf$con, c(projectname, compare.projectnames)))
   })
 }
 
