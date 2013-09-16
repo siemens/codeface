@@ -41,31 +41,39 @@ source("../nav/qa_cookie.r", chdir = TRUE)
 
 common.server.init <- function(input, output, session, app.name) {
   loginfo("Common server init...")
-  paramstr <- urlparameter.checked(isolate(session$clientData$url_search))
-  loginfo(paste("paramstr= ", paramstr))
-  output$quantarchBreadcrumb <- renderUI({renderBreadcrumbPanel(app.name,paramstr)})
-  args.list <- urlparameter.as.list(paramstr)
+
+  ## Get the parameters from the query string
+  paramstr <- reactive({ urlparameter.checked(session$clientData$url_search) })
+  args.list <- reactive({ urlparameter.as.list(paramstr()) })
+
+  ## Render the breadcrumb panel; the app.name determines
+  ## the position in the hierarchy
+  output$quantarchBreadcrumb <- renderUI({renderBreadcrumbPanel(app.name, paramstr())})
+
   ## Read out PID from the URL and check if it is valid
-  pid <- reactive({args.list[["projectid"]]})
-  
+  pid <- reactive({ args.list$projectid })
+
   ## returns the choices named vector
   choices <- projects.choices(projects.list)
+
   ## returns a reactive list containing selected projects
   selected <- reactive({ projects.selected( projects.list, input$qacompareids) })
-  selected.pids <- reactive({  unlist(strsplit(input$qacompareids,",")) })
-  
-  ## demoes how to use the choices and adding options for chosen.jquery.js
+  selected.pids <- reactive({ unlist(strsplit(input$qacompareids,",")) })
+
+  ## Create project comparison user interface
   output$selectpidsui <- renderCompareWithProjectsInput(
     "selectedpids","",choices, selected(), list(width="100%"))
-  
-  ## demoes how to update the cookies from the "selectedpids" ui input
+
+  ## Update the cookies for the project comparsion
   ## also available via choices (but beware of duplicate project names)
   observe({
     updateCookieInput(session, "qacompareids", input$selectedpids, pathLevel=0, expiresInDays=1 )
   })
-  
-  loginfo("Common server init done.")  
-  return(list(pid=pid,selected=selected.pids,args.list=args.list ))
+
+  loginfo("Common server init done.")
+  return(list(pid=pid,
+              selected=selected.pids,
+              args.list=args.list ))
 }
 
 
