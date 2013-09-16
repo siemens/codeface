@@ -175,10 +175,10 @@ initWidget.widget.overview.project <- function(w) {
   w <- NextMethod(w)
   w$status <- reactive({
     list(
-      construction = good.warn.bad.if(w$data()$n.commits, 1000, 10),
-      collab = good.warn.bad.if(w$data()$n.tsplots, 1, 0),
-      comm = good.warn.bad.if(w$data()$n.mail.threads, 1000, 10),
-      complex = good.warn.bad.if(w$data()$n.understand.plots, 10, 0)
+      collab = good.warn.bad.if(figure.of.merit.collaboration(w$pid()), figure.of.merit.collaboration.warn, figure.of.merit.collaboration.bad),
+      construction = good.warn.bad.if(figure.of.merit.construction(w$pid()), figure.of.merit.construction.warn, figure.of.merit.construction.bad),
+      comm = good.warn.bad.if(figure.of.merit.communication(w$pid()), figure.of.merit.communication.warn, figure.of.merit.communication.bad),
+      complex = good.warn.bad.if(figure.of.merit.complexity(w$pid()), figure.of.merit.complexity.warn, figure.of.merit.complexity.bad)
     )
   })
   return(w)
@@ -249,7 +249,7 @@ initWidget.widget.overview.communication <- function(w) {
   w$symbol <- symbol.communication
   w$symbols <- symbols.emotion
   w$link <- reactive({ paste("?topic=communication&projectid=", w$pid(), sep="") })
-  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), .5, .9) })
+  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), figure.of.merit.communication.warn, figure.of.merit.communication.bad) })
   return(w)
 }
 
@@ -260,7 +260,7 @@ initWidget.widget.overview.collaboration <- function(w) {
   w$symbol <- symbol.collaboration
   w$symbols <- symbols.gestures
   w$link <- reactive({ paste("?topic=collaboration&projectid=", w$pid(), sep="") })
-  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), .5, .9) })
+  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), figure.of.merit.collaboration.warn, figure.of.merit.collaboration.bad) })
   return(w)
 }
 
@@ -271,7 +271,7 @@ initWidget.widget.overview.construction <- function(w) {
   w$symbol <- symbol.construction
   w$symbols <- symbols.abstract
   w$link <- reactive({ paste("?topic=construction&projectid=", w$pid(), sep="") })
-  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), .5, .9) })
+  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), figure.of.merit.construction.warn, figure.of.merit.construction.bad) })
   return(w)
 }
 
@@ -280,9 +280,9 @@ initWidget.widget.overview.complexity <- function(w) {
   w <- NextMethod(w)
   w$figure.of.merit <- reactive({ figure.of.merit.complexity(w$pid()) })
   w$symbol <- symbol.complexity
-  w$symbols <- symbols.arrows
+  w$symbols <- symbols.arrows.up.is.bad
   w$link <- reactive({ paste("?topic=complexity&projectid=", w$pid(), sep="") })
-  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), .5, .9) })
+  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), figure.of.merit.complexity.warn, figure.of.merit.complexity.bad) })
   return(w)
 }
 

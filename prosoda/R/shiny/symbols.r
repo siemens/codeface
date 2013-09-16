@@ -107,6 +107,7 @@ symbols.gestures <- list(
                         )
 
 
+symbols.arrows.up.thick <- intToUtf8(0x21D1)
 symbols.arrows.upward.thick <- intToUtf8(0x21D7)
 symbols.arrows.upward <- intToUtf8(0x2197)
 symbols.arrows.right <- intToUtf8(0x219d)
@@ -119,6 +120,15 @@ symbols.arrows = list(
                       warn = symbols.arrows.right,
                       mostly.bad = symbols.arrows.downward,
                       bad = symbols.arrows.downward.thick,
+                      error = symbols.arrows.error
+                      )
+
+symbols.arrows.up.is.bad = list(
+                      good = symbols.arrows.downward,
+                      mostly.good = symbols.arrows.right,
+                      warn = symbols.arrows.upward,
+                      mostly.bad = symbols.arrows.upward.thick,
+                      bad = symbols.arrows.up.thick,
                       error = symbols.arrows.error
                       )
 
