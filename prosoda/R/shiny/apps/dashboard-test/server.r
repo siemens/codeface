@@ -38,8 +38,8 @@ getuniqueid <- function( x , prefix = "") {
 ##
 ## Widget Builder for new widgets
 ##
-widgetbase.output.new <- function(id, w, pid) {
-  widgetbase.output(id,w,pid,w$size.x, w$size.y, 1, 1 )
+widgetbase.output.new <- function(id, w, pid, selected.pids) {
+  widgetbase.output(id,w,pid,w$size.x, w$size.y, 1, 1, selected.pids)
 }
 
 ##
@@ -431,7 +431,7 @@ shinyServer(function(input, output, session) {
       widget.class <- widget.list[[widget.classname]]
 
       ## add html to widget instance which wraps into gridster item
-      widgetbase <- widgetbase.output.new(id, widget.class, pid)
+      widgetbase <- widgetbase.output.new(id, widget.class, pid, selected.pids)
 
       loginfo(paste("Creating new widget: ", id, "for class: ", widget.classname ))
 
