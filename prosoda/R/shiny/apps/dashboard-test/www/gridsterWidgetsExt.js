@@ -28,6 +28,9 @@ $(function(){ //document ready
 				var gridster = $(".gridster ul").gridster().data('gridster');
 				Shiny.unbindAll();
 				gridster.add_widget( message.html, message. size_x, message.size_y, message.col, message.row );
+
+        $(".gridster div#"+message.qaid).popover(message.help);
+        
         $(".icon-remove-sign").click(function(){
           var gridster = $(".gridster ul").gridster().data('gridster');
           var el = $(this).parent();

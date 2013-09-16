@@ -65,6 +65,9 @@ widgetbase.output <- function(id, w, pid, size_x, size_y, col, row, selected.pid
     wb$col <- col
     wb$row <- row
     
+    ## Hilfetext
+    wb$help <- list(title="Help title", content="help body", html=FALSE, trigger="click" )
+    
   }, warning = function(warn) {
     logwarn(paste("widgetbase.output.new(id=", id, " w=<", w$name,">, pid=",isolate(pid()),":", toString(warn)))
   }, error = function(err) {
@@ -101,7 +104,9 @@ sendWidgetContent <- function(session, w) {
       size_x = as.character(w$size_x),	# in units of grid width
       size_y = as.character(w$size_y),	# dto
       col = as.character(w$col),			# column in grid
-      row = as.character(w$row)			# row in grid
+      row = as.character(w$row),			# row in grid
+      qaid = w$id,
+      help = w$help
     )
   )}
 
