@@ -407,6 +407,12 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
   ## Create igraph object and perform manipulations
   g <- graph.data.frame(edgelist, directed=TRUE,
                         vertices=data.frame(node.local.ids))
+  V(g)$Id <- 1:vcount(g)
+  ## remove communities of size 1
+  min.comm <- minCommGraph(g, comm, min=2)
+  g    <- min.comm$graph
+  comm <- min.comm$community
+  node.rank <- node.rank[V(g)$Id]
   cluster.conductance <- community.metric(g, comm, "conductance")
   g.min      <- min.edge.count(g, comm, node.rank)
   g.min.simp <- simplify(g.min, remove.multiple=TRUE,remove.loops=TRUE)
@@ -428,7 +434,7 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
   ## Cluster Attributes
   cluster.id <- sort(unique(comm$membership))-1
   ## border thickness
-  clusterData(g.viz, cluster.id, "penwidth") <- "15"
+  clusterData(g.viz, cluster.id, "penwidth") <- "75"
   ## background color
   clusterData(g.viz, cluster.id,"bgcolor") <- comm.col
   ## border style
@@ -437,8 +443,8 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
   clusterData(g.viz, cluster.id, "color") <- pie.vertex$comm.col
   ## cluster label
   central.node.idx <- important.community.nodes(comm, node.rank)
-  clusterData(g.viz, cluster.id, "label") <-
-              as.character(node.label[central.node.idx])
+  clusterData(g.viz, cluster.id, "label") <- paste("ID ",cluster.id + 1, sep="")
+  clusterData(g.viz, cluster.id, "fontsize") <- "120"
 
   ## Node Attributes
   n.idx <-  as.character(1:vcount(g))
@@ -485,16 +491,16 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
   ## scale inter-community edges seperately from intra-community edges
   if(any(inter.comm.edges)) {
     edgeData(g.viz ,from=from.inter.comm, to=to.inter.comm, "penwidth") <-
-		  as.character(scale.data((inter.comm.weights)+1,0.1,20))
+		  as.character(scale.data((inter.comm.weights)+1, 1, 20))
     edgeData(g.viz ,from=from.inter.comm, to=to.inter.comm, "arrowsize") <-
-		  as.character(scale.data((inter.comm.weights)+1,0.1,20)/3)
+		  as.character(scale.data((inter.comm.weights)+1, 0.1, 20) / 3)
   }
   if(any(!inter.comm.edges)){
     ## scale intra-community edges
     edgeData(g.viz, from=from.intra.comm, to=to.intra.comm, "penwidth") <-
-             as.character(scale.data(log(intra.comm.weights)+1,1,10))
+             as.character(scale.data(log(intra.comm.weights)+1, 1, 10))
     edgeData(g.viz, from=from.intra.comm, to=to.intra.comm, "arrowsize") <-
-             as.character(scale.data(log(intra.comm.weights)+1,1,10)/3)
+             as.character(scale.data(log(intra.comm.weights)+1, 1, 10) / 3)
   }
   ## edge weights are used in the layout algorithm
   edgeData(g.viz, from=from.viz, to=to.viz, "weight") <-
