@@ -43,13 +43,15 @@ as.color <- function(status) {
   status.codes.colors[[which(status.codes == status)]]
 }
 
-good.warn.bad.if <- function(x, good.limit, warn.limit) {
+good.warn.bad.if <- function(x, good.limit, warn.limit, err.limit=0) {
   if (x > good.limit) {
     status.good
   } else if (x > warn.limit) {
     status.warn
-  } else {
+  } else if (x > err.limit) {
     status.bad
+  } else {
+    status.error
   }
 }
 
