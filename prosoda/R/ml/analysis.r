@@ -589,7 +589,7 @@ store.initiate.response <- function(conf, ir, ml.id, range.id) {
 
   res <- dbWriteTable(conf$con, "initiate_response", dat, append=TRUE, row.names=FALSE)
   if (!res) {
-    stop("Internal error: Could not write thread.info into database!")
+    stop("Internal error: Could not write initiate_response into database!")
   }
 }
 
