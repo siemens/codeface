@@ -306,7 +306,9 @@ projects.choices <- function(projects.list = list(id=list(),name=list())) {
   pids.vector
 }
 projects.selected <- function(projects.list = list(id=list(),name=list()), pids.selected.css = "" ) {
-  
+  if(is.null(pids.selected.css)) {
+    pids.selected.css <-  ""
+  }
   pids.selected <- unlist(strsplit(pids.selected.css,","))
   projects.list.index <- projects.list$id %in% pids.selected
   pnames.selected.vector <- unlist(projects.list$name[projects.list.index])
@@ -315,7 +317,9 @@ projects.selected <- function(projects.list = list(id=list(),name=list()), pids.
 }
 
 projects.selector <- function(projects.list = list(id=list(),name=list()), pids.selected.css = "" ) {
-  
+  if(is.null(pids.selected.css)) {
+    pids.selected.css <-  ""
+  }
   pids.vector <- projects.list$id
   names(pids.vector) <- projects.list$name
   pids.selected <- unlist(strsplit(pids.selected.css,","))
