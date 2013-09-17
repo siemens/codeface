@@ -48,7 +48,7 @@ symbols.emotion <- list(
                         warn = symbol.emotion.neutral,
                         mostly.bad = symbol.emotion.disappointed,
                         bad = symbol.emotion.disappointed,
-                        error = symbol.emotion.fear
+                        error = "?"
                         )
 
 
@@ -69,7 +69,7 @@ symbols.abstract <- list(
                          warn = symbol.abstract.warning,
                          mostly.bad = symbol.abstract.cross,
                          bad = symbol.abstract.cross.heavy,
-                         error = symbol.abstract.error
+                         error = "?"
                          )
 
 
@@ -103,7 +103,7 @@ symbols.gestures <- list(
                         warn = symbols.gestures.hand,
                         mostly.bad = symbols.gestures.thumbsdown,
                         bad = symbols.gestures.thumbsdown,
-                        error = symbols.gestures.twohands
+                        error = "?"
                         )
 
 
@@ -120,7 +120,7 @@ symbols.arrows = list(
                       warn = symbols.arrows.right,
                       mostly.bad = symbols.arrows.downward,
                       bad = symbols.arrows.downward.thick,
-                      error = symbols.arrows.error
+                      error = "?"
                       )
 
 symbols.arrows.up.is.bad = list(
@@ -129,7 +129,7 @@ symbols.arrows.up.is.bad = list(
                       warn = symbols.arrows.upward,
                       mostly.bad = symbols.arrows.upward.thick,
                       bad = symbols.arrows.up.thick,
-                      error = symbols.arrows.error
+                      error = "?"
                       )
 
 ## Symbols for processing steps

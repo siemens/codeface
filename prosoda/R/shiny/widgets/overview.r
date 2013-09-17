@@ -29,7 +29,7 @@ symbols.project.status <- symbols.emotion
 ## Status codes as factors from one of good, warn, bad, error
 ## factors obtained with as.status obey good > warn > bad > error
 status.codes <- c("error", "bad", "mostly.bad", "warn", "mostly.good", "good")
-status.codes.colors <- c(color.bad, color.bad, color.bad, color.warn, color.good, color.good)
+status.codes.colors <- c(color.neutral, color.bad, color.bad, color.warn, color.good, color.good)
 
 as.status <- function(x) { factor(x, levels=status.codes, ordered=TRUE) }
 status.good <- as.status("good")
