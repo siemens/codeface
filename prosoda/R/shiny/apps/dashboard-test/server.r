@@ -70,8 +70,10 @@ widgetbase.output <- function(id, w, pid, size_x, size_y, col, row, selected.pid
     
   }, warning = function(warn) {
     logwarn(paste("widgetbase.output.new(id=", id, " w=<", w$name,">, pid=",isolate(pid()),":", toString(warn)))
+    print(traceback(warn))
   }, error = function(err) {
     logerror(paste("widgetbase.output.new(id=", id, " w=<", w$name,">, pid=",isolate(pid()),":", toString(err)))
+    print(traceback(err))
   }, {})
   wb
 }  
@@ -388,8 +390,10 @@ shinyServer(function(input, output, session) {
             
             }, warning = function(wr) {
               logwarn(paste("While rendering widget", wout$widget.class$name, ":", toString(wr)))
+              print(traceback(wr))
             }, error = function(e) {
               logerror(paste("While rendering widget", wout$widget.class$name, ":", toString(e)))
+              print(traceback(e))
             }, {})
          
           }) # end local
