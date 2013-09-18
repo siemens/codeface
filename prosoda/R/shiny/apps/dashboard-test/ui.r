@@ -48,7 +48,7 @@ shinyUI(bootstrapPage(
               gridsterButton("gridsterActionMenu","addWidgetDialog"))),
   		div(class = "row",
   			div(class = "span12",
-  				gridster(width = 250, height = 250))
+  				gridster(width = 260, height = 260))
   			)
   		),
   	## finally some hidden input

@@ -140,7 +140,7 @@ createWidgetClass(
              units="% of average",
              min=0,
              max=200,
-             style="width:250px; height:200px")
+             style="width:260px; height:200px")
   }
 )
 
@@ -234,7 +234,7 @@ createWidgetClass(
              units="% of average",
              min=0,
              max=200,
-             style="width:250px; height:200px")
+             style="width:260px; height:200px")
   }
 )
 
