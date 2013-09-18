@@ -20,6 +20,16 @@
 source("../symbols.r", chdir=TRUE)
 source("../figures.of.merit.r", chdir=TRUE)
 
+combine.status <- function(status.list) {
+  status.individual <- c(unlist(status.list))
+  status.individual <- status.individual[!(as.integer(status.individual) == as.integer(status.error))]
+  if (length(status.individual) == 0) {
+    status.error
+  } else {
+    as.status(status.codes[mean(status.individual)])
+  }
+}
+
 ## Global status indicators for the project processing overview widget:
 symbols.processing.status <- symbols.weather
 
@@ -89,17 +99,6 @@ initWidget.widget.overview <- function(w) {
   return(w)
 }
 
-## Superclass method that derives the widgets background color from
-## the average status value
-widgetColor.widget.overview <- function(w) {
-  reactive({
-    ## Collaboration indicator color
-    combined.status <- status.codes[mean(c(unlist(w$status())))]
-    as.color(combined.status)
-    color.neutral
-  })
-}
-
 ## Widget which presents a processing overview for prosoda operators
 createWidgetClass(
   c("widget.overview.processing", "widget.overview"),
@@ -150,6 +149,12 @@ renderWidget.widget.overview.processing <- function(w) {
   })
 }
 
+widgetColor.widget.overview.processing <- function(w) {
+  ## Also consider errors as "bad"
+  reactive({as.color(status.codes[mean(c(unlist(w$status())))])})
+}
+
+
 ## Widget which creates an overview of a project for analysts
 createWidgetClass(
   c("widget.overview.project", "widget.overview"),
@@ -176,7 +181,7 @@ initWidget.widget.overview.project <- function(w) {
 renderWidget.widget.overview.project <- function(w) {
   renderUI({
     ## Collaboration indicator color
-    combined.status <- status.codes[mean(c(unlist(w$status())))]
+    combined.status <- as.character(combine.status(w$status()))
     indicator.summary <- symbols.processing.status[[which(names(symbols.processing.status) == combined.status)]]
 
     indicator.collaboration <- make.indicator(symbol.collaboration, as.color(w$status()$collab))
@@ -194,6 +199,12 @@ renderWidget.widget.overview.project <- function(w) {
                                  )),
               link
     )
+  })
+}
+
+widgetColor.widget.overview.project <- function(w) {
+  reactive({
+    as.color(combine.status(w$status()))
   })
 }
 
