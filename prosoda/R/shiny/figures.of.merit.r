@@ -13,9 +13,38 @@
 #
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 
+## Status codes as factors from one of good, warn, bad, error
+## factors obtained with as.status obey good > warn > bad > error
+## You can therefore use status <- min(status, status.warn)
+## to only update a status value towards "bad"/"error"
+## as well as using median() or mean() to summarize errors.
+status.codes <- c("error", "bad", "mostly.bad", "warn", "mostly.good", "good")
+status.codes.colors <- c(color.neutral, color.bad, color.bad, color.warn, color.good, color.good)
 
+as.status <- function(x) { factor(x, levels=status.codes, ordered=TRUE) }
+status.good <- as.status("good")
+status.mostly.good <- as.status("mostly.good")
+status.warn <- as.status("warn")
+status.mostly.bad <- as.status("mostly.bad")
+status.bad <- as.status("bad")
+status.error <- as.status("error")
+
+#' Fit a line to the plot given by name in the given period
+#'
+#' In the time period from the last timestamp in the timeseries given by name
+#' and the number of days given in period.in.days before that, fit a line
+#' to the values in the time series.
+#'
+#' @param pid the ID of the project
+#' @param name the name of the time series to fit
+#' @param period.in.days the time before the last timestamp to analyse
+#' @return a list with the relative increase per year measured by the mean,
+#'         and the significance in terms of the standard deviation (sigma)
+#'
+#' If 'Sigma in terms of the standard deviation' is an unfamiliar quantity, see:
+#' http://en.wikipedia.org/wiki/Statistical_significance#In_terms_of_.CF.83_.28sigma.29
 fit.plot.linear <- function(pid, name, period.in.days) {
-  period <- period.in.days*3600*24
+  period <- period.in.days*3600*24 # seconds/day = 3600*24
   plot.id <- get.plot.id.con(conf$con, pid, name)
   ts.orig <- query.timeseries(conf$con, plot.id)
   ts.x <- xts(x=ts.orig$value, order.by=ts.orig$time)
@@ -24,76 +53,107 @@ fit.plot.linear <- function(pid, name, period.in.days) {
   ## Summarize per week
   ts <- apply.weekly(ts.x, function(x) { mean(x) })
   ts <- data.frame(time=index(ts), value=coredata(ts))
+  ## Check if we have any data left
+  if (length(ts$time) < 2) {
+    return(rel.increase.per.year=NA, sigma=NA)
+  }
   ## Fit with linear model
   m1 <- lm(value ~ time, ts)
   s <- summary(m1)
   print(s)
-  mean.last.period <- mean(ts$value)
   increase <- s$coefficients[[2]]
   increase.stderr <- s$coefficients[[4]]
   increase.sigma <- abs(increase/increase.stderr)
-  list(rel.increase.per.year=increase * 3600 * 24 * 365 / mean.last.period,
-       sigma=increase/increase.stderr,
-       increase=increase,
-       increase.stderr=increase.stderr)
+  ## Calculate the fit at the last timestamp (y = c + <increase>*t)
+  fit.value.now <- s$coefficients[[1]] + as.integer(ts$time[length(ts$time)]) * increase
+  list(rel.increase.per.year=increase * 3600 * 24 * 365 / fit.value.now,
+       sigma=increase/increase.stderr)
 }
 
 
-
-figure.of.merit.collaboration.warn <- 0.75
-figure.of.merit.collaboration.bad <- 0.5
 figure.of.merit.collaboration <- function(pid) {
   n.commits <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM commit WHERE projectId=", pid))[[1]]
   n.persons <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM person WHERE projectId=", pid))[[1]]
   #n.issues <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM issue WHERE projectId=", pid))[[1]]
-  min(n.commits/1000., n.persons/20.)
+  msg <- list()
+  status <- status.good
+  if (n.commits == 0) {
+    msg <- c(msg, "No commits are in the database!")
+    status <- min(status, status.error)
+  } else if (n.commits < 100) {
+    msg <- c(msg, "There seem to be very few commits in this project.")
+    status <- min(status, status.bad)
+  } else if (n.commits < 1000) {
+    msg <- c(msg, "The project has not had many commits so far.")
+    status <- min(status, status.warn)
+  } else {
+    msg <- c(msg, "There is a sizeable number of commits in the project repository.")
+  }
+  if (n.persons == 0) {
+    msg <- c(msg, "The commit analysis seems to have failed.")
+    status <- min(status, status.error)
+  } else if (n.persons == 1) {
+    msg <- c(msg, "There seems to be only a single committer in this project.")
+    status <- min(status, status.bad)
+  } else if (n.persons < 12) {
+    msg <- c(msg, "Less than an dozen people have contributed to this project.")
+    status <- min(status, status.warn)
+  } else {
+    msg <- c(msg, "Some ", as.character(n.persons), " people have contributed to this project.")
+  }
+  list(status=status, why=do.call(paste, msg))
 }
 
-figure.of.merit.communication.warn <- 500
-figure.of.merit.communication.bad <- 100
 figure.of.merit.communication <- function(pid) {
   n.mail.threads <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM mail_thread WHERE projectId=", pid))[[1]]
+  list(status=status.good, why="No reason")
 }
 
-figure.of.merit.construction.warn <- 1
-figure.of.merit.construction.bad <- 0
 figure.of.merit.construction <- function(pid) {
   n.tsplots <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM plots WHERE name LIKE 'Progress%' AND projectId=", pid))[[1]]
-  n.tsplots
+  list(status=status.good, why="No reason")
 }
 
-figure.of.merit.complexity.warn <- 1.0
-figure.of.merit.complexity.bad <- 0
 figure.of.merit.complexity <- function(pid) {
+  ## First, check if any complexity analysis plots exist
   understand.plots <- dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE name LIKE 'Understand%' AND projectId=", pid))
   if (length(understand.plots) == 0) {
-    return(NA) # Cannot return figure of merit if no complexity analysis was done
+    return(list(status=status.error, why="No complexity analysis plots were found.")) # Cannot return figure of merit if no complexity analysis was done
   }
+
+  ## Do a linear fit over the last year
   res <- lapply(understand.plots$name, function(name) {
     fit.plot.linear(pid, name, 365)
   })
   sigma <- sapply(res, function(x) {x$sigma})
   inc <- sapply(res, function(x) {x$rel.increase.per.year})
-  sigma[is.nan(sigma) | is.na(sigma)] <- 0.0
-  print(inc)
-  print(sigma)
-  inc[sigma < 10] <- 0.0 # if sigma < 10 we cannot reliably say anything
+  ## Remove values from inc where the fit failed
+  sigma <- sigma[!(is.nan(inc) | is.na(inc))]
+  inc <- inc[!(is.nan(inc) | is.na(inc))]
+  ## If no values are left, we have to abort.
+  if (length(inc) == 0) {
+    return(list(status=status.error, why="Complexity analysis plots could not be ",
+                "fitted. Probably the complexity analysis failed."))
+  }
+  ## Anything less than 5 sigma is not a discovery, especially not
+  ## since the fit will in general be very bad.
+  ## We therefore set the magnitude to zero, meaning "no detectable change"
+  inc[sigma < 5] <- 0.0
   max.val <- max(inc)
-
   if (max.val < -0.05) {
     max.plot <- understand.plots$name[which.max(inc)]
-    list(status="good",
+    list(status=status.good,
          why=str_c("The Complexity metric ", max.plot, " is falling by ~", format(max.val*100, digits=1), "% per year. This seems to be a good sign for maintainability."))
   } else if (max.val < 0.05) {
-    list(status="good",
+    list(status=status.good,
          why=str_c("The maximal complexity metrics have not changed much in the last year."))
   } else if (max.val < 0.40) {
     max.plot <- understand.plots$name[which.max(inc)]
-    list(status="warn",
+    list(status=status.warn,
          why=str_c("The Complexity metric ", max.plot, " is increasing by ~", format(max.val*100, digits=1), "% per year. This may make it harder to maintain the project."))
   } else {
     max.plot <- understand.plots$name[which.max(inc)]
-    list(status="bad",
+    list(status=status.bad,
          why=str_c("The Complexity metric ", max.plot, " is increasing by ~", format(max.val*100, digits=1), "% per year. This is quite a lot and may make maintenance hard."))
   }
 }

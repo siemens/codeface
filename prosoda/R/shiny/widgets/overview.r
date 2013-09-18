@@ -26,19 +26,6 @@ symbols.processing.status <- symbols.weather
 ## Global status indicators for the project status widget:
 symbols.project.status <- symbols.emotion
 
-## Status codes as factors from one of good, warn, bad, error
-## factors obtained with as.status obey good > warn > bad > error
-status.codes <- c("error", "bad", "mostly.bad", "warn", "mostly.good", "good")
-status.codes.colors <- c(color.neutral, color.bad, color.bad, color.warn, color.good, color.good)
-
-as.status <- function(x) { factor(x, levels=status.codes, ordered=TRUE) }
-status.good <- as.status("good")
-status.mostly.good <- as.status("mostly.good")
-status.warn <- as.status("warn")
-status.mostly.bad <- as.status("mostly.bad")
-status.bad <- as.status("bad")
-status.error <- as.status("error")
-
 as.color <- function(status) {
   status.codes.colors[[which(status.codes == status)]]
 }
@@ -177,10 +164,10 @@ initWidget.widget.overview.project <- function(w) {
   w <- NextMethod(w)
   w$status <- reactive({
     list(
-      collab = good.warn.bad.if(figure.of.merit.collaboration(w$pid()), figure.of.merit.collaboration.warn, figure.of.merit.collaboration.bad),
-      construction = good.warn.bad.if(figure.of.merit.construction(w$pid()), figure.of.merit.construction.warn, figure.of.merit.construction.bad),
-      comm = good.warn.bad.if(figure.of.merit.communication(w$pid()), figure.of.merit.communication.warn, figure.of.merit.communication.bad),
-      complex = as.status(figure.of.merit.complexity(w$pid())$status)
+      collab = figure.of.merit.collaboration(w$pid())$status,
+      construction = figure.of.merit.construction(w$pid())$status,
+      comm = figure.of.merit.communication(w$pid())$status,
+      complex = figure.of.merit.complexity(w$pid())$status
     )
   })
   return(w)
@@ -251,7 +238,7 @@ initWidget.widget.overview.communication <- function(w) {
   w$symbol <- symbol.communication
   w$symbols <- symbols.emotion
   w$link <- reactive({ paste("?topic=communication&projectid=", w$pid(), sep="") })
-  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), figure.of.merit.communication.warn, figure.of.merit.communication.bad) })
+  w$status <- reactive({ w$figure.of.merit()$status })
   return(w)
 }
 
@@ -262,7 +249,7 @@ initWidget.widget.overview.collaboration <- function(w) {
   w$symbol <- symbol.collaboration
   w$symbols <- symbols.gestures
   w$link <- reactive({ paste("?topic=collaboration&projectid=", w$pid(), sep="") })
-  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), figure.of.merit.collaboration.warn, figure.of.merit.collaboration.bad) })
+  w$status <- reactive({ w$figure.of.merit()$status })
   return(w)
 }
 
@@ -273,7 +260,7 @@ initWidget.widget.overview.construction <- function(w) {
   w$symbol <- symbol.construction
   w$symbols <- symbols.abstract
   w$link <- reactive({ paste("?topic=construction&projectid=", w$pid(), sep="") })
-  w$status <- reactive({ good.warn.bad.if(w$figure.of.merit(), figure.of.merit.construction.warn, figure.of.merit.construction.bad) })
+  w$status <- reactive({ w$figure.of.merit()$status })
   return(w)
 }
 
@@ -284,7 +271,7 @@ initWidget.widget.overview.complexity <- function(w) {
   w$symbol <- symbol.complexity
   w$symbols <- symbols.arrows.up.is.bad
   w$link <- reactive({ paste("?topic=complexity&projectid=", w$pid(), sep="") })
-  w$status <- reactive({ as.status(w$figure.of.merit()$status) })
+  w$status <- reactive({ w$figure.of.merit()$status })
   return(w)
 }
 
@@ -304,12 +291,9 @@ widgetColor.widget.overview.topic <- function(w) {
   })
 }
 
-widgetExplanation.widget.overview.complexity <- function(w) {
+widgetExplanation.widget.overview.topic <- function(w) {
   reactive({
     w$figure.of.merit()$why
   })
 }
-#renderWidget.widget.overview.construction <- renderWidget.widget.overview.communication
-#renderWidget.widget.overview.collaboration <- renderWidget.widget.overview.communication
-#renderWidget.widget.overview.complexity <- renderWidget.widget.overview.communication
 
