@@ -289,6 +289,7 @@ renderCompareWithProjectsInput <- function( inputId, label, choices, selected = 
     select <- selectInput(inputId, label, choices, multiple=TRUE, selected=selected )
     select.tag <- select[[2]]
     select.tag$attribs$class <- "chosen-select"
+    select.tag$attribs[["data-placeholder"]] <- "Select Projects for Comparison"
     select[[2]] <- select.tag
     opts <- toJSON(options, collapse="")
     if (length(options) == 0) opts <- ""
