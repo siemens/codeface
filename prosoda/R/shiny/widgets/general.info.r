@@ -136,10 +136,10 @@ createWidgetClass(
   html = function(id) {
     tags$div(id = id,
              class = "justgage_output",
-             title="Commits last month",
-             units="% of average",
-             min=0,
-             max=200,
+             "data-title"="Commits last month",
+             "data-units"="% of average",
+             "data-min"=0,
+             "data-max"=200,
              style="width:260px; height:200px")
   }
 )
@@ -230,10 +230,10 @@ createWidgetClass(
   html = function(id) {
     tags$div(id = id,
              class = "justgage_output",
-             title="Commits this cycle",
-             units="% of average",
-             min=0,
-             max=200,
+             "data-title"="Commits this cycle",
+             "data-units"="% of average",
+             "data-min"=0,
+             "data-max"=200,
              style="width:260px; height:200px")
   }
 )
