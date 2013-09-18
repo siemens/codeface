@@ -47,6 +47,8 @@ fit.plot.linear <- function(pid, name, period.in.days) {
   period <- period.in.days*3600*24 # seconds/day = 3600*24
   plot.id <- get.plot.id.con(conf$con, pid, name)
   ts.orig <- query.timeseries(conf$con, plot.id)
+  ## Remove NA entries in the time series (where do they come from?
+  ts.orig <- data.frame(value=ts.orig$value[!is.na(ts.orig$time)], time=ts.orig$time[!is.na(ts.orig$time)])
   ts.x <- xts(x=ts.orig$value, order.by=ts.orig$time)
   ## Restrict to given time period
   ts.x <- ts.x[paste(ts.orig$time[length(ts.orig$time)] - period, "/", sep="")]
@@ -60,14 +62,17 @@ fit.plot.linear <- function(pid, name, period.in.days) {
   ## Fit with linear model
   m1 <- lm(value ~ time, ts)
   s <- summary(m1)
-  print(s)
+  #print(paste("Fit to", name))
+  #print(s)
   increase <- s$coefficients[[2]]
   increase.stderr <- s$coefficients[[4]]
   increase.sigma <- abs(increase/increase.stderr)
   ## Calculate the fit at the last timestamp (y = c + <increase>*t)
   fit.value.now <- s$coefficients[[1]] + as.integer(ts$time[length(ts$time)]) * increase
   list(rel.increase.per.year=increase * 3600 * 24 * 365 / fit.value.now,
-       sigma=increase/increase.stderr)
+       sigma=increase/increase.stderr,
+       fit.value.now=fit.value.now
+       )
 }
 
 
@@ -106,7 +111,51 @@ figure.of.merit.collaboration <- function(pid) {
 
 figure.of.merit.communication <- function(pid) {
   n.mail.threads <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM mail_thread WHERE projectId=", pid))[[1]]
-  list(status=status.good, why="No reason")
+  ml.plots <-  dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", pid, " AND releaseRangeId IS NULL AND name LIKE '%activity'"))
+  if (length(n.mail.threads) == 0 || length(ml.plots) == 0) {
+    return(list(status=status.error, why="No mailing list to analyse."))
+  }
+
+  ## Do a linear fit over the last year
+  res <- lapply(ml.plots$name, function(name) {
+    fit.plot.linear(pid, name, 365)
+  })
+  sigma <- sapply(res, function(x) {x$sigma})
+  inc <- sapply(res, function(x) {x$rel.increase.per.year})
+  val <- sapply(res, function(x) {x$fit.value.now})
+  ## Remove values from inc where the fit failed
+  selected <- !(is.nan(inc) | is.na(inc) | is.null(inc))
+  sigma <- sigma[selected]
+  inc <- inc[selected]
+  val <- val[selected]
+  ## If no values are left, we have to abort.
+  if (length(inc) == 0) {
+    return(list(status=status.error, why="Mailing list activity could not be fitted. This probably indicates a problem with the analysis."))
+  }
+  ## Anything less than 5 sigma is not a discovery, especially not
+  ## since the fit will in general be very bad.
+  ## We therefore set the magnitude to zero, meaning "no detectable change"
+  inc[sigma < 5] <- 0.0
+  ## Select the most active mailing list
+  max.index <- which.max(val)
+  max.plot <- ml.plots$name[max.index]
+  increase.per.year <- inc[max.index]
+  if (max(val)*30 < 12) { # less than 12 mails per month is "dead"
+    list(status=status.bad,
+         why=str_c("The ", max.plot, " is less than a dozen mails per month. This may indicate that the project is not actively developed, that mostly private or other channels are used for communication."))
+  } else if (increase.per.year < -0.50) {
+    list(status=status.bad,
+         why=str_c("The ", max.plot, " is falling by ~", format(increase.per.year*100, digits=1), "% per year. This may indicate that the project is being abandoned or that the means of communication are changing."))
+  } else if (increase.per.year < -0.10) {
+    list(status=status.warn,
+         why=str_c("The ", max.plot, " is falling by ~", format(increase.per.year*100, digits=1), "% per year. This may indicate decreasing development activity or that the means of communication are changing."))
+  } else if (increase.per.year < 0.10) {
+    list(status=status.good,
+         why=str_c("The ", max.plot, " is approximately constant."))
+  } else {
+    list(status=status.good,
+         why=str_c("The ", max.plot, " is increasing by ~", format(increase.per.year*100, digits=1), "% per year. This indicates increasing development activity."))
+  }
 }
 
 figure.of.merit.construction <- function(pid) {
