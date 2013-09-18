@@ -159,8 +159,31 @@ figure.of.merit.communication <- function(pid) {
 }
 
 figure.of.merit.construction <- function(pid) {
-  n.tsplots <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM plots WHERE name LIKE 'Progress%' AND projectId=", pid))[[1]]
-  list(status=status.good, why="No reason")
+  plot.ids <- dbGetQuery(conf$con, str_c("SELECT id FROM plots WHERE name LIKE 'Release TS distance' AND projectId=", pid))
+  if (length(plot.ids) == 0) {
+    return(list(status=status.error, why="Release information not available. This usually means that the analysis has not yet completed."))
+  }
+  plot.id <- plot.ids$id[[1]]
+  release.distance <- query.timeseries(conf$con, plot.id)
+  l <- length(release.distance$time)
+  if (l == 0) {
+    return(list(status=status.error, why="Release information not available. This usually means that the analysis has not yet completed."))
+  } else if (l < 3) {
+    return(list(status=status.bad, why="Very few releases have been made. It is not yet possible to quantify the construction."))
+  }
+  ## create xts time series
+  ts.x <- xts(x=release.distance$value, order.by=release.distance$time)
+  ## Restrict to given time period
+  period <- 3600*24*365 * 5 # Look at the past five years only
+  ts.x <- ts.x[paste(release.distance$time[l] - period, "/", sep="")]
+  median.distance <- median(ts.x)
+  if (median.distance > 0.5) {
+    return(list(status=status.bad, why="The release structure seems highly irregular."))
+  } else if (median.distance > 0.2) {
+    return(list(status=status.warn, why="The release structure seems to be irregular."))
+  } else {
+    return(list(status=status.good, why="The release structure seems to be regular."))
+  }
 }
 
 figure.of.merit.complexity <- function(pid) {
