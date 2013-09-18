@@ -52,6 +52,17 @@ good.warn.bad.if <- function(x, good.limit, warn.limit, err.limit=0) {
   }
 }
 
+text.enumerate <- function(lst) {
+  l <- length(lst)
+  if (l == 0) {
+    return("")
+  } else if (l == 1) {
+    return(as.character(lst[[1]]))
+  } else {
+    paste(do.call(function(...) { paste(..., sep=", ") }, as.list(lst[1:l-1])), "and", lst[l])
+  }
+}
+
 ## Provide a round status indicator with the given background color
 ## and containing the specified symbol.
 make.indicator <- function(symbol, color) {
@@ -169,10 +180,10 @@ initWidget.widget.overview.project <- function(w) {
   w <- NextMethod(w)
   w$status <- reactive({
     list(
-      collab = figure.of.merit.collaboration(w$pid())$status,
+      collaboration = figure.of.merit.collaboration(w$pid())$status,
       construction = figure.of.merit.construction(w$pid())$status,
-      comm = figure.of.merit.communication(w$pid())$status,
-      complex = figure.of.merit.complexity(w$pid())$status
+      communication = figure.of.merit.communication(w$pid())$status,
+      complexity = figure.of.merit.complexity(w$pid())$status
     )
   })
   return(w)
@@ -184,10 +195,10 @@ renderWidget.widget.overview.project <- function(w) {
     combined.status <- as.character(combine.status(w$status()))
     indicator.summary <- symbols.processing.status[[which(names(symbols.processing.status) == combined.status)]]
 
-    indicator.collaboration <- make.indicator(symbol.collaboration, as.color(w$status()$collab))
+    indicator.collaboration <- make.indicator(symbol.collaboration, as.color(w$status()$collaboration))
     indicator.construction <- make.indicator(symbol.construction, as.color(w$status()$construction))
-    indicator.communication <- make.indicator(symbol.communication, as.color(w$status()$comm))
-    indicator.complexity <- make.indicator(symbol.complexity, as.color(w$status()$complex))
+    indicator.communication <- make.indicator(symbol.communication, as.color(w$status()$communication))
+    indicator.complexity <- make.indicator(symbol.complexity, as.color(w$status()$complexity))
 
     link <- paste("?projectid=", w$pid(), sep="")
     overview.html(w$project.name(), indicator.summary,
@@ -205,6 +216,35 @@ renderWidget.widget.overview.project <- function(w) {
 widgetColor.widget.overview.project <- function(w) {
   reactive({
     as.color(combine.status(w$status()))
+  })
+}
+
+widgetExplanation.widget.overview.project <- function(w) {
+  reactive({
+    print("--------------------")
+    cs <- combine.status(w$status())
+    error <- names(w$status()[w$status() == as.integer(status.error)])
+    good <- names(w$status()[w$status() == as.integer(status.good)])
+    warn <- names(w$status()[w$status() == as.integer(status.warn)])
+    bad <- names(w$status()[w$status() == as.integer(status.bad)])
+    if (all(w$status() == status.good)) {
+      return("This project has good marks in all categories and is fully analysed.")
+    }
+    res <- list()
+    if (length(good) > 0) {
+      res <- c(res, paste("This project has good marks in ", text.enumerate(good), ".", sep=""))
+    }
+    if (length(warn) > 0) {
+      res <- c(res, paste("Warnings have been reported for ", text.enumerate(warn), ".", sep=""))
+    }
+    if (length(bad) > 0) {
+      res <- c(res, paste("There seem to be problems in ", text.enumerate(bad), ".", sep=""))
+    }
+    if (length(error) > 0) {
+      res <- c(res, paste("No analysis has been done for ", text.enumerate(error), ".", sep=""))
+    }
+    res <- c(res, "Click 'details...' to get more information on the evaluations.")
+    do.call(paste, res)
   })
 }
 
