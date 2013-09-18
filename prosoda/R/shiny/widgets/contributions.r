@@ -84,7 +84,7 @@ createWidgetClass(
 createWidgetClass(
   c("widget.contributions.authorsPerCycle", "widget.contributions"),
   "Authors per Cycle", "Number of Authors in each cycle",
-  c("basics", "collaboration"),
+  c("basics", "collaboration", "complexity"),
   1, 1
 )
 
