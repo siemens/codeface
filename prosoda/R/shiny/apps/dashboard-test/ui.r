@@ -37,12 +37,12 @@ shinyUI(bootstrapPage(
   	),
     
   	div(class = "container",
-      div(class = "row",
-          div(class = "span7", style = "padding: 10px 0px;",
+      div(class = "row", style="margin-top: 10px; height: 36px;",
+          div(class = "span7", style = "height: 100%;",
   	          breadcrumbOutput("quantarchBreadcrumb")),
-          div( class="span1", style = "padding: 13px 0px; text-align: center;",
+          div( class="span1", style = "padding: 3px 0px; text-align: center;",
               gridsterButton("gridsterActionMenu","addWidgetDialog")),
-          div( class="span4", style = "padding: 10px 0px;",
+          div( class="span4",
               compareWithProjectsOutput("selectpidsui"))
           ),
   		div(class = "row",

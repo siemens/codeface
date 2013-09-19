@@ -17,18 +17,17 @@
 ## All Rights Reserved.
 
 shinyUI(bootstrapPage(
-	
   tagList(
     tags$div( class = "container",
       ## first row contains breadcrumb and selectors for projects to compare with
-  		tags$div( class="row", 
-  		    tags$div( class = "span8", style = "padding: 10px 0px;",
+  		tags$div( class="row", style="margin-top: 10px; height: 36px;",
+  		    tags$div( class = "span8", style = "height: 100%;",
                    breadcrumbOutput("quantarchBreadcrumb")),
-  		    tags$div( class = "span4", style = "padding: 10px 0px;",
-  		              compareWithProjectsOutput("selectpidsui"))
+  		    tags$div( class = "span4",
+                   compareWithProjectsOutput("selectpidsui"))
           ),
       ## second row contains some header or title
-  	  tags$div( class="row", 
+  	  tags$div( class="row",
   		  tags$div( class="span12", style = "padding: 10px 0px;", 
                   tags$h1( textOutput("quantarchHeader")))
         ),

@@ -204,7 +204,7 @@ shinyServer(function(input, output, session) {
   ##    (uses the chosen.jquery.js plugin)
   ##
   output$selectpidsui <- renderCompareWithProjectsInput(
-    "selectedpids","",choices, selected(), list(width="85%"))
+    "selectedpids","",choices, selected(), list(width="100%"))
   
   ##
   ## Update the "qacompareids" cookie with input from the "selectedpids" selectInput
