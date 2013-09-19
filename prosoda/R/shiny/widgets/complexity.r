@@ -115,3 +115,44 @@ renderWidget.widget.complexity.loc = function(w) {
     print(g)
   })
 }
+
+createWidgetClass(
+  c("widget.complexity.diff.size", "widget.complexity.loc.per.author"),
+  "Cumulative diff size in a release",
+  "Number of lines added, removed or changed in all edits in the release cycle",
+  c("complexity"),
+  1, 1
+)
+
+renderWidget.widget.complexity.diff.size = function(w) {
+  renderPlot({
+    str(w$dat()$summary)
+    g <- ggplot(w$dat()$summary, aes(x=cycle, y=cycle.diff.size)) +
+                geom_bar(stat="identity") +
+                xlab("Release range") +
+                ylab("Lines added, removed or changed")
+    print(g)
+  })
+}
+
+createWidgetClass(
+  c("widget.complexity.relative.diff.size", "widget.complexity.loc.per.author"),
+  "Cumulative diff size compared to lines of code",
+  "Compares the length of the sum of all diffs of all edits in the cycle with the number of lines of code",
+  c("complexity"),
+  1, 1
+)
+
+renderWidget.widget.complexity.relative.diff.size = function(w) {
+  renderPlot({
+    str(w$dat()$summary)
+    g <- ggplot(w$dat()$summary, aes(x=cycle, y=100*cycle.diff.size/loc)) +
+                geom_bar(stat="identity") +
+                expand_limits(y=10) +
+                expand_limits(y=100.0) +
+                scale_y_log10(breaks=c(0.5, 1, 2.5, 5, 10, 25, 50, 100, 250, 500, 1000, 10000)) +
+                xlab("Release range") +
+                ylab("Diff size / Lines of Code in %")
+    print(g)
+  })
+}
