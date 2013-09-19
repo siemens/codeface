@@ -215,7 +215,7 @@ renderWidget.widget.overview.project <- function(w) {
 
 widgetColor.widget.overview.project <- function(w) {
   reactive({
-    as.color(combine.status(w$status()))
+    color.neutral
   })
 }
 
