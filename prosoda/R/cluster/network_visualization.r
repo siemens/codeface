@@ -23,6 +23,8 @@
 ##  to support the heavy manipulation as a precursor to visualization.
 suppressPackageStartupMessages(library(Rgraphviz))
 suppressPackageStartupMessages(library(colorspace))
+suppressPackageStartupMessages(library(Matrix))
+suppressPackageStartupMessages(library(lattice))
 ################################################################################
 ## Low Level Functions
 ################################################################################
