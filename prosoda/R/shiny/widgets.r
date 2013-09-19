@@ -294,4 +294,5 @@ source("widgets/punchcard.r", chdir=TRUE)
 source("widgets/release_distance.r", chdir=TRUE)
 source("widgets/timeseries.r", chdir=TRUE)
 source("widgets/vis.clusters.r", chdir=TRUE)
+source("widgets/weekend.r", chdir=TRUE)
 
