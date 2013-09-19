@@ -342,15 +342,20 @@ shinyServer(function(input, output, session) {
     ## Button input returns widget configuration as JSON
     ##
     cjson <- input$gridsterActionMenu    
-    loginfo(paste("Got input from button:",cjson))
+    #loginfo(paste("Got input from button:",cjson))
 
     if (!is.null(cjson) && isValidJSON(cjson,TRUE)) {
       
       ##
       ## Create R list object (unnamed) from JSON
+      ## The first element is either "save" or "update". If it is "save", the
+      ## configuration should be saved to file, otherwise only the displayed
+      ## widgets should be updated.
       ##
-      widgets.displayed <- fromJSON(cjson)
-      #print(widgets.displayed)
+      button.info <- fromJSON(cjson)
+      save.or.update <- button.info[[1]]
+      widgets.displayed <- button.info[[2]]
+
       
       ##
       ## Create list of widget ids supposed to be rendered
@@ -402,11 +407,11 @@ shinyServer(function(input, output, session) {
         } # end for
       ##
       ## Save this configuration as a .config file
-      if (!is.null(pid()) || (topic() == "testall")) {
+      if (save.or.update == "save" && (!is.null(pid()) || (topic() == "testall"))) {
         ## update configuration file
         ## TODO: move to extra observe block
         ## TODO: save as cookie
-        widget.config$widgets <- fromJSON(cjson)
+        widget.config$widgets <- widgets.displayed
         #widget.config$content <- widget.content
         dput(widget.config, file = config.file(),
               control = c("keepNA", "keepInteger", "showAttributes"))

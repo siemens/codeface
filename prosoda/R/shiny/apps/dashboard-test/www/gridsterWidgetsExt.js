@@ -40,7 +40,7 @@ $(function(){ //document ready
         })
 				Shiny.bindAll();
         var toel = $(".gridsterButton");
-        toel.attr("gridster-action","saveconfig");
+        toel.attr("gridster-action","updateconfig");
         toel.trigger("change");
 				break;
       case 'options':
@@ -67,6 +67,7 @@ $(".gridsterAction").on("click", function(evt) {
   var toel = $(".gridsterButton");
   switch( gaction ) {
     case "saveconfig":
+    case "updateconfig":
       toel.attr("gridster-action",el.attr("gridster-action"));
       toel.parent().removeClass("open");
       toel.trigger("change");
@@ -107,9 +108,16 @@ $.extend(gridsterButtonBinding, {
   getValue: function(el) {
     var gaction = $(el).attr("gridster-action");
     switch( gaction ) {
+    case "updateconfig":
+      var gridster = $(".gridster ul").gridster().data('gridster');
+      var widgetsconfig = {type:"update", widgets:gridster.serialize()}; //TODO
+      var wconfjson = JSON.stringify(widgetsconfig);
+      $.cookie('gridster',wconfjson, { expires: 7 });
+      return wconfjson;
+      break;
     case "saveconfig":
       var gridster = $(".gridster ul").gridster().data('gridster');
-      var widgetsconfig = gridster.serialize(); //TODO
+      var widgetsconfig = {type:"save", widgets:gridster.serialize()}; //TODO
       var wconfjson = JSON.stringify(widgetsconfig);
       $.cookie('gridster',wconfjson, { expires: 7 });
       return wconfjson;

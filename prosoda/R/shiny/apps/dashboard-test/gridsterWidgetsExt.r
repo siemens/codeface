@@ -26,11 +26,9 @@ gridsterButton <- function(inputId, widgetdialogId) {
                     href="#", "Save configuration")),
         tags$li( a( tabindex="-1", class="gridsterAction", "gridster-action"="deletemode", 
                    href="#", "Delete ON")),
-        tags$li( a( tabindex="-1", class="gridsterAction", "gridster-action"="addwidget", 
-                   href="#modalAddWidget", "data-toggle"="modal", "Add widget")),
-        tags$li( a( tabindex="-1", href="#", "Action")),
         tags$li( class="divider" ),
-        tags$li( a( tabindex="-1", href="#", "Action"))
+        tags$li( a( tabindex="-1", class="gridsterAction", "gridster-action"="addwidget", 
+                   href="#modalAddWidget", "data-toggle"="modal", "Add widget"))
         )
 	    ),
       
