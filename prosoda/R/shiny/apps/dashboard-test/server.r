@@ -26,18 +26,20 @@ source("../common.server.r", chdir=TRUE)   # REMARK: only source and library sta
 
 ## generate a unique name to be added to list
 ## template used is: "prefix<integer>"
-getuniqueid <- function( x , prefix = "") {
-  idrange <- length(x)+10
-  newid <- paste(prefix,as.character(sample(1:idrange,1)),sep="")
-  while ((newid %in% x)) {
-    newid <- paste(prefix,as.character(sample(1:idrange,1)),sep="")
+internal.getuniqueid.last <<- 1
+internal.getuniqueid.existing <<- character(0)
+getuniqueid <- function(prefix = "") {
+  internal.getuniqueid.last <<- internal.getuniqueid.last + 1
+  id <- paste(prefix, internal.getuniqueid.last, sep="")
+  if (id %in% internal.getuniqueid.existing) {
+    getuniqueid(prefix)
+  } else {
+    id
   }
-  newid 
 }
 
-##
 ## Generic widgetUI based on widget instance
-widgetUI <- function(x, ...) UseMethod("widgetUI") 
+widgetUI <- function(x, ...) UseMethod("widgetUI")
 
 widgetUI.widget <- function(w, id) {
   ## define basic widget ui for widget instances
@@ -54,7 +56,6 @@ widgetUI.widget.rangeid <- function(w, id) {
   w
 }
 
-
 widgetbase.output.selectview <- function(w, id) {
   ## render a selectInput
   mychoices <- as.list(isolate({listViews(w)()}))
@@ -64,35 +65,38 @@ widgetbase.output.selectview <- function(w, id) {
   #print(myselected)
   #print(mychoices)
   inputView.id.local <- paste(id, "_selectedview",sep="")
-  w$ui <- tagList(w$ui, tags$div(width="100%", selectInput(inputView.id.local, "", choices = mychoices, 
+  w$ui <- tagList(w$ui, tags$div(width="100%", selectInput(inputView.id.local, "", choices = mychoices,
                                                            selected = myselected)))
-  w$selectedviewid <- inputView.id.local
+  wselectedviewid <- inputView.id.local
   w
 }
 
 ##
 ## Widget Builder for new widgets
 ##
-widgetbase.output.new <- function(id, widget.class, pid, selected.pids) {
-  widgetbase.output(id,widget.class,pid,widget.class$size.x, widget.class$size.y, 1, 1, selected.pids)
+widgetbase.output.new <- function(input, output, id, widget.class, pid, selected.pids) {
+  widgetbase.output(input, output, id, widget.class, pid, widget.class$size.x, widget.class$size.y, 1, 1, selected.pids)
 }
 
 ##
-## Widget builder for fully configured widgets (widget.class, pid, selectedpids are reactive)
+## Widget builder for fully configured widgets (pid and selected.pids must be reactive)
 ##
-widgetbase.output <- function(id, widget.class, pid, size_x, size_y, col, row, selected.pids) {
+widgetbase.output <- function(input, output, id, widget.class, pid, size_x, size_y, col, row, selected.pids) {
   wb <- list()
   tryCatch({
-    
-    ##
     ## Widget creation and initialization (see: widget.r)
-    ##
-    inst <- initWidget(newWidget(widget.class, pid, reactive({NULL}), selected.pids))
+    titleOutput.id <- paste(id, "_title",sep="")
+    inputView.id <- paste(id, "_selectedview",sep="")
+
+    loginfo(paste("Start initialisation of new widget:", widget.class))
+    inst <- initWidget(newWidget(widget.class, pid, reactive({input[[inputView.id]]}), selected.pids))
+    output[[id]] <- renderWidget(inst)
+    output[[titleOutput.id]] <- renderText(widgetTitle(inst)())
     loginfo(paste("Finished initialising new widget:", inst$name))
+
     ## build ui
     inst.ui <- widgetUI(inst, id)
     wb$html <- tagList(inst.ui$ui, widget.class$html(id))
-    
     #cat("==========selectview=========\n")
     #print(widgetbase.output.selectview(inst.ui, id))
     ## build the widget's property list
@@ -105,10 +109,8 @@ widgetbase.output <- function(id, widget.class, pid, size_x, size_y, col, row, s
     wb$size_y <- size_y
     wb$col <- col
     wb$row <- row
-    
-    ## title and text for help popover 
+    ## title and text for help popover
     wb$help <- list(title=widgetTitle(inst)(), content=widgetExplanation(inst)(), html=TRUE, trigger="click" )
-    
   }, warning = function(warn) {
     logwarn(paste("widgetbase.output.new(id=", id, " w=<", widget.class$name,">, pid=",isolate(pid()),":", toString(warn)))
     print(traceback(warn))
@@ -117,8 +119,7 @@ widgetbase.output <- function(id, widget.class, pid, size_x, size_y, col, row, s
     print(traceback(err))
   }, {})
   wb
-}  
-
+}
 
 ##
 ## Filter Widget List (remove widgets that take too long to load)
@@ -136,10 +137,10 @@ sendWidgetContent <- function(session, w) {
   basehtml <- function(x) {
     tags$li(
       style=paste("background-color:",widgetColor(w$widget)(),";box-shadow: 10px 10px 5px #CCC;", sep=""),
-      tags$i( class="icon-remove-sign hidden", style="float:right"), 
+      tags$i( class="icon-remove-sign hidden", style="float:right"),
       tags$div( qaclass=class(w$widget)[1], qaid=w$id ),
       x) }
-  #print(as.character(basehtml(w$html)))   
+  #print(as.character(basehtml(w$html)))
   session$sendCustomMessage(
     type = "GridsterMessage",
     message = list(
@@ -151,8 +152,8 @@ sendWidgetContent <- function(session, w) {
       row = as.character(w$row),			# row in grid
       qaid = w$id,
       help = w$help
-    )
-  )}
+  )
+)}
 
 ##
 ## Function to configure the button menue (needs session environment)
@@ -163,8 +164,8 @@ sendGridsterButtonOptions <- function(session, options=list()) {
     message = list(
       msgname = "options",     		# Name of message to send
       options = options
-      )
-  )}
+    )
+)}
 
 ##
 ## Function to update widget properties (needs session environment)
@@ -176,61 +177,41 @@ sendWidgetViewUpdates <- function(session, w) {
       msgname = "updatewidget",     	# Name of message to send
       qaid = w$id,
       help = w$help
-    )
-  )}
-
-
+  )
+)}
 
 ##
 ## The Server function
 ##
 shinyServer(function(input, output, session) {
-  
+
   ## log the Url parameters
   loginfo(isolate(names(session$clientData$url_search)))
-  
-  ##
+
   ## Callback when client terminates session
-  ##
   session$onSessionEnded(function() {
     print("Session ended.")
     #if (dbDisconnect(conf$con)) cat("Database connection closed.")
   })
 
-  ##
-  ## Initialze lists
-  ##
-  widget.config <- list()
-  widgets.for.rendering <- list() #all generated widgets created
-
-  ##
   ## Url parameter String and Parameter List (reactive statements)
   ##    (Parameter string gets checked, see: nav/breadcrumb.shiny.r)
-  ##
   paramstr <- reactive({urlparameter.checked(session$clientData$url_search)})
   paramlist <- reactive({urlparameter.as.list(paramstr())})
-  
-  ##
+
   ## Project id (reactive statement)
-  ##
   pid <- reactive({
     pid <- paramlist()$projectid
     pid
   })
 
-  ##
   ## Topic variable (reactive statement)
-  ##
   topic <- reactive({t <- paramlist()$topic; if(is.null(t)) "overview" else t })
 
-  ##
   ## Config file name variable (reactive statement)
-  ##
   config.file <- reactive({paste("widget",topic(),"config",sep=".")})
 
-  ##
   ## Render the breadcrumb (reactice output assignment)
-  ##
   output$quantarchBreadcrumb <- renderUI({
     if (is.null(pid())) {
       renderBreadcrumbPanel("projects",paramstr())
@@ -241,68 +222,56 @@ shinyServer(function(input, output, session) {
           }
     })
 
-
-################## copied from server.r in cookies-demo  
-  
-  
-  ##
+  ## Handle the project IDs in the cookie
   ## Returns the choices parameter for selectInput as a named vector
-  ##
   choices <- projects.choices(projects.list)
-  
-  ##
+
   ## Returns a list of selected project names (reactive statement)
-  ##
   selected <- reactive({ projects.selected( projects.list, input$qacompareids) })
   selected.pids <- reactive({  unlist(strsplit(input$qacompareids,",")) })
-  
-  ##
+
   ## Outputs an enhanced selectInput "selectedpids" (reactive assignment)
   ##    (uses the chosen.jquery.js plugin)
-  ##
   output$selectpidsui <- renderCompareWithProjectsInput(
     "selectedpids","",choices, selected(), list(width="100%"))
-  
-  ##
+
   ## Update the "qacompareids" cookie with input from the "selectedpids" selectInput
   ##    (but beware of duplicate project names)
-  ## 
   observe({
     dat <- input$selectedpids
     dat <- if(is.null(dat)) { list() } else { dat }
     ## TODO: pathLevel=1 does not seem to work
     updateCookieInput(session, "qacompareids", dat, pathLevel=0, expiresInDays=1)
   })
-  
-################# end copy  
-  
+
   ##
   ## Observe context executed once on session start
   ##
   observe({
-   
     #print(pid)
     loginfo(paste("Current PID =",pid()))
-    
-    ##  
-    ## Get the widget.config from a configuration file  (TODO: select secure path)
-    ##  
-    if (is.null(pid())) {   
 
-      ##
+    ## Obtain the widget configuration. If the PID is null, construct an overview
+    ## configuration, using the widget input parameter if present. Otherwise,
+    ## get the widget.config from a configuration file  (TODO: select secure path)
+    if (is.null(pid())) {
       ## Create a volatile configuration  (not stored) if no projectid was found in Url
-      ##
-      cls <- "widget.overview.project"
+      cls.name <- "widget.overview.project"
       ## can also be defined via Url parameter "widget"
       if(!is.null(paramlist()$widget)) {
-        cls <- paramlist()$widget
+        cls.name <- paramlist()$widget
       }
+      if (is.null(widget.list[[cls.name]])) {
+        logerror(paste("No such widget found: ", cls.name))
+        cls.name <- "widget.overview.project"
+      }
+      cls <- widget.list[[cls.name]]
       widget.config <- list(
         widgets=lapply(projects.list$id, function(pid) {
           w <- list(col = 1, row = 1,
-               size_x = 1, size_y = 1,
+               size_x = cls$size.x, size_y = cls$size.y,
                id = paste("widget",pid,sep=""),
-               cls = cls,
+               cls = cls.name,
                pid = pid)
           #force(w)
           #str(w)
@@ -310,6 +279,7 @@ shinyServer(function(input, output, session) {
         })
       )
     } else if (topic() == "testall") {
+      ## This topic shows all widgets for this project
       widget.config <- list(
         widgets=lapply(1:length(widget.list), function(i) {
           cls <- widget.list[[i]]
@@ -322,22 +292,16 @@ shinyServer(function(input, output, session) {
         })
       )
     } else {
-      
-      ##
       ## Read from config file belonging to current topic (Url parameter)
-      ##
-      loginfo(paste("Try to read config file", config.file())) 
-      widget.config <- dget(config.file()) 
+      loginfo(paste("Try to read config file", config.file()))
+      widget.config <- dget(config.file())
       if (is.null(widget.config)) {
         widget.config <- list(widgets=list())
       }
     }
-    
-    ##
+
     ## Send all widgets found in widget.config to the client
-    ##
     for ( w in widget.config$widgets ) {
-      
       ## NULL pid means that each widget has its own pid
       if (is.null(pid())) {
         this.pid <- reactive({w$pid})
@@ -347,38 +311,23 @@ shinyServer(function(input, output, session) {
       } else {
         this.pid <- pid
       }
-      
-      #loginfo(paste("Creating widget from config: ", w$id, "for classname: ", w$cls ))
-      
-      ##
-      ## Build widget using the widgetbase.output builder
-      ##
-      loginfo(paste("Creating widget from config: ", w$id, "for classname: ", w$cls ))
-      
-      widget.classname <- as.character(w$cls)       
-      widget.class <- widget.list[[widget.classname]]
-      
-      ## widgetbase is the output object and holds the widget.ui and knows how to render this ui
-      widgetbase <- widgetbase.output(w$id, widget.class, this.pid, w$size_x, w$size_y, w$col, w$row, selected.pids)
-      
-      #loginfo(paste("Preparing widget: ", w$id, "for class: ", widget.classname ))
-      
-      ##
-      ## Push the new widget on rendering list 
-      ##
-      widgets.for.rendering[[w$id]] <<- widgetbase
-      
-      ##
-      ## Send a custom message to Shiny client for adding the base widget
-      ##
-      sendWidgetContent(session, widgetbase)
-      #print(widgets.for.rendering)
-      
-      } # end for
 
-    ##
+      ## Build widget using the widgetbase.output builder
+      loginfo(paste("Creating widget from config: ", w$id, "for classname: ", w$cls ))
+      widget.classname <- as.character(w$cls)
+      widget.class <- widget.list[[widget.classname]]
+
+      ## widgetbase is the output object and holds the widget.ui and knows how to render this ui
+      widgetbase <- widgetbase.output(input, output, w$id, widget.class, this.pid, w$size_x, w$size_y, w$col, w$row, selected.pids)
+
+      ## Send a custom message to Shiny client for adding the base widget
+      sendWidgetContent(session, widgetbase)
+    } # end for
+
+    ## Save the existing widget IDs so we don't overwrite them with new ones
+    internal.getuniqueid.existing <<- sapply(widget.config$widgets, function(w) { w$id })
+
     ## Render the "Add Widget" dialog (disabled for pid==NULL)
-    ##
     sendGridsterButtonOptions(session, options=list(addwidget=!is.null(pid())))
     if (!is.null(pid())) {
       topical.widgets <- sapply(widget.list, function(x) {
@@ -390,157 +339,38 @@ shinyServer(function(input, output, session) {
       #print(widget.titles)
       output$addWidgetDialog <- renderUI(
         selectInput("addwidget.class.name", "Select Widget content:", widget.select.list))
-      }
+    }
   }) # end observe
-  
+
   ##
-  ## Observe the gridster action menu button (see also: nav/gidsterWidgetExt.js)
-  ##    (context also triggered after adding a new widget by input$gridsterActionMenu)
+  ## Observe the gridster action menu save button (see also: nav/gidsterWidgetExt.js)
   ##
   observe({
-    
-    ##
     ## Button input returns widget configuration as JSON
-    ##
-    cjson <- input$gridsterActionMenu    
+    cjson <- input$gridsterActionMenu
     #loginfo(paste("Got input from button:",cjson))
-
     if (!is.null(cjson) && isValidJSON(cjson,TRUE)) {
-      
-      ##
-      ## Create R list object (unnamed) from JSON
+      ## Create an R list object (unnamed) from JSON
       ## The first element is either "save" or "update". If it is "save", the
       ## configuration should be saved to file, otherwise only the displayed
       ## widgets should be updated.
-      ##
       button.info <- fromJSON(cjson)
       save.or.update <- button.info[[1]]
       widgets.displayed <- button.info[[2]]
 
-      
-      ##
-      ## Create list of widget ids supposed to be rendered
-      ##
-      n1 <- vapply(widgets.displayed, FUN=function(x){x$id},FUN.VALUE=character(1))
-      #print(n1)
-      
-      ##
-      ## Get ids of widgets created previously for rendering  
-      n2 <- names(widgets.for.rendering)
-      #print(n2)
-      
-      ##
-      ## Create logical index for sub-setting only widgets from config (widgets.displayed) 
-      ##
-      n3 <- n2[n2 %in% n1]
-      #print(n3)
-      loginfo(paste("Widgets to be rendered:", paste(n3,collapse=",")))
-      
-      ##
-      ## Create reactive assignments for each renderWidget statement
-      ##
-      for (n in n3) {
-          
-            ## need widget for deciding on whether to add the views selector
-            wr <- widgets.for.rendering[[n]]
-            #print(wr$id)
-            #print(wr$widget)
-            #print(wr$widget$viewid)
-            
-            ## render a title output
-            local({
-              n.local <- n
-              wout <- widgets.for.rendering[[n.local]]
-              titleOutput.id.local <- paste(wout$id, "_title",sep="")
-              output[[titleOutput.id.local]] <- renderText(isolate(widgetTitle(wout$widget)()))
-            })
-            
-            
-            
-            ## render a select list for widget views
-            if (!is.null(wr$widget$viewid)) {
-              ## render a selectInput
-#               local({
-#                 n.local <- n
-#                 wout <- widgets.for.rendering[[n.local]]
-#                 mychoices = as.list(isolate({listViews(wout$widget)()}))
-#                 #names(mychoices) <- mychoices
-#                 #print(mychoices)
-#                 inputView.id.local <- paste(wout$id, "_selectedview",sep="")
-#                 output[[wout$widget$viewid]] <- selectInput(inputView.id.local, "", 
-#                                              choices = mychoices, 
-#                                              selected = isolate({wout$widget$view()}))
-#                 })
-              ## isolate reactive context and create a new local environment
-              local({
-                n.local <- n
-                wout <- widgets.for.rendering[[n.local]]
-                #inputView.id.local <- paste(wout$id, "_selectedview",sep="")
-                inputView.id.local <- wout$widget$selectedviewid
-                isolate({
-                  widget <- initWidget(newWidget(
-                    wout$widget.class, 
-                    wout$widget$pid(), 
-                    input[[inputView.id.local]],
-                    wout$selected.pids()))
-                  #print(widget)
-                  tryCatch({
-                    output[[wout$id]] <- renderWidget(widget)
-                    }, warning = function(wr) {
-                      logwarn(paste("While rendering widget", wout$widget.class$name, ":", toString(wr)))
-                      print(traceback(wr))
-                      }, error = function(e) {
-                        logerror(paste("While rendering widget", wout$widget.class$name, ":", toString(e)))
-                        print(traceback(e))
-                        }, {})
-                  })
-              })
-            } else {
-              ## isolate reactive context and create a new local environment
-              local({
-                n.local <- n
-                wout <- widgets.for.rendering[[n.local]]
-                isolate({
-                  tryCatch({
-                    output[[wout$id]] <- renderWidget(wout$widget)
-                    }, warning = function(wr) {
-                      logwarn(paste("While rendering widget", wout$widget.class$name, ":", toString(wr)))
-                      print(traceback(wr))
-                      }, error = function(e) {
-                        logerror(paste("While rendering widget", wout$widget.class$name, ":", toString(e)))
-                        print(traceback(e))
-                        }, {})
-                  })
-              })
-            }
-       
-            
+      widget.config <- list(widgets=widgets.displayed)
 
-            
-            ## remove rendered widget from rendering list, so it wont be re-rendered
-            widgets.for.rendering[[n]] <<- NULL
-            
-     
-        #  }) # end local
-        } # end for
-      ##
       ## Save this configuration as a .config file
       if (save.or.update == "save" && (!is.null(pid()) || (topic() == "testall"))) {
         ## update configuration file
-        ## TODO: move to extra observe block
         ## TODO: save as cookie
-        widget.config$widgets <- widgets.displayed
         #widget.config$content <- widget.content
         dput(widget.config, file = config.file(),
               control = c("keepNA", "keepInteger", "showAttributes"))
         loginfo("Saved configuration file.")
       }
-    } #end if
-
-    ## debug output to screen
-    #output$testid <- renderText(paste(cjson,toJSON(widget.content)))
-
-    }) # end observe
+    }
+  })
 
   ##
   ## Observe the "Add Widget" dialog input
@@ -554,34 +384,17 @@ shinyServer(function(input, output, session) {
 
     ## check for null and empty string, because initially this could be delivered
     if (!is.null(widget.classname) && length(widget.classname) > 0) {
-      ## get a new widgetid
-      #ids.rendered <- names(widgets.for.rendering)
-      ids.displayed <- vapply(widget.config$widgets, FUN=function(x){x$id},FUN.VALUE=character(1))
-      #currentids <- c(ids.rendered[!(ids.rendered %in% ids.displayed)], ids.displayed)
-      #print(currentids)
-      id <- getuniqueid(ids.displayed, prefix="widget")
-      
-      ## save widget class to widget id to class map
-      #widget.content[[id]] <<- widget.classname
-      ## not needed in future
-    
-      ## create the widget class
+      ## Get a unique ID for the new widget
+      id <- getuniqueid(prefix="widget")
+
+      ## get the widget class
       widget.class <- widget.list[[widget.classname]]
 
       ## add html to widget instance which wraps into gridster item
-      widgetbase <- widgetbase.output.new(id, widget.class, pid, selected.pids)
-
-      loginfo(paste("Creating new widget: ", id, "for class: ", widget.classname ))
+      widgetbase <- widgetbase.output.new(input, output, id, widget.class, pid, selected.pids)
 
       ## finally send widget base to client
       sendWidgetContent(session, widgetbase)
-
-      ## push widget instance to rendering list
-      ## when a new widget has been added, the widget button input will trigger
-      ## the addition of content
-      widgets.for.rendering[[id]] <<- widgetbase
-      } #end if
-
+    } #end if
  }) #end observe
-
 })
