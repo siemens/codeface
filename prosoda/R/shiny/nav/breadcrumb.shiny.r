@@ -284,19 +284,21 @@ compareWithProjectsOutput <- function( outputId ) {
 ##
 ## server.r function to render the output elements
 ##
+chosenSelectInput <- function(inputId, label, choices, multiple=FALSE, selected=NULL, options = list()) {
+  select <- selectInput(inputId, "", choices, multiple=multiple, selected=selected)
+  select.tag <- select[[2]]
+  select.tag$attribs$class <- "chosen-select"
+  select.tag$attribs[["data-placeholder"]] <- label
+  select[[2]] <- select.tag
+  opts <- toJSON(options, collapse="")
+  if (length(options) == 0) opts <- ""
+  js <- paste("$('.chosen-select#",inputId,"').chosen(",opts,");", sep="",collapse="")
+  tagList(select, tags$script(js))
+}
+
 renderCompareWithProjectsInput <- function( inputId, label, choices, selected = NULL , options = list() ) {
   renderUI({
-    select <- selectInput(inputId, label, choices, multiple=TRUE, selected=selected )
-    select.tag <- select[[2]]
-    select.tag$attribs$class <- "chosen-select"
-    select.tag$attribs[["data-placeholder"]] <- "Select Projects for Comparison"
-    select[[2]] <- select.tag
-    opts <- toJSON(options, collapse="")
-    if (length(options) == 0) opts <- ""
-    js <- paste("$('.chosen-select#",inputId,"').chosen(",opts,");", sep="",collapse="")
-    tl <- tagList(select, tags$script(js))
-    cat(as.character(tl))
-    tl
+    chosenSelectInput(inputId, "Select Projects for Comparison", choices, TRUE, selected, options)
   })
 }
 

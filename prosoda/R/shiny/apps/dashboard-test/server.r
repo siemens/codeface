@@ -44,7 +44,7 @@ widgetUI <- function(x, ...) UseMethod("widgetUI")
 widgetUI.widget <- function(w, id) {
   ## define basic widget ui for widget instances
   w$titleid <- paste(id,"_title",sep="")
-  w$ui <- tags$div( width="100%", tags$div(class="widget_title", textOutput(w$titleid)))
+  w$ui <- tags$div( width="100%", tags$div(class="title_bar widget_title", textOutput(w$titleid)))
   w
 }
 
@@ -65,8 +65,13 @@ widgetbase.output.selectview <- function(w, id) {
   #print(myselected)
   #print(mychoices)
   inputView.id.local <- paste(id, "_selectedview",sep="")
-  w$ui <- tagList(w$ui, tags$div(width="100%", selectInput(inputView.id.local, "", choices = mychoices,
-                                                           selected = myselected)))
+  title <- tags$div(class="widget_title", textOutput(w$titleid))
+  selector <- chosenSelectInput(inputView.id.local, "Select view",
+                                choices = mychoices,
+                                selected = myselected)
+  selector <- div(class="widget_view_select", selector)
+
+  w$ui <- div(class="title_bar", width="100%", tags$table(width="100%", tags$tr(tags$td(title), tags$td(selector))))
   wselectedviewid <- inputView.id.local
   w
 }

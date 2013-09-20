@@ -66,9 +66,24 @@ div .grid_medtext {
 }
 
 div .widget_title {
-  margin-top: 10px;
+  margin-top: 0px;
   margin-bottom: 5px;
   font-size: 12px;
-  text-align: center;
+  text-align: left;
   line-height: normal;
+}
+
+div .widget_view_select {
+  margin-top: 0px;
+  margin-bottom: 5px;
+  font-size: 12px;
+  text-align: right;
+  line-height: normal;
+}
+
+div .title_bar {
+  margin-top: -20px;
+  margin-bottom: 0px;
+  height: 20px;
+  visibility: hidden;
 }
