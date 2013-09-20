@@ -36,47 +36,89 @@ getuniqueid <- function( x , prefix = "") {
 }
 
 ##
-## Widget Builder for new widgets
-##
-widgetbase.output.new <- function(id, w, pid, selected.pids) {
-  widgetbase.output(id,w,pid,w$size.x, w$size.y, 1, 1, selected.pids)
+## Generic widgetUI based on widget instance
+widgetUI <- function(x, ...) UseMethod("widgetUI") 
+
+widgetUI.widget <- function(w, id) {
+  ## define basic widget ui for widget instances
+  w$titleid <- paste(id,"_title",sep="")
+  w$ui <- tags$div( width="100%", tags$div(class="widget_title", textOutput(w$titleid)))
+  w
+}
+
+widgetUI.widget.rangeid <- function(w, id) {
+  ## define basic widget ui for a widget instances with rangeids
+  w <- NextMethod()
+  #w$viewid <- paste(id,"_views",sep="")
+  w <- widgetbase.output.selectview(w, id)
+  w
+}
+
+
+widgetbase.output.selectview <- function(w, id) {
+  ## render a selectInput
+  mychoices <- as.list(isolate({listViews(w)()}))
+  myselected <- isolate({w$view()})
+  myselected <- names(mychoices[mychoices %in% myselected])
+  cat("=======SELECTED========\n")
+  #print(myselected)
+  #print(mychoices)
+  inputView.id.local <- paste(id, "_selectedview",sep="")
+  w$ui <- tagList(w$ui, tags$div(width="100%", selectInput(inputView.id.local, "", choices = mychoices, 
+                                                           selected = myselected)))
+  w$selectedviewid <- inputView.id.local
+  w
 }
 
 ##
-## Widget builder for fully configured widgets
+## Widget Builder for new widgets
 ##
-widgetbase.output <- function(id, w, pid, size_x, size_y, col, row, selected.pids) {
+widgetbase.output.new <- function(id, widget.class, pid, selected.pids) {
+  widgetbase.output(id,widget.class,pid,widget.class$size.x, widget.class$size.y, 1, 1, selected.pids)
+}
+
+##
+## Widget builder for fully configured widgets (widget.class, pid, selectedpids are reactive)
+##
+widgetbase.output <- function(id, widget.class, pid, size_x, size_y, col, row, selected.pids) {
   wb <- list()
   tryCatch({
     
     ##
     ## Widget creation and initialization (see: widget.r)
     ##
-    inst <- initWidget(newWidget(w, pid, reactive({NULL}), selected.pids))
-    loginfo(paste("Finished initialising new widget:", w$name))
+    inst <- initWidget(newWidget(widget.class, pid, reactive({NULL}), selected.pids))
+    loginfo(paste("Finished initialising new widget:", inst$name))
+    ## build ui
+    inst.ui <- widgetUI(inst, id)
+    wb$html <- tagList(inst.ui$ui, widget.class$html(id))
     
+    #cat("==========selectview=========\n")
+    #print(widgetbase.output.selectview(inst.ui, id))
     ## build the widget's property list
     wb$id <- id
-    wb$widget <- inst
-    wb$widget.class <- w
-    wb$html <- w$html(id)
+    ##wb$titleid <- inst$titleid
+    ##wb$viewid <- inst$viewid
+    wb$widget <- inst.ui
+    wb$widget.class <- widget.class
     wb$size_x <- size_x
     wb$size_y <- size_y
     wb$col <- col
     wb$row <- row
     
-    ## Hilfetext
+    ## title and text for help popover 
     wb$help <- list(title=widgetTitle(inst)(), content=widgetExplanation(inst)(), html=TRUE, trigger="click" )
     
   }, warning = function(warn) {
-    logwarn(paste("widgetbase.output.new(id=", id, " w=<", w$name,">, pid=",isolate(pid()),":", toString(warn)))
+    logwarn(paste("widgetbase.output.new(id=", id, " w=<", widget.class$name,">, pid=",isolate(pid()),":", toString(warn)))
     print(traceback(warn))
   }, error = function(err) {
-    logerror(paste("widgetbase.output.new(id=", id, " w=<", w$name,">, pid=",isolate(pid()),":", toString(err)))
+    logerror(paste("widgetbase.output.new(id=", id, " w=<", widget.class$name,">, pid=",isolate(pid()),":", toString(err)))
     print(traceback(err))
   }, {})
   wb
 }  
+
 
 ##
 ## Filter Widget List (remove widgets that take too long to load)
@@ -123,6 +165,21 @@ sendGridsterButtonOptions <- function(session, options=list()) {
       options = options
       )
   )}
+
+##
+## Function to update widget properties (needs session environment)
+##
+sendWidgetViewUpdates <- function(session, w) {
+  session$sendCustomMessage(
+    type = "GridsterMessage",
+    message = list(
+      msgname = "updatewidget",     	# Name of message to send
+      qaid = w$id,
+      help = w$help
+    )
+  )}
+
+
 
 ##
 ## The Server function
@@ -236,6 +293,7 @@ shinyServer(function(input, output, session) {
       ## Create a volatile configuration  (not stored) if no projectid was found in Url
       ##
       cls <- "widget.overview.project"
+      ## can also be defined via Url parameter "widget"
       if(!is.null(paramlist()$widget)) {
         cls <- paramlist()$widget
       }
@@ -271,7 +329,7 @@ shinyServer(function(input, output, session) {
       loginfo(paste("Try to read config file", config.file())) 
       widget.config <- dget(config.file()) 
       if (is.null(widget.config)) {
-        widget.config <- list(widgets=list(), content=list())
+        widget.config <- list(widgets=list())
       }
     }
     
@@ -280,7 +338,7 @@ shinyServer(function(input, output, session) {
     ##
     for ( w in widget.config$widgets ) {
       
-      ## workaround for NULL pids
+      ## NULL pid means that each widget has its own pid
       if (is.null(pid())) {
         this.pid <- reactive({w$pid})
         ## This evaluation is necessary, since otherwise
@@ -296,8 +354,11 @@ shinyServer(function(input, output, session) {
       ## Build widget using the widgetbase.output builder
       ##
       loginfo(paste("Creating widget from config: ", w$id, "for classname: ", w$cls ))
+      
       widget.classname <- as.character(w$cls)       
       widget.class <- widget.list[[widget.classname]]
+      
+      ## widgetbase is the output object and holds the widget.ui and knows how to render this ui
       widgetbase <- widgetbase.output(w$id, widget.class, this.pid, w$size_x, w$size_y, w$col, w$row, selected.pids)
       
       #loginfo(paste("Preparing widget: ", w$id, "for class: ", widget.classname ))
@@ -379,31 +440,88 @@ shinyServer(function(input, output, session) {
       ## Create reactive assignments for each renderWidget statement
       ##
       for (n in n3) {
-        
-        ## create a new local environment
-        local({
-          nlocal <- n # store the widget name in local environment
-          #loginfo(paste("Creating output for widget: ",nlocal))
           
-          tryCatch({
-            wout <- widgets.for.rendering[[nlocal]]
-            #views <- listViews(wout$widget)
-            #print(wout$id)
-            #print(wout$widget)
-            output[[wout$id]] <- renderWidget(wout$widget)
+            ## need widget for deciding on whether to add the views selector
+            wr <- widgets.for.rendering[[n]]
+            #print(wr$id)
+            #print(wr$widget)
+            #print(wr$widget$viewid)
+            
+            ## render a title output
+            local({
+              n.local <- n
+              wout <- widgets.for.rendering[[n.local]]
+              titleOutput.id.local <- paste(wout$id, "_title",sep="")
+              output[[titleOutput.id.local]] <- renderText(isolate(widgetTitle(wout$widget)()))
+            })
+            
+            
+            
+            ## render a select list for widget views
+            if (!is.null(wr$widget$viewid)) {
+              ## render a selectInput
+#               local({
+#                 n.local <- n
+#                 wout <- widgets.for.rendering[[n.local]]
+#                 mychoices = as.list(isolate({listViews(wout$widget)()}))
+#                 #names(mychoices) <- mychoices
+#                 #print(mychoices)
+#                 inputView.id.local <- paste(wout$id, "_selectedview",sep="")
+#                 output[[wout$widget$viewid]] <- selectInput(inputView.id.local, "", 
+#                                              choices = mychoices, 
+#                                              selected = isolate({wout$widget$view()}))
+#                 })
+              ## isolate reactive context and create a new local environment
+              local({
+                n.local <- n
+                wout <- widgets.for.rendering[[n.local]]
+                #inputView.id.local <- paste(wout$id, "_selectedview",sep="")
+                inputView.id.local <- wout$widget$selectedviewid
+                isolate({
+                  widget <- initWidget(newWidget(
+                    wout$widget.class, 
+                    wout$widget$pid(), 
+                    input[[inputView.id.local]],
+                    wout$selected.pids()))
+                  #print(widget)
+                  tryCatch({
+                    output[[wout$id]] <- renderWidget(widget)
+                    }, warning = function(wr) {
+                      logwarn(paste("While rendering widget", wout$widget.class$name, ":", toString(wr)))
+                      print(traceback(wr))
+                      }, error = function(e) {
+                        logerror(paste("While rendering widget", wout$widget.class$name, ":", toString(e)))
+                        print(traceback(e))
+                        }, {})
+                  })
+              })
+            } else {
+              ## isolate reactive context and create a new local environment
+              local({
+                n.local <- n
+                wout <- widgets.for.rendering[[n.local]]
+                isolate({
+                  tryCatch({
+                    output[[wout$id]] <- renderWidget(wout$widget)
+                    }, warning = function(wr) {
+                      logwarn(paste("While rendering widget", wout$widget.class$name, ":", toString(wr)))
+                      print(traceback(wr))
+                      }, error = function(e) {
+                        logerror(paste("While rendering widget", wout$widget.class$name, ":", toString(e)))
+                        print(traceback(e))
+                        }, {})
+                  })
+              })
+            }
+       
+            
+
             
             ## remove rendered widget from rendering list, so it wont be re-rendered
-            widgets.for.rendering[[nlocal]] <<- NULL
+            widgets.for.rendering[[n]] <<- NULL
             
-            }, warning = function(wr) {
-              logwarn(paste("While rendering widget", wout$widget.class$name, ":", toString(wr)))
-              print(traceback(wr))
-            }, error = function(e) {
-              logerror(paste("While rendering widget", wout$widget.class$name, ":", toString(e)))
-              print(traceback(e))
-            }, {})
-         
-          }) # end local
+     
+        #  }) # end local
         } # end for
       ##
       ## Save this configuration as a .config file

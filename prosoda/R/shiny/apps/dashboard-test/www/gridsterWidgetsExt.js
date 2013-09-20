@@ -43,6 +43,13 @@ $(function(){ //document ready
         toel.attr("gridster-action","updateconfig");
         toel.trigger("change");
 				break;
+      case 'updatewidget':
+        if (message.hasOwnProperty('help')) {
+          var po = $(".gridster div#"+message.qaid).data('popover');
+          if (po) {po.destroy();}
+          $(".gridster div#"+message.qaid).popover(message.help);
+        }
+        break;
       case 'options':
         if (message.options.addwidget===undefined) message.options.addwidget=true;
         if (message.options.addwidget) {

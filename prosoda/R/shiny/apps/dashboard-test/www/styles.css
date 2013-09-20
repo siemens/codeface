@@ -64,3 +64,11 @@ div .grid_medtext {
   font-size: 40px;
   line-height: 90%;
 }
+
+div .widget_title {
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-size: 12px;
+  text-align: center;
+  line-height: normal;
+}
