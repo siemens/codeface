@@ -63,7 +63,7 @@ renderWidget.widget.commit.info.corrgram <- function(w) {
 }
 
 createWidgetClass(
-  class = c("widget.commit.doc", "widget.rangeid"),
+  class = c("widget.commit.doc"),
   name = "Commit Documentation",
   description = "Shows the commit documentation quality. The red line gives the percentage of commits which have a commit message of five or more lines (currently including git-svn conversion comments). The blue line gives the percentage of commits with at least one signoff.",
   topics = c("basics", "construction"),
@@ -75,6 +75,7 @@ createWidgetClass(
 initWidget.widget.commit.doc <- function(w) {
   # Call superclass
   w <- NextMethod(w)
+  w$cycles <- reactive({get.cycles.con(conf$con, w$pid())})
   ## Get commit count per author, release range and weekend/not-weekend
   ## NOTE: Once the authorDate and authorTimezone are available,
   ## they should be used instead of WEEKDAY to get more accurate estimates
