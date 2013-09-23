@@ -137,7 +137,7 @@ widget.list.filtered <- widget.list[
 ##
 sendWidgetContent <- function(session, w) {
   basehtml <- function(x) {
-    tags$li(
+    tags$li(class="qawidget",
       style=paste("background-color:",isolate(widgetColor(w$widget)()),";box-shadow: 10px 10px 5px #CCC;", sep=""),
       tags$i( class="icon-remove-sign hidden", style="float:right"),
       tags$div( qaclass=class(w$widget)[1], qaid=w$id ),

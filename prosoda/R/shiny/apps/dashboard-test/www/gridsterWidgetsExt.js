@@ -1,7 +1,7 @@
 $(function(){ //document ready
 
  // Initialize any divs with class gridster
-  $(".gridster ul").each(function() {
+  $(".gridster > ul").each(function() {
     $el = $(this);
 
     var marginx = Number(this.getAttribute('data-marginx')) || 10;
@@ -12,6 +12,7 @@ $(function(){ //document ready
     $(this).gridster({
       widget_margins: [marginx, marginy],
       widget_base_dimensions: [width, height],
+      widget_selector: "> li.qawidget",
       serialize_params: 
         function($w, wgd) { 
           return {  col: wgd.col, row: wgd.row, 
@@ -25,14 +26,14 @@ $(function(){ //document ready
     function(message) {	
 			switch(message.msgname) {
 			case 'addWidget': 
-				var gridster = $(".gridster ul").gridster().data('gridster');
+				var gridster = $(".gridster > ul").gridster().data('gridster');
 				Shiny.unbindAll();
 				gridster.add_widget( message.html, message. size_x, message.size_y, message.col, message.row );
 
         $(".gridster div#"+message.qaid).popover(message.help);
         
         $(".icon-remove-sign").click(function(){
-          var gridster = $(".gridster ul").gridster().data('gridster');
+          var gridster = $(".gridster > ul").gridster().data('gridster');
           var el = $(this).parent();
           Shiny.unbindAll();
           gridster.remove_widget(el);
@@ -116,14 +117,14 @@ $.extend(gridsterButtonBinding, {
     var gaction = $(el).attr("gridster-action");
     switch( gaction ) {
     case "updateconfig":
-      var gridster = $(".gridster ul").gridster().data('gridster');
+      var gridster = $(".gridster > ul").gridster().data('gridster');
       var widgetsconfig = {type:"update", widgets:gridster.serialize()}; //TODO
       var wconfjson = JSON.stringify(widgetsconfig);
       $.cookie('gridster',wconfjson, { expires: 7 });
       return wconfjson;
       break;
     case "saveconfig":
-      var gridster = $(".gridster ul").gridster().data('gridster');
+      var gridster = $(".gridster > ul").gridster().data('gridster');
       var widgetsconfig = {type:"save", widgets:gridster.serialize()}; //TODO
       var wconfjson = JSON.stringify(widgetsconfig);
       $.cookie('gridster',wconfjson, { expires: 7 });
