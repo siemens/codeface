@@ -35,6 +35,8 @@ $(function(){ //document ready
         $(".icon-remove-sign").click(function(){
           var gridster = $(".gridster > ul").gridster().data('gridster');
           var el = $(this).parent();
+          var qaid = $(this).parent().children("div['qaid']").attr("qaid");
+          $(".gridster div#"+ qaid).popover('destroy');
           Shiny.unbindAll();
           gridster.remove_widget(el);
           Shiny.bindAll();
