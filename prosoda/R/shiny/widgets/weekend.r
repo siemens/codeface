@@ -20,34 +20,39 @@ gen.weekend.fraction <- function(pid) {
   ## Get commit count per author, release range and weekend/not-weekend
   ## NOTE: Once the authorDate and authorTimezone are available,
   ## they should be used instead of WEEKDAY to get more accurate estimates
-  dat <- dbGetQuery(conf$con, str_c("SELECT releaseRangeId as rangeid,",
+  sqlr <- dbGetQuery(conf$con, str_c("SELECT releaseRangeId as rangeid,",
                                     " author,",
                                     " WEEKDAY(commitDate)>=5 as weekend,",
-                                    " COUNT(*) as count",
-                                    #" SUM(DiffSize) as count", # Alternate measure
+                                    " COUNT(*) as count,",
+                                    " SUM(DiffSize) as diffsize", # Alternate measure
                                     " FROM commit where projectId=", pid,
                                     " GROUP BY releaseRangeId,",
                                     "  WEEKDAY(commitDate)>=5, author"))
   ## Fix range.id not being a valid identifier in MySQL
-  names(dat)[1] <- "range.id"
+  names(sqlr)[1] <- "range.id"
   ## Aggregate the counts and counts on weekends
-  dat2 <- aggregate(cbind(count, count*weekend) ~ author + range.id, dat, FUN=sum)
-  dat <- merge(cycles, dat2)
+  agg <- aggregate(cbind(count, count*weekend, diffsize, diffsize*weekend)
+                         ~ author + range.id, sqlr, FUN=sum)
+  dat <- merge(cycles, agg)
 
   ## Also aggreate the total commit count for normalization
-  dat3 <- aggregate(count ~ range.id, dat, FUN=sum)
-  names(dat3)[2] <- "count.all"
-  dat <- merge(dat, dat3)
+  agg <- aggregate(count ~ range.id, dat, FUN=sum)
+  names(agg)[2] <- "count.all"
+  dat <- merge(dat, agg)
 
   ## Calculate weekend fraction of authors
-  dat$weekend.fraction <- dat$V2 / dat$count
+  #dat$weekend.fraction.count <- dat$V2 / dat$count
+  ## Weekend fraction by diff size
+  dat$weekend.fraction <- dat$V4 / dat$diffsize
   return(dat)
 }
 
 createWidgetClass(
   "widget.weekend.fraction",
   "Weekend fraction",
-  "Show percentage of work done on weekdays vs weekends per author. Each author is represented by a dot, the size of which is proportional to her number of commits.",
+  str_c("Show percentage of work done (measured by diff size) on weekdays vs weekends per author. ",
+  "Each author is represented by a dot, the size of which is proportional to her number of commits. ",
+  "The colour is proportional to the total size of diffs the author contributed that cycle."),
   c("basics"),
   2, 1
 )
@@ -64,8 +69,8 @@ renderWidget.widget.weekend.fraction = function(w) {
     dat <- w$dat()
     dat$colour <- factor(dat$count)
     g <- ggplot(dat, aes(x=cycle, y=weekend.fraction)) +
-                geom_violin(scale="width", adjust = .5) +
-                geom_jitter(aes(size=count/count.all, colour=count)) +
+                geom_violin(aes(weight=diffsize), scale="width", adjust = .5) +
+                geom_jitter(aes(size=count, colour=diffsize)) +
                 scale_colour_gradient(low="darkgray", high="red") +
                 scale_y_continuous(labels = percent_format()) +
                 xlab("Release range") +
@@ -78,7 +83,8 @@ renderWidget.widget.weekend.fraction = function(w) {
 createWidgetClass(
   c("widget.weekend.fraction.type", "widget.weekend.fraction"),
   "Weekend, continuous or weekday worker",
-  "Show percentage of authors that work mostly on weekends, that work continuously or that work mostly on weekdays, weighted by number of commits.",
+  str_c("Show percentage of authors that work mostly (> 50%) on weekends, that work ",
+  "continuously (> 25% weekends) or that work mostly on weekdays, measured by diff size."),
   c("basics"),
   2, 1
 )
@@ -90,17 +96,18 @@ renderWidget.widget.weekend.fraction.type = function(w) {
             ## Rationale:
             ## A person working only on local time workdays might have
             ## some commits on "UTC workdays"; we therefore classify
-            ## all people with < 1/10 weekend fraction as professionals
-            ## (half a day).
-            if (f < 1/10) {
+            ## all people with < 0.25 weekend fraction as professionals
+            if (is.na(f)) {
+              ""
+            } else if (f < 0.25) {
               "workdays"
-            } else if (f < 2/7) {
+            } else if (f < 0.5) {
               "continuous"
             } else {
               "weekend"
             }
           }), levels=c("workdays", "continuous", "weekend"))
-    g <- ggplot(dat, aes(x=cycle, fill=classify)) + geom_bar(aes(weight=count), position="fill") +
+    g <- ggplot(dat, aes(x=cycle, fill=classify)) + geom_bar(aes(weight=diffsize), position="fill") +
                 scale_y_continuous(labels = percent_format()) +
                 xlab("Release range") +
                 ylab("Author type") +
