@@ -62,3 +62,47 @@ renderWidget.widget.commit.info.corrgram <- function(w) {
   })
 }
 
+createWidgetClass(
+  class = c("widget.commit.doc", "widget.rangeid"),
+  name = "Commit Documentation",
+  description = "Shows the commit documentation quality. The red line gives the percentage of commits which have a commit message of five or more lines (currently including git-svn conversion comments). The blue line gives the percentage of commits with at least one signoff.",
+  topics = c("basics", "construction"),
+  size.x = 1,
+  size.y = 1,
+  compareable = FALSE
+)
+
+initWidget.widget.commit.doc <- function(w) {
+  # Call superclass
+  w <- NextMethod(w)
+  ## Get commit count per author, release range and weekend/not-weekend
+  ## NOTE: Once the authorDate and authorTimezone are available,
+  ## they should be used instead of WEEKDAY to get more accurate estimates
+  w$dat <- reactive({
+    sqlr <- dbGetQuery(conf$con, str_c("SELECT releaseRangeId,",
+                                       " AVG(CmtMsgLines >= 5) as percentdoc,",
+                                       " AVG(NumSignedOffs >= 1) as percentsignoffs",
+                                       " FROM commit where projectId=", w$pid(),
+                                       " GROUP BY releaseRangeId"))
+    names(sqlr)[1] <- "range.id"
+    merge(w$cycles(), sqlr)
+  })
+  return(w)
+}
+
+renderWidget.widget.commit.doc <- function(w) {
+  renderPlot({
+    dat <- melt(data.frame(cycle=w$dat()$cycle, commitmsg=w$dat()$percentdoc, signoffs=w$dat()$percentsignoffs))
+    dat$variable <- revalue(dat$variable, c(commitmsg="% documented", signoffs="% signed off"))
+    g <- ggplot(dat, aes(x=cycle, y=value, group=variable, colour=variable)) +
+                geom_line() +
+                scale_y_continuous(labels = percent_format()) +
+                expand_limits(y=1) +
+                expand_limits(y=0) +
+                scale_colour_manual(values=c("red","blue"), name="") +
+                xlab("Release range") +
+                ylab("Percent") +
+                theme(axis.text.x = element_text(angle = 30, hjust = 1, size=7), legend.position="bottom")
+    print(g)
+  })
+}
