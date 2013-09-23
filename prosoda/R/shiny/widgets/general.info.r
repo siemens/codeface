@@ -23,7 +23,8 @@ createWidgetClass(
   "General information",
   NULL, # no topical restrictions
   1, 1,
-  html=htmlOutput
+  html=htmlOutput,
+  detailpage=list(app="dashboard-test", topic="basics")
 )
 
 ## Common queries for all widgets in the following go here
@@ -61,8 +62,7 @@ renderWidget.widget.general.info.overview <- function(w) {
                  "<li>", paste(n.persons, "persons."),
                  "<li>", paste(n.issues, "bugtracker entries."),
                  "<li>", paste(n.mail.threads, "mailing list threads."),
-                 "</ul>")),
-      p(a(href=paste("?projectid=", w$pid(), "&topic=basics", sep=""), "details..."))
+                 "</ul>"))
     )
   })
 }
@@ -86,7 +86,8 @@ createWidgetClass(
              tags$p()
     )
     )
-  }
+  },
+  detailpage=list()
 )
 
 initWidget.widget.gauge.commits <- function(w) {
@@ -142,7 +143,8 @@ createWidgetClass(
              "data-min"=0,
              "data-max"=200,
              style="width:260px; height:200px")
-  }
+  },
+  detailpage=list()
 )
 
 initWidget.widget.gauge.commitspeed <- function(w) {
@@ -200,7 +202,8 @@ createWidgetClass(
              tags$p()
     )
     )
-  }
+  },
+  detailpage=list()
 )
 
 renderWidget.widget.gauge.current.cycle <- function(w) {
@@ -236,7 +239,8 @@ createWidgetClass(
              "data-min"=0,
              "data-max"=200,
              style="width:260px; height:200px")
-  }
+  },
+  detailpage=list()
 )
 
 initWidget.widget.gauge.commits.per.cycle <- function(w) {

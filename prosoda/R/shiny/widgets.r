@@ -167,11 +167,17 @@ widget.tableOutput.html <- function(id) {
 #' @param size.x the width in gridster-units if shown on a dashboard
 #' @param size.y the height in gridster-units if shown on a dashboard
 #' @param compareable if true, this widget can display project comparisons
+#' @param detailpage list of topic and name or app giving the respective detail page
 #' @param html a function(id) returning shiny HTML for this widget
 createWidgetClass <- function(class, name, description, topics=NULL,
                                      size.x=1, size.y=1,
                                      compareable=FALSE,
+                                     detailpage=NULL,
                                      html=widget.plotOutput.html) {
+  ## The default detail page is its first topic/own name
+  if (is.null(detailpage)) {
+    detailpage <- list(topic=topics[[1]], name=class[[1]])
+  }
   ## Create a widget class and save it under the last name in the class list
   widget.list[[ class[[1]] ]] <<- list(
     widget.classes = c(class, "widget"),
@@ -181,6 +187,7 @@ createWidgetClass <- function(class, name, description, topics=NULL,
     size.x = size.x,
     size.y = size.y,
     compareable = compareable,
+    detailpage = detailpage,
     html = html
   )
 }

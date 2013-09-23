@@ -98,7 +98,23 @@ widgetbase.output <- function(input, output, id, widget.class, pid, size_x, size
 
     ## build ui
     inst.ui <- widgetUI(inst, id)
-    wb$html <- tagList(inst.ui$ui, widget.class$html(id))
+    str(widget.class$detailpage)
+    if (!is.null(widget.class$detailpage$name)) {
+      name <- widget.class$detailpage$name
+      topic <- widget.class$detailpage$topic
+      link <- paste("../details/?projectid=", isolate(pid()), "&widget=", name, "&topic=", topic, sep="")
+      detail.link <- div(style="position:absolute; top:250px; z-index:99; ", a(href=link, "details..."))
+    } else if (!is.null(widget.class$detailpage$app)) {
+      app <- widget.class$detailpage$app
+      topic <- widget.class$detailpage$topic
+      link <- paste("../", app, "/?projectid=", isolate(pid()), "&topic=", topic, sep="")
+      detail.link <- div(style="position:absolute; top:250px; z-index:99; ", a(href=link, "details..."))
+    } else {
+      detail.link <- list()
+    }
+    all.link <- div(style="position:absolute; top:250px; right:10px; z-index:99;", a(href=paste("?widget=", widget.class[[1]], sep=""), "all projects..."))
+    wb$html <- tagList(detail.link, all.link, inst.ui$ui, widget.class$html(id))
+
     #cat("==========selectview=========\n")
     #print(widgetbase.output.selectview(inst.ui, id))
     ## build the widget's property list

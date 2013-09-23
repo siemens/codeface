@@ -84,8 +84,7 @@ overview.html <- function(title, bigtext, subtitle, link, subtitle.size="100%") 
   tagList(
     tags$div(class="grid_title", style="margin-top: 10px; margin-bottom: 20px;", title),
     tags$div(class='grid_bigtext', style="font-size:110px; text-align: center", bigtext),
-    tags$p(style=paste("font-size:", subtitle.size, "; text-align: center; line-height: 40px; margin-top: 20px"), subtitle),
-    p(a(href=link, "details..."))
+    tags$p(style=paste("font-size:", subtitle.size, "; text-align: center; line-height: 40px; margin-top: 20px"), subtitle)
   )
 }
 
@@ -116,7 +115,8 @@ createWidgetClass(
   "Project Processing Status", "Short, one-widget project processing status",
   c("invisible"),
   1, 1,
-  html=htmlOutput
+  html=htmlOutput,
+  detailpage=list()
 )
 
 initWidget.widget.overview.processing <- function(w) {
@@ -172,7 +172,8 @@ createWidgetClass(
   "Project Summary", "Short, one-widget project summary",
   NULL, # no topical restrictions
   1, 1,
-  html=htmlOutput
+  html=htmlOutput,
+  detailpage=list(app="dashboard-test", topic="overview")
 )
 
 initWidget.widget.overview.project <- function(w) {
@@ -255,7 +256,8 @@ createWidgetClass(
   "Communication", "Information on how developers communicate",
   c("overview", "communication"),
   1, 1,
-  html=htmlOutput
+  html=htmlOutput,
+  detailpage=list(app="dashboard-test", topic="communication")
 )
 
 createWidgetClass(
@@ -263,7 +265,8 @@ createWidgetClass(
   "Collaboration", "Information on how developers collaborate",
   c("overview", "collaboration"),
   1, 1,
-  html=htmlOutput
+  html=htmlOutput,
+  detailpage=list(app="dashboard-test", topic="collaboration")
 )
 
 createWidgetClass(
@@ -271,7 +274,8 @@ createWidgetClass(
   "Complexity", "Information on code complexity",
   c("overview", "complexity"),
   1, 1,
-  html=htmlOutput
+  html=htmlOutput,
+  detailpage=list(app="dashboard-test", topic="complexity")
 )
 
 createWidgetClass(
@@ -279,7 +283,8 @@ createWidgetClass(
   "Construction", "Information on the construction and architecture of the project",
   c("overview", "construction"),
   1, 1,
-  html=htmlOutput
+  html=htmlOutput,
+  detailpage=list(app="dashboard-test", topic="construction")
 )
 
 initWidget.widget.overview.communication <- function(w) {
