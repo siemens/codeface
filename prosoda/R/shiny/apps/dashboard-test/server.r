@@ -67,7 +67,7 @@ widgetbase.output.selectview <- function(w, id) {
   selector <- selectInput(inputView.id.local, "",
                                 choices = mychoices,
                                 selected = myselected)
-  selector <- div(class="widget_view_select", selector)
+  selector[[2]]$attribs$class <- "widget_view_select"
   w$ui <- div(class="title_bar", width="100%", tags$table(width="100%", tags$tr(tags$td(title), tags$td(selector))))
   wselectedviewid <- inputView.id.local
   w
@@ -93,7 +93,7 @@ widgetbase.output <- function(input, output, id, widget.class, pid, size_x, size
     loginfo(paste("Start initialisation of new widget:", widget.class))
     inst <- initWidget(newWidget(widget.class, pid, reactive({input[[inputView.id]]}), selected.pids))
     output[[id]] <- renderWidget(inst)
-    output[[titleOutput.id]] <- renderText(widgetTitle(inst)())
+    output[[titleOutput.id]] <- renderText(paste(projects.list$name[[which(projects.list$id == pid())]], widgetTitle(inst)(), sep=" / "))
     loginfo(paste("Finished initialising new widget:", inst$name))
 
     ## build ui
