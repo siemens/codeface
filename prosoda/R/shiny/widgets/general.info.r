@@ -54,13 +54,14 @@ renderWidget.widget.general.info.overview <- function(w) {
     }
     tagList(
       div(class="grid_title", HTML(paste("The <em>", project.name, "</em> project"))),
-      HTML(paste("<pre>\n",n.releases.text,
-                 "\n", paste("Analysis range: ", month.name[month(date.start)], year(date.start), "until",  month.name[month(date.end)], year(date.end)),
-                 "\n", paste(n.commits, "commits."),
-                 "\n", paste(n.persons, "persons."),
-                 "\n", paste(n.issues, "bugtracker entries."),
-                 "\n", paste(n.mail.threads, "mailing list threads."),
-                 "</pre>")),
+      HTML(paste("<ul>",
+                 "<li>", n.releases.text,
+                 "<li>", paste("Analysis range: <ul><li>", month.name[month(date.start)], year(date.start), "until</li><li>",  month.name[month(date.end)], year(date.end), "</li></ul>"),
+                 "<li>", paste(n.commits, "commits."),
+                 "<li>", paste(n.persons, "persons."),
+                 "<li>", paste(n.issues, "bugtracker entries."),
+                 "<li>", paste(n.mail.threads, "mailing list threads."),
+                 "</ul>")),
       p(a(href=paste("?projectid=", w$pid(), "&topic=basics", sep=""), "details..."))
     )
   })
