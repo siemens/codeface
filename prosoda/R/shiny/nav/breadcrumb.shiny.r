@@ -135,13 +135,14 @@ breadcrumbPanel <- function( breadcrumb ) {
 
   bc.children <- function( bcchildren, x=FALSE ) {
     popdown.tags <- function(x) {
-      tags$li(a(href=as.character(x$url),as.character(x$label)))
+      tags$li(role="presentation", style="display:inline;", a(href=as.character(x$url),tabindex="-1", 
+                                     role="menuitem", as.character(x$label)))
     }
     if( length(bcchildren) == 0 ) {
       NULL
     } else {
       childtags <- tagList(lapply(bcchildren, popdown.tags))
-      childlist <- tags$ul(class="dropdown-menu", childtags)
+      childlist <- tags$ul(class="dropdown-menu", role="menu", childtags)
       tagList(tags$b( class="dropdown-toggle caret", "data-toggle" = "dropdown"  ),
               childlist)
     }
