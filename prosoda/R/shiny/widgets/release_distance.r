@@ -61,7 +61,8 @@ createWidgetClass(
   "Time distance of releases",
   c("construction"),
   size.x = 1,
-  size.y = 1
+  size.y = 1,
+  compareable=TRUE
 )
 
 renderWidget.widget.release.distance <- function(w) {

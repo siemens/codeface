@@ -125,6 +125,16 @@ for (app in c(project.apps.communication, project.apps.construction, project.app
   #force(nav.list[[name]]$url())
 }
 
+nav.list$details <- list(
+  label = eval(parse(text=constant.func("Details"))),
+  url = eval(parse(text=constant.func.url("details"))),
+  childrenIds = function(paramstr) { data.frame() }, # NULL
+  parentId = function(paramstr="") {
+    id <- c("dashboard2")
+    data.frame(id=id, paramstr=paramstr)
+  }
+)
+
 ##
 ## Configure the project dashboard
 ##

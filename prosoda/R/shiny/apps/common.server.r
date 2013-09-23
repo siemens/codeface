@@ -58,7 +58,10 @@ common.server.init <- function(input, output, session, app.name) {
 
   ## returns a reactive list containing selected projects
   selected <- reactive({ projects.selected( projects.list, input$qacompareids) })
-  selected.pids <- reactive({ unlist(strsplit(input$qacompareids,",")) })
+  selected.pids <- reactive({
+    pids <- unlist(strsplit(input$qacompareids,",")) 
+    if (is.null(pids)) { list() } else { pids }
+  })
 
   ## Create project comparison user interface
   output$selectpidsui <- renderCompareWithProjectsInput(
@@ -67,7 +70,10 @@ common.server.init <- function(input, output, session, app.name) {
   ## Update the cookies for the project comparsion
   ## also available via choices (but beware of duplicate project names)
   observe({
-    updateCookieInput(session, "qacompareids", input$selectedpids, pathLevel=0, expiresInDays=1 )
+    dat <- input$selectedpids
+    dat <- if(is.null(dat)) { list() } else { dat }
+    ## TODO: pathLevel=1 does not seem to work
+    updateCookieInput(session, "qacompareids", dat, pathLevel=0, expiresInDays=1)
   })
 
   loginfo("Common server init done.")
@@ -77,14 +83,14 @@ common.server.init <- function(input, output, session, app.name) {
 }
 
 
-detailPage <- function(app.name, widgets, additional.input=list()){
+detailPage <- function(app.name, widgets=NULL, additional.input=list()){
   function(input, output, clientData, session) {
     loginfo(paste("Creating detail page for", app.name))
-    
+
     allpids = common.server.init(input, output, session, app.name)
     pid = allpids$pid
     selected = allpids$selected  # to be used for comparisons
-    
+
     observe({
       if (!is.vector(pid())) {
         stop("No projectid parameter in URL")
@@ -93,82 +99,135 @@ detailPage <- function(app.name, widgets, additional.input=list()){
       }
       loginfo(paste("New Project ID: ", pid()))
     })
-      
+
     range.id <- reactive({input$view})
 
-    widget.classes <- widget.list[widgets]
-    widget.instances <- lapply(widget.classes,
-                               function(cls) {
-                                 w <- newWidget(cls, pid, range.id, selected)
-                                 return(w)
-                               })
+    if (is.null(widgets)) {
+      widgets <- isolate({unlist(strsplit(allpids$args.list()$widget,","))})
+    }
+
+
     ## Note that since R always works by value, you CAN NOT change an
     ## object in e.g. a for loop; you always have to get a copy
     ## of the modified object out.
-    loginfo("Adding additional inputs to widgets and initializing...")
-    widget.instances <- lapply(widget.instances, function(w) {
-        w <- Reduce(function(w, name) {
-          input.value <- reactive({ input[[name]] })
-          observe({ print(paste(name, "is now", input.value())) })
-          #print("Isolated value:")
-          #print(isolate(input.value))
-          w[[name]] <- input.value
-          return(w)
-        },
-        names(additional.input),
-        w)
-        w <- initWidget(w)
-        if (is.null(w)) {
-          logfatal("Error in Widget initialization!")
-          stop("Error in Widget initialization!")
-        }
+    initialize.widget <- function(w) {
+      w <- Reduce(function(w, name) {
+        input.value <- reactive({ input[[name]] })
+        #force(isolate({input.value()}))
+        #observe({ print(paste(name, "is now", input.value())) })
+        w[[name]] <- input.value
         return(w)
-      }
-    )
-
-    # Render widgets into tabs
-    panel.tabs <- mapply(function(i, cls, w) {
-        id <- paste("widget", i, sep="")
-        output[[id]] <- renderWidget(w)
-        html <- div(style="width: 100%; height: 500px", cls$html(id))
-        return(reactive({
-          tabPanel(widgetTitle(w)(), html)
-        }))
       },
-      1:length(widget.instances), widget.classes, widget.instances,
-      SIMPLIFY=FALSE
-    )
+      names(additional.input),
+      w)
+      w <- initWidget(w)
+      if (is.null(w)) {
+        logfatal("Error in Widget initialization!")
+        stop("Error in Widget initialization!")
+      }
+      return(w)
+    }
+
+    widgets.by.id <<- list()
+
+    ## Create or reuse a widget with a unique index i and of the class cls
+    ## and make sure that all outputs are set. Returs a list of output ids
+    ## which have been set.
+    make.or.reuse.widget <- function(i, cls, project) {
+      id.widget <- paste("widget", i, project, sep="_")
+      id.panel <- paste("widget", i, project, "panel", sep="_")
+      id.ui <- paste("widget", i, project, "ui", sep="_")
+      id.help <- paste("widget", i, project, "help", sep="_")
+      project.title <- projects.list$name[[which(projects.list$id == project)]]
+      if (is.null(widgets.by.id[[id.widget]])) {
+        w <- initialize.widget(newWidget(cls, reactive({project}), reactive({input[[paste("view", project, sep="")]]}), selected))
+        widgets.by.id[[id.widget]] <<- w
+        output[[id.widget]] <- renderWidget(w)
+        output[[id.panel]] <- renderUI({div(style="width: 100%; height: 500px", cls$html(id.widget))})
+        output[[id.help]] <- renderUI({tagList(h4(widgetTitle(w)()), p(widgetExplanation(w)()))})
+        output[[id.ui]] <- renderUI({
+          choices <- listViews(w)()
+          if (length(choices) > 1) {
+            title <- if(project == pid()) { "View:" } else { paste("View (", project.title, "):", sep="") }
+            list(selectInput(paste("view", project, sep=""), h3(title), choices=choices))
+          } else {
+            list()
+          }
+        })
+      }
+      tab.title <- widgetTitle(widgets.by.id[[id.widget]])()
+      return(list(id=id.panel, project.title=project.title,
+                  tab.title=tab.title, id.ui=id.ui, id.help=id.help))
+    }
+
+    ## Create and set up the widgets for this project (given by pid())
+    widget.ids.base <- reactive({lapply(1:length(widgets), function(i) {
+      make.or.reuse.widget(i, widget.list[[widgets[[i]]]], pid())
+    })})
+
+    ## If the widget is not compareable, we need additional tabs
+    all.instance.ids <- lapply(1:length(widgets), function(i) {
+      widget <- widgets[[i]]
+      cls <- widget.list[[widget]]
+      id <- paste("widget", i, sep="")
+      if (!cls$compareable) {
+        ## If the list of compared widgets changes, first make sure all widgets are there
+        ## If we have projects to compare...
+        instance.ids <- reactive({lapply(selected(), function(project) {
+          make.or.reuse.widget(i, cls, project)
+        })})
+
+        output$additional.views <- renderUI({
+          if (length(selected()) > 0) {
+            return(tagList(lapply(instance.ids(), function(id) { uiOutput(id$id.ui) })))
+          } else {
+            list()
+          }
+        })
+
+        output[[id]] <- renderUI({
+          if (length(selected()) > 0) {
+            do.call(tabsetPanel, lapply(c(list(widget.ids.base()[[i]]), instance.ids()), function(ids) {
+                                        tabPanel(ids$project.title, uiOutput(ids$id))}))
+          } else {
+            uiOutput(widget.ids.base()[[i]]$id)
+          }
+        })
+      } else {
+        instance.ids <- reactive({list()})
+        output$additional.views <- renderUI({list()})
+        output[[id]] <- renderUI({ uiOutput(widget.ids.base()[[i]]$id) })
+      }
+      instance.ids
+    })
 
     # Only show tabs in the main panel if >1 widget
-    if (length(widgets) == 1) {
-      main.panel <- reactive({panel.tabs[[1]]()})
-    } else {
-      main.panel <- reactive({do.call(tabsetPanel, lapply(panel.tabs, function(x){x()}))})
-    }
+    output$main.panel <- renderUI({
+      if (length(widgets) == 1) {
+        return(uiOutput("widget1"))
+      } else {
+        widget.tabs <- lapply(1:length(widgets), function(i) {
+          id <- paste("widget", i, sep="")
+          tabPanel(widget.ids.base()[[i]]$tab.title, uiOutput(id))
+        })
+        return(do.call(tabsetPanel, widget.tabs))
+      }
+    })
 
     # Create user interface, using a sidebar if necessary
     observe({
-      str(widget.instances)
-      choices <- listViews(widget.instances[[1]])()
-      sidebar <- list()
-      if (length(choices) > 1) {
-        sidebar <- c(sidebar, list(selectInput("view", h3("View:"), choices=choices)))
-      }
+      sidebar <- list(uiOutput(widget.ids.base()[[1]]$id.ui))
+      sidebar <- c(sidebar, list(uiOutput("additional.views")))
       sidebar <- c(sidebar, additional.input)
       sidebar <- c(sidebar, tagList(h3("Detail Information:")))
-      sidebar <- c(sidebar, lapply(widget.instances, function(w) { tagList(h4(widgetTitle(w)()), p(widgetExplanation(w)())) }))
+      sidebar <- c(sidebar, lapply(widget.ids.base(), function(w) {uiOutput(w$id.help)}))
       names(sidebar) <- NULL
-
-      if (length(sidebar) > 0) {
-        output$quantarchContent <- renderUI({
-          tagList(
-            sidebarPanel(sidebar),
-            mainPanel(main.panel())
-          )
-        })
-      } else {
-        output$quantarchContent <- renderUI({main.panel()})
-      }
+      output$quantarchContent <- renderUI({
+        tagList(
+          sidebarPanel(sidebar),
+          mainPanel(uiOutput("main.panel"))
+        )
+      })
     })
     loginfo(paste("Finished creating detail page for", app.name))
   }
