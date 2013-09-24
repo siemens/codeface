@@ -30,6 +30,7 @@ shinyUI(bootstrapPage(
   		## Adapt the styles as needed (some seem to be ignored)
   		tags$link(rel = 'stylesheet', type = 'text/css', href = 'styles.css'),
   		tags$script(src = "gridsterWidgetsExt.js"),
+      tags$script(src = "nav/qa_modal.js"),
       tags$script(src = 'js/raphael.2.1.0.min.js'),
       tags$script(src = 'js/justgage.1.0.1.min.js'),
       tags$script(src = "justgage_binding.js"),

@@ -128,7 +128,13 @@ widgetbase.output <- function(input, output, id, widget.class, pid, size_x, size
     wb$col <- col
     wb$row <- row
     ## title and text for help popover
-    wb$help <- list(title=isolate(widgetTitle(inst)()), content=isolate(widgetExplanation(inst)()), html=TRUE, trigger="click" )
+    wb$help <- list(title=isolate(widgetTitle(inst)()), content=isolate(widgetExplanation(inst)()), html=TRUE, trigger="click")
+    ## remark adding "in" as the first element of placement will put the html code representing the popover inside the element
+    ## however this produces problems with stacking, because other widgets will form stacking contexts and you cannot place
+    ## the popover in front of them easily, see: http://philipwalton.com/articles/what-no-one-told-you-about-z-index/
+    ## So it is better to place the popover's html inside the body element, so it will be displayed pretty above the others
+    ## (z-index:1010)
+    #wb$help <- list(title=isolate(widgetTitle(inst)()), content=isolate(widgetExplanation(inst)()), html=TRUE, trigger="click", placement="in bottom" )
   }, warning = function(warn) {
     logwarn(paste("widgetbase.output.new(id=", id, " w=<", widget.class$name,">, pid=",isolate(pid()),":", toString(warn)))
     print(traceback(warn))
