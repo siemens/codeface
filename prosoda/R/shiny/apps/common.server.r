@@ -177,14 +177,6 @@ detailPage <- function(app.name, widgets=NULL, additional.input=list()){
           make.or.reuse.widget(i, cls, project)
         })})
 
-        output$additional.views <- renderUI({
-          if (length(selected()) > 0) {
-            return(tagList(lapply(instance.ids(), function(id) { uiOutput(id$id.ui) })))
-          } else {
-            list()
-          }
-        })
-
         output[[id]] <- renderUI({
           if (length(selected()) > 0) {
             do.call(tabsetPanel, lapply(c(list(widget.ids.base()[[i]]), instance.ids()), function(ids) {
@@ -200,6 +192,15 @@ detailPage <- function(app.name, widgets=NULL, additional.input=list()){
       }
       instance.ids
     })
+
+    output$additional.views <- renderUI({
+      if (length(selected()) > 0) {
+        return(tagList(lapply(all.instance.ids[[1]](), function(id) { uiOutput(id$id.ui) })))
+      } else {
+        list()
+      }
+    })
+
 
     # Only show tabs in the main panel if >1 widget
     output$main.panel <- renderUI({
