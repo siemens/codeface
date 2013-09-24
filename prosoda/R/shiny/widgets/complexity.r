@@ -14,6 +14,12 @@
 ## Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 ## All Rights Reserved.
 
+detailpage <- list(name="widget.complexity.loc.per.author.summary,widget.complexity.loc.per.author.weighted,widget.complexity.loc",
+                   title="Lines of Code Metrics")
+
+detailpage2 <- list(name="widget.complexity.diff.size,widget.complexity.relative.diff.size",
+                   title="Diff Size Metrics")
+
 gen.loc.per.author <- function(pid) {
   ## Get basic release cycle information
   cycles <- get.cycles.con(conf$con, pid)
@@ -58,10 +64,11 @@ initWidget.widget.complexity.loc.per.author <- function(w) {
 
 createWidgetClass(
   c("widget.complexity.loc.per.author.summary", "widget.complexity.loc.per.author"),
-  "Lines of code per Author for each Cycle",
+  "Lines of code per Author",
   "Number of lines of code in the project divided by the number of Authors for a given cycle. Gives an indication of the maintenance burden of an individual author.",
   c("complexity"),
-  1, 1
+  1, 1,
+  detailpage=detailpage
 )
 
 renderWidget.widget.complexity.loc.per.author.summary = function(w) {
@@ -77,10 +84,11 @@ renderWidget.widget.complexity.loc.per.author.summary = function(w) {
 
 createWidgetClass(
   c("widget.complexity.loc.per.author.weighted", "widget.complexity.loc.per.author"),
-  "Lines of code per weighted Author for each Cycle",
+  "Lines of code per weighted Author",
   "Number of lines of code in the project divided by the number of Authors for a given cycle, multiplied for each author by the authors weight. The authors weight is calculated by the fraction of lines she has added, removed or modified in this release. For example, if one author makes all changes for one release, the number of lines of code for her will be equal to the number of lines of code in the project.",
   c("complexity"),
-  2, 1
+  2, 1,
+  detailpage=detailpage
 )
 
 renderWidget.widget.complexity.loc.per.author.weighted = function(w) {
@@ -99,10 +107,11 @@ renderWidget.widget.complexity.loc.per.author.weighted = function(w) {
 
 createWidgetClass(
   c("widget.complexity.loc", "widget.complexity.loc.per.author"),
-  "Lines of code for each cycle",
+  "Lines of code",
   "Number of lines of code in the project",
   c("complexity"),
-  1, 1
+  1, 1,
+  detailpage=detailpage
 )
 
 renderWidget.widget.complexity.loc = function(w) {
@@ -121,7 +130,8 @@ createWidgetClass(
   "Cumulative diff size in a release",
   "Number of lines added, removed or changed in all edits in the release cycle",
   c("complexity"),
-  1, 1
+  1, 1,
+  detailpage=detailpage2
 )
 
 renderWidget.widget.complexity.diff.size = function(w) {
@@ -140,7 +150,8 @@ createWidgetClass(
   "Cumulative diff size compared to lines of code",
   "Compares the length of the sum of all diffs of all edits in the cycle with the number of lines of code",
   c("complexity"),
-  1, 1
+  1, 1,
+  detailpage=detailpage2
 )
 
 renderWidget.widget.complexity.relative.diff.size = function(w) {

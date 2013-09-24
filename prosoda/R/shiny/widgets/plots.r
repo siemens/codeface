@@ -62,7 +62,7 @@ do.ts.plot <- function(ts, boundaries, title, y.label, smooth, transform) {
 
 createWidgetClass(
   c("widget.timeseries.plots", "widget.timeseries"),
-  "Plot Time Series",
+  "Show Time Series",
   "Can show different time series calculated for this project",
   size.x = 2,
   size.y = 1,

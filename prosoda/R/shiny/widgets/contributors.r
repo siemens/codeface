@@ -16,6 +16,9 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+detailpage <- list(name="widget.contributors.pagerank,widget.contributors.pagerank.transposed,widget.contributors.commits,widget.contributors.changes",
+                   title="Authors / Pagerank")
+
 prepare.prank.table <- function(range.id, technique) {
   prank.id <- get.pagerank.id.con(conf$con, range.id, technique)
   dat <- query.pagerank(conf$con, prank.id)
@@ -50,7 +53,8 @@ createWidgetClass(
   "Interpretational aid: This Page rank focuses on giving tags",
   c("basics", "collaboration"),
   2, 1,
-  html=widget.tableOutput.html
+  html=widget.tableOutput.html,
+  detailpage=detailpage
 )
 
 createWidgetClass(
@@ -59,7 +63,8 @@ createWidgetClass(
   "Interpretational aid: The transposed Page rank focuses on being tagged",
   c("basics", "collaboration"),
   2, 1,
-  html=widget.tableOutput.html
+  html=widget.tableOutput.html,
+  detailpage=detailpage
 )
 
 createWidgetClass(
@@ -68,7 +73,8 @@ createWidgetClass(
   "List of contributors and their commits",
   c("basics", "collaboration"),
   1, 1,
-  html=widget.tableOutput.html
+  html=widget.tableOutput.html,
+  detailpage=detailpage
 )
 
 createWidgetClass(
@@ -77,7 +83,8 @@ createWidgetClass(
   "List of Contributors by code changes",
   c("basics", "collaboration"),
   2, 1,
-  html=widget.tableOutput.html
+  html=widget.tableOutput.html,
+  detailpage=detailpage
 )
 
 renderWidget.widget.contributors.pagerank <- function(w) {

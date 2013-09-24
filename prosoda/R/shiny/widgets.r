@@ -176,7 +176,7 @@ createWidgetClass <- function(class, name, description, topics=NULL,
                                      html=widget.plotOutput.html) {
   ## The default detail page is its first topic/own name
   if (is.null(detailpage)) {
-    detailpage <- list(topic=topics[[1]], name=class[[1]])
+    detailpage <- list(topic=topics[[1]], name=class[[1]], title=name)
   }
   ## Create a widget class and save it under the last name in the class list
   widget.list[[ class[[1]] ]] <<- list(

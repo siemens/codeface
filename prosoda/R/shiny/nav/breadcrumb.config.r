@@ -24,6 +24,7 @@
 ##  		- The only data needed currently is projects.list
 
 source("../symbols.r")
+source("../widgets.r", chdir=TRUE)
 
 ## nav.list holds the methods used to generate the breadcrumb
 nav.list <- list()
@@ -62,78 +63,103 @@ nav.list$projects <- list(
 ##
 ## Configure contributors app
 ##
+detail.apps <- function(topic) {
+  detailpage.titles <- sapply(widget.list, function(w.cls) {w.cls$detailpage$title})
+  names(detailpage.titles) <- sapply(widget.list, function(w.cls) {w.cls$detailpage$name})
+  ## Remove not-fitting detail pages
+  detailpage.use <- sapply(widget.list, function(w.cls) {is.null(w.cls$topics) || topic %in% w.cls$topics})
+  detailpage.titles <- detailpage.titles[detailpage.use]
+  ## Remove "unset" detailpages
+  detailpage.titles <- detailpage.titles[!sapply(detailpage.titles, is.null)]
+  ## Make the list unique
+  detailpage.titles <- detailpage.titles[unique(names(detailpage.titles))]
+  ## Create link
+  apps <- lapply(1:length(detailpage.titles), function(i) {
+    if (is.null(detailpage.titles[[i]])) {stop(paste("Title missing for detail page", names(detailpage.titles)[[i]]))}
+    return(c(paste("details?topic=", topic, "&widget=", names(detailpage.titles)[[i]], sep=""), detailpage.titles[[i]]))
+  })
+  names(apps) <- NULL
+  return(apps)
+}
 
 topic.ids <- c("basics", "communication", "construction", "complexity", "collaboration")
 
-project.apps.basics <- list()
+project.apps.basics <- detail.apps("basics")
 
-project.apps.communication <- list(
-  c("punchcard_ml", "ML activity punch cards"),
+project.apps.communication <- c(list(
   c("timeseries", "Mailing list activity")
-)
+), detail.apps("communication"))
 
-project.apps.construction <- list(
-  c("commit.info", "Commit Information", "construction"),
-  c("commit.structure", "Commit Structure", "construction"),
-  c("release_distance", "Inter-Release Distance")
-)
+project.apps.construction <- detail.apps("construction")
 
-project.apps.complexity <- list(
+project.apps.complexity <- c(list(
   c("plots", "Time series of complexity metrics")
-)
+), detail.apps("complexity"))
 
-project.apps.collaboration <- list(
-  c("contributors", "Contributors"),
-  c("contributions", "Contributions overview"),
-  c("punchcard", "Activity punch cards"),
-  c("vis.clusters", "Collaboration clusters")
-)
+project.apps.collaboration <- detail.apps("collaboration")
 
-# constant.func <- function(value) {
-#   return(function(paramstr="") { value })
-# }
-#
-# constant.func.url <- function(name) {
-#   return(function(paramstr="") { paste("../", name, "/?", paramstr, sep='') })
-# }
-
-constant.func <- function(name) {
-  paste("function(paramstr='') {\"",as.character(name),"\"}",sep="")
+merge.query.strings <- function(p, q) {
+  p <- parseQueryString(p)
+  q <- parseQueryString(q)
+  p[names(q)] <- q
+  p <- p[unique(names(p))]
+  do.call(paste, c(lapply(1:length(p), function(i) {
+    paste(names(p)[[i]], p[[i]], sep="=")
+  }), list(sep="&")))
 }
+
+constant.func <- function(value) {
+  f <- function(paramstr="") { value }
+  force(f())
+  return(f)
+}
+
 constant.func.url <- function(name) {
-  paste("function(paramstr='') { paste(\"../", as.character(name), "?\", paramstr, sep='') }", sep="")
+  if (grepl("\\?", name)) {
+    url.split <- strsplit(name, split="?", fixed=TRUE)[[1]]
+    q <- url.split[[2]]
+    f <- function(paramstr="") {
+      new.paramstr <- merge.query.strings(paramstr, q)
+      paste("../", url.split[[1]], "?", new.paramstr, sep='')
+    }
+  } else {
+    f <- function(paramstr="") {
+      paste("../", name, "?", paramstr, sep='')
+    }
+  }
+  return(f)
 }
 
-for (app in c(project.apps.communication, project.apps.construction, project.apps.complexity, project.apps.collaboration)) {
+for (app in c(project.apps.basics, project.apps.communication, project.apps.construction, project.apps.complexity, project.apps.collaboration)) {
   name <- app[[1]]
   title <- app[[2]]
-
   nav.list[[name]] <- list(
-    label = eval(parse(text=constant.func(title))),
-    url = eval(parse(text=constant.func.url(name))),
+    label = constant.func(title),
+    url = constant.func.url(name),
     childrenIds = function(paramstr) { data.frame() }, # NULL
     parentId = function(paramstr="") {
       id <- c("dashboard2")
       data.frame(id=id, paramstr=paramstr)
     }
   )
-
   ## Note: We need to force evaluation of these functions here, since
   ## otherwise the name and title variables will not be "captured" by
   ## the closure; and will be overwritten in the next loop iteration.
-  #force(nav.list[[name]]$label())
-  #force(nav.list[[name]]$url())
+  force(nav.list[[name]]$label())
+  force(nav.list[[name]]$url())
 }
 
 nav.list$details <- list(
-  label = eval(parse(text=constant.func("Details"))),
-  url = eval(parse(text=constant.func.url("details"))),
+  label = constant.func("Details"),
+  url = constant.func.url("details"),
   childrenIds = function(paramstr) { data.frame() }, # NULL
   parentId = function(paramstr="") {
     id <- c("dashboard2")
     data.frame(id=id, paramstr=paramstr)
   }
 )
+force(nav.list$details$label())
+force(nav.list$details$url())
 
 ##
 ## Configure the project dashboard
@@ -153,7 +179,9 @@ nav.list$dashboard <- list(
   ## (3) configure children displayed in dropdown
   childrenIds = function(paramstr) {
     id <- c("dashboard2")
-    params <- as.character(paste(paramstr,"&topic=",topic.ids,sep=""))
+    params <- sapply(topic.ids, function(id) {
+                     merge.query.strings(paramstr, paste("topic", id, sep="="))
+              })
     data.frame(id, params)
   },
   ## (4) configure parent

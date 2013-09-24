@@ -16,6 +16,9 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+detailpage = list(name="widget.commit.info.splom,widget.commit.info.corrgram,widget.commit.doc",
+                  title="Commit Information")
+
 ## Get a commit.info.splom widget
 createWidgetClass(
   class = c("widget.commit.info.splom", "widget.commit.info", "widget.rangeid"),
@@ -24,7 +27,8 @@ createWidgetClass(
   topics = c("basics", "construction"),
   size.x = 2,
   size.y = 1,
-  compareable = FALSE
+  compareable = FALSE,
+  detailpage = detailpage
 )
 
 ## Get a commit.info.corrgram widget
@@ -35,7 +39,8 @@ createWidgetClass(
   topics = c("construction"),
   size.x = 1,
   size.y = 1,
-  compareable = FALSE
+  compareable = FALSE,
+  detailpage = detailpage
 )
 
 ## Common initialization of commit.info widgets
@@ -69,7 +74,8 @@ createWidgetClass(
   topics = c("basics", "construction"),
   size.x = 1,
   size.y = 1,
-  compareable = FALSE
+  compareable = FALSE,
+  detailpage = detailpage
 )
 
 initWidget.widget.commit.doc <- function(w) {

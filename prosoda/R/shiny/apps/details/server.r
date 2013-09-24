@@ -17,4 +17,4 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
-shinyServer(detailPage("details"))
+shinyServer(detailPage())

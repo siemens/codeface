@@ -14,6 +14,10 @@
 ## Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 ## All Rights Reserved.
 
+## Also see punchcard.r
+detailpage <- list(name="widget.weekend.fraction,widget.weekend.fraction.type,widget.punchcard",
+                   title="Authors / Time of Activity")
+
 gen.weekend.fraction <- function(pid) {
   ## Get basic release cycle information
   cycles <- get.cycles.con(conf$con, pid)
@@ -54,7 +58,8 @@ createWidgetClass(
   "Each author is represented by a dot, the size of which is proportional to her number of commits. ",
   "The colour is proportional to the total size of diffs the author contributed that cycle."),
   c("basics"),
-  2, 1
+  2, 1,
+  detailpage=detailpage
 )
 
 initWidget.widget.weekend.fraction <- function(w) {
@@ -86,7 +91,8 @@ createWidgetClass(
   str_c("Show percentage of authors that work mostly (> 50%) on weekends, that work ",
   "continuously (> 25% weekends) or that work mostly on weekdays, measured by diff size."),
   c("basics"),
-  2, 1
+  2, 1,
+  detailpage=detailpage
 )
 
 renderWidget.widget.weekend.fraction.type = function(w) {

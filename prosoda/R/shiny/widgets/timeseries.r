@@ -26,6 +26,7 @@ createWidgetClass(
   c("communication"),
   size.x = 2,
   size.y = 1,
+  detailpage=list(app="timeseries", topic="communication")
 )
 
 initWidget.widget.timeseries.messages.per.day <- function(w) {

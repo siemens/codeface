@@ -48,7 +48,9 @@ createWidgetClass(
   "Commit Punchcard",
   "Commit Punchcard",
   c("collaboration"),
-  2, 1
+  2, 1,
+  detailpage=list(name="widget.weekend.fraction,widget.weekend.fraction.type,widget.punchcard",
+                  title="Authors / Time of Activity") ## See weekend.r
 )
 
 initWidget.widget.punchcard <- function(w) {

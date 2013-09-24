@@ -16,6 +16,9 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+detailpage <- list(name="widget.contributions.overview,widget.contributions.multiCycles,widget.contributions.authorsPerCycle",
+                   title="Authors / Contributions")
+
 suppressPackageStartupMessages(library(reshape))
 
 ## Determine how many authors repeatedly contributed to how many cycles
@@ -78,21 +81,24 @@ createWidgetClass(
   c("widget.contributions.multiCycles", "widget.contributions"),
   "Author Turnover", "Time Authors stayed on the Project",
   c("basics", "collaboration"),
-  1, 1
+  1, 1,
+  detailpage = detailpage
 )
 
 createWidgetClass(
   c("widget.contributions.authorsPerCycle", "widget.contributions"),
   "Authors per Cycle", "Number of Authors in each cycle",
   c("basics", "collaboration", "complexity"),
-  1, 1
+  1, 1,
+  detailpage = detailpage
 )
 
 createWidgetClass(
   c("widget.contributions.overview", "widget.contributions"),
   "Contributions - Overview", "Numerical overview of contributions",
   c("basics", "collaboration"),
-  2, 1
+  2, 1,
+  detailpage = detailpage
 )
 
 initWidget.widget.contributions <- function(w) {

@@ -16,6 +16,9 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+detailpage = list(name="widget.commit.structure.mds,widget.commit.structure.princomp",
+                  title="Commit Structure")
+
 ## Perform dimensionality reduction on the per-cycle commits using
 ## multi-dimensional scaling
 do.mds <- function(cmt.info.list, k=2, method="euclidean") {
@@ -66,7 +69,8 @@ createWidgetClass(
   "Multidimensional scaling of the commit structure",
   topics = c("construction"),
   size.x = 2,
-  size.y = 1
+  size.y = 1,
+  detailpage = detailpage
 )
 
 createWidgetClass(
@@ -75,7 +79,8 @@ createWidgetClass(
   "Principal component analysis of the commit structure",
   topics = c("construction"),
   size.x = 2,
-  size.y = 1
+  size.y = 1,
+  detailpage = detailpage
 )
 
 initWidget.widget.commit.structure <- function(w) {

@@ -83,8 +83,15 @@ common.server.init <- function(input, output, session, app.name) {
 }
 
 
-detailPage <- function(app.name, widgets=NULL, additional.input=list()){
+detailPage <- function(app.name=NULL, widgets=NULL, additional.input=list()){
   function(input, output, clientData, session) {
+    if (is.null(app.name)) {
+      q <- parseQueryString(isolate(session$clientData$url_search))
+      app.name <- paste("details?topic=", q$topic, "&widget=", q$widget, sep="")
+      if (!app.name %in% names(nav.list)) {
+        app.name <- "details"
+      }
+    }
     loginfo(paste("Creating detail page for", app.name))
 
     allpids = common.server.init(input, output, session, app.name)

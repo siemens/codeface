@@ -16,6 +16,9 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+detailpage <- list(name="widget.clusters.clusters,widget.clusters.correlations,widget.clusters.summary",
+                   title="Collaboration Clusters")
+
 source("../../clusters.r", chdir=TRUE)
 
 ## Create overviews about the types of collaboration graphs appearing in
@@ -96,7 +99,8 @@ createWidgetClass(
   "Clusters",
   "Developer collaboration Clusters",
   c("collaboration"),
-  2, 1
+  2, 1,
+  detailpage=detailpage
 )
 
 initWidget.widget.clusters <- function(w) {
@@ -116,7 +120,8 @@ createWidgetClass(
   c("widget.clusters.correlations", "widget.clusters", "widget.rangeid"),
   "Cluster Correlations",
   "Cluster Correlations",
-  c("collaboration")
+  c("collaboration"),
+  detailpage=detailpage
 )
 
 initWidget.widget.clusters.correlations <- function(w) {
@@ -145,7 +150,8 @@ createWidgetClass(
   "Tabular summary of clusters",
   c("collaboration"),
   3, 1,
-  html=widget.tableOutput.html
+  html=widget.tableOutput.html,
+  detailpage=detailpage
 )
 
 renderWidget.widget.clusters.summary <- function(w, range.id=NULL) {
