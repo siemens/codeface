@@ -19,6 +19,13 @@ h1 {
   color: #000;
 }
 
+a.link_details:after {
+  content: "details.." ;
+}
+a.link_projects:after {
+  content: "projects.." ;
+}
+
 a {
   color: #666666;
   cursor: pointer;
@@ -102,3 +109,15 @@ div .title_bar {
   border-radius: 5px 5px 5px 5px;
   text-align: center;
 }
+
+div .link_bar {
+  position: absolute;
+  right: 0px;
+  left: 0px;
+  bottom:0px;
+  background-color: rgba(0, 0, 0, 0);
+  border-radius: 5px 5px 5px 5px;
+  margin-left: 5px;
+  margin-right: 5px;
+}
+

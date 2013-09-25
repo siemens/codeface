@@ -39,9 +39,9 @@ getuniqueid <- function(prefix = "") {
 }
 
 ## Generic widgetUI based on widget instance
-widgetUI <- function(x, ...) UseMethod("widgetUI")
+widgetUI.header <- function(x, ...) UseMethod("widgetUI.header")
 
-widgetUI.widget <- function(w, id) {
+widgetUI.header.widget <- function(w, id) {
   ## define basic widget ui for widget instances
   w$titleid <- paste(id,"_title",sep="")
   w$ui <- tags$div( width="100%", tags$div(class="title_bar widget_title", textOutput(w$titleid)))
@@ -51,7 +51,7 @@ widgetUI.widget <- function(w, id) {
   w
 }
 
-widgetUI.widget.rangeid <- function(w, id) {
+widgetUI.header.widget.rangeid <- function(w, id) {
   ## define basic widget ui for a widget instances with rangeids
   w <- NextMethod()
   #w$viewid <- paste(id,"_views",sep="")
@@ -95,28 +95,47 @@ widgetbase.output <- function(input, output, id, widget.class, pid, size_x, size
 
     loginfo(paste("Start initialisation of new widget:", widget.class))
     inst <- initWidget(newWidget(widget.class, pid, reactive({input[[inputView.id]]}), selected.pids))
+    
+    ## reactive assignments (can be done in advance)
     output[[id]] <- renderWidget(inst)
     output[[titleOutput.id]] <- renderText(paste(projects.list$name[[which(projects.list$id == pid())]], widgetTitle(inst)(), sep=" / "))
     loginfo(paste("Finished initialising new widget:", inst$name))
 
-    ## build ui
-    inst.ui <- widgetUI(inst, id)
-    str(widget.class$detailpage)
+    ## build ui header
+    inst.ui <- widgetUI.header(inst, id)
+    
+    ##
+    ## render a link to detail pages specific for this widget (breadcrumb will display all links)
+    ##
+    #str(widget.class$detailpage)
+    
+    ## (1) handled by details app, needs a project id (or NULL), a widget class name and a configured topic (or NULL)
     if (!is.null(widget.class$detailpage$name)) {
       name <- widget.class$detailpage$name
       topic <- widget.class$detailpage$topic
       link <- paste("../details/?projectid=", isolate(pid()), "&widget=", name, "&topic=", topic, sep="")
-      detail.link <- div(style="position:absolute; top:250px; z-index:99; ", a(href=link, "details..."))
+      
+      ## TODO use a details icon instead
+      detail.link <- div(style="float:left;", a(class="link_details", href=link, ""))
+    
+      ## (2) handled by an app, needs an app, project id and a configured topic  
     } else if (!is.null(widget.class$detailpage$app)) {
       app <- widget.class$detailpage$app
       topic <- widget.class$detailpage$topic
       link <- paste("../", app, "/?projectid=", isolate(pid()), "&topic=", topic, sep="")
-      detail.link <- div(style="position:absolute; top:250px; z-index:99; ", a(href=link, "details..."))
+      
+      detail.link <- div(style="float:left;", a(class="link_details", href=link, ""))
     } else {
+      
       detail.link <- list()
     }
-    all.link <- div(style="position:absolute; top:250px; right:10px; z-index:99;", a(href=paste("?widget=", widget.class[[1]], sep=""), "all projects..."))
-    wb$html <- tagList(detail.link, all.link, inst.ui$ui, widget.class$html(id))
+    
+    all.link <- div(style="float:right;", 
+                    a(class="link_projects", href=paste("?widget=", widget.class[[1]], sep=""), ""))
+    
+    ## append footer
+    footer <- tags$div(class="link_bar", width="100%", detail.link, all.link)
+    wb$html <- tagList(inst.ui$ui, widget.class$html(id), footer)
 
     #cat("==========selectview=========\n")
     #print(widgetbase.output.selectview(inst.ui, id))
@@ -165,7 +184,7 @@ sendWidgetContent <- function(session, w) {
     tags$li(class="qawidget",
       style=paste("background-color:",isolate(widgetColor(w$widget)()),";box-shadow: 10px 10px 5px #CCC;", sep=""),
       tags$i( class="icon-remove-sign hidden", style="position:absolute;z-index:99;"),
-      tags$div( qaclass=class(w$widget)[1], qaid=w$id ),
+      tags$div("data-qaclass"=class(w$widget)[1], "data-qaid"=w$id ),
       x) }
   #print(as.character(basehtml(w$html)))
   session$sendCustomMessage(
