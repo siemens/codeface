@@ -278,7 +278,9 @@ compareWithProjectsOutput <- function( outputId ) {
     singleton(tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = 'nav/chosen.min.css'),
       tags$script(src = "nav/qa_cookie.js"),
-      tags$script(src = "nav/chosen.jquery.min.js")
+      tags$script(src = "nav/chosen.jquery.min.js"),
+      tags$script(src = "nav/d3.v3.min.js"),
+      tags$script(src = "nav/d3.layout.cloud.js")
       )),
     
     div(id = outputId, class = "shiny-html-output")
