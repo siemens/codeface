@@ -20,7 +20,8 @@
 ## http://de.wikipedia.org/wiki/Unicodeblock_Verschiedene_Symbole
 
 make.symbol <- function(unicode.hex) {
-  div(style="font-family: symbola; display: inline; font-weight: 500;", intToUtf8(unicode.hex))
+  div(style="font-family: symbola; display: inline; font-weight: 500;", 
+      HTML(paste("&#",unicode.hex,sep="")))
   ## Uncomment this to make the example html file
   #intToUtf8(unicode.hex)
 }
