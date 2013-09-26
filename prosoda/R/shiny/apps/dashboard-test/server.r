@@ -45,6 +45,9 @@ widgetUI.widget <- function(w, id) {
   ## define basic widget ui for widget instances
   w$titleid <- paste(id,"_title",sep="")
   w$ui <- tags$div( width="100%", tags$div(class="title_bar widget_title", textOutput(w$titleid)))
+  if (length((isolate({listViews(w)()}))) > 1) {
+    w <- widgetbase.output.selectview(w, id)
+  }
   w
 }
 
