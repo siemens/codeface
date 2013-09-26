@@ -44,7 +44,9 @@ widgetUI.header <- function(x, ...) UseMethod("widgetUI.header")
 widgetUI.header.widget <- function(w, id) {
   ## define basic widget ui for widget instances
   w$titleid <- paste(id,"_title",sep="")
-  w$ui <- tags$div( width="100%", tags$div(class="title_bar widget_title", textOutput(w$titleid)))
+  title <- div(id = w$titleid, class = "shiny-text-output widget_title")
+  w$ui <- tags$div( class="title_bar", 
+                    tags$table(width="100%", tags$tr(tags$td(title))))
   if (length((isolate({listViews(w)()}))) > 1) {
     w <- widgetbase.output.selectview(w, id)
   }
@@ -66,12 +68,13 @@ widgetbase.output.selectview <- function(w, id) {
   myselected <- names(mychoices[mychoices %in% myselected])
   
   inputView.id.local <- paste(id, "_selectedview",sep="")
-  title <- tags$div(class="widget_title", textOutput(w$titleid))
+  title <- div(id = w$titleid, class = "shiny-text-output widget_title")
   selector <- selectInput(inputView.id.local, "",
                                 choices = mychoices,
                                 selected = myselected)
   selector[[2]]$attribs$class <- "widget_view_select"
-  w$ui <- div(class="title_bar", width="100%", tags$table(width="100%", tags$tr(tags$td(title), tags$td(selector))))
+  w$ui <- div(class="title_bar", 
+              tags$table(width="100%", tags$tr(tags$td(title), tags$td(selector))))
   wselectedviewid <- inputView.id.local
   w
 }
@@ -134,8 +137,9 @@ widgetbase.output <- function(input, output, id, widget.class, pid, size_x, size
                     a(class="link_projects", href=paste("?widget=", widget.class[[1]], sep=""), ""))
     
     ## append footer
-    footer <- tags$div(class="link_bar", width="100%", detail.link, all.link)
-    wb$html <- tagList(inst.ui$ui, widget.class$html(id), footer)
+    footer <- tags$div(class="link_bar", detail.link, all.link)
+
+    wb$html <- tagList(inst.ui$ui, div(class="content_box", widget.class$html(id)), footer)
 
     #cat("==========selectview=========\n")
     #print(widgetbase.output.selectview(inst.ui, id))

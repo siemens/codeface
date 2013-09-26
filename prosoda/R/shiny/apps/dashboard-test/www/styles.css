@@ -20,9 +20,13 @@ h1 {
 }
 
 a.link_details:after {
+  font-size: 12px;
+  font-weight: bold;
   content: "details.." ;
 }
 a.link_projects:after {
+  font-size: 12px;
+  font-weight: bold;
   content: "projects.." ;
 }
 
@@ -42,6 +46,10 @@ a:hover {
 
 .gridster .gs_w {
   border-radius: 5px;
+  padding-top:0px;
+  padding-bottom:0px;
+  padding-left:0px;
+  padding-right:0px;
 }
 
 .gridster .gs_w.alert {
@@ -61,7 +69,7 @@ a:hover {
 }
 
 div .grid_title {
-  margin-top: 30px;
+  /*margin-top: 30px;*/
   margin-bottom: 20px;
   font-size: 22px;
   text-align: center;
@@ -81,16 +89,17 @@ div .grid_medtext {
 }
 
 div .widget_title {
-  margin-top: 0px;
-  margin-bottom: 5px;
+  margin-top: 2px;
+  margin-bottom: 2px;
   font-size: 12px;
+  font-weight: bold;
   text-align: center;
   line-height: normal;
 }
 
 div .widget_view_select {
   margin-top: 0px;
-  margin-bottom: 5px;
+  margin-bottom: 0px;
   width: 140px;
   height: 16px;
   padding: 0px 0px;
@@ -99,25 +108,43 @@ div .widget_view_select {
   line-height: normal;
 }
 
+div.title_bar td {
+  padding-top:5px;
+}
+
 div .title_bar {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  width: 100%;
-  z-index:98; /* must be less than the delete button */
+  position:relative;
+  margin: -8px -8px 0px -8px; 
+  top:0px;
   background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 5px 5px 5px 5px;
+  border-radius: 5px 5px 0px 0px;
   text-align: center;
+  height:10%;
 }
 
 div .link_bar {
-  position: absolute;
-  right: 0px;
-  left: 0px;
-  bottom:0px;
+  position:relative;
+  top:0px;
   background-color: rgba(0, 0, 0, 0);
   border-radius: 5px 5px 5px 5px;
-  margin-left: 5px;
-  margin-right: 5px;
+  height:10%;
+  width:100%;
+}
+
+div.title_bar .control-label {
+  margin-bottom:0px;
+}
+
+div .content_box {
+  position:relative;
+  margin-top:8px;
+  margin-bottom:8px;
+  top:0px;
+  height:80%;
+  width:100%;
+}
+
+div .shiny-plot-output {
+  overflow:hidden;
 }
 
