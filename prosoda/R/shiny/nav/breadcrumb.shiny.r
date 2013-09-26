@@ -163,7 +163,10 @@ breadcrumbPanel <- function( breadcrumb ) {
     navtag <- tagAppendChild(navtag, divider.tag( bc.element$active ))
     navul <- tagAppendChild(navul, navtag)
   }
-  navul
+  tagList(singleton(tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = 'nav/symbola.css'))),
+    navul
+  )
   #tagList(div(class = "span12", style = "padding: 10px 0px;", navul ))
 } # end breadcrumbBootstrap
 

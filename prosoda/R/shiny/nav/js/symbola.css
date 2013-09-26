@@ -1,0 +1,19 @@
+/* Copyright Siemens AG 2013
+ * Copying and distribution of this file, with or without modification,
+ * are permitted in any medium without royalty provided the copyright
+ * notice and this notice are preserved.  This file is offered as-is,
+ * without any warranty.
+ *
+ *
+ * This file includes the Symbola font by George Douros
+ * http://users.teilar.gr/~g1951d/
+ * License:
+ * Fonts in this site are offered free for any use; they may be installed,
+ * embedded, opened, edited, modified, regenerated, posted, packaged and
+ * redistributed.
+ */
+
+@font-face {
+  font-family: symbola;
+  src: local('Symbola'), url('Symbola.ttf') format("truetype");
+}

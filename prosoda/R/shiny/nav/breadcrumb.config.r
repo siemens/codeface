@@ -205,7 +205,7 @@ nav.list$dashboard2 <- list(
     symbol <- get(paste("symbol", pel$topic, sep="."))
     s <- pel$topic
     capname <- paste(toupper(substring(s, 1,1)), substring(s,2), sep="")
-    paste(symbol, capname)
+    tagList(symbol, capname)
   },
   ## (2) configure URL for the breadcrumb entry
   url = function(paramstr) {

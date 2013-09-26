@@ -73,7 +73,7 @@ make.indicator <- function(symbol, color) {
                   #"border-width:0.1px; border-style:solid; border-color:black;",
                   "box-shadow: 2px 2px 2.5px rgb(0,0,0);",
                   "line-height: 50px; text-align: center; vertical-align: middle;",
-                  "font-size: 25px;",
+                  "font-size: 30px;",
                   "background-color:", color, ";"),
                   symbol)
 }
@@ -82,9 +82,9 @@ make.indicator <- function(symbol, color) {
 ## Return HTML for an overview box
 overview.html <- function(title, bigtext, subtitle, link, subtitle.size="100%") {
   tagList(
-    tags$div(class="grid_title", style="margin-top: 10px; margin-bottom: 20px;", title),
-    tags$div(class='grid_bigtext', style="font-size:110px; text-align: center", bigtext),
-    tags$p(style=paste("font-size:", subtitle.size, "; text-align: center; line-height: 40px; margin-top: 20px"), subtitle)
+    tags$div(class="grid_title", title),
+    tags$div(class='grid_bigtext', style="font-size:120px; line-height: 80px; text-align: center", bigtext),
+    tags$div(style=paste("font-size:", subtitle.size, "; text-align: center; font-size: 60px; line-height: 40px; margin-top: 15px"), subtitle)
   )
 }
 
