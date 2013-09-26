@@ -173,7 +173,7 @@ createWidgetClass(
   NULL, # no topical restrictions
   1, 1,
   html=htmlOutput,
-  detailpage=list(app="dashboard-test", topic="overview")
+  detailpage=list(app="dashboard", topic="overview")
 )
 
 initWidget.widget.overview.project <- function(w) {
@@ -257,7 +257,7 @@ createWidgetClass(
   c("overview", "communication"),
   1, 1,
   html=htmlOutput,
-  detailpage=list(app="dashboard-test", topic="communication")
+  detailpage=list(app="dashboard", topic="communication")
 )
 
 createWidgetClass(
@@ -266,7 +266,7 @@ createWidgetClass(
   c("overview", "collaboration"),
   1, 1,
   html=htmlOutput,
-  detailpage=list(app="dashboard-test", topic="collaboration")
+  detailpage=list(app="dashboard", topic="collaboration")
 )
 
 createWidgetClass(
@@ -275,7 +275,7 @@ createWidgetClass(
   c("overview", "complexity"),
   1, 1,
   html=htmlOutput,
-  detailpage=list(app="dashboard-test", topic="complexity")
+  detailpage=list(app="dashboard", topic="complexity")
 )
 
 createWidgetClass(
@@ -284,7 +284,7 @@ createWidgetClass(
   c("overview", "construction"),
   1, 1,
   html=htmlOutput,
-  detailpage=list(app="dashboard-test", topic="construction")
+  detailpage=list(app="dashboard", topic="construction")
 )
 
 initWidget.widget.overview.communication <- function(w) {

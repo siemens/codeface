@@ -45,7 +45,7 @@ nav.list$projects <- list(
   },
   ## (2) configure URL for the breadcrumb entry
   url = function(paramstr = "") {
-    "../dashboard-test/"
+    "../dashboard/"
   }, # params kann man z.B. zum highliten verwende
 
   ## (3) configure children displayed in dropdown
@@ -174,7 +174,7 @@ nav.list$dashboard <- list(
   },
   ## (2) configure URL for the breadcrumb entry
   url = function(paramstr) {
-    paste("../dashboard-test/", paramstr, sep = "?")
+    paste("../dashboard/", paramstr, sep = "?")
   },
   ## (3) configure children displayed in dropdown
   childrenIds = function(paramstr) {
@@ -209,7 +209,7 @@ nav.list$dashboard2 <- list(
   },
   ## (2) configure URL for the breadcrumb entry
   url = function(paramstr) {
-    paste("../dashboard-test/",paramstr, sep = "?")
+    paste("../dashboard/",paramstr, sep = "?")
   },
   ## (3) configure children displayed in dropdown
   childrenIds = function(paramstr) {

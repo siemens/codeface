@@ -24,7 +24,7 @@ createWidgetClass(
   NULL, # no topical restrictions
   1, 1,
   html=htmlOutput,
-  detailpage=list(app="dashboard-test", topic="basics")
+  detailpage=list(app="dashboard", topic="basics")
 )
 
 ## Common queries for all widgets in the following go here

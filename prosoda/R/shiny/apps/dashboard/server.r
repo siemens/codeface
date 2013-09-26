@@ -15,7 +15,7 @@
 ## All Rights Reserved.
 
 ##
-## Software Project Dashboard-Test (server.r)
+## Software Project dashboard (server.r)
 ##
 
 suppressPackageStartupMessages(library(RJSONIO))
