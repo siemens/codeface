@@ -209,7 +209,7 @@ nav.list$dashboard2 <- list(
   },
   ## (2) configure URL for the breadcrumb entry
   url = function(paramstr) {
-    paste("../dashboard/",paramstr, sep = "?")
+    paste("../dashboard/",merge.query.strings(paramstr, "widget="), sep = "?")
   },
   ## (3) configure children displayed in dropdown
   childrenIds = function(paramstr) {

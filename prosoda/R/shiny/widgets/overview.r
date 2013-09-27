@@ -84,7 +84,7 @@ overview.html <- function(title, bigtext, subtitle, link, subtitle.size="100%") 
   tagList(
     tags$div(class="grid_title", title),
     tags$div(class='grid_bigtext', style="font-size:120px; line-height: 80px; text-align: center", bigtext),
-    tags$div(style=paste("font-size:", subtitle.size, "; text-align: center; font-size: 60px; line-height: 40px; margin-top: 15px"), subtitle)
+    tags$div(style=paste("font-size:", subtitle.size, "; text-align: center; font-size: 60px; line-height: 40px; margin-top: 25px"), subtitle)
   )
 }
 

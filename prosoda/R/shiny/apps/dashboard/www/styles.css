@@ -23,11 +23,15 @@ a.link_details:after {
   font-size: 12px;
   font-weight: bold;
   content: "details.." ;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 a.link_projects:after {
   font-size: 12px;
   font-weight: bold;
   content: "projects.." ;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 a {
@@ -69,23 +73,21 @@ a:hover {
 }
 
 div .grid_title {
-  /*margin-top: 30px;*/
+  margin-top: 30px;
   margin-bottom: 20px;
   font-size: 22px;
+  line-height: 120%;
   text-align: center;
-  line-height: normal;
 }
 
 div .grid_bigtext {
   font-weight: bold;
   font-size: 80px;
-  line-height: 90%;
 }
 
 div .grid_medtext {
   font-weight: bold;
   font-size: 40px;
-  line-height: 90%;
 }
 
 div .widget_title {
@@ -100,7 +102,7 @@ div .widget_title {
 div .widget_view_select {
   margin-top: 0px;
   margin-bottom: 0px;
-  width: 140px;
+  width: 80%;
   height: 16px;
   padding: 0px 0px;
   font-size: 12px;
@@ -113,22 +115,24 @@ div.title_bar td {
 }
 
 div .title_bar {
-  position:relative;
-  margin: -8px -8px 0px -8px; 
-  top:0px;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height:25px;
+  z-index:98; /* must be less than the delete button */
   background-color: rgba(0, 0, 0, 0.1);
   border-radius: 5px 5px 0px 0px;
   text-align: center;
-  height:10%;
 }
 
 div .link_bar {
-  position:relative;
-  top:0px;
-  background-color: rgba(0, 0, 0, 0);
-  border-radius: 5px 5px 5px 5px;
-  height:10%;
-  width:100%;
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  height:15px;
+  line-height: 10px;
+  width: 100%;
 }
 
 div.title_bar .control-label {
@@ -136,12 +140,10 @@ div.title_bar .control-label {
 }
 
 div .content_box {
-  position:relative;
-  margin-top:8px;
-  margin-bottom:8px;
-  top:0px;
-  height:80%;
-  width:100%;
+  margin-top: 25px;
+  margin-bottom: 15px;
+  height: 90%;
+  width: 100%;
 }
 
 div .shiny-plot-output {

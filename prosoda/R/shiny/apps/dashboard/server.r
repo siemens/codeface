@@ -82,14 +82,14 @@ widgetbase.output.selectview <- function(w, id) {
 ##
 ## Widget Builder for new widgets
 ##
-widgetbase.output.new <- function(input, output, id, widget.class, pid, selected.pids) {
-  widgetbase.output(input, output, id, widget.class, pid, widget.class$size.x, widget.class$size.y, 1, 1, selected.pids)
+widgetbase.output.new <- function(input, output, id, widget.class, topic, pid, selected.pids) {
+  widgetbase.output(input, output, id, widget.class, topic, pid, widget.class$size.x, widget.class$size.y, 1, 1, selected.pids)
 }
 
 ##
 ## Widget builder for fully configured widgets (pid and selected.pids must be reactive)
 ##
-widgetbase.output <- function(input, output, id, widget.class, pid, size_x, size_y, col, row, selected.pids) {
+widgetbase.output <- function(input, output, id, widget.class, topic, pid, size_x, size_y, col, row, selected.pids) {
   wb <- list()
   tryCatch({
     ## Widget creation and initialization (see: widget.r)
@@ -115,19 +115,17 @@ widgetbase.output <- function(input, output, id, widget.class, pid, size_x, size
     ## (1) handled by details app, needs a project id (or NULL), a widget class name and a configured topic (or NULL)
     if (!is.null(widget.class$detailpage$name)) {
       name <- widget.class$detailpage$name
-      topic <- widget.class$detailpage$topic
-      link <- paste("../details/?projectid=", isolate(pid()), "&widget=", name, "&topic=", topic, sep="")
+      link <- paste("../details/?projectid=", isolate(pid()), "&widget=", name, "&topic=", isolate({topic()}), sep="")
       
       ## TODO use a details icon instead
-      detail.link <- div(style="float:left;", a(class="link_details", href=link, ""))
+      detail.link <- a(class="link_details", href=link, "")
     
       ## (2) handled by an app, needs an app, project id and a configured topic  
     } else if (!is.null(widget.class$detailpage$app)) {
       app <- widget.class$detailpage$app
-      topic <- widget.class$detailpage$topic
-      link <- paste("../", app, "/?projectid=", isolate(pid()), "&topic=", topic, sep="")
+      link <- paste("../", app, "/?projectid=", isolate(pid()), "&topic=", isolate({topic()}), sep="")
       
-      detail.link <- div(style="float:left;", a(class="link_details", href=link, ""))
+      detail.link <- a(class="link_details", href=link, "")
     } else {
       
       detail.link <- list()
@@ -395,7 +393,7 @@ shinyServer(function(input, output, session) {
     widget.class <- widget.list[[widget.classname]]
 
     ## widgetbase is the output object and holds the widget.ui and knows how to render this ui
-    widgetbase <- widgetbase.output(input, output, w$id, widget.class, this.pid, w$size_x, w$size_y, w$col, w$row, selected.pids)
+    widgetbase <- widgetbase.output(input, output, w$id, widget.class, topic, this.pid, w$size_x, w$size_y, w$col, w$row, selected.pids)
 
     ## Send a custom message to Shiny client for adding the base widget
     sendWidgetContent(session, widgetbase)
@@ -450,7 +448,7 @@ shinyServer(function(input, output, session) {
       widget.class <- widget.list[[widget.classname]]
 
       ## add html to widget instance which wraps into gridster item
-      widgetbase <- widgetbase.output.new(input, output, id, widget.class, pid, selected.pids)
+      widgetbase <- widgetbase.output.new(input, output, id, widget.class, topic, pid, selected.pids)
 
       ## finally send widget base to client
       sendWidgetContent(session, widgetbase)
