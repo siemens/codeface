@@ -1038,12 +1038,18 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ## Scale edge weights to integer values
   ## adjMatrix <- ceiling(scale.data(adjMatrix, 0, 1000))
 
-  ## Isolated graph members are outliers for the Linux kernel. Eliminate
-  ## them to create a connected graph (NOTE: This must not be done for
-  ## projects where proper direct clustering can happen)
-  logdevinfo("Computing adjacency matrices", logger="cluster.persons")
+  ## Remove loops
+  ## Loops indicate a nodes collaboration with iteself, this
+  ## information could be used to identify isolated hero developers by looking
+  ## at the relative collaboration with others vs. their loop edge weight.
+  ## At this point we have no use for loops and the large edge weight of loops
+  ## leads to additional challenges in the analysis and visualization. For
+  ## now we will just remove the loops.
+  n <- ncol(adjMatrix)
+  adjMatrix <- adjMatrix * abs(diag(1, n, n) - 1)
 
-  g    <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
+  logdevinfo("Computing adjacency matrices", logger="cluster.persons")
+  g <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
   idx <- V(g)
 
   ## Working with the adjacency matrices is easier if the IDs are numbered
