@@ -35,6 +35,7 @@ source("query.r")
 source("ts_utils.r")
 source("clusters.r")
 source("commits.r")
+source("timezones.r")
 
 get.series.boundaries <- function(conn) {
   ## Read the first (comment) line of the time series connection,
@@ -610,4 +611,5 @@ config.script.run({
   do.commit.analysis(resdir, graphdir, conf)
   do.cluster.analysis(resdir, graphdir, conf)
   do.release.analysis(resdir, graphdir, conf)
+  do.update.timezone.information(conf, conf$pid)
 })

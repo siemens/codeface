@@ -18,6 +18,8 @@
 
 library(png)
 
+source("../../timezones.r", chdir=TRUE)
+
 ## This image was obtained from
 ## http://commons.wikimedia.org/wiki/File:UTC_hue4map_X_world_Robinson.png
 ## License: Creative Commons CC0 1.0 Universal Public Domain Dedication
@@ -31,110 +33,6 @@ image <- readPNG("tz.png")
 ##  0x40: Time zone with summer time
 ##  0x41: Time zone with summer time, southern hemisphere (if ambiguous)
 ## "Green" values are 0x80 + (offset to GMT in quarter-hours)
-
-# Time zones with no summer time (daylight savings time)
-tz.no.dst <- character(0)
-#tz.no.dst[0x80 -11*4 - 0] = "Pacific/Midway" # Not on the map
-tz.no.dst[0x80 -11*4 - 0] = "Pacific/Samoa"
-tz.no.dst[0x80 -10*4 - 0] = "Pacific/Honolulu"
-tz.no.dst[0x80 - 9*4 - 2] = "Pacific/Marquesas"
-tz.no.dst[0x80 - 9*4 - 0] = "Pacific/Gambier"
-tz.no.dst[0x80 - 8*4 - 0] = "Pacific/Pitcairn"
-tz.no.dst[0x80 - 7*4 - 0] = "America/Dawson_Creek"
-tz.no.dst[0x80 - 6*4 - 0] = "America/Belize"
-tz.no.dst[0x80 - 5*4 - 0] = "America/Atikokan"
-tz.no.dst[0x80 - 4*4 - 2] = "America/Caracas"
-tz.no.dst[0x80 - 4*4 - 0] = "America/Antigua"
-tz.no.dst[0x80 - 3*4 - 0] = "America/Araguaina"
-tz.no.dst[0x80 - 2*4 - 0] = "America/Noronha"
-tz.no.dst[0x80 - 1*4 - 0] = "Atlantic/Cape_Verde"
-tz.no.dst[0x80 + 0*4 + 0] = "Atlantic/Reykjavik"
-tz.no.dst[0x80 + 1*4 + 0] = "Africa/Algiers"
-tz.no.dst[0x80 + 2*4 + 0] = "Africa/Johannesburg"
-tz.no.dst[0x80 + 3*4 + 0] = "Europe/Kaliningrad"
-tz.no.dst[0x80 + 4*4 + 0] = "Europe/Moscow"
-tz.no.dst[0x80 + 4*4 + 2] = "Asia/Kabul"
-tz.no.dst[0x80 + 5*4 + 0] = "Asia/Samarkand"
-tz.no.dst[0x80 + 5*4 + 2] = "Asia/Calcutta"
-tz.no.dst[0x80 + 5*4 + 3] = "Asia/Kathmandu"
-tz.no.dst[0x80 + 6*4 + 0] = "Asia/Yekaterinburg"
-tz.no.dst[0x80 + 6*4 + 2] = "Asia/Rangoon"
-tz.no.dst[0x80 + 7*4 + 0] = "Asia/Bangkok"
-tz.no.dst[0x80 + 8*4 + 0] = "Asia/Hong_Kong"
-tz.no.dst[0x80 + 9*4 + 0] = "Asia/Irkutsk"
-tz.no.dst[0x80 + 9*4 + 2] = "Australia/Darwin"
-tz.no.dst[0x80 +10*4 + 0] = "Asia/Yakutsk"
-tz.no.dst[0x80 +11*4 + 0] = "Asia/Vladivostok"
-tz.no.dst[0x80 +11*4 + 2] = "Pacific/Norfolk"
-tz.no.dst[0x80 +12*4 + 0] = "Asia/Kamchatka"
-
-## Northern or unambiguous DST
-tz.dst <- character(0)
-tz.dst[0x80 -10*4 - 0] = "America/Adak"
-tz.dst[0x80 - 9*4 - 0] = "America/Anchorage"
-tz.dst[0x80 - 8*4 - 0] = "America/Vancouver"
-tz.dst[0x80 - 7*4 - 0] = "America/Denver"
-tz.dst[0x80 - 6*4 - 0] = "America/Chicago"
-tz.dst[0x80 - 5*4 - 0] = "America/Detroit"
-tz.dst[0x80 - 4*4 - 0] = "America/Halifax"
-tz.dst[0x80 - 3*4 - 2] = "Canada/Newfoundland"
-tz.dst[0x80 - 3*4 - 0] = "America/Bahia"
-tz.dst[0x80 - 1*4 - 0] = "Atlantic/Azores"
-tz.dst[0x80 + 0*4 + 0] = "Europe/London"
-tz.dst[0x80 + 1*4 + 0] = "Europe/Berlin"
-tz.dst[0x80 + 2*4 + 0] = "Europe/Athens"
-tz.dst[0x80 + 3*4 + 2] = "Asia/Tehran"
-tz.dst[0x80 + 4*4 + 0] = "Asia/Baku"
-tz.dst[0x80 + 9*4 + 2] = "Australia/Adelaide"
-tz.dst[0x80 +10*4 + 0] = "Australia/Canberra"
-tz.dst[0x80 +12*4 + 0] = "Pacific/Auckland"
-tz.dst[0x80 +12*4 + 3] = "Pacific/Chatham"
-
-# Southern/ambiguous DST
-tz.dst.south <- character(0)
-tz.dst.south[0x80 - 4*4] = "America/Santiago"
-tz.dst.south[0x80 - 3*4] = "America/Sao_Paulo"
-
-# List of timezones
-timezones <- unique(c(tz.no.dst, tz.dst, tz.dst.south))
-timezones <- timezones[!is.na(timezones)]
-
-## Convert an offset specified as (hours*100 + minutes) into minutes
-offset.minutes <- function(offset) {
-  60 * as.integer(offset / 100) + as.integer(offset %% 100)
-}
-
-## This function transforms a POSIXct timestamp + a UTC offset into a list of
-## possible timezones that had this offset or were close
-## at the time of the timestamp.
-## If strict is TRUE, do not return approximate matches.
-## Relevant timezone information can be obtained at
-## http://en.wikipedia.org/wiki/Time_Zone
-timestamp.offset.to.timezone <- function(timestamp, offset.minutes, strict=FALSE) {
-  if (is.null(offset.minutes)) {
-    return(timezones)
-  }
-  ## Express the timestamp in UTC
-  ts.utc <- with_tz(timestamp, "UTC")
-  tz.offsets <- sapply(timezones, function(tz) {
-    ## This is the timestamp expressed in the timezone tz
-    local.time <- with_tz(ts.utc, tz)
-    ## This is the numerically same UTC date/time (note the force_tz)
-    time.where.utc.has.same.value <- force_tz(local.time, "UTC")
-    ## ..therefore this is the difference between UTC and local time
-    ## given the date of the timestamp (relevant for summer time!)
-    as.integer(difftime(time.where.utc.has.same.value, local.time, units="mins"))
-  })
-  ## Find zones where the offset is identical
-  zones <- tz.offsets == offset.minutes
-  ## If strict is not true and no zones are found, pick the closest ones
-  if (!strict && !any(zones)) {
-    loginfo(paste("Unusual time zone offset: ", offset.minutes))
-    diff <- abs(tz.offsets - offset.minutes)
-    zones <- diff == min(diff)
-  }
-  return(timezones[zones])
-}
 
 ## Construct a raster RGBA image of the world
 ## given an activity list as a list of timezone names : intensity
@@ -224,7 +122,6 @@ renderWidget.widget.timezones.test2 <- function(w) {
     active.tz <- list()
     minutes <- as.integer(w$view())
     active.zones <- timestamp.offset.to.timezone(as.POSIXct(1400000000, origin="1970-01-01"), minutes)
-    str(active.zones)
     for (tz in active.zones) {
       active.tz[tz] <- 1.0
     }
@@ -255,23 +152,24 @@ initWidget.widget.timezones.commits <- function(w) {
   w <- NextMethod(w)
   w$data <- reactive({
     ## Query all commits that have author timezones
-    res <- dbGetQuery(conf$con, str_c("SELECT authorDate, authorTimezone",
-                               " FROM commit WHERE (NOT authorTimezone IS ",
-                               " NULL) AND projectId=", w$pid()))
+    res <- dbGetQuery(conf$con, str_c("SELECT authorTimezones,",
+                                      " COUNT(*) as count",
+                                      " FROM commit WHERE",
+                                      " projectId=", w$pid(),
+                                      " GROUP BY authorTimezones"
+                                      ))
 
     ## Set up a list of timezone names : 0
     tzcount <- lapply(timezones, function(x) {0})
     names(tzcount) <- timezones
+
     ## Process all commits and fill the list
-    print(paste("Processing", nrow(res), "commits for time zone info..."))
     lst <- Reduce(function(l, i) {
-      offset <- offset.minutes(res$authorTimezone[i])
-      if (length(offset) == 0) {
-        return(l)
+      if (!is.na(res$authorTimezones[[i]])) {
+        zones <- unlist(strsplit(res$authorTimezones[[i]], split=";",
+                                 fixed=TRUE))
+        l[zones] <- unlist(l[zones]) + res$count[[i]]
       }
-      timestamp <- as.POSIXct(res$authorDate[i], origin="1970-01-01")
-      zones <- timestamp.offset.to.timezone(timestamp, offset)
-      l[zones] <- unlist(l[zones]) + 1
       l
     }, 1:nrow(res), init=tzcount)
 

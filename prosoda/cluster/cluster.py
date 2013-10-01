@@ -877,41 +877,36 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
         else:
             inRC=0
 
-        dbm.doExec("INSERT INTO commit " +
-                   "(commitHash, commitDate, author, authorDate,"
-                   " authorTimezone, projectId, ChangedFiles, " +
-                   #
-                   "AddedLines, DeletedLines, DiffSize, CmtMsgLines, " +
-                   "CmtMsgBytes, " +
-                   #
-                   "NumSignedOffs, NumTags, TotalSubsys, " +
-                   "Subsys, inRC, " +
-                   #
-                   "AuthorSubsysSimilarity, AuthorTaggersSimilarity, " +
-                   "TaggersSubsysSimilarity, releaseRangeId) " +
-                   "VALUES " +
-                   # TODO: For some reason, using %d for integers does not work
-                   # (and likewise for %f)
-                   "(%s, %s, %s, %s, %s, " +
-                   " %s, %s, %s, %s, %s, " +
-                   " %s, %s, %s, %s, %s, " +
-                   " %s, %s, %s, %s)",
-                   (cmt.id, tstamp_to_sql(int(cmt.getCdate())),
-                    cmt.getAuthorPI().getID(), tstamp_to_sql(int(cmt.adate)),
-                    cmt.adate_tz, projectID, cmt.getChangedFiles(0),
-                    #
-                    int(cmt.getAddedLines(0)), int(cmt.getDeletedLines(0)),
-                    int(cmt.getAddedLines(0) + cmt.getDeletedLines(0)),
-                    int(cmt.getCommitMessageLines()),
-                    int(cmt.getCommitMessageSize()),
-                    #
-                    int(getSignoffCount(cmt)), int(getSignoffEtcCount(cmt)),
-                    int(subsys_count), subsys_name, int(inRC),
-                    #
-                    float(cmt.getAuthorSubsysSimilarity()),
-                    float(cmt.getAuthorTaggersSimilarity()),
-                    float(cmt.getTaggersSubsysSimilarity()),
-                    int(releaseRangeID)))
+        values = {"commitHash" : cmt.id,
+                  "commitDate" : tstamp_to_sql(int(cmt.getCdate())),
+                  "author" : cmt.getAuthorPI().getID(),
+                  "authorDate" : tstamp_to_sql(int(cmt.adate)),
+                  "authorTimeOffset" : cmt.adate_tz,
+                  "projectId" : projectID,
+                  "ChangedFiles"  : cmt.getChangedFiles(0),
+                  "AddedLines" : int(cmt.getAddedLines(0)),
+                  "DeletedLines" : int(cmt.getDeletedLines(0)),
+                  "DiffSize" : int(cmt.getAddedLines(0) + cmt.getDeletedLines(0)),
+                  "CmtMsgLines" : int(cmt.getCommitMessageLines()),
+                  "CmtMsgBytes" : int(cmt.getCommitMessageSize()),
+                  "NumSignedOffs" : int(getSignoffCount(cmt)),
+                  "NumTags" : int(getSignoffEtcCount(cmt)),
+                  "TotalSubsys" : int(subsys_count),
+                  "Subsys" : subsys_name,
+                  "inRC" : int(inRC),
+                  "AuthorSubsysSimilarity" : float(cmt.getAuthorSubsysSimilarity()),
+                  "AuthorTaggersSimilarity" : float(cmt.getAuthorTaggersSimilarity()),
+                  "TaggersSubsysSimilarity" : float(cmt.getTaggersSubsysSimilarity()),
+                  "releaseRangeId" : int(releaseRangeID),
+            }
+        value_names = sorted(values.keys())
+
+
+        # TODO: For some reason, using %d for integers does not work
+        # (and likewise for %f)
+        dbm.doExec("INSERT INTO commit (" + ", ".join(value_names) + ")" +
+                   " VALUES (" + ", ".join("%s" for x in value_names) + ")",
+                   [values[k] for k in value_names])
 
         # TODO: Continue writing here. Include at least
         # signoff-info (subsys info of signers)

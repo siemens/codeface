@@ -175,7 +175,7 @@ class gitVCS (VCS):
         # output of git
         self.cmtHashPattern = re.compile(r'^\w{40}$')
         # The Log pattern must match : <timestamp> <hash> <timestamp> <date> <time> <timezone>
-        self.logPattern = re.compile(r'([0-9]+) ([0-9a-f]+) ([0-9]+) [0-9-]+ [0-9:] ([0-9\+\-]+)$')
+        self.logPattern = re.compile(r'([0-9]+) ([0-9a-f]+) ([0-9]+) [0-9-]+ [0-9:]+ ([0-9\+\-]+)$')
         self.prettyFormat = "--pretty=format:%ct %H %at %ai"
         self.authorPattern = re.compile(r'^Author: (.*)$')
         self.committerPattern = re.compile(r'^Commit: (.*)$')
