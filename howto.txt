@@ -1,8 +1,31 @@
-How to automatically create the quantarch database
+1.) How to synchronise entity-relationship-diagram and SQL script
+
+The definitive source for the content of the database is the
+entity-relationship model defined in the (unfortunately
+binary) file QuantArch.mwb. Whenever this file is changed,
+a new copy of the SQL script in quantarchSchema.sql needs
+to be created. To do so, please
+
+- Load the schema with mysql workbench, version 6.0 or above
+  (smaller versions generate vast amounts of superfluous
+  whitespace all around the script)
+- Select File->Export->Forward Engineer SQL CREATE script
+- Activate the checkboxes
+  "Generate DROP statement before each CREATE statement"
+  "Generate DROP schema"
+  "Generate separate CREATE INDEX statements"
+  and none else
+- Click "Next", and choose to export table, view and routine objects
+  (and nothing else)
+- Click "Next", and save the generated script, and create a version
+  control system commit with both the binary and SQL creation script
+  changes.
+
+2.) How to automatically create the quantarch database
 
 * To set up DB quantarch
 
-  mysql -uquantarch -pquantarach < quantarchSchema.sql
+  mysql -uquantarch -pquantarch < quantarchSchema.sql
   (replace username and password with the appropriate values)
 
 * To use a different DB name:
