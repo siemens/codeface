@@ -21,9 +21,11 @@ library(png)
 ## This image was obtained from
 ## http://commons.wikimedia.org/wiki/File:UTC_hue4map_X_world_Robinson.png
 ## License: Creative Commons CC0 1.0 Universal Public Domain Dedication
+## It is modified to ease computer identification of the time zones as
+## described in the following.
 image <- readPNG("tz.png")
 
-## Map red/green values in the map onto time zones
+## Map red/green values in the map onto time zones:
 ## "Red" values can be:
 ##  0x80: Time zone with no summer time
 ##  0x40: Time zone with summer time
@@ -105,19 +107,27 @@ offset.minutes <- function(offset) {
 ## This function transforms a POSIXct timestamp + a UTC offset into a list of
 ## possible timezones that had this offset or were close
 ## at the time of the timestamp.
+## If strict is TRUE, do not return approximate matches.
 ## Relevant timezone information can be obtained at
 ## http://en.wikipedia.org/wiki/Time_Zone
 timestamp.offset.to.timezone <- function(timestamp, offset.minutes, strict=FALSE) {
   if (is.null(offset.minutes)) {
     return(timezones)
   }
+  ## Express the timestamp in UTC
   ts.utc <- with_tz(timestamp, "UTC")
   tz.offsets <- sapply(timezones, function(tz) {
+    ## This is the timestamp expressed in the timezone tz
     local.time <- with_tz(ts.utc, tz)
+    ## This is the numerically same UTC date/time (note the force_tz)
     time.where.utc.has.same.value <- force_tz(local.time, "UTC")
+    ## ..therefore this is the difference between UTC and local time
+    ## given the date of the timestamp (relevant for summer time!)
     as.integer(difftime(time.where.utc.has.same.value, local.time, units="mins"))
   })
+  ## Find zones where the offset is identical
   zones <- tz.offsets == offset.minutes
+  ## If strict is not true and no zones are found, pick the closest ones
   if (!strict && !any(zones)) {
     loginfo(paste("Unusual time zone offset: ", offset.minutes))
     diff <- abs(tz.offsets - offset.minutes)
@@ -126,41 +136,48 @@ timestamp.offset.to.timezone <- function(timestamp, offset.minutes, strict=FALSE
   return(timezones[zones])
 }
 
-## timezone.intensity should be a list of timezone names -> intensity
+## Construct a raster RGBA image of the world
+## given an activity list as a list of timezone names : intensity
+## where intensity must be between 0.0 and 1.0. Zones where intensity
+## is 0 are treated as "not active".
 get.tz.image <- function(timezone.intensity) {
-  ## create replacement map. The value on the right specifies the intensity
   image.int <- image*255
   new.image <- image
   where.0x80 <- image.int[,,1] == 0x80
   where.0x40 <- image.int[,,1] == 0x40
   where.0x41 <- image.int[,,1] == 0x41
   where.any <- where.0x80 | where.0x40 | where.0x41
-  new.image[,,1:3][where.any] <- 0.0#0x90/255.
+  ## Set all land areas to be black at 20% opacity
+  new.image[,,1:3][where.any] <- 0.0
   new.image[,,4][where.any] <- 0.2
 
   for (name in names(timezone.intensity)) {
-    if (name %in% tz.no.dst) {
-      index.green <- which(tz.no.dst == name)
-      index.red <- 0x80
-    } else if (name %in% tz.dst) {
-      index.green <- which(tz.dst == name)
-      index.red <- 0x40
-    } else if (name %in% tz.dst.south) {
-      index.green <- which(tz.dst.south == name)
-      index.red <- 0x41
-    } else {
-      stop(paste("Unknown time zone: ", name))
+    raw.intensity <-  timezone.intensity[[name]]
+    if (raw.intensity > 0) {
+      if (name %in% tz.no.dst) {
+        index.green <- which(tz.no.dst == name)
+        index.red <- where.0x80
+      } else if (name %in% tz.dst) {
+        index.green <- which(tz.dst == name)
+        index.red <- where.0x40
+      } else if (name %in% tz.dst.south) {
+        index.green <- which(tz.dst.south == name)
+        index.red <- where.0x41
+      } else {
+        stop(paste("Unknown time zone: ", name))
+      }
+      ## Set selected areas to be red with the opacity
+      ## proportional to the intensity (but at least 20%)
+      intensity <- raw.intensity*(1 - 0.2) + 0.2
+      where <- index.red & (image.int[,,2] == index.green)
+      new.image[,,1][where] <- 1.0
+      new.image[,,4][where] <- intensity
     }
-    intensity <- timezone.intensity[[name]]*(1 - 0.2) + 0.2
-    where <- (image.int[,,1] == index.red) & (image.int[,,2] == index.green)
-    new.image[,,4][where] <- intensity
-    new.image[,,1][where] <- 1.0
   }
-  #new.image[,,1:3] <- 0x80/255.
   new.image
 }
 
-## Widget which presents a processing overview for prosoda operators
+## Test widget: Each timezone is a view
 createWidgetClass(
   "widget.timezones.test1",
   "Show timezones on a map", "Shows timezones on a map",
@@ -170,7 +187,6 @@ createWidgetClass(
 
 renderWidget.widget.timezones.test1 <- function(w) {
   renderPlot({
-    # this is: num [1:745, 1:1425, 1:4]
     active.tz <- list()
     index <- as.integer(w$view())
     if (index > 0) {
@@ -194,7 +210,7 @@ listViews.widget.timezones.test1 <- function(w) {
   })
 }
 
-## Widget which presents a processing overview for prosoda operators
+## Test widget: Each half-hour UTC offset from -12h to 12h is a view
 createWidgetClass(
   "widget.timezones.test2",
   "Test mapping offset->timezone", "Test mapping offset-timezone",
@@ -225,7 +241,7 @@ listViews.widget.timezones.test2 <- function(w) {
   })
 }
 
-## Widget which presents a processing overview for prosoda operators
+## Show timezones of commits
 createWidgetClass(
   "widget.timezones.commits",
   "Developer commit timezones", "Timezones where commits were made",
@@ -233,36 +249,73 @@ createWidgetClass(
   2, 1
 )
 
-## Superclass constructor which already fills important variables
+## Extract timezone information from commits
 initWidget.widget.timezones.commits <- function(w) {
-  # Call superclass
+  ## Call superclass
   w <- NextMethod(w)
-  w$project.name <- reactive({query.project.name(conf$con, w$pid())})
-  w$cycles <- reactive({get.cycles.con(conf$con, w$pid())})
   w$data <- reactive({
-    pid <- w$pid()
-    cycles <- w$cycles()
-    list(
-      n.commits = dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM commit WHERE projectId=", pid))[[1]],
-    )
+    ## Query all commits that have author timezones
+    res <- dbGetQuery(conf$con, str_c("SELECT authorDate, authorTimezone",
+                               " FROM commit WHERE (NOT authorTimezone IS ",
+                               " NULL) AND projectId=", w$pid()))
+
+    ## Set up a list of timezone names : 0
+    tzcount <- lapply(timezones, function(x) {0})
+    names(tzcount) <- timezones
+    ## Process all commits and fill the list
+    print(paste("Processing", nrow(res), "commits for time zone info..."))
+    lst <- Reduce(function(l, i) {
+      offset <- offset.minutes(res$authorTimezone[i])
+      if (length(offset) == 0) {
+        return(l)
+      }
+      timestamp <- as.POSIXct(res$authorDate[i], origin="1970-01-01")
+      zones <- timestamp.offset.to.timezone(timestamp, offset)
+      l[zones] <- unlist(l[zones]) + 1
+      l
+    }, 1:nrow(res), init=tzcount)
+
+    ## Normalise intensity to the maximum number of commits in a time zone
+    max.val <- max(unlist(lst))
+    if (max.val > 0) {
+      lst <- lapply(lst, function(x) { x * 1.0/max.val })
+    }
+    lst
   })
+
   return(w)
 }
 
+## Plot the time zone information
 renderWidget.widget.timezones.commits <- function(w) {
   renderPlot({
-    # this is: num [1:745, 1:1425, 1:4]
-    active.tz = list()
-    values <- runif(length(timezones), -1, 1)
-    for (tzi in 1:length(timezones)) {
-      if (values[tzi] > 0) {
-        active.tz[timezones[[tzi]]] <- values[tzi]
+    active.tz <- w$data()
+    no.data <- FALSE
+
+    ## If there is no time zone information, just plot a randomly
+    ## filled world map with a "no data" marker
+    no.data <- FALSE
+    if (sum(unlist(active.tz)) == 0) {
+      no.data <- TRUE
+      active.tz <- list()
+      values <- runif(length(timezones), -3, 1)
+
+      for (tzi in 1:length(timezones)) {
+        if (values[tzi] > 0) {
+          active.tz[timezones[[tzi]]] <- values[tzi]
+        }
       }
+      active.tz["Europe/Berlin"] <- 1.0
+      active.tz["Europe/London"] <- 0.0001
     }
-    active.tz["Europe/Berlin"] <- 1.0
-    active.tz["Europe/London"] <- 0.0001
+
     this.image <- get.tz.image(active.tz)
     grid.raster(this.image)
+
+    if (no.data) {
+      grid.text("No data available!", rot=20,
+                gp=gpar(fontsize=40, col="darkgrey"))
+    }
   })
 }
 
