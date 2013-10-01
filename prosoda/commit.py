@@ -24,6 +24,8 @@ class Commit:
         # time stamp (commiter time) of the commit
         self.id = None
         self.cdate = None
+        self.adate = None
+        self.adate_tz = None
         self.author = None       # Author name
         self.author_pi  = None   # PersonInfo instance for author
         self.committer = None    # Committer name

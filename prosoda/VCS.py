@@ -174,7 +174,9 @@ class gitVCS (VCS):
         # Some analysis patterns that are required to analyse the
         # output of git
         self.cmtHashPattern = re.compile(r'^\w{40}$')
-        self.logPattern = re.compile(r'^(.*?) (.*)$')
+        # The Log pattern must match : <timestamp> <hash> <timestamp> <date> <time> <timezone>
+        self.logPattern = re.compile(r'([0-9]+) ([0-9a-f]+) ([0-9]+) [0-9-]+ [0-9:] ([0-9\+\-]+)$')
+        self.prettyFormat = "--pretty=format:%ct %H %at %ai"
         self.authorPattern = re.compile(r'^Author: (.*)$')
         self.committerPattern = re.compile(r'^Commit: (.*)$')
         self.signedOffPattern = re.compile(r'^(.*?): (.*)$')
@@ -268,14 +270,14 @@ class gitVCS (VCS):
         # NOTE: %H prints the hash value of the commit, %ct denotes
         # the comitter date (it's important to use comitter and not
         # author date; this guarantees monotonically increasing time
-        # sequences)
+        # sequences). %at gives the author timestamp, and %ai gives the
+        # time in a format where we can extract the time zone
         # Passing a simple formatted string and using getoutput() to
         # obtain the result is way nicer in python3.
         cmd = 'git --git-dir={0} log -M -C'.format(self.repo).split()
         if ignoreMerges:
             cmd.append('--no-merges')
-        cmd.append('--pretty=format:%ct %H')
-        cmd.append('--date=local')
+        cmd.append(self.prettyFormat)
         cmd.append(rev_range)
         if (len(dir_list) > 0):
             cmd.append("--")
@@ -312,8 +314,7 @@ class gitVCS (VCS):
         cmd = 'git --git-dir={0} log'.format(self.repo).split()
         cmd.append(cmtHash)
         cmd.append("-1")
-        cmd.append('--pretty=format:%ct %H')
-        cmd.append('--date=local')
+        cmd.append(self.prettyFormat)
 
         #submit query to git
         logMsg = execute_command(cmd).splitlines()
@@ -340,8 +341,7 @@ class gitVCS (VCS):
         #we must take merge commits, otherwise when we cross-reference with
         #git blame some commits will be missing
         cmd = 'git --git-dir={0} log --no-merges -M -C'.format(self.repo).split()
-        cmd.append('--pretty=format:%ct %H')
-        cmd.append('--date=local')
+        cmd.append(self.prettyFormat)
         if rev_start and rev_end:
             cmd.append(revrange)
         if fname:
@@ -412,6 +412,11 @@ class gitVCS (VCS):
         cmt = commit.Commit()
         cmt.cdate = match.group(1)
         cmt.id = match.group(2)
+        cmt.adate = match.group(3)
+        # This integer is not really a number, rather a representation of the
+        # hour:minute offset to UTC. E.g. "+0200" becomes 200. To extract the
+        # hourly offset, use integer division.
+        cmt.adate_tz = int(match.group(4))
 
         return cmt
 

@@ -878,7 +878,8 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
             inRC=0
 
         dbm.doExec("INSERT INTO commit " +
-                   "(commitHash, commitDate, author, projectId, ChangedFiles, " +
+                   "(commitHash, commitDate, author, authorDate,"
+                   " authorTimezone, projectId, ChangedFiles, " +
                    #
                    "AddedLines, DeletedLines, DiffSize, CmtMsgLines, " +
                    "CmtMsgBytes, " +
@@ -896,8 +897,8 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
                    " %s, %s, %s, %s, %s, " +
                    " %s, %s, %s, %s)",
                    (cmt.id, tstamp_to_sql(int(cmt.getCdate())),
-                    cmt.getAuthorPI().getID(), projectID,
-                    cmt.getChangedFiles(0),
+                    cmt.getAuthorPI().getID(), tstamp_to_sql(int(cmt.adate)),
+                    cmt.adate_tz, projectID, cmt.getChangedFiles(0),
                     #
                     int(cmt.getAddedLines(0)), int(cmt.getDeletedLines(0)),
                     int(cmt.getAddedLines(0) + cmt.getDeletedLines(0)),
