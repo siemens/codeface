@@ -472,21 +472,23 @@ minCommGraph <- function(graph, comm, min=10){
 	##								have been removed
 	comm.idx <- which(comm$csize > min)
   if(length(comm.idx) == 0) {
-    res <- list(graph=integer(0), community=integer(0))
+    res <- list(graph=NULL, community=NULL)
   }
-  verts <- rle(unlist(as.vector(sapply(comm.idx,
+  else{
+    verts <- rle(unlist(as.vector(sapply(comm.idx,
            function(x) { return(which(comm$membership==x)) }))))$values
 
-	V(graph)$key <- 1:vcount(graph)
-	graph.comm <- induced.subgraph(graph, verts)
-	## use the unique key to determine the mapping of community membership to the
-	## new graph index
-	comm$membership <- comm$membership[V(graph.comm)$key]
-	comm$csize <- sapply(1:length(comm.idx),
-			function(x) {return(length(which(comm$membership == comm.idx[x])))})
-	comm$membership <- remap.consec.seq(comm$membership)
-	res <- list(graph=graph.comm, community=comm)
-	return(res)
+	  V(graph)$key <- 1:vcount(graph)
+	  graph.comm <- induced.subgraph(graph, verts)
+	  ## use the unique key to determine the mapping of community membership to the
+	  ## new graph index
+	  comm$membership <- comm$membership[V(graph.comm)$key]
+	  comm$csize <- sapply(1:length(comm.idx),
+			  function(x) {return(length(which(comm$membership == comm.idx[x])))})
+	  comm$membership <- remap.consec.seq(comm$membership)
+	  res <- list(graph=graph.comm, community=comm)
+  }
+  return(res)
 }
 
 

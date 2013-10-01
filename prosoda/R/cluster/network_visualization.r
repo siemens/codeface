@@ -401,11 +401,6 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
     return(NULL)
   }
 
-  if (is.null(comm)) {
-    ## No valid communities were found
-    return(NULL)
-  }
-
   ## Create igraph object and perform manipulations
   g <- graph.data.frame(edgelist, directed=TRUE,
                         vertices=data.frame(node.local.ids))
@@ -414,7 +409,12 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
   min.comm <- minCommGraph(g, comm, min=2)
   g    <- min.comm$graph
   comm <- min.comm$community
+  if (is.null(comm)) {
+    ## No valid communities were found
+    return(NULL)
+  }
   node.rank <- node.rank[V(g)$Id]
+  V(g)$name <- 1:vcount(g)
   cluster.conductance <- community.metric(g, comm, "conductance")
   g.min      <- min.edge.count(g, comm, node.rank)
   g.min.simp <- simplify(g.min, remove.multiple=TRUE,remove.loops=TRUE)
