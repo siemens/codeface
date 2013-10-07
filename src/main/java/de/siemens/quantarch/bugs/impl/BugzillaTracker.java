@@ -31,7 +31,7 @@ public class BugzillaTracker implements IssueTracker {
 
 	private IssueTrackerDao dao;
 	private static final String CONFIG_FILE_WITHOUT_PROXY = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><bugzilla-session class=\"b4j.core.session.HttpBugzillaSession\"><bugzilla-home>$BUGZILLA_URL$</bugzilla-home><BugzillaBug class=\"b4j.core.DefaultIssue\" /></bugzilla-session>";
-	private static final String CONFIG_FILE_WITH_PROXY = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><bugzilla-session class=\"b4j.core.session.HttpBugzillaSession\"><bugzilla-home>$BUGZILLA_URL$</bugzilla-home><BugzillaBug class=\"b4j.core.DefaultIssue\" /></bugzilla-session>";
+	private static final String CONFIG_FILE_WITH_PROXY = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><bugzilla-session class=\"b4j.core.session.HttpBugzillaSession\"><proxy-host>$PROXY_HOST$</proxy-host><bugzilla-home>$BUGZILLA_URL$</bugzilla-home><BugzillaBug class=\"b4j.core.DefaultIssue\" /></bugzilla-session>";
 	private static Logger log = Logger.getLogger(BugzillaTracker.class);
 
 	// variables just to keep track
