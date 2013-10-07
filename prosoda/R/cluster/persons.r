@@ -1350,7 +1350,7 @@ test.community.quality.modularity <- function() {
 ##----------------------------
 
 config.script.run({
-  conf <- config.from.args(positional_args=list("resdir", "range.id"),
-                           require_project=TRUE)
+  conf <- config.from.args(positional.args=list("resdir", "range.id"),
+                           require.project=TRUE)
   performAnalysis(conf$resdir, conf)
 })

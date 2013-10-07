@@ -31,7 +31,7 @@ source("../../vis.ports.r", chdir=TRUE)
 source("../../page.rank.r", chdir=TRUE)
 
 ## Global variables
-conf <- config.from.args(require_project=FALSE)
+conf <- config.from.args(require.project=FALSE)
 projects.list <- query.projects(conf$con)
 
 ## breadcrumb

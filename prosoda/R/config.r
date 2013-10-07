@@ -32,12 +32,12 @@ logdebug.config <- function(conf) {
 
 ## Load global and local configuration and apply some sanity checks
 ## TODO: More sanity checks, better merging of conf objects
-load.config <- function(global_file, project_file=NULL) {
-  logdevinfo(paste("Loading global config file '", global_file, "'", sep=""), logger="config")
-  if (!(file.exists(global_file))) {
-      stop(paste("Global configuration file", global_file, "does not exist!"))
+load.config <- function(global.file, project.file=NULL) {
+  logdevinfo(paste("Loading global config file '", global.file, "'", sep=""), logger="config")
+  if (!(file.exists(global.file))) {
+      stop(paste("Global configuration file", global.file, "does not exist!"))
   }
-  conf <- yaml.load_file(global_file)
+  conf <- yaml.load_file(global.file)
 
   if (is.null(conf$dbhost) || is.null(conf$dbname) ||
       is.null(conf$dbuser) || is.null(conf$dbpwd)) {
@@ -54,17 +54,17 @@ load.config <- function(global_file, project_file=NULL) {
     conf$nodejsPort <- as.integer(conf$nodejsPort)
   }
 
-  if (is.null(project_file)) {
+  if (is.null(project.file)) {
       return(conf)
   }
-  logdevinfo(paste("Loading project config file '", project_file, "'", sep=""),
+  logdevinfo(paste("Loading project config file '", project.file, "'", sep=""),
              logger="config")
-  if (!(file.exists(project_file))) {
-      stop(paste("Project configuration file", project_file, "does not exist!"))
+  if (!(file.exists(project.file))) {
+      stop(paste("Project configuration file", project.file, "does not exist!"))
   }
 
   ## Append project configuration to conf
-  conf <- c(conf, yaml.load_file(project_file))
+  conf <- c(conf, yaml.load_file(project.file))
 
   if (is.null(conf$project) || is.null(conf$repo)) {
     stop("Malformed configuration: Specify project and repository!\n")
@@ -94,10 +94,10 @@ default.prosoda.log <- str_c(normalizePath("../../log"), "/prosoda.log.R.", Sys.
 ## This function parses the command line accepting some default parameters,
 ## specifically the prosoda and project configuration files. It then creates
 ## a conf object and amends it with a database connection.
-## If positional arguments are given by name in the positional_args list,
+## If positional arguments are given by name in the positional.args list,
 ## these are stored by name in the conf object.
-config.from.args <- function(positional_args=list(), extra_args=list(),
-                             require_project=TRUE) {
+config.from.args <- function(positional.args=list(), extra.args=list(),
+                             require.project=TRUE) {
   option_list <- c(list(
     make_option(c("-l", "--loglevel"), default="info",
                 help="logging level (debug, devinfo, info, warning or error) [%default]"),
@@ -106,11 +106,11 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
                 help="global prosoda configuration file [%default]"),
     make_option(c("-p", "--project"), help="project configuration file",
                 default=NULL)
-  ), extra_args)
+  ), extra.args)
 
   ## Note that positional_arguments=TRUE even if no positional arguments are
   ## required - this is necessary since otherwise the parser output differs
-  parser <- OptionParser(usage=do.call(paste, c("%prog", positional_args)),
+  parser <- OptionParser(usage=do.call(paste, c("%prog", positional.args)),
                          option_list=option_list)
   arguments <- parse_args(parser, positional_arguments=TRUE)
   opts = arguments[1]$options
@@ -120,11 +120,11 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
   config.logging(opts$loglevel, opts$logfile)
 
   ## Check options for correctness
-  if (length(args) != length(positional_args)) {
+  if (length(args) != length(positional.args)) {
     print_help(parser)
     stop("Wrong number of positional arguments!")
   }
-  if (require_project & is.null(opts$project)) {
+  if (require.project & is.null(opts$project)) {
     stop("No project configuration file specified!")
   }
 
@@ -139,8 +139,8 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
   }
 
   ## Store arguments under their names in the conf object
-  conf[unlist(positional_args)] = args
-  for (n in extra_args) {
+  conf[unlist(positional.args)] = args
+  for (n in extra.args) {
     conf[n@dest] = opts[n@dest]
   }
   logdebug.config(conf)
