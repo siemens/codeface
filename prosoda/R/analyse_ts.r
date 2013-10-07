@@ -605,6 +605,15 @@ config.script.run({
   logdevinfo(paste("graphdir is", graphdir), logger="analyze_ts")
   dir.create(graphdir, showWarnings=FALSE, recursive=TRUE)
 
+  if (conf$profile) {
+    ## R cannot store line number profiling information before version 3.
+    if (R.Version()$major >= 3) {
+      Rprof(filename="ts.rprof", line.profiling=TRUE)
+    } else {
+      Rprof(filename="ts.rprof")
+    }
+  }
+
   do.ts.analysis(resdir, graphdir, conf)
   ## NOTE: The processed (smoothed, cumulated) time series are available in the
   ## database only after do.ts.analysis()
@@ -612,4 +621,5 @@ config.script.run({
   do.cluster.analysis(resdir, graphdir, conf)
   do.release.analysis(resdir, graphdir, conf)
   do.update.timezone.information(conf, conf$pid)
+  Rprof(NULL)
 })

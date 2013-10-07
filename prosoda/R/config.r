@@ -105,7 +105,9 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
     make_option(c("-c", "--config"), default=default.prosoda.conf,
                 help="global prosoda configuration file [%default]"),
     make_option(c("-p", "--project"), help="project configuration file",
-                default=NULL)
+                default=NULL),
+    make_option("--profile", help="Measure and store profiling data",
+                action="store_true", default=FALSE)
   ), extra_args)
 
   ## Note that positional_arguments=TRUE even if no positional arguments are
@@ -138,11 +140,15 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
     conf <- init.db(conf)
   }
 
-  ## Store arguments under their names in the conf object
-  conf[unlist(positional_args)] = args
+  ## Store positional arguments under their names in the conf object
+  conf[unlist(positional_args)] <- args
   for (n in extra_args) {
-    conf[n@dest] = opts[n@dest]
+    conf[n@dest] <- opts[n@dest]
   }
+
+  ## Store other options that need to be propagated upwards
+  conf$profile <- opts$profile
+
   logdebug.config(conf)
   return(conf)
 }

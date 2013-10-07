@@ -66,6 +66,8 @@ def get_parser():
                         help="Skip LaTeX report generation (and dot compilation)")
     run_parser.add_argument('--recreate', action="store_true",
                         help="Force a delete of the project in the database")
+    run_parser.add_argument('--profile-r', action="store_true",
+                        help="Compute an execution time profile for R code")
 
     ml_parser = sub_parser.add_parser('ml', help='Run mailing list analysis')
     ml_parser.set_defaults(func=cmd_ml)
@@ -100,7 +102,8 @@ def cmd_run(args):
     if logfile:
         logfile = os.path.abspath(logfile)
     project_analyse(resdir, gitdir, prosoda_conf, project_conf,
-                    args.no_report, args.loglevel, logfile, args.recreate, args.jobs)
+                    args.no_report, args.loglevel, logfile, args.recreate,
+                    args.profile_r, args.jobs)
     return 0
 
 def cmd_ml(args):

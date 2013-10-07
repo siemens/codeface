@@ -51,7 +51,7 @@ def project_setup(conf, recreate):
     return project_id, dbm, all_range_ids
 
 def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
-                    no_report, loglevel, logfile, recreate, n_jobs):
+                    no_report, loglevel, logfile, recreate, profile_r, n_jobs):
     pool = BatchJobPool(int(n_jobs))
     conf = Configuration.load(prosoda_conf, project_conf)
     revs = conf["revisions"]
@@ -130,6 +130,8 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
     exe = abspath(resource_filename(__name__, "R/analyse_ts.r"))
     cwd, _ = pathsplit(exe)
     cmd = [exe]
+    if profile_r:
+        cmd.append("--profile")
     if logfile:
         cmd.extend(("--logfile", "{}.R.ts".format(logfile)))
     cmd.extend(("--loglevel", loglevel))
