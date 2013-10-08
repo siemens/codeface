@@ -625,11 +625,22 @@ config.script.run({
 
   init.mc(conf)
   do.ts.analysis(resdir, graphdir, conf)
+  logdevinfo("-> Finished time series base analysis", logger="analyse_ts")
   ## NOTE: The processed (smoothed, cumulated) time series are available in the
-  ## database only after do.ts.analysis()
+  ## database only after do.ts.analysis(), so this task does not commute
+  ## with the ones below.
+
   do.commit.analysis(resdir, graphdir, conf)
+  logdevinfo("-> Finished commit analysis", logger="analyse_ts")
+
   do.cluster.analysis(resdir, graphdir, conf)
+  logdevinfo("-> Finished cluster analysis", logger="analyse_ts")
+
   do.release.analysis(resdir, graphdir, conf)
+  logdevinfo("-> Finished release analysis", logger="analyse_ts")
+
   do.update.timezone.information(conf, conf$pid)
+  logdevinfo("-> Finished time zone analysis", logger="analyse_ts")
+
   Rprof(NULL)
 })
