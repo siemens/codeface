@@ -106,6 +106,8 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
                 help="global prosoda configuration file [%default]"),
     make_option(c("-p", "--project"), help="project configuration file",
                 default=NULL),
+    make_option(c("-j", "--jobs"), type="integer", default=1,
+                help="Number of parallel jobs for analysis"),
     make_option("--profile", help="Measure and store profiling data",
                 action="store_true", default=FALSE)
   ), extra_args)
@@ -148,6 +150,7 @@ config.from.args <- function(positional_args=list(), extra_args=list(),
 
   ## Store other options that need to be propagated upwards
   conf$profile <- opts$profile
+  conf$jobs <- opts$jobs
 
   logdebug.config(conf)
   return(conf)

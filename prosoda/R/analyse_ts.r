@@ -36,6 +36,7 @@ source("ts_utils.r")
 source("clusters.r")
 source("commits.r")
 source("timezones.r")
+source("mc_helpers.r")
 
 get.series.boundaries <- function(conn) {
   ## Read the first (comment) line of the time series connection,
@@ -614,6 +615,7 @@ config.script.run({
     }
   }
 
+  init.mc(conf)
   do.ts.analysis(resdir, graphdir, conf)
   ## NOTE: The processed (smoothed, cumulated) time series are available in the
   ## database only after do.ts.analysis()

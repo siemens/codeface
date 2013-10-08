@@ -137,6 +137,7 @@ def project_analyse(resdir, gitdir, prosoda_conf, project_conf,
     cmd.extend(("--loglevel", loglevel))
     cmd.extend(("-c", prosoda_conf))
     cmd.extend(("-p", project_conf))
+    cmd.extend(("-j", str(n_jobs)))
     cmd.append(project_resdir)
     execute_command(cmd, direct_io=True, cwd=cwd)
     log.info("=> Prosoda run complete!")

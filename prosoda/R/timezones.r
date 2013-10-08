@@ -132,12 +132,19 @@ do.update.timezone.information <- function(conf, project.id) {
                              " FROM commit WHERE (NOT authorTimeOffset IS ",
                              " NULL) AND projectId=", project.id))
   ## Process all commits and fill the list
-  loginfo(paste("Processing", nrow(res), "commits for time zone info..."))
-  zones <- sapply(1:nrow(res), function(i) {
-    paste("(", res$id[[i]], ", '", timezone.string(res$authorDate[[i]], res$authorTimeOffset[[i]]), "')", sep="")
+  logdevinfo(paste("Processing", nrow(res), "commits for time zone info..."))
+
+  zones <- mclapply(1:nrow(res), function(i) {
+    val <- paste("(", res$id[[i]], ", '", timezone.string(res$authorDate[[i]],
+                                                          res$authorTimeOffset[[i]]),
+                 "')", sep="")
+    return(val)
   })
+
   dbSendQuery(conf$con, str_c(
-    "INSERT INTO commit (id, authorTimezones) VALUES ", do.call(paste, c(zones, list(sep=", "))),
+    "INSERT INTO commit (id, authorTimezones) VALUES ",
+    do.call(paste, c(zones, list(sep=", "))),
     " ON DUPLICATE KEY UPDATE authorTimezones=VALUES(authorTimezones);"))
-  loginfo(paste("Updated", length(zones), "timezone entries"))
+
+  logdevinfo(paste("Updated", length(zones), "timezone entries"))
 }

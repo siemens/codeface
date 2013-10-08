@@ -59,13 +59,9 @@ rm(s)
 
 ######################### Dispatcher ###################################
 config.script.run({
-    option_list <- list(
-                    make_option(c("-j", "--jobs"), type="integer", default=1,
-                                help="Number of parallel jobs for cluster analysis")
-                    )
     positional_args <- list("resdir", "mldir", "listname")
 
-    conf <- config.from.args(positional_args=positional_args, extra_args=option_list)
+    conf <- config.from.args(positional_args=positional_args)
 
     gen.dir(conf$resdir)
 
