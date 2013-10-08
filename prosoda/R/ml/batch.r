@@ -22,6 +22,7 @@
 s <- suppressPackageStartupMessages
 source("../config.r", chdir=TRUE)
 source("../db.r", chdir=TRUE)
+source("../mc_helpers.r", chdir=TRUE)
 source("ml_utils.r")
 s(source("analysis.r"))
 s(source("project.spec.r"))
@@ -29,7 +30,6 @@ s(source("keyword.list.r"))
 
 s(library(logging))
 s(library(tm))
-s(library(parallel))
 s(library(tm.plugin.mail))
 s(library(sna))
 s(library(ggplot2))
@@ -88,12 +88,6 @@ config.script.run({
       lw("Are you sure this setup is correct? Continuing nevertheless.")
     }
 
-    if (conf$jobs > 1) {
-      options(mc.cores=conf$jobs)
-    } else {
-      ## Setting mc.cores to 1 makes sure that a regular lapply is used.
-      options(mc.cores=1)
-    }
-
+    init.mc(conf)
     dispatch.all(conf, conf$mldir, conf$resdir)
 })
