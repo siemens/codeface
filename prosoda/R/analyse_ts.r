@@ -231,15 +231,22 @@ do.cluster.analysis <- function(resdir, graphdir, conf,
   ## Stage 1: Perform per-release operations
   logdevinfo("Preparing per-release cluster plots", logger="analyse_ts")
   cycles <- get.cycles(conf)
-  for (i in seq_along(cycles$range.id)) {
-    range.id <- cycles$range.id[[i]]
 
-    clusters.stats <- compute.release.clusters.stats(conf, range.id, cluster.method)
-    if (is.null(clusters.stats))
-      next
+  clusters.stats.list <- mclapply.db(conf, seq_along(cycles$range.id),
+                                     function(conf, i) {
+    clusters.stats <- compute.release.clusters.stats(conf, cycles$range.id[[i]],
+                                                     cluster.method)
     clusters.stats$cycle <- cycles$cycle[[i]]
-    clusters.all[[i]] <- clusters.stats
-    clusters.summary[[i]] <- summarise.clusters.stats(clusters.stats)
+
+    return(clusters.stats)
+  })
+
+  dummy <- mclapply(seq_along(clusters.stats.list), function(i) {
+    range.id <- cycles$range.id[[i]]
+    if (is.null(clusters.stats.list[[i]]))
+      next
+
+    clusters.stats <- clusters.stats.list[[i]]
 
     ## Create release-specific plots
     ## NOTE: We need to decide if it's statistically acceptable
@@ -258,19 +265,20 @@ do.cluster.analysis <- function(resdir, graphdir, conf,
     ggsave(file.path(graphdir, paste("cluster_code_changes_",
                                      conf$boundaries$tag[i], ".pdf", sep="")),
            g, width=7, height=7)
-  }
+  })
 
 
   ## Stage 2: Perform global operations on all releases
   ## TODO: Augment the date labels with release specifications; additionally,
   ## sort the clusters by average page rank per release
   logdevinfo("Preparing global cluster plots", logger="analyse_ts")
-  clusters.all <- do.call(rbind, clusters.all)
-  clusters.summary.all <- do.call(rbind, clusters.summary)
+  clusters.all <- do.call(rbind, clusters.stats.list)
+  clusters.summary.all <- do.call(rbind, lapply(clusters.stats.list,
+                                                summarise.clusters.stats))
 
   ## For very small projects, it can happen that there is not even a single
   ## subcluster for all releases
-  if (!is.null(clusters.all)) {
+  if (!all(sapply(clusters.all, is.null))) {
     g <- ggplot(clusters.all, aes(x=cluster.id, y=rankValue)) +
       geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
         ylab("Page rank") + facet_wrap(~cycle, scales="free_x")
