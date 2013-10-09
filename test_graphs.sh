@@ -1,4 +1,11 @@
 #!/bin/bash
+# Copyright Siemens AG 2013
+#
+# Copying and distribution of this file, with or without modification,
+# are permitted in any medium without royalty provided the copyright
+# notice and this notice are preserved.  This file is offered as-is,
+# without any warranty.
+
 echo 'Dynamic graph interactive testing script'
 echo '----------------------------------------'
 echo 'Please open http://localhost:8100/?projectid=X in a web browser (where X is the project ID of a project in the database.'
