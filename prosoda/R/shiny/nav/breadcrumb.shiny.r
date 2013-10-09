@@ -29,7 +29,7 @@
 # rm(s)
 # source("../../config.r", chdir=TRUE)
 # source("../../query.r", chdir=TRUE)
-# conf <- config.from.args(require_project=FALSE)
+# conf <- config.from.args(require.project=FALSE)
 # projects.list <- query.projects(conf$con)
 library(RJSONIO)
 source("breadcrumb.config.r")  # source in this environment

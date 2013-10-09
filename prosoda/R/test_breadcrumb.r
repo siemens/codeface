@@ -24,7 +24,7 @@ suppressPackageStartupMessages(library(logging))
 suppressPackageStartupMessages(library(RJSONIO))
 source("config.r", chdir=TRUE)
 source("query.r", chdir=TRUE)
-conf <<- config.from.args(require_project=FALSE)
+conf <<- config.from.args(require.project=FALSE)
 projects.list <<- query.projects(conf$con)
 
 

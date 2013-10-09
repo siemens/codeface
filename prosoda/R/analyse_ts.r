@@ -607,8 +607,8 @@ do.release.analysis <- function(resdir, graphdir, conf) {
 
 ######################### Dispatcher ###################################
 config.script.run({
-  conf <- config.from.args(positional_args=list("resdir"),
-                           require_project=TRUE)
+  conf <- config.from.args(positional.args=list("resdir"),
+                           require.project=TRUE)
   resdir <- conf$resdir
   graphdir <- file.path(resdir, "graphs")
   logdevinfo(paste("graphdir is", graphdir), logger="analyze_ts")

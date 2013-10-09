@@ -61,7 +61,7 @@ rm(s)
 config.script.run({
     positional_args <- list("resdir", "mldir", "listname")
 
-    conf <- config.from.args(positional_args=positional_args)
+    conf <- config.from.args(positional.args=positional.args)
 
     gen.dir(conf$resdir)
 

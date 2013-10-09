@@ -472,21 +472,23 @@ minCommGraph <- function(graph, comm, min=10){
 	##								have been removed
 	comm.idx <- which(comm$csize > min)
   if(length(comm.idx) == 0) {
-    res <- list(graph=integer(0), community=integer(0))
+    res <- list(graph=NULL, community=NULL)
   }
-  verts <- rle(unlist(as.vector(sapply(comm.idx,
+  else{
+    verts <- rle(unlist(as.vector(sapply(comm.idx,
            function(x) { return(which(comm$membership==x)) }))))$values
 
-	V(graph)$key <- 1:vcount(graph)
-	graph.comm <- induced.subgraph(graph, verts)
-	## use the unique key to determine the mapping of community membership to the
-	## new graph index
-	comm$membership <- comm$membership[V(graph.comm)$key]
-	comm$csize <- sapply(1:length(comm.idx),
-			function(x) {return(length(which(comm$membership == comm.idx[x])))})
-	comm$membership <- remap.consec.seq(comm$membership)
-	res <- list(graph=graph.comm, community=comm)
-	return(res)
+	  V(graph)$key <- 1:vcount(graph)
+	  graph.comm <- induced.subgraph(graph, verts)
+	  ## use the unique key to determine the mapping of community membership to the
+	  ## new graph index
+	  comm$membership <- comm$membership[V(graph.comm)$key]
+	  comm$csize <- sapply(1:length(comm.idx),
+			  function(x) {return(length(which(comm$membership == comm.idx[x])))})
+	  comm$membership <- remap.consec.seq(comm$membership)
+	  res <- list(graph=graph.comm, community=comm)
+  }
+  return(res)
 }
 
 
@@ -1038,12 +1040,18 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
   ## Scale edge weights to integer values
   ## adjMatrix <- ceiling(scale.data(adjMatrix, 0, 1000))
 
-  ## Isolated graph members are outliers for the Linux kernel. Eliminate
-  ## them to create a connected graph (NOTE: This must not be done for
-  ## projects where proper direct clustering can happen)
-  logdevinfo("Computing adjacency matrices", logger="cluster.persons")
+  ## Remove loops
+  ## Loops indicate a nodes collaboration with iteself, this
+  ## information could be used to identify isolated hero developers by looking
+  ## at the relative collaboration with others vs. their loop edge weight.
+  ## At this point we have no use for loops and the large edge weight of loops
+  ## leads to additional challenges in the analysis and visualization. For
+  ## now we will just remove the loops.
+  n <- ncol(adjMatrix)
+  adjMatrix <- adjMatrix * abs(diag(1, n, n) - 1)
 
-  g    <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
+  logdevinfo("Computing adjacency matrices", logger="cluster.persons")
+  g <- graph.adjacency(adjMatrix, mode="directed", weighted=TRUE)
   idx <- V(g)
 
   ## Working with the adjacency matrices is easier if the IDs are numbered
@@ -1158,53 +1166,6 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
            g.walktrap.community,
            paste(outdir, "/wt_", sep=""),
            label="Random Walk Community")
-}
-
-
-## Compute SNA metrics using community centric perspective
-## ARGS:
-##  g: igraph graph object
-##  comm: igraph communities object
-## RETURNS:
-##  res: list containing all statistics
-compute.community.metrics <- function(g, comm) {
-  res <- list()
-
-  ## intra-community
-  res$intra.betweenness  <- community.metric(g, comm,
-                                                     "betweenness")
-  res$intra.transitivity <- community.metric(g, comm,
-                                                     "transitivity")
-  res$intra.in.deg     <- community.metric(g, comm, "in.deg")
-  res$intra.out.deg    <- community.metric(g, comm, "out.deg")
-  res$intra.in.weight  <- community.metric(g, comm, "in.weight")
-  res$intra.out.weight <- community.metric(g, comm, "out.weight")
-  res$intra.diameter   <- community.metric(g, comm, "diameter")
-  ## inter-community
-  g.con     <- contract.vertices(g, membership(comm))
-  g.con.sim <- simplify(g.con)
-  res$inter.betweeness   <- betweenness(g.con.sim)
-  res$inter.transitivity <- transitivity(g.con.sim, type="local")
-  res$inter.in.deg       <- degree(g.con.sim, mode="in")
-  res$inter.out.deg      <- degree(g.con.sim, mode="out")
-  res$inter.in.weight    <- graph.strength(g.con.sim, mode="in")
-  res$inter.out.weight   <- graph.strength(g.con.sim, mode="out")
-  res$inter.diameter     <- diameter(g.con.sim)
-  ## quality
-  res$conductance <- community.metric(g, comm, "conductance")
-  res$mean.conductance <- mean(res$conductance)
-  res$sd.conductance <- sd(res$conductance)
-  res$modularity  <- community.metric(g, comm, "modularity")
-  res$modularity.sum <- sum(res$modularity)
-  ## global
-  res$mean.size <- mean(comm$csize)
-  res$sd.size   <- sd(comm$csize)
-  res$max.size  <- max(comm$csize)
-  intra.edges   <- unlist(lapply(res$intra.in.deg,sum))
-  res$mean.num.edges <- mean(intra.edges)
-  res$sd.num.edges   <- sd(intra.edges)
-  res$max.edges <- max(intra.edges)
-  return(res)
 }
 
 
@@ -1389,7 +1350,7 @@ test.community.quality.modularity <- function() {
 ##----------------------------
 
 config.script.run({
-  conf <- config.from.args(positional_args=list("resdir", "range.id"),
-                           require_project=TRUE)
+  conf <- config.from.args(positional.args=list("resdir", "range.id"),
+                           require.project=TRUE)
   performAnalysis(conf$resdir, conf)
 })

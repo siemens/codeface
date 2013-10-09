@@ -399,3 +399,103 @@ community.metric <- function(graph, community, test) {
 
   return(metric.vec)
 }
+
+
+## Compute SNA metrics using community centric perspective
+## ARGS:
+##  g: igraph graph object
+##  comm: igraph communities object
+## RETURNS:
+##  res: list containing all statistics
+compute.community.metrics <- function(g, comm) {
+  res <- list()
+
+  ## intra-community
+  res$intra.betweenness  <- community.metric(g, comm,
+      "betweenness")
+  res$intra.transitivity <- community.metric(g, comm,
+      "transitivity")
+  res$intra.in.deg     <- community.metric(g, comm, "in.deg")
+  res$intra.out.deg    <- community.metric(g, comm, "out.deg")
+  res$intra.in.weight  <- community.metric(g, comm, "in.weight")
+  res$intra.out.weight <- community.metric(g, comm, "out.weight")
+  res$intra.diameter   <- community.metric(g, comm, "diameter")
+  ## inter-community
+  g.con     <- contract.vertices(g, membership(comm), vertex.attr.comb=toString)
+  g.con.sim <- simplify(g.con)
+  res$inter.betweeness   <- betweenness(g.con.sim)
+  res$inter.transitivity <- transitivity(g.con.sim, type="local")
+  res$inter.in.deg       <- degree(g.con.sim, mode="in")
+  res$inter.out.deg      <- degree(g.con.sim, mode="out")
+  res$inter.in.weight    <- graph.strength(g.con.sim, mode="in")
+  res$inter.out.weight   <- graph.strength(g.con.sim, mode="out")
+  res$inter.diameter     <- diameter(g.con.sim)
+  res$num.comms          <- vcount(g.con.sim)
+  ## quality
+  res$conductance <- community.metric(g, comm, "conductance")
+  res$mean.conductance <- mean(res$conductance, na.rm=TRUE)
+  res$sd.conductance <- sd(res$conductance, na.rm=TRUE)
+  res$modularity     <- modularity(g, comm$membership)
+
+  ## global
+  res$mean.size <- mean(comm$csize)
+  res$sd.size   <- sd(comm$csize)
+  res$max.size  <- max(comm$csize)
+  intra.edges   <- unlist(lapply(res$intra.in.deg,sum))
+  res$mean.num.edges <- mean(intra.edges)
+  res$sd.num.edges   <- sd(intra.edges)
+  res$max.edges <- max(intra.edges)
+  res$vcount    <- vcount(g)
+  return(res)
+}
+
+
+generate.community.tables <- function(con, cluster.method, analysis.method) {
+  projects   <- query.projects(con, analysis.method)
+  range.data <- lapply(projects$id, function(p.id) get.cycles.con(con, p.id))
+  metrics.df <- data.frame()
+
+  for(i in 1:nrow(projects)) {
+    p.id <- projects$id[i]
+    p.range.ids   <- range.data[[i]]$range.id
+    p.range.names <- range.data[[i]]$cycle
+    graph.data <- lapply(p.range.ids, function(r.id)
+          get.graph.data.local(con, p.id, r.id, cluster.method))
+    graph <- lapply(graph.data,
+        function(x) {
+          graph.data.frame(x$edgelist, directed=TRUE,
+              vertices=data.frame(x$v.local.ids))})
+
+    ## Compute community metrics
+    idx <- 1:length(p.range.ids)
+    graph.comm <- lapply(idx, function(j) minCommGraph(graph[[j]],
+              graph.data[[j]]$comm, min=4))
+    comm.stats <- lapply(idx, function(j)
+          compute.community.metrics(graph.comm[[j]]$graph,
+              graph.comm[[j]]$community))
+    comm.stat.rows <- lapply(idx, function(j) {
+          comm.stats[[j]]$p.id <- p.id
+          comm.stats[[j]]$r.id <- p.range.names[[j]]
+          return(comm.stats[[j]])})
+
+    rows <- lapply(comm.stat.rows, function(x)
+          rbind(list(id=x$p.id, network=analysis.method,
+                  release.range=x$r.id,
+                  developers=x$vcount, num.comms=x$num.comms,
+                  mean.conductance=x$mean.conductance,
+                  sd.conductance=x$sd.conductance,
+                  modularity=x$modularity,
+                  mean.size=x$mean.size,
+                  sd.size=x$sd.size,
+                  mean.edges=x$mean.num.edges,
+                  sd.edges=x$sd.num.edges)))
+
+    for(i in idx){
+      metrics.df <- rbind(metrics.df, rows[[i]])
+    }
+  }
+
+  df <- merge(projects, metrics.df, all=TRUE)
+
+  return(df)
+}
