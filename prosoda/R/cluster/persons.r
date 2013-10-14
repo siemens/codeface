@@ -1169,7 +1169,7 @@ performGraphAnalysis <- function(conf, adjMatrix, ids, outdir, id.subsys=NULL){
 }
 
 
-get.community.graph <- function(graph, community, prank, ids) {
+get.community.graph <- function(graph, community, prank, ids, outdir) {
   community.idx <- sort(unique(community$membership))
   influential.people <- sapply(community.idx,
                                function(comm.idx) {
@@ -1191,19 +1191,13 @@ get.community.graph <- function(graph, community, prank, ids) {
   ##fc <- as.character(as.integer(100-scale.data(log(.iddb$total+1),0,50)[idx]))
   V(g.simplified)$fillcolor <- paste("grey", 50, sep="")
   V(g.simplified)$style="filled"
-  write.graph(g.simplified, "/Users/Mitchell/Desktop/community.dot",
-              format="dot")
+  write.graph(g.simplified, outdir, format="dot")
 }
 
-runRandCompare <- function(){
-
-  ## Setup Directories
-  nonTagDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_NonTag/30"
-  tagDir    <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_Tag/30"
-
+runRandCompare <- function(nonTagDir, tagDir, outfile) {
   ## Read files for ids and adjacency matrix
-  nonTagAdjMatrix <- read.table(file=paste(nonTagDir, "/adjacencyMatrix.txt", sep=""),
-                                sep="\t", header=FALSE)
+  nonTagAdjMatrix <- read.table(file=paste(nonTagDir, "/adjacencyMatrix.txt",
+                                  sep=""), sep="\t", header=FALSE)
   ids.nonTag <- read.csv(file=paste(nonTagDir, "/ids.txt", sep=""),
                          sep="\t", header=TRUE, stringsAsFactors = FALSE)
   ids.nonTag$ID <- ids.nonTag$ID + 1
@@ -1235,10 +1229,8 @@ runRandCompare <- function(){
   nonTagAdjMatrixRand <- nonTagAdjMatrix[idx.rand, idx.rand]
 
   ## Run comparison on randomized adjacency matrix
-  fileName = '/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/experiments/RandomSimilarityComparison.pdf'
-  graphComparison(nonTagAdjMatrixRand, ids.nonTag, tagAdjMatrix, ids.Tag, fileName)
-
-
+  graphComparison(nonTagAdjMatrixRand, ids.nonTag, tagAdjMatrix,
+                  ids.Tag, outfile)
 }
 
 
@@ -1274,19 +1266,6 @@ experiment <- function(g, g.connected){
 #########################################################################
 ##     					 Testing Section
 #########################################################################
-nonTagTest <- function(){
-
-  dataDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_NonTag/30"
-  performAnalysis(dataDir)
-
-}
-TagTest <- function(){
-
-  dataDir <- "/Users/Mitchell/Documents/workspace/prosoda_repo/cluster/res_Tag/30"
-  performAnalysis(dataDir)
-
-}
-
 test.community.quality <- function() {
 
   r.1 <- c(0,1,1,1,1,0,0,0)
@@ -1340,11 +1319,6 @@ test.community.quality.modularity <- function() {
 #########################################################################
 ##     					 Executed Statements
 #########################################################################
-##TagTest()
-##nonTagTest()
-##test.community.quality()
-##test.community.quality.modularity()
-
 ##----------------------------
 ## Parse commandline arguments
 ##----------------------------
