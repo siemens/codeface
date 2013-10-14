@@ -39,9 +39,9 @@ bar.colours <- c(col.1, col.3, col.2, col.4, col.5, col.6)
 line.colours <- c(col.2, col.8, col.1, col.3, col.9, col.10,
                   col.6, col.5, col.7, col.4)
 base.font.size <- 10
+line.size <- 0.7
 
 ## Nothing customisable below here
-
 prepare.scale.dat <- function(dat) {
   colnames(dat) <- c("Cores", "User", "Sys", "Elapsed", "CPU")
 
@@ -100,8 +100,9 @@ dat <- do.call(rbind, lapply(seq_along(projects.collectl.list), function(i) {
 dat.molten <- melt(dat[,c("seconds", "project", "Mem", "IO")],
                    id.vars=c("seconds", "project"))
 g <- ggplot(dat.molten, aes(x=seconds, y=value, colour=project)) +
-  facet_grid(variable~., scales="free_y") + geom_line(size=0.7) + xlab("Zeit [s]") +
-  ylab("MiB/s bzw. MiB") + scale_colour_manual(values=line.colours, name="") +
+  facet_grid(variable~., scales="free_y") + geom_line(size=line.size) +
+  xlab("Zeit [s]") + ylab("MiB/s bzw. MiB") +
+  scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
   theme(plot.margin=unit(c(0,0,0,0), "cm"))
 ggsave("resources.pdf", g, height=4.5, width=5)
