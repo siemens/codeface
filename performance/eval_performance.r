@@ -107,6 +107,30 @@ g <- ggplot(dat.molten, aes(x=seconds, y=value, colour=project)) +
   theme(plot.margin=unit(c(0,0,0,0), "cm"))
 ggsave("resources.pdf", g, height=4.5, width=5)
 
+## Memory scaling behaviour
+dat <- do.call(rbind, lapply(seq_along(projects.collectl.scale.list), function(i) {
+  dat.cores <- lapply(projects.collectl.scale.cores[[i]], function(cores) {
+    dat.prep <- prepare.collectl.dat(read.csv(str_c("results/collectl_",
+                                                    projects.collectl.scale.list[[i]],
+                                                    "_", cores, ".txt", sep=""),
+                                     sep="\t", comment.char="#", header=FALSE))
+
+    return(data.frame(cores=cores, Mem=max(dat.prep$Mem)))
+  })
+
+  dat.cores <- do.call(rbind, dat.cores)
+  dat.cores$project <- projects.collectl.scale.names[[i]]
+
+  return(dat.cores)
+}))
+
+g <- ggplot(dat, aes(x=cores, y=Mem, colour=project)) + geom_line(size=line.size) +
+  geom_point() + xlab("Cores") + ylab("RAM [MiB]") +
+  scale_colour_manual(values=line.colours, name="") +
+  theme_bw(base.font.size) + theme(legend.position="top") +
+  theme(plot.margin=unit(c(0,0,0,0), "cm"))
+print(g)
+ggsave("scale_mem.pdf", g, height=3.5, width=5)
 
 #############################################################################
 ## Analyse scalability results
