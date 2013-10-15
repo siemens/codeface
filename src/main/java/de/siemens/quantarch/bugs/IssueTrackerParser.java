@@ -192,16 +192,17 @@ public class IssueTrackerParser {
 			String proxyHost = (String) map.get("proxyHost");
 			Integer proxyPort = (Integer) map.get("proxyPort");
 			Integer sleepTime = (Integer) map.get("sleepTime");
-			String personServiceUrl = (String) map.get("personServiceUrl");
+			String personServiceHostname = (String) map.get("idServiceHostname");
+			Integer personServicePort = (Integer) map.get("idServicePort");
 
 			// Null and empty checks on all the necessary values
 			if (StringUtils.isBlankOrNull(dbHost)
 					|| StringUtils.isBlankOrNull(dbUser)
 					|| StringUtils.isBlankOrNull(dbPwd)
 					|| StringUtils.isBlankOrNull(dbName)
-					|| StringUtils.isBlankOrNull(personServiceUrl)) {
+					|| StringUtils.isBlankOrNull(personServiceHostname)) {
 				throw new CommandLineArgsException(
-						"Improper Global Configuration file supplied\n\n");
+						"Improper Global Configuration file supplied");
 			}
 
 			// set configuration
@@ -210,7 +211,7 @@ public class IssueTrackerParser {
 			config.setDbPassword(dbPwd);
 			config.setDbUser(dbUser);
 			config.setSleepTimeOut(sleepTime);
-			config.setPersonServiceURL(personServiceUrl);
+			config.setPersonServiceURL("http://" + personServiceHostname + ":" + personServicePort);
 
 			// set proxy server configuration if specified
 			if (null != proxyHost) {
