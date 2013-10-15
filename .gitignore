@@ -19,7 +19,7 @@
 *.tar.bz2
 error.dump.rda
 node-*
-prosoda.egg-info/
+codeface.egg-info/
 log/
 auto/
 db/

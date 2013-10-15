@@ -1,43 +1,43 @@
 Development Installation
 ========================
 
-To get a development installation of prosoda which reflects all changes you
+To get a development installation of codeface which reflects all changes you
 make in the code, run:
 
   python setup.py develop --user
 
 After making sure that $HOME/.local/bin is in the PATH, you should have a
-prosoda executable on the command line. Type
+codeface executable on the command line. Type
 
-  prosoda --help
+  codeface --help
 
 for more information.
 
 Database Setup
 --------------
 
-Prosoda requires a MySQL dabase which is already pre-configured with the
+Codeface requires a MySQL dabase which is already pre-configured with the
 SQL Schema specified in the 'bugzilla' repository in the file
 DataModel/quantarchSchema.sql. The access credentials and name of the
-database is configurable in prosoda.conf
+database is configurable in codeface.conf
 
 To run the integration tests, a copy of the database with the
 default name 'quantarch_testing' is also suggested. The access for the
-testing database is configurable in prosoda_testing.conf.
+testing database is configurable in codeface_testing.conf.
 
 Running the REST DB service
 ---------------------------
 
-Before running prosoda and the prosoda integration tests, you need to make
-sure that the prosoda REST DB service is running and using the same
-prosoda.conf than prosoda. Currently, the REST service is maintained
+Before running codeface and the codeface integration tests, you need to make
+sure that the codeface REST DB service is running and using the same
+codeface.conf than codeface. Currently, the REST service is maintained
 in the 'webui' repository. To run it, change to the subdirectory node.js and
 run:
-  node prosoda_rest_api.js <path/to/my/prosoda.conf>
+  node id_service.js <path/to/my/codeface.conf>
 
-For integration tests, a REST service using the same prosoda.conf than prosoda
-needs to be run. Note that by default, the prosoda test command will use
-prosoda_testing.conf.
+For integration tests, a REST service using the same codeface.conf than codeface
+needs to be run. Note that by default, the codeface test command will use
+codeface_testing.conf.
 
 Setting up shiny-server
 -----------------------
@@ -48,7 +48,7 @@ To generate a self-contained shiny-server-pack.tar.gz file, run
 If you are not on a PC directly connected to the internet, you can use a
 pre-built version using wget, e.g. from
   wget http://www.ebke.org/shiny-server-pack4.tar.gz
-In this case you have to untar the pack into the prosoda project directory.
+In this case you have to untar the pack into the codeface project directory.
 
 Now the shiny server can be started with
   ./shiny-server.sh

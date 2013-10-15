@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # This file is part of Codeface. Codeface is free software: you can
 # redistribute it and/or modify it under the terms of the GNU General Public
 # License as published by the Free Software Foundation, version 2.
@@ -16,15 +14,15 @@
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 # All Rights Reserved.
 
-from setuptools import setup
+import unittest
+from pkg_resources import resource_filename
+from codeface.util import execute_command
 
-setup(name='codeface',
-      version='0.2.0',
-      description='Project for Social Data Analysis',
-      author='Wolfgang Mauerer',
-      author_email='wolfgang.mauerer@siemens.com',
-      url='https://github.com/wolfgangmauerer/codeface',
-      packages=['codeface', 'codeface.cluster'],
-      package_data={'codeface': ['R/*.r', 'R/cluster/*.r', 'perl/*.pl']},
-      entry_points={'console_scripts': ['codeface = codeface.cli:main']}
-     )
+class TestRCode(unittest.TestCase):
+    '''Execute R tests as part of the test suite'''
+
+    def testTestThat(self):
+        path = resource_filename("codeface", "R")
+        Rcode = 'library(testthat); if (test_dir(".")$n > 0) stop("Some tests failed.")'
+        cmd = ["Rscript", "-e", Rcode]
+        execute_command(cmd, direct_io=True, cwd=path)

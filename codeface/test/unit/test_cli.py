@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # This file is part of Codeface. Codeface is free software: you can
 # redistribute it and/or modify it under the terms of the GNU General Public
 # License as published by the Free Software Foundation, version 2.
@@ -16,15 +14,19 @@
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 # All Rights Reserved.
 
-from setuptools import setup
+import unittest
+import argparse
+from codeface.test import hide_output
+from codeface.cli import get_parser
+import sys
 
-setup(name='codeface',
-      version='0.2.0',
-      description='Project for Social Data Analysis',
-      author='Wolfgang Mauerer',
-      author_email='wolfgang.mauerer@siemens.com',
-      url='https://github.com/wolfgangmauerer/codeface',
-      packages=['codeface', 'codeface.cluster'],
-      package_data={'codeface': ['R/*.r', 'R/cluster/*.r', 'perl/*.pl']},
-      entry_points={'console_scripts': ['codeface = codeface.cli:main']}
-     )
+class TestCLI(unittest.TestCase):
+    '''Test that the command line returns a sensible help'''
+
+    def testCLI(self):
+        '''Check that the parser deals with common commands'''
+        parser = get_parser()
+        self.assertIsInstance(parser, argparse.ArgumentParser)
+        with hide_output():
+            self.assertRaises(SystemExit, parser.parse_args, ["--help"])
+        parser.parse_args(["--loglevel", "info", "test"])
