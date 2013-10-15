@@ -82,6 +82,8 @@ public class IssueTrackerParser {
 		try {
 			cmd = cliParser.parse(options, args);
 		} catch (ParseException pe) {
+		    System.out.println("Duh. Parse Exception: " + pe.getMessage());
+
 			printUsage();
 			return;
 		}
@@ -100,7 +102,8 @@ public class IssueTrackerParser {
 		try {
 			parseGlobalConfiguration(globalConfig, config);
 		} catch (CommandLineArgsException e) {
-			printUsage();
+			System.out.println("Could not parse global config " +
+					   "file: " + e.getMessage());
 			return;
 		}
 
@@ -108,7 +111,8 @@ public class IssueTrackerParser {
 		try {
 			parseProjectConfiguration(projectConfig, config);
 		} catch (CommandLineArgsException e) {
-			printUsage();
+			System.out.println("Could not parse project config " +
+					   "file: " + e.getMessage());
 			return;
 		}
 
