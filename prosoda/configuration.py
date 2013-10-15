@@ -35,7 +35,8 @@ class Configuration(Mapping):
     GLOBAL_KEYS = ('dbname', 'dbhost', 'dbuser', 'dbpwd',
             'nodejsHostname', 'nodejsPort')
     PROJECT_KEYS = ('project', 'repo', 'tagging', 'revisions', 'rcs')
-    OPTIONAL_KEYS = ('description', 'ml', 'mailinglists')
+    OPTIONAL_KEYS = ('description', 'ml', 'mailinglists', 'sleepTime',
+                     'proxyHost', 'proxyPort')
     ALL_KEYS = set(GLOBAL_KEYS + PROJECT_KEYS + OPTIONAL_KEYS)
 
     def __init__(self):
