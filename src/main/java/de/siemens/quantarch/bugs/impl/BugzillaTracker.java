@@ -78,7 +78,7 @@ public class BugzillaTracker implements IssueTracker {
 			// Step 2: Parse bugs based on Products and Statuses
 			List<String> products = new ArrayList<String>();
 			if (config.isProductAsProject()) {
-				products.add(config.getProjectName());
+				products.add(config.getBugsProjectName());
 			} else {
 				products.addAll(productFetcher.fetchProducts(config
 						.getIssueTrackerURL()));

@@ -136,11 +136,16 @@ public class IssueTrackerParser {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> map = (Map<String, Object>) projectConfigYaml
 					.load(projectFileReader);
+			// NOTE: project denotes the identifier name used in
+			// the database, whereas bugsProject is the name
+			// used for bugzilla.
 			String project = (String) map.get("project");
+			String bugsProject = (String) map.get("bugsProjectName");
 			String issueTrackerType = (String) map.get("issueTrackerType");
 			String issueTrackerURL = (String) map.get("issueTrackerURL");
 			Boolean productAsProject = (Boolean) map.get("productAsProject");
-			if (StringUtils.isBlankOrNull(project)
+			if (StringUtils.isBlankOrNull(project) ||
+			    StringUtils.isBlankOrNull(bugsProject)
 					|| StringUtils.isBlankOrNull(issueTrackerURL)
 					|| StringUtils.isBlankOrNull(issueTrackerType)
 					|| null == productAsProject) {
@@ -151,6 +156,7 @@ public class IssueTrackerParser {
 			config.setIssueTrackerType(issueTrackerType);
 			config.setIssueTrackerURL(issueTrackerURL);
 			config.setProjectName(project);
+			config.setBugsProjectName(bugsProject);
 			config.setProductAsProject(productAsProject);
 		} catch (FileNotFoundException e) {
 			throw new CommandLineArgsException("The global configuration file "

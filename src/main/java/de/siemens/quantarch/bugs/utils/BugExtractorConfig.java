@@ -15,6 +15,7 @@ public class BugExtractorConfig {
 	private String issueTrackerType = "bugzilla";
 	private String issueTrackerURL = null;
 	private String projectName = null;
+	private String bugsProjectName = null;
 	private long projectId = -1;
 	private boolean productAsProject = false;
 
@@ -143,6 +144,21 @@ public class BugExtractorConfig {
 	 */
 	public void setProjectName(String projectName) {
 		this.projectName = projectName;
+	}
+
+	/**
+	 * @return the projectName
+	 */
+	public String getBugsProjectName() {
+		return bugsProjectName;
+	}
+
+	/**
+	 * @param projectName
+	 *            the projectName to set
+	 */
+	public void setBugsProjectName(String bugsProjectName) {
+		this.bugsProjectName = bugsProjectName;
 	}
 
 	/**
