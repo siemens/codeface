@@ -33,7 +33,7 @@ class Configuration(Mapping):
     '''
 
     GLOBAL_KEYS = ('dbname', 'dbhost', 'dbuser', 'dbpwd',
-            'nodejsHostname', 'nodejsPort')
+            'idServiceHostname', 'idServicePort')
     PROJECT_KEYS = ('project', 'repo', 'tagging', 'revisions', 'rcs')
     OPTIONAL_KEYS = ('description', 'ml', 'mailinglists', 'sleepTime',
                      'proxyHost', 'proxyPort')
@@ -44,8 +44,8 @@ class Configuration(Mapping):
         Initialize an empty configuration object with the default values
         '''
         self._conf = {
-                'nodejsHostname' : '127.0.0.1',
-                'nodejsPort' : 8080
+                'idServiceHostname' : '127.0.0.1',
+                'idServicePort' : 8080
                 }
 
     @classmethod

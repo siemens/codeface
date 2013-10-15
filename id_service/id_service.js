@@ -578,5 +578,6 @@ app.post('/post_decompose_user_id', app.postDecomposeUserID);
 /**
  * Start listening on port 8080
  */
-logger.log('info', 'Starting to listen on ' + config.nodejsHostname + ':' + config.nodejsPort)
-app.listen(config.nodejsPort, config.nodejsHostname); //to port & hostname on which the express server listen
+logger.log('info', 'Starting to listen on ' + config.idServiceHostname + ':' +
+	   config.idServicePort)
+app.listen(config.idServicePort, config.idServiceHostname); //to port & hostname on which the express server listen

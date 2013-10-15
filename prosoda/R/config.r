@@ -44,14 +44,14 @@ load.config <- function(global.file, project.file=NULL) {
     stop("Malformed global configuration: Database information is incomplete!\n")
   }
 
-  if (is.null(conf$nodejsHostname)) {
-    conf$nodejsHostname <- "127.0.0.1"
+  if (is.null(conf$idServiceHostname)) {
+    conf$idServiceHostname <- "127.0.0.1"
   }
 
-  if (is.null(conf$nodejsPort)) {
-    conf$nodejsPort <- 8080
+  if (is.null(conf$idServicePort)) {
+    conf$idServicePort <- 8080
   } else {
-    conf$nodejsPort <- as.integer(conf$nodejsPort)
+    conf$idServicePort <- as.integer(conf$idServicePort)
   }
 
   if (is.null(project.file)) {

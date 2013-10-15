@@ -29,8 +29,8 @@ class TestConfiguration(unittest.TestCase):
     def testDefaults(self):
         '''Check that the defaults are set correctly'''
         c = Configuration()
-        self.assertEqual(c['nodejsHostname'], '127.0.0.1')
-        self.assertEqual(c['nodejsPort'], 8080)
+        self.assertEqual(c['idServiceHostname'], '127.0.0.1')
+        self.assertEqual(c['idServicePort'], 8080)
 
     def testLoad(self):
         '''Test that an example configuration is loaded correctly'''
@@ -44,8 +44,8 @@ dbuser: 'theuser'
 dbpwd: thepassword
 dbname: 'thedb'
 # intermediate comment
-nodejsPort: 4242
-nodejsHostname: foohost
+idServicePort: 4242
+idServiceHostname: foohost
         """)
         global_conf.close()
         project_conf = NamedTemporaryFile(delete=False)
@@ -73,8 +73,8 @@ tagging: tag
         self.assertEqual(c["dbpwd"], "thepassword")
         self.assertEqual(c["dbname"], "thedb")
         self.assertEqual(c["project"], "theproject")
-        self.assertEqual(c["nodejsPort"], 4242)
-        self.assertEqual(c["nodejsHostname"], "foohost")
+        self.assertEqual(c["idServicePort"], 4242)
+        self.assertEqual(c["idServiceHostname"], "foohost")
         self.assertEqual(c["repo"], "therepo")
         self.assertEqual(c["description"], "the description")
         self.assertEqual(c["ml"], "the mailing list")
@@ -95,7 +95,7 @@ tagging: tag
     def testDict(self):
         '''Quick test if a Configuration object behaves like a dict'''
         c = Configuration()
-        expected_keys = set(("nodejsPort", "nodejsHostname"))
+        expected_keys = set(("idServicePort", "nodejsHostname"))
         self.assertEqual(set(c.keys()), expected_keys)
         print(str(c))
         for k in c:
@@ -114,8 +114,8 @@ dbuser: theuser
 dbpwd: thepassword
 dbname: thedb
 # intermediate comment
-nodejsPort: 4242
-nodejsHostname: foohost
+idServicePort: 4242
+idServiceHostname: foohost
         """)
         global_conf.close()
         project_conf_1 = NamedTemporaryFile(delete=False)

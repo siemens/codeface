@@ -47,8 +47,8 @@ query.user.id.cached <- function(host, port, pid, name, email) {
 }
 
 query.user.id <- function(conf, name, email) {
-  return(query.user.id.cached(conf$nodejsHostname, conf$nodejsPort, conf$pid,
-                              name, email))
+  return(query.user.id.cached(conf$idServiceHostname, conf$idServicePort,
+                              conf$pid, name, email))
 }
 
 query.decompose.user.id.base <- function(host, port, pid, name.str) {
@@ -76,7 +76,7 @@ query.decompose.user.id.cached <- function(host, port, pid, name.str) {
 }
 
 query.decompose.user.id <- function(conf, name.str) {
-    return(query.decompose.user.id.cached(conf$nodejsHostname,
-                                          conf$nodejsPort,
+    return(query.decompose.user.id.cached(conf$idServiceHostname,
+                                          conf$idServicePort,
                                           conf$pid, name.str))
 }

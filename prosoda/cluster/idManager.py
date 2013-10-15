@@ -46,8 +46,8 @@ class idManager:
         self.fixup_emailPattern = re.compile(r'([^<]+)\s+<([^>]+)>')
         self.commaNamePattern = re.compile(r'([^,\s]+),\s+(.+)')
 
-        self._idMgrServer = conf["nodejsHostname"]
-        self._idMgrPort = conf["nodejsPort"]
+        self._idMgrServer = conf["idServiceHostname"]
+        self._idMgrPort = conf["idServicePort"]
         self._conn = httplib.HTTPConnection(self._idMgrServer, self._idMgrPort)
 
         # Create a project ID

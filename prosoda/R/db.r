@@ -222,9 +222,6 @@ augment.conf <- function(conf) {
 
   conf$boundaries <- prepare.release.boundaries(conf)
 
-  conf$nodejsHostname <- conf$nodejsHostname
-  conf$nodejsPort <- conf$nodejsPort
-
   return(conf)
 }
 
