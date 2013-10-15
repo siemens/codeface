@@ -295,7 +295,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 
   ## NOTE: Everything that is supposed to be computed in parallel needs to
   ## go into this loop.
-  res <- mclapply.db(conf, function(conf, i) {
+  res <- mclapply.db(conf, 1:length(iter), function(conf, i) {
     ## Determine the corpus subset for the interval
     ## under consideration
     loginfo(paste("Processing interval ", i, ": ", labels[[i]]),

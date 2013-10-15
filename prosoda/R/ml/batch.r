@@ -59,7 +59,7 @@ rm(s)
 
 ######################### Dispatcher ###################################
 config.script.run({
-    positional_args <- list("resdir", "mldir", "listname")
+    positional.args <- list("resdir", "mldir", "listname")
 
     conf <- config.from.args(positional.args=positional.args)
 
