@@ -36,7 +36,9 @@ class Configuration(Mapping):
             'idServiceHostname', 'idServicePort')
     PROJECT_KEYS = ('project', 'repo', 'tagging', 'revisions', 'rcs')
     OPTIONAL_KEYS = ('description', 'ml', 'mailinglists', 'sleepTime',
-                     'proxyHost', 'proxyPort')
+                     'proxyHost', 'proxyPort', 'bugsProjectName',
+                     'productAsProject', 'issueTrackerType',
+                     'issueTrackerURL')
     ALL_KEYS = set(GLOBAL_KEYS + PROJECT_KEYS + OPTIONAL_KEYS)
 
     def __init__(self):
