@@ -1,4 +1,4 @@
-/target/
-/tempConfig*.xml
-/*.log
-/*.log.*
+target/
+tempConfig*.xml
+*.log
+*.log.*
