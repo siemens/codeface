@@ -32,6 +32,7 @@ s(library(logging))
 s(library(tm))
 s(library(tm.plugin.mail))
 s(library(sna))
+s(library(snatm))
 s(library(ggplot2))
 s(library(igraph))
 s(library(lsa))
@@ -42,14 +43,6 @@ s(library(xtable))
 s(library(reshape))
 s(library(plyr))
 source("../page.rank.r", chdir=TRUE)
-
-## NOTE: This is _temporary_. After the changes to snatm are upstreamed,
-## we can get rid of loading the files directly.
-snatm.path <- "../../../../src.nntp/snatm/pkg/R"
-if (!file.exists(snatm.path)) {
-  stop("Could not find local snatm library, aborting!")
-}
-s(source.files(snatm.path))
 rm(s)
 
 ## TODO: Filter out spam. There's an incredible amount in some gmane archives
@@ -75,6 +68,9 @@ config.script.run({
     }
     if (packageVersion("plyr") < "1.8.0") {
       stop("plyr needs to be available in version >= 1.8.0, please update.")
+    }
+    if (packageVersion("snatm") < "1.2.0") {
+      stop("plyr needs to be available in version >= 1.2.0, please update.")
     }
 
     if (Sys.getenv("http_proxy") != "") {
