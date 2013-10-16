@@ -106,8 +106,8 @@ public class IssueTrackerParser {
 		}
 
 		// check if the options have been provided
-		if (cmd.hasOption("g") && cmd.hasOption("p")) {
-			globalConfig = cmd.getOptionValue('g');
+		if (cmd.hasOption("c") && cmd.hasOption("p")) {
+			globalConfig = cmd.getOptionValue('c');
 			projectConfig = cmd.getOptionValue('p');
 		} else {
 			printUsage();
