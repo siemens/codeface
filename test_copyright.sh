@@ -8,7 +8,7 @@
 
 for f in $(find prosoda -name '*.py' -or -iname '*.sh' -or -iname '*.r' \
                         -or -iname '*.css' -or -iname '*.js' \
-                        -or -iname '*.html'); do
+                        -or -iname '*.html' -or -iname '*.java'); do
     if [[ -z $(grep "Copyright " $f) ]]; then 
         echo "Missing Copyright: $f"
     fi
