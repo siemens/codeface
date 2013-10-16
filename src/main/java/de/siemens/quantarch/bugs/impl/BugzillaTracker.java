@@ -119,6 +119,8 @@ public class BugzillaTracker implements IssueTracker {
 						prod = product;
 
 						DefaultSearchData searchData = new DefaultSearchData();
+						// Don't limit the search to 500 responses, but allow for an arbitrary amount
+						searchData.add("limit", "0");
 						searchData.add("product",
 								URLEncoder.encode(product, "UTF-8"));
 						searchData.add("bug_status", status);
