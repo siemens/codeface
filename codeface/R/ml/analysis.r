@@ -127,8 +127,11 @@ extract.commnets <- function(forest.corp, termfreq, repo.path, data.path) {
   doCompute <- !(file.exists(cont.dir)) && !(file.exists(subj.dir))
 
   if (doCompute) {
-    extract.commnet(forest.corp, termfreq, "content", data.path)
-    extract.commnet(forest.corp, termfreq, "subject", data.path)
+    gen.dir(cont.dir)
+    extract.commnet(forest.corp$forest, termfreq, "content", data.path)
+
+    gen.dir(subj.dir)
+    extract.commnet(forest.corp$forest, termfreq, "subject", data.path)
   }
 }
 
