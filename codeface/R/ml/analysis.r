@@ -210,15 +210,10 @@ dispatch.all <- function(conf, repo.path, resdir) {
   ## Sort the dates to enable faster algorithms. This also removes NAs
   dates <- sort(dates)
 
-  ## Select weekly and monthly intervals (TODO: With the new flexible
-  ## intervals in place, we could select proper monthly intervals)
-  iter.weekly <- gen.iter.intervals(dates, 1)
-  iter.4weekly <- gen.iter.intervals(dates, 4)
-
   ## Compute a list of intervals for the project release cycles
   cycles <- get.cycles(conf)
 
-  ## NOTE: We store the lubridatye intervals in a list (instead of
+  ## NOTE: We store the lubridate intervals in a list (instead of
   ## simply appending them to the cycles data frame) because they
   ## are coerced to numeric by the conversion to a data frame.
   release.intervals <- list(dim(cycles)[1])
@@ -246,6 +241,11 @@ dispatch.all <- function(conf, repo.path, resdir) {
   periodic.analysis <- FALSE
   if (periodic.analysis) {
     loginfo("Periodic analysis", logger="ml.analysis")
+    ## Select weekly and monthly intervals (TODO: With the new flexible
+    ## intervals in place, we could select proper monthly intervals)
+    iter.weekly <- gen.iter.intervals(dates, 1)
+    iter.4weekly <- gen.iter.intervals(dates, 4)
+
     analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, resdir,
                           paste("weekly", 1:length(iter.weekly), sep=""))
     analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, resdir,
@@ -253,8 +253,10 @@ dispatch.all <- function(conf, repo.path, resdir) {
   }
 
   loginfo("Analysing subsequences", logger="ml.analysis")
-  ## Obtain a unique numerical ID for the mailing list
+  ## Obtain a unique numerical ID for the mailing list (and clear
+  ## any existing results on the way)
   ml.id <- gen.clear.ml.id.con(conf$con, conf$listname, conf$pid)
+
   ## Also obtain a clear plot for the mailing list activity
   activity.plot.name <- str_c(conf$listname, " activity")
   activity.plot.id <- get.clear.plot.id(conf, activity.plot.name)
@@ -345,6 +347,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 ## User needs to make sure that data.path exists and is writeable
 ## dispatch.steps is called for every time interval that is considered
 ## in the analysis
+
 dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
                            ml.id, activity.plot.id) {
   ## TODO: Check how we can speed up prepare.text. And think about if the
