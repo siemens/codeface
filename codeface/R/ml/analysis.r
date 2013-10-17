@@ -202,9 +202,11 @@ dispatch.all <- function(conf, repo.path, resdir) {
   ## Split the data into smaller chunks for time-resolved analysis
   ## Get all message timestamps, and clean the invalid ones
   dates <- do.call(c,
-                   lapply(seq_along(corp.base$corp),
-                          function(i) as.POSIXct(DateTimeStamp(corp.base$corp[[i]])))
-                   )
+                   mclapply(seq_along(corp.base$corp),
+                          function(i) {
+                            return(as.POSIXct(DateTimeStamp(corp.base$corp[[i]])))
+                          }
+                   ))
   ## Sort the dates to enable faster algorithms. This also removes NAs
   dates <- sort(dates)
 
