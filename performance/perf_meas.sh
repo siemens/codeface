@@ -7,21 +7,26 @@
 # notice and this notice are preserved.  This file is offered as-is,
 # without any warranty.
 
-if [ $# -ne 3 ]; then
-    echo "Usage: $0 project cores outdir";
+if [ $# -ne 5 ]; then
+    echo "Usage: $0 project cores outdir resdir repodir";
+    echo "(resdir contains codeface results,";
+    echo " outdir contains measured performance data)"
+
     exit -1;
 fi
 
 PROJECT=$1
 CORES=$2
 OUTDIR=$3
+RESDIR=$4
+REPODIR=$5
 
 mkdir -p ${OUTDIR}
 
 echo "Analysing $PROJECT with $CORES cores (results are in ${OUTDIR})"
 
 prosoda -j${CORES} run --recreate -c prosoda.conf -p conf/${PROJECT}.conf \
-         ../res $HOME/git-repos &>/dev/null &
+         ${RESDIR} ${REPODIR} &>/dev/null &
 
 PROSODA=$!
 

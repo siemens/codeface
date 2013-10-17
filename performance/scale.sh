@@ -24,7 +24,7 @@ rm -rf ${OUTDIR}/scale_${PROJECT}.txt
 
 for CORES in `seq ${CORES_MAX} -1 ${CORES_MIN}`; do
     /usr/bin/time --format "%U %S %E %P" -o /tmp/time.txt \
-	./perf_meas.sh ${PROJECT} ${CORES} ${OUTDIR}
+	./perf_meas.sh ${PROJECT} ${CORES} ${OUTDIR} ${RESDIR} ${REPODIR}
   echo -n "${CORES} " >> ${OUTDIR}/scale_${PROJECT}.txt;
   cat /tmp/time.txt | head -n 1 >> ${OUTDIR}/scale_${PROJECT}.txt;
  done
