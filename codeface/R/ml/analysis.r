@@ -296,13 +296,6 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
   loginfo(paste("=> Analysing ", conf$listname, "in", length(iter), "subsets"),
           logger="ml.analysis")
 
-  ## Prepare a single-parameter version of do.normalise that does
-  ## not expose the conf object -- the concept is not known to snatm
-  ## NOTE: conf must be present in the defining scope
-  do.normalise.bound <- function(authors) {
-    return(do.normalise(conf, authors))
-  }
-
   ## NOTE: Everything that is supposed to be computed in parallel needs to
   ## go into this loop.
   res <- mclapply.db(conf, 1:length(iter), function(conf, i) {
@@ -310,6 +303,15 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     ## under consideration
     loginfo(paste("Processing interval ", i, ": ", labels[[i]]),
             logger="ml.analysis")
+
+    ## Prepare a single-parameter version of do.normalise that does
+    ## not expose the conf object -- the concept is not known to snatm
+    ## NOTE: conf must be present in the defining scope. In particular,
+    ## it must be the correct per-core conf object in parallel calculations,
+    ## which is why we define the function locally here.
+    do.normalise.bound <- function(authors) {
+      return(do.normalise(conf, authors))
+    }
 
     curr.int <- iter[[i]]
     idx <- which(timestamps >= int_start(curr.int) & timestamps < int_end(curr.int))
