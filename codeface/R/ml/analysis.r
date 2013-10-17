@@ -101,7 +101,12 @@ compute.commnet <- function(forest.corp, data.path) {
   doCompute <- !(file.exists(commnet.file))
 
   if (doCompute) {
-    commnet <- adjacency(createedges(forest.corp$forest))
+    edgelist <- createedges(forest.corp$forest)
+    if (length(edgelist) == 1 && is.na(edgelist)) {
+      return(NA)
+    }
+
+    commnet <- adjacency(edgelist)
     save(file=commnet.file, commnet)
   } else {
     load(file=commnet.file)
@@ -315,9 +320,15 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     save(file=file.path(data.path.local, "forest.corp"), forest.corp.sub)
 
     cycles <- get.cycles(conf)
-    dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub,
-                   cycles[i,], ml.id, activity.plot.id)
-    loginfo(paste(" -> Finished interval ", i, ": ", labels[[i]]), logger="ml.analysis")
+    res <- dispatch.steps(conf, repo.path, data.path.local, forest.corp.sub,
+                          cycles[i,], ml.id, activity.plot.id)
+    if (is.na(res)) {
+      loginfo(paste("Failed to process interval ", i, ": ", labels[[i]]),
+              logger="ml.analysis")
+    } else {
+      loginfo(paste(" -> Finished interval ", i, ": ", labels[[i]]),
+              logger="ml.analysis")
+    }
   })
 
   ## No need to return anything since the results are available as
@@ -335,6 +346,11 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
 ###prep <- prepare.text(forest, progress=TRUE)
 ####save(file=file.path(data.path, paste("prep", ml, sep=".")), prep)
   communication.network <- compute.commnet(forest.corp, data.path)
+  if (!is.matrix(communication.network)) {
+    ## We could not create a communication network, so
+    ## give up on this interval
+    return(NA)
+  }
 
   ## Returns tdm and dtm
   doc.matrices <- compute.doc.matrices(forest.corp, data.path)
@@ -549,6 +565,8 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
   ####### End of actual computation. Generate graphs and store data etc. #######
   dispatch.plots(conf, data.path, res)
   store.data(conf, res, cycle$range.id, ml.id)
+
+  return(0) ## Returning a non-NA value signifies success
 }
 
 compute.twomode.graphs <- function(conf, interest.networks) {
