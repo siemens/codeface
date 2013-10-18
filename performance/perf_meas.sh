@@ -25,17 +25,17 @@ mkdir -p ${OUTDIR}
 
 echo "Analysing $PROJECT with $CORES cores (results are in ${OUTDIR})"
 
-prosoda -j${CORES} run --recreate -c prosoda.conf -p conf/${PROJECT}.conf \
+codeface -j${CORES} run --recreate -c prosoda.conf -p conf/${PROJECT}.conf \
          ${RESDIR} ${REPODIR} &>/dev/null &
 
-PROSODA=$!
+CODEFACE=$!
 
 sudo collectl -i1:1 -sZ --procfilt P$! --procopts mct -P --sep 9 \
               -f ${OUTDIR}/${PROJECT}_${CORES} &>/dev/null &
 COLLECTL=$!
 
-echo -n "Waiting for prosoda (PID ${PROSODA}) to finish..."
-wait ${PROSODA}
+echo -n "Waiting for codeface (PID ${CODEFACE}) to finish..."
+wait ${CODEFACE}
 echo "done."
 echo "Stopping data collection from PID ${COLLECTL}."
 sudo kill ${COLLECTL}
