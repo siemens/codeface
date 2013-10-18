@@ -111,7 +111,7 @@ prepare.collectl.dat <- function(dat, project) {
 
   dat.tot <- ddply(dat, .(Time), summarise, CPU=sum(CPU), SysT=sum(SysT),
                    UsrT=sum(UsrT),
-                   Mem=sum(VmRSS+VmData)/1000, RKB=sum(RKBC), WKB=sum(WKBC),
+                   Mem=sum(VmRSS)/1000, RKB=sum(RKBC), WKB=sum(WKBC),
                    IO=sum(RKBC+WKBC)/1000)
   dat.tot$Time <- strptime(as.character(dat.tot$Time), format="%H:%M:%S")
   dat.tot$seconds <- as.numeric(dat.tot$Time - dat.tot$Time[1])
