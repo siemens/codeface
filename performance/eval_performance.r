@@ -1,6 +1,6 @@
 ## Worksheet for visualising performance measurement data.
 ## Meant to be used interactively.
-## Copyright Siemens AG 2013, Wolfgang Mauerer
+## Copyright Siemens AG 2013, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ##
 ## Copying and distribution of this file, with or without modification,
 ## are permitted in any medium without royalty provided the copyright
@@ -19,10 +19,26 @@ lang <- "de"
 
 ## Project specification. The measured data are expected in results/,
 ## with filenames collectl_<project>_<cores>.txt and scale_<project>.txt.
-projects.collectl.list <- c("qemu_16", "bootstrap_8", "git_16")
+## We can compute various graphs of interest:
+
+## Memory and I/O time series. This plots one curve per project and
+## a fixed amount of cores per project. Typically, you should pick
+## a number of CPUs that provides good speedup for the project size.
+projects.collectl.list <- c("qemu_15", "bootstrap_8", "git_16")
 projects.collectl.names <- c("QEMU", "Bootstrap", "git")
-projects.scale.list <- c("qemu", "bootstrap")
-projects.scale.names <- c("QEMU", "Bootstrap")
+
+## Memory scaling behaviour. This compares different projects
+## analysed with varying core numbers, where the range of cores need
+## not be identical for every project.
+projects.collectl.scale.list <- c("linux", "qemu", "bootstrap", "git")
+projects.collectl.scale.cores <- list(1:16, 1:15, 1:8, 1:16)
+projects.collectl.scale.names <- c("Linux kernel", "QEMU", "Bootstrap", "git")
+
+## Time scaling behaviour. This reads the input data from scale_<project>.txt,
+## the range of cores used is implicit in the file and does not need
+## to be specified manually.
+projects.scale.list <- c("linux", "qemu", "bootstrap", "git")
+projects.scale.names <- c("Linux kernel", "QEMU", "Bootstrap", "git")
 
 ####################################################################
 ## Nothing project-customisable below here
