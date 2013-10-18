@@ -6,7 +6,7 @@
 # notice and this notice are preserved.  This file is offered as-is,
 # without any warranty.
 
-for f in $(find prosoda -name '*.py' -or -iname '*.sh' -or -iname '*.r' \
+for f in $(find . -name '*.py' -or -iname '*.sh' -or -iname '*.r' \
                         -or -iname '*.css' -or -iname '*.js' \
                         -or -iname '*.html' -or -iname '*.java'); do
     if [[ -z $(grep "Copyright " $f) ]]; then 
