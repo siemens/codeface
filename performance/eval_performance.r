@@ -14,6 +14,9 @@ library(reshape)
 library(stringr)
 library(grid)
 
+## Possible choices for language: de and en_GB
+lang <- "de"
+
 ## Project specification. The measured data are expected in results/,
 ## with filenames collectl_<project>_<cores>.txt and scale_<project>.txt.
 projects.collectl.list <- c("qemu_16", "bootstrap_8", "git_16")
@@ -40,6 +43,24 @@ line.colours <- c(col.2, col.8, col.1, col.3, col.9, col.10,
                   col.6, col.5, col.7, col.4)
 base.font.size <- 10
 line.size <- 0.7
+
+## Set up i10ned text strings for axis labels
+if (lang == "de") {
+  label.time.s <- "Zeit [s]"
+  label.mibs <- "MiB/s bzw. MiB"
+  label.cores <- "Cores"
+  label.ram <- "RAM [MiB]"
+  label.min.log <- "Minuten [log. Skala]"
+  label.speedup <- "Speedup"
+} else {
+  ## If an unknown language is given, default to en.
+  label.time.s <- "Time [s]"
+  label.mibs <- "MiB/s resp. MiB"
+  label.cores <- "Cores"
+  label.ram <- "RAM [MiB]"
+  label.min.log <- "Minutes [log. scale]"
+  label.speedup <- "Speedup"
+}
 
 ## Nothing customisable below here
 prepare.scale.dat <- function(dat) {
@@ -101,7 +122,7 @@ dat.molten <- melt(dat[,c("seconds", "project", "Mem", "IO")],
                    id.vars=c("seconds", "project"))
 g <- ggplot(dat.molten, aes(x=seconds, y=value, colour=project)) +
   facet_grid(variable~., scales="free_y") + geom_line(size=line.size) +
-  xlab("Zeit [s]") + ylab("MiB/s bzw. MiB") +
+  xlab(label.time.s) + ylab(label.mibs) +
   scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
   theme(plot.margin=unit(c(0,0,0,0), "cm"))
@@ -124,8 +145,9 @@ dat <- do.call(rbind, lapply(seq_along(projects.collectl.scale.list), function(i
   return(dat.cores)
 }))
 
-g <- ggplot(dat, aes(x=cores, y=Mem, colour=project)) + geom_line(size=line.size) +
-  geom_point() + xlab("Cores") + ylab("RAM [MiB]") +
+g <- ggplot(dat, aes(x=cores, y=Mem, colour=project)) +
+  geom_line(size=line.size) +
+  geom_point() + xlab(label.cores) + ylab(label.ram) +
   scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
   theme(plot.margin=unit(c(0,0,0,0), "cm"))
@@ -145,14 +167,16 @@ dat <- do.call(rbind, lapply(seq_along(projects.scale.list), function(i) {
 }))
 
 g <- ggplot(dat, aes(x=Cores, y=minutes, colour=project)) + geom_line() +
-  geom_point() + xlab("Cores") + ylab("Minuten") + theme_bw(base.font.size) +
+  geom_point() + xlab(label.cores) + ylab(label.min.log) +
+  theme_bw(base.font.size) +
   scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
-  theme(plot.margin=unit(c(0,0,0,0), "cm"))
+  theme(plot.margin=unit(c(0,0,0,0), "cm")) + scale_y_log10()
 ggsave("duration.pdf", g, height=3.5, width=5)
 
 g <- ggplot(dat, aes(x=Cores, y=speedup, colour=project)) + geom_line() +
-  geom_point() + xlab("Cores") + ylab("Speedup") + theme_bw(base.font.size) +
+  geom_point() + xlab(label.cores) + ylab(label.speedup) +
+  theme_bw(base.font.size) +
   scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
   theme(plot.margin=unit(c(0,0,0,0), "cm"))
