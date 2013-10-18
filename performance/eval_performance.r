@@ -70,6 +70,7 @@ if (lang == "de") {
   label.cores <- "Cores"
   label.ram <- "RAM [MiB]"
   label.min.log <- "Minuten [log. Skala]"
+  label.min <- "Minuten"
   label.speedup <- "Speedup"
 } else {
   ## If an unknown language is given, default to en.
@@ -78,6 +79,7 @@ if (lang == "de") {
   label.cores <- "Cores"
   label.ram <- "RAM [MiB]"
   label.min.log <- "Minutes [log. scale]"
+  label.min <- "Minutes"
   label.speedup <- "Speedup"
 }
 
@@ -121,7 +123,7 @@ prepare.collectl.dat <- function(dat, project) {
 
 #############################################################################
 ## Analyse collectl results
-dat <- do.call(rbind, lapply(seq_along(projects.collectl.list), function(i) {
+dat.collectl <- do.call(rbind, lapply(seq_along(projects.collectl.list), function(i) {
   dat.prep <- prepare.collectl.dat(read.csv(str_c("results/", type,
                                                   "/collectl_",
                                                   projects.collectl.list[[i]],
@@ -138,9 +140,9 @@ dat <- do.call(rbind, lapply(seq_along(projects.collectl.list), function(i) {
 #ggplot(dat, aes(x=seconds, y=IO)) + geom_line() + ylab("MiB/s") +
 #  xlab("Zeit [s]") + geom_smooth()
 
-dat.molten <- melt(dat[,c("seconds", "project", "Mem", "IO")],
+dat.collectl.molten <- melt(dat.collectl[,c("seconds", "project", "Mem", "IO")],
                    id.vars=c("seconds", "project"))
-g <- ggplot(dat.molten, aes(x=seconds, y=value, colour=project)) +
+g <- ggplot(dat.collectl.molten, aes(x=seconds, y=value, colour=project)) +
   facet_grid(variable~., scales="free_y") + geom_line(size=line.size) +
   xlab(label.time.s) + ylab(label.mibs) +
   scale_colour_manual(values=line.colours, name="") +
@@ -149,7 +151,8 @@ g <- ggplot(dat.molten, aes(x=seconds, y=value, colour=project)) +
 ggsave(file.path("graphs", type, "resources.pdf"), g, height=4.5, width=5)
 
 ## Memory scaling behaviour
-dat <- do.call(rbind, lapply(seq_along(projects.collectl.scale.list), function(i) {
+dat.scale.mem <- do.call(rbind,
+                         lapply(seq_along(projects.collectl.scale.list), function(i) {
   dat.cores <- lapply(projects.collectl.scale.cores[[i]], function(cores) {
     dat.prep <- prepare.collectl.dat(read.csv(str_c("results/", type,
                                                     "/collectl_",
@@ -165,19 +168,20 @@ dat <- do.call(rbind, lapply(seq_along(projects.collectl.scale.list), function(i
 
   return(dat.cores)
 }))
+dat.scale.mem$cores <- as.factor(dat.scale.mem$cores)
 
-g <- ggplot(dat, aes(x=cores, y=Mem, colour=project)) +
+
+g <- ggplot(dat.scale.mem, aes(x=cores, y=Mem, colour=project, group=project)) +
   geom_line(size=line.size) +
   geom_point() + xlab(label.cores) + ylab(label.ram) +
   scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
   theme(plot.margin=unit(c(0,0,0,0), "cm"))
-print(g)
 ggsave(file.path("graphs", type, "scale_mem.pdf"), g, height=3.5, width=5)
 
 #############################################################################
-## Analyse scalability results
-dat <- do.call(rbind, lapply(seq_along(projects.scale.list), function(i) {
+## Analyse scalability (execution time) results
+dat.scale.time <- do.call(rbind, lapply(seq_along(projects.scale.list), function(i) {
   dat.prep <- prepare.scale.dat(read.csv(str_c("results/", type, "/scale_",
                                                projects.scale.list[[i]],
                                                ".txt", sep=""),
@@ -186,17 +190,21 @@ dat <- do.call(rbind, lapply(seq_along(projects.scale.list), function(i) {
 
   return(dat.prep)
 }))
+dat.scale.time$Cores <- as.factor(dat.scale.time$Cores)
 
-g <- ggplot(dat, aes(x=Cores, y=minutes, colour=project)) + geom_line() +
-  geom_point() + xlab(label.cores) + ylab(label.min.log) +
+g <- ggplot(dat.scale.time, aes(x=Cores, y=minutes, colour=project, group=project)) +
+  geom_line() + geom_point() + xlab(label.cores) + ylab(label.min) +
   theme_bw(base.font.size) +
   scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
-  theme(plot.margin=unit(c(0,0,0,0), "cm")) + scale_y_log10()
+  theme(plot.margin=unit(c(0,0,0,0), "cm"))
 ggsave(file.path("graphs", type, "duration.pdf"), g, height=3.5, width=5)
 
-g <- ggplot(dat, aes(x=Cores, y=speedup, colour=project)) + geom_line() +
-  geom_point() + xlab(label.cores) + ylab(label.speedup) +
+g <- g + scale_y_log10() + ylab(label.min.log)
+ggsave(file.path("graphs", type, "duration_log.pdf"), g, height=3.5, width=5)
+
+g <- ggplot(dat.scale.time, aes(x=Cores, y=speedup, colour=project, group=project)) +
+  geom_line() + geom_point() + xlab(label.cores) + ylab(label.speedup) +
   theme_bw(base.font.size) +
   scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
