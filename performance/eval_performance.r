@@ -17,7 +17,10 @@ library(grid)
 ## Possible choices for language: de and en_GB
 lang <- "de"
 
-## Project specification. The measured data are expected in results/,
+## Which analysis pass has been analysed (vcs or ml)
+type <- "vcs"
+
+## Project specification. The measured data are expected in results/<type>,
 ## with filenames collectl_<project>_<cores>.txt and scale_<project>.txt.
 ## We can compute various graphs of interest:
 
@@ -119,7 +122,8 @@ prepare.collectl.dat <- function(dat, project) {
 #############################################################################
 ## Analyse collectl results
 dat <- do.call(rbind, lapply(seq_along(projects.collectl.list), function(i) {
-  dat.prep <- prepare.collectl.dat(read.csv(str_c("results/collectl_",
+  dat.prep <- prepare.collectl.dat(read.csv(str_c("results/", type,
+                                                  "/collectl_",
                                                   projects.collectl.list[[i]],
                                                   ".txt", sep=""),
                                          sep="\t", comment.char="#", header=FALSE))
@@ -142,12 +146,13 @@ g <- ggplot(dat.molten, aes(x=seconds, y=value, colour=project)) +
   scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
   theme(plot.margin=unit(c(0,0,0,0), "cm"))
-ggsave("resources.pdf", g, height=4.5, width=5)
+ggsave(file.path("graphs", type, "resources.pdf"), g, height=4.5, width=5)
 
 ## Memory scaling behaviour
 dat <- do.call(rbind, lapply(seq_along(projects.collectl.scale.list), function(i) {
   dat.cores <- lapply(projects.collectl.scale.cores[[i]], function(cores) {
-    dat.prep <- prepare.collectl.dat(read.csv(str_c("results/collectl_",
+    dat.prep <- prepare.collectl.dat(read.csv(str_c("results/", type,
+                                                    "/collectl_",
                                                     projects.collectl.scale.list[[i]],
                                                     "_", cores, ".txt", sep=""),
                                      sep="\t", comment.char="#", header=FALSE))
@@ -168,12 +173,12 @@ g <- ggplot(dat, aes(x=cores, y=Mem, colour=project)) +
   theme_bw(base.font.size) + theme(legend.position="top") +
   theme(plot.margin=unit(c(0,0,0,0), "cm"))
 print(g)
-ggsave("scale_mem.pdf", g, height=3.5, width=5)
+ggsave(file.path("graphs", type, "scale_mem.pdf"), g, height=3.5, width=5)
 
 #############################################################################
 ## Analyse scalability results
 dat <- do.call(rbind, lapply(seq_along(projects.scale.list), function(i) {
-  dat.prep <- prepare.scale.dat(read.csv(str_c("results/scale_",
+  dat.prep <- prepare.scale.dat(read.csv(str_c("results/", type, "/scale_",
                                                projects.scale.list[[i]],
                                                ".txt", sep=""),
                                          sep=" ", header=FALSE))
@@ -188,7 +193,7 @@ g <- ggplot(dat, aes(x=Cores, y=minutes, colour=project)) + geom_line() +
   scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
   theme(plot.margin=unit(c(0,0,0,0), "cm")) + scale_y_log10()
-ggsave("duration.pdf", g, height=3.5, width=5)
+ggsave(file.path("graphs", type, "duration.pdf"), g, height=3.5, width=5)
 
 g <- ggplot(dat, aes(x=Cores, y=speedup, colour=project)) + geom_line() +
   geom_point() + xlab(label.cores) + ylab(label.speedup) +
@@ -196,4 +201,4 @@ g <- ggplot(dat, aes(x=Cores, y=speedup, colour=project)) + geom_line() +
   scale_colour_manual(values=line.colours, name="") +
   theme_bw(base.font.size) + theme(legend.position="top") +
   theme(plot.margin=unit(c(0,0,0,0), "cm"))
-ggsave("speedup.pdf", g, height=3.5, width=5)
+ggsave(file.path("graphs", type, "speedup.pdf"), g, height=3.5, width=5)
