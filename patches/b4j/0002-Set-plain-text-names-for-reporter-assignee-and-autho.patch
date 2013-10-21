@@ -1,0 +1,56 @@
+From 4678f3b25b910ee09cb5b2c8dd40e5fc0d0290ec Mon Sep 17 00:00:00 2001
+From: Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
+Date: Mon, 21 Oct 2013 15:35:57 +0200
+Subject: [PATCH 2/3] Set plain text names for reporter, assignee, and author
+ name
+
+Use the respective information if it's available in
+a bugzilla repo. Based on a patch by Deepak Srinathan.
+
+Signed-off-by: Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
+---
+ src/main/java/b4j/core/session/HttpBugzillaSession.java |   14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/main/java/b4j/core/session/HttpBugzillaSession.java b/src/main/java/b4j/core/session/HttpBugzillaSession.java
+index 2c02d32..3b51ba4 100644
+--- a/src/main/java/b4j/core/session/HttpBugzillaSession.java
++++ b/src/main/java/b4j/core/session/HttpBugzillaSession.java
+@@ -596,8 +596,16 @@ public class HttpBugzillaSession extends AbstractHttpSession {
+ 				currentContent = new StringBuffer();
+ 			} else if (name.equals("reporter")) {
+ 				currentContent = new StringBuffer();
++				String reporterName = attributes.getValue("name");
++				if (null != reporterName) {
++					currentBug.setReporterName(reporterName);
++				}
+ 			} else if (name.equals("assigned_to")) {
+ 				currentContent = new StringBuffer();
++				String assigneeName = attributes.getValue("name");
++				if (null != assigneeName) {
++					currentBug.setAssigneeName(assigneeName);
++				}
+ 			} else if (name.equals("qa_contact")) {
+ 				currentContent = new StringBuffer();
+ 			} else if (name.equals("long_desc")) { // multiple
+@@ -606,6 +614,10 @@ public class HttpBugzillaSession extends AbstractHttpSession {
+ 				currentContent = new StringBuffer();
+ 			} else if (name.equals("who")) {
+ 				currentContent = new StringBuffer();
++				String authorName = attributes.getValue("name");
++				if (null != authorName) {
++					currentLongDescription.setAuthorName(authorName);
++				}
+ 			} else if (name.equals("bug_when")) { // 2008-07-23 12:28:22
+ 				currentContent = new StringBuffer();
+ 			} else if (name.equals("thetext")) {
+@@ -887,4 +899,4 @@ field0-0-0=noop
+ type0-0-0=noop
+ value0-0-0=
+ 
+-*/
+\ No newline at end of file
++*/
+-- 
+1.7.10.4
+

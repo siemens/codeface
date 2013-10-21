@@ -1,0 +1,56 @@
+From af68b71a66bb8a1dd4ef974e66288f859d2d240e Mon Sep 17 00:00:00 2001
+From: Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
+Date: Mon, 21 Oct 2013 16:07:47 +0200
+Subject: [PATCH 3/3] Augment b4j version with special string to indicate
+ codeface changes
+
+To ensure that a version of b4j with all changes required
+by codeface is used instead of the vanilla version, append
+-codeface to b4j's version number.
+
+Signed-off-by: Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
+---
+ pom.xml |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/pom.xml b/pom.xml
+index 50f2251..0fc1308 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -8,7 +8,7 @@
+ 
+ 	<groupId>eu.ralph-schuster</groupId>
+ 	<artifactId>b4j</artifactId>
+-	<version>1.4.0</version>
++	<version>1.4.0-codeface</version>
+ 	<url>http://techblog.ralph-schuster.eu/b4j-bugzilla-for-java/</url>
+ 	<name>Bugzilla for Java</name>
+ 
+@@ -200,7 +200,7 @@
+ 				</executions>
+ 			</plugin>
+ 			<!-- PGP signing artifacts -->
+-			<plugin>
++<!--			<plugin>
+ 				<groupId>org.apache.maven.plugins</groupId>
+ 				<artifactId>maven-gpg-plugin</artifactId>
+ 				<version>1.4</version>
+@@ -213,7 +213,7 @@
+ 						</goals>
+ 					</execution>
+ 				</executions>
+-			</plugin>
++			</plugin>-->
+ 		</plugins>
+ 		<pluginManagement>
+ 			<plugins>
+@@ -291,4 +291,4 @@
+ 			</build>
+ 		</profile>
+ 	</profiles>
+-</project>
+\ No newline at end of file
++</project>
+-- 
+1.7.10.4
+
