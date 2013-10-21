@@ -96,7 +96,7 @@
 		<dependency>
 			<groupId>eu.ralph-schuster</groupId>
 			<artifactId>b4j</artifactId>
-			<version>1.4.0-CUSTOM</version>
+			<version>1.4.0-codeface</version>
 		</dependency>
 
 		<dependency>
