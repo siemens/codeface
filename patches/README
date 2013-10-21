@@ -1,0 +1,5 @@
+This directory is for patches to upstream projects that
+are required for codeface to work properly. Please note that
+patches should only be here temporary; the goal is to integrate
+such changes upstream so that we can use the vanilla version of
+every project we depend on.
