@@ -266,7 +266,7 @@ public class IssueTrackerParser {
 	}
 
 	private static void buildOptions() {
-		options.addOption("g", true, "global configuration file");
+		options.addOption("c", true, "global configuration file");
 		options.addOption("p", true, "project configuration file");
 	}
 
