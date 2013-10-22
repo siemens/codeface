@@ -163,6 +163,22 @@ get.commits.by.range <- function(conf, range.id, subset=NULL, FUN=NULL) {
   return(get.commits.by.range.con(conf$con, conf$pid, range.id, subset, FUN))
 }
 
+## Simplified version of the above that only gets commit hashes, but
+## orders them by commit date
+get.commit.hashes.by.range.con <- function(con, pid, range.id) {
+  dat <- dbGetQuery(con, str_c("SELECT commitHash, commitDate FROM commit ",
+                               "WHERE projectId=",
+                               pid, " AND releaseRangeId=", range.id,
+                               " ORDER BY commitDate"))
+  dat$commitDate <- ymd_hms(dat$commitDate, quiet=TRUE)
+
+  return(dat)
+}
+
+get.commit.hashes.by.range <- function(conf, range.id) {
+  return(get.commit.hashes.by.range.con(conf$con, conf$pid, range.id))
+}
+
 ## Get scaled commit infos for all cycles of pid
 ## This is similar to get.commits.by.ranges, but does not require
 ## a full conf object
