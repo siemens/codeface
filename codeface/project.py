@@ -125,7 +125,27 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     dispatch_ts_analysis(project_resdir, conf)
 
     #########
-    # Global stage 2: Time series analysis
+    # Global stage 2: Complexity analysis
+    ## NOTE: We rely on proper timestamps, so we can only run
+    ## after time series generation
+    log.info("=> Performing complexity analysis")
+    for i, range_id in enumerate(all_range_ids):
+        log.info("  -> Analysing range {}".format(range_id))
+        exe = abspath(resource_filename(__name__, "R/complexity.r"))
+        cwd, _ = pathsplit(exe)
+        cmd = [exe]
+        if logfile:
+            cmd.extend(("--logfile", "{}.R.complexity.{}".format(logfile, i)))
+        cmd.extend(("--loglevel", loglevel))
+        cmd.extend(("-c", codeface_conf))
+        cmd.extend(("-p", project_conf))
+        cmd.extend(("-j", str(n_jobs)))
+        cmd.append(repo)
+        cmd.append(str(range_id))
+        execute_command(cmd, direct_io=True, cwd=cwd)
+
+    #########
+    # Global stage 3: Time series analysis
     log.info("=> Analysing time series")
     exe = abspath(resource_filename(__name__, "R/analyse_ts.r"))
     cwd, _ = pathsplit(exe)
