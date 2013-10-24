@@ -115,9 +115,10 @@ app.get('/getUser/:id', function(request, response) {
     logger.log('info', "/getUser/:id");
     var taskId = request.params.id;
     withCheckedConnection(response, function(connection) {
-        connection.query('SELECT * FROM person WHERE id=' + taskId + ';', function(error, rows, fields) {
-            response.end(JSON.stringify(rows));
-        });
+        connection.query('SELECT * FROM person WHERE id=?;', [taskId],
+			 function(error, rows, fields) {
+			     response.end(JSON.stringify(rows));
+			 });
         connection.release();
     });
 });
@@ -131,7 +132,8 @@ app.get('/getReleaseTimelines/:projectID', function(request, response) {
     logger.log('info', '/getReleaseTimelines/:projectID');
     var projectID = request.params.projectID;
     withCheckedConnection(response, function(connection) {
-        connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ';', function(error, rows, fields) {
+        connection.query('SELECT * FROM release_timeline WHERE projectId=?;',
+			 [projectID], function(error, rows, fields) {
             response.end(JSON.stringify(rows));
         });
         connection.release();
@@ -151,9 +153,10 @@ app.get('/getReleaseTimelines/:projectID/:startTimestamp/:endTimestamp', functio
     var begin = request.params.startTimestamp;
     var end = request.params.endTimestamp;
     withCheckedConnection(response, function(connection) {
-        connection.query('SELECT * FROM release_timeline where projectId = ' + projectID + ' and date >= \'' + begin + '\' and date <= \'' + end + '\';', function(error, rows, fields) {
-            response.end(JSON.stringify(rows));
-        });
+        connection.query('SELECT * FROM release_timeline WHERE projectId=? AND date >=? AND date <= ?;',
+			 [projectID, begin, end], function(error, rows, fields) {
+			     response.end(JSON.stringify(rows));
+			 });
         connection.release();
     });
 });
@@ -201,9 +204,10 @@ app.get('/getProjectsByName/:name', function(request, response) {
     logger.log('info', '/getProjectsByName/:name');
     var name = request.params.name;
     withCheckedConnection(response, function(connection) {
-        connection.query('SELECT * FROM project where name = \'' + name + '\';', function(error, rows, fields) {
-            response.end(JSON.stringify(rows));
-        });
+        connection.query('SELECT * FROM project WHERE name=?;', [name],
+			 function(error, rows, fields) {
+			     response.end(JSON.stringify(rows));
+			 });
         connection.release();
     });
 });
@@ -219,7 +223,8 @@ app.get('/getProjectsByNameAndMethod/:name/:method', function(request, response)
     var name = request.params.name;
     var method = request.params.method;
     withCheckedConnection(response, function(connection) {
-        connection.query('SELECT * FROM project where name = \'' + name + '\' and analysisMethod = \'' + method + '\';', function(error, rows, fields) {
+        connection.query('SELECT * FROM project WHERE name=? AND analysisMethod=?;',
+			 [name, method], function(error, rows, fields) {
             response.end(JSON.stringify(rows));
         });
         connection.release();
@@ -304,23 +309,22 @@ function unlockTablePerson(connection) {
 function checkedWithID(name, email, projectID, response, connection, callback) {
     if (name && email) {
         // First, try to get an existing database that matches both name and email
-        q = 'SELECT id FROM person WHERE projectId=\'' + projectID +
-            '\' AND name=\'' + name +
-            '\' AND \'' + email + '\' IN (email1, email2, email3, email4, email5);'
+	q = 'SELECT id FROM person WHERE projectId=? AND name=? AND ? IN (email1, email2, email3, email4, email5);'
+	params = [projectID, name, email];
     } else if (email) {
         // First, try to get an existing database that matches email
         // Technically, this can match more than one person if the email and
         // the name have been inserted separately, so specify LIMIT 1
-        q = 'SELECT id FROM person WHERE projectId=\'' + projectID +
-            '\' AND \'' + email + '\' IN (email1, email2, email3, email4, email5)' +
-            ' ORDER BY id LIMIT 1;'
+        q = 'SELECT id FROM person WHERE projectId=? AND ? IN (email1, email2, ' +
+	    'email3, email4, email5) ORDER BY id LIMIT 1;'
+	params = [projectID, email];
     } else { // name is set
         // First, try to get an existing database that matches the same name
-        q = 'SELECT id FROM person WHERE projectId=\'' + projectID +
-            '\' AND name=\'' + name + '\' ORDER BY id LIMIT 1;'
+        q = 'SELECT id FROM person WHERE projectId=? AND name=? ORDER BY id LIMIT 1;'
+	params = [projectID, name];
     }
-    logger.log('trace', q)
-    connection.query(q, function(error, rows, fields) {
+    logger.log('trace', q + params)
+    connection.query(q, params, function(error, rows, fields) {
         if (error) {
             msg = 'MySQL error: ' + error;
             logger.log('error', msg);
@@ -348,14 +352,6 @@ function checkedWithID(name, email, projectID, response, connection, callback) {
  * the app.getOrUpdateUserInDB function is called from here
  */
 app.getUserFromDB = function(name, email, projectID, response) {
-    // make sure to escape some characters in strings like e.g. quote char
-    var patt = /'/g;
-    if (name) {
-        name = name.replace(patt, "\\'");
-    }
-    if (email) {
-        email = email.replace(patt, "\\'");
-    }
     withCheckedConnection(response, function(connection) {
         // Return an error if ProjectId or name and email have been empty
         if (!projectID) {
@@ -433,13 +429,15 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                         checkedWithID(name, null, projectID, response, connection, function(rows) {
                             if (rows.length >= 1) {
                                 // Add this email to the end of the email list if it is not yet in the list
-                                q = 'UPDATE person SET email5=CASE WHEN email5 IS NULL AND email4 IS NOT NULL THEN \'' + email + '\' ELSE email5 END, ' +
-                                    '  email4=CASE WHEN email4 IS NULL AND email3 IS NOT NULL THEN \'' + email + '\' ELSE email4 END, ' +
-                                    '  email3=CASE WHEN email3 IS NULL AND email2 IS NOT NULL THEN \'' + email + '\' ELSE email3 END, ' +
-                                    '  email2=CASE WHEN email2 IS NULL THEN \'' + email + '\' ELSE email2 END  ' +
-                                    ' WHERE id=\'' + rows[0].id + '\' LIMIT 1;'
-                                logger.log('trace', q)
-                                connection.query(q, fail_on_error)
+                                q = 'UPDATE person SET email5=CASE WHEN email5 IS NULL AND email4 IS NOT NULL THEN ? ELSE email5 END, ' +
+                                    '  email4=CASE WHEN email4 IS NULL AND email3 IS NOT NULL THEN ? ELSE email4 END, ' +
+                                    '  email3=CASE WHEN email3 IS NULL AND email2 IS NOT NULL THEN ? ELSE email3 END, ' +
+                                    '  email2=CASE WHEN email2 IS NULL THEN ? ELSE email2 END  ' +
+                                    ' WHERE id=? LIMIT 1;'
+                                logger.log('trace', q + [email, rows[0].id])
+                                connection.query(q, [email, email, email,
+						     email, rows[0].id],
+						 fail_on_error)
                                 var id = { id : rows[0].id };
                                 response.end(JSON.stringify(id));
                             } else {
@@ -447,16 +445,19 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                                 checkedWithID(null, email, projectID, response, connection, function(rows) {
                                     if (rows.length >= 1) {
                                         // Update the name of this entry
-                                        q = 'UPDATE person SET name=\'' + name + '\' WHERE id=\'' + rows[0].id + '\' LIMIT 1;'
-                                        logger.log('trace', q)
-                                        connection.query(q, fail_on_error)
+                                        q = 'UPDATE person SET name=? WHERE id=? LIMIT 1;'
+                                        logger.log('trace', q + [name, rows[0].id])
+                                        connection.query(q, [name, rows[0].id],
+							 fail_on_error)
                                         var id = { id : rows[0].id };
                                         response.end(JSON.stringify(id));
                                     } else {
                                         // Now we have to insert a new user
-                                        q = 'INSERT INTO person (projectId, name, email1) VALUES (\'' + projectID + '\',\'' + name + '\', \'' + email + '\');'
-                                        logger.log('trace', q)
-                                        connection.query(q, function(error, info) {
+                                        q = 'INSERT INTO person (projectId, name, email1) VALUES (?, ?, ?);'
+                                        logger.log('trace', q +
+						   [projectID, name, email])
+                                        connection.query(q, [projectID, name, email],
+							 function(error, info) {
                                             unlockTablePerson(connection)
                                             connection.release()
                                             if (error) {
@@ -473,8 +474,9 @@ app.getOrUpdateUserInDB = function(name, email, projectID, response) {
                             }
                         });
                     } else { // only email is set
-                        q = 'INSERT INTO person (projectId, email1) VALUES (\'' + projectID + '\',\'' + email + '\');'
-                        connection.query(q, function(error, info) {
+                        q = 'INSERT INTO person (projectId, email1) VALUES (?, ?);'
+                        connection.query(q, [projectID, email],
+					 function(error, info) {
                             unlockTablePerson(connection)
                             connection.release()
                             if (error) {
@@ -517,7 +519,9 @@ app.getUserID = function(request, response) {
  * POST USER ID
  */
 app.postUserID = function(request, response) {
-    logger.log('trace', 'POST User ID request: ' + request.body);
+    logger.log('trace', 'POST User ID request: name="' + request.body.name +
+	       '", email="' + request.body.email + '", projectId=' +
+	      request.body.projectID);
     var name = request.body.name;
     var email = request.body.email;
     var projectID = request.body.projectID;
