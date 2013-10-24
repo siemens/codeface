@@ -40,7 +40,7 @@ if (logLevel == 'error') {
 } else if (logLevel == 'trace') {
     logger.debugLevel = 'trace';
 } else {
-    console.log('Usage: node ' + process.argv[1] + ' FILENAME' + ' [warn|error|info]');
+    console.log('Usage: node ' + process.argv[1] + ' FILENAME' + ' [warn|error|info|trace]');
     process.exit(1);
 }
 
