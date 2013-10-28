@@ -27,3 +27,4 @@ rep/
 res/
 testdat/
 performance/results/
+*.tar.gz
