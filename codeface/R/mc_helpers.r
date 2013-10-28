@@ -24,7 +24,10 @@ init.mc <- function(conf) {
     ## Setting mc.cores to 1 makes sure that a regular lapply is used
     ## even is mclapply is called.
     options(mc.cores=1)
+    conf$jobs=1
   }
+
+  return(conf)
 }
 
 ## When computations that access the database are run in parallel,

@@ -80,6 +80,6 @@ config.script.run({
       lw("Are you sure this setup is correct? Continuing nevertheless.")
     }
 
-    init.mc(conf)
+    conf <- init.mc(conf)
     dispatch.all(conf, conf$mldir, conf$resdir)
 })

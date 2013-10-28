@@ -623,7 +623,7 @@ config.script.run({
     }
   }
 
-  init.mc(conf)
+  conf <- init.mc(conf)
   do.ts.analysis(resdir, graphdir, conf)
   logdevinfo("-> Finished time series base analysis", logger="analyse_ts")
   ## NOTE: The processed (smoothed, cumulated) time series are available in the
