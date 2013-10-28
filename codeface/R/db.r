@@ -35,8 +35,9 @@ get.project.id <- function(con, name) {
 }
 
 ## Determine the ID of a given plot for a given project. Since
-## plots are not created in parallel, we need no locking
-## Also, Clear the plot for new data
+## plots are not created in parallel, we need no locking.
+## Also, clear the plot for new data. This function is supposed to be
+## used for time series that are created during the global analysis.
 get.clear.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
   query <- str_c(" FROM plots WHERE name=", sq(plot.name),
                  " AND projectId=", pid)
@@ -69,6 +70,7 @@ get.clear.plot.id <- function(conf, plot.name, range.id=NULL) {
   return(get.clear.plot.id.con(conf$con, conf$pid, plot.name, range.id))
 }
 
+## Obtain a plot ID for a plot that is known to exist
 get.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
   query <- str_c(" FROM plots WHERE name=", sq(plot.name),
                  " AND projectId=", pid)
@@ -86,6 +88,33 @@ get.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
 get.plot.id <- function(conf, plot.name, range.id=NULL) {
   return(get.plot.id.con(conf$con, conf$pid, plot.name, range.id))
 }
+
+## Create a plot ID for a given plot if it does not exists, or return
+## an existing one. This function is supposed to be used for plots that
+## are built incrementally, that is, can grow when new releases are
+## added to the project.
+get.or.create.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
+  query <- str_c("SELECT id FROM plots WHERE name=", sq(plot.name),
+                 " AND projectId=", pid)
+  if (!is.null(range.id)) {
+    query <- str_c(query, " AND releaseRangeId=", range.id)
+  }
+  res <- dbGetQuery(con, str_c(query, ";"))
+
+  if (length(res) < 1) {
+    ## Plot ID is not assigned yet, create one
+    res <- get.clear.plot.id.con(con, pid, plot.name, range.id)
+  } else {
+    res <- res$id
+  }
+
+  return(res)
+}
+
+get.or.create.plot.id <- function(conf, plot.name, range.id=NULL) {
+  return(get.or.create.plot.id.con(conf$con, conf$pid, plot.name, range.id))
+}
+
 
 ## Determine the ID of a tag, given its textual form
 get.revision.id <- function(conf, tag) {
