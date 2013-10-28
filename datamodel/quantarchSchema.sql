@@ -932,6 +932,28 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics` (
   `prank_avg` DOUBLE NOT NULL)
 ENGINE = InnoDB;
 
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`sloccount_ts`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`sloccount_ts` ;
+
+CREATE TABLE IF NOT EXISTS `quantarch`.`sloccount_ts` (
+  `plotId` BIGINT NOT NULL,
+  `time` DATETIME NOT NULL,
+  `person_months` DOUBLE NOT NULL,
+  `total_cost` DOUBLE NOT NULL,
+  `schedule_months` DOUBLE NOT NULL,
+  `avg_devel` DOUBLE NOT NULL,
+  CONSTRAINT `sloccount_ts_plotid_ref`
+    FOREIGN KEY (`plotId`)
+    REFERENCES `quantarch`.`plots` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE UNIQUE INDEX `time_UNIQUE` ON `quantarch`.`sloccount_ts` (`time` ASC);
+
 USE `quantarch` ;
 
 -- -----------------------------------------------------
