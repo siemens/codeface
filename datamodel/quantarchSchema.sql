@@ -929,8 +929,22 @@ CREATE TABLE IF NOT EXISTS `quantarch`.`per_cluster_statistics` (
   `deleted` INT(11) NOT NULL,
   `total` INT(11) NOT NULL,
   `numcommits` INT(11) NOT NULL,
-  `prank_avg` DOUBLE NOT NULL)
+  `prank_avg` DOUBLE NOT NULL,
+  CONSTRAINT `per_cluster_statistics_projectId_ref`
+    FOREIGN KEY (`projectId`)
+    REFERENCES `quantarch`.`project` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `per_cluster_statistics_rr_ref`
+    FOREIGN KEY (`releaseRangeId`)
+    REFERENCES `quantarch`.`release_range` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
+
+CREATE INDEX `fk_per_cluster_statistics_1_idx` ON `quantarch`.`per_cluster_statistics` (`projectId` ASC);
+
+CREATE INDEX `fk_per_cluster_statistics_1_idx1` ON `quantarch`.`per_cluster_statistics` (`releaseRangeId` ASC);
 
 
 -- -----------------------------------------------------
