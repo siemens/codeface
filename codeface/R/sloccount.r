@@ -28,11 +28,13 @@ gather.sloccount.results <- function(dir, cost.per.py) {
 
 ## Append a new entry to a sloccount time series in the database
 add.sloccount.ts <- function(conf, plot.id, commit.date, values) {
-  dat <- cbind(plotId=plot.id, time=commit.date, values$metrics)
-  res <- dbWriteTable(conf$con, "sloccount_ts", dat, append=TRUE, row.names=FALSE)
+  if (nrow(values$metrics) > 0) {
+    dat <- cbind(plotId=plot.id, time=commit.date, values$metrics)
+    res <- dbWriteTable(conf$con, "sloccount_ts", dat, append=TRUE, row.names=FALSE)
 
-  if (!res) {
-    stop("Internal error: Could not write sloccount timeseries into database!")
+    if (!res) {
+      stop("Internal error: Could not write sloccount timeseries into database!")
+    }
   }
 }
 
@@ -41,13 +43,18 @@ add.sloccount.ts <- function(conf, plot.id, commit.date, values) {
 ## str is a character vector containing the raw data. group specifies
 ## the group name to extract from the match.
 get.matched.part <- function(str, matched, group) {
-  res <- sapply(1:length(str), function(i) {
-                return(substr(str[i], attr(matched, "capture.start")[i, group],
-                              attr(matched, "capture.start")[i, group] +
-                              attr(matched, "capture.length")[i, group] - 1))
-              })
+  res <- lapply(1:length(str), function(i) {
+    if (nrow(attr(matched, "capture.start")) == 0 ||
+        nrow(attr(matched, "capture.length")) == 0) {
+      return(NULL)
+    }
 
-  return(res)
+    return(substr(str[i], attr(matched, "capture.start")[i, group],
+                  attr(matched, "capture.start")[i, group] +
+                  attr(matched, "capture.length")[i, group] - 1))
+  })
+
+  return(do.call(c, res))
 }
 
 ## Given a list of characters and a pattern, select all matching lines
@@ -63,6 +70,10 @@ grep.and.match <- function(dat, pattern) {
 ## Fix up such numbers (since the result may come in as a factor, we
 ## convert it to character before parsing the float)
 fixup.number <- function(num) {
+  if (is.null(num)) {
+    return(NULL)
+  }
+
   return(as.numeric(as.character(gsub(",", "", num))))
 }
 
