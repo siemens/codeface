@@ -16,7 +16,7 @@
 ## All Rights Reserved.
 
 ## Analysis pass that computes complexity and cost estimate metrics
-## using understand
+## using understand and sloccount
 
 suppressPackageStartupMessages(library(stringr))
 suppressPackageStartupMessages(library(lubridate))
@@ -26,6 +26,7 @@ source("db.r")
 source("query.r")
 source("system.r")
 source("mc_helpers.r")
+source("sloccount.r")
 
 ## Sample commits from a given release range, and ensure that the sampled
 ## commits are properly time-ordered
@@ -201,6 +202,11 @@ do.complexity.analysis <- function(conf) {
         loginfo(str_c("Warning: understand analysis failed for ", commit.hash,
                       " -- skipping this sample"), logger="complexity")
       }
+
+      loginfo("Performing sloccount analysis\n", logger="complexity")
+      res <- do.sloccount.analysis(code.dir)
+      add.sloccount.ts(conf, sloccount.plot.id, commit.date, res)
+      loginfo("Finished analysing sample ", i, "\n", logger="complexity")
 
       return(NULL)
   })
