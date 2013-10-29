@@ -2,8 +2,8 @@
 
 The definitive source for the content of the database is the
 entity-relationship model defined in the (unfortunately
-binary) file QuantArch.mwb. Whenever this file is changed,
-a new copy of the SQL script in quantarchSchema.sql needs
+binary) file codeface.mwb. Whenever this file is changed,
+a new copy of the SQL script in codeface_schema.sql needs
 to be created. To do so, please
 
 - Load the schema with mysql workbench, version 6.0 or above
@@ -21,15 +21,15 @@ to be created. To do so, please
   control system commit with both the binary and SQL creation script
   changes.
 
-2.) How to automatically create the quantarch database
+2.) How to automatically create the codeface database
 
-* To set up DB quantarch
+* To set up DB codeface
 
-  mysql -uquantarch -pquantarch < quantarchSchema.sql
+  mysql -ucodeface -pcodeface < codeface_schema.sql
   (replace username and password with the appropriate values)
 
 * To use a different DB name:
 
-  cat quantarchSchema.sql | sed -e 's/quantarch/quantarch2/g;' | \
-      mysql -uquantarch -pquantarch
-  (replace quantarch2 with the desired name)
+  cat codeface_schema.sql | sed -e 's/codeface/codeface2/g;' | \
+      mysql -ucodeface -pcodeface
+  (replace codeface2 with the desired name)
