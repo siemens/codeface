@@ -954,6 +954,29 @@ ENGINE = InnoDB;
 
 CREATE UNIQUE INDEX `time_UNIQUE` ON `quantarch`.`sloccount_ts` (`time` ASC);
 
+
+-- -----------------------------------------------------
+-- Table `quantarch`.`understand_raw`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `quantarch`.`understand_raw` ;
+
+CREATE TABLE IF NOT EXISTS `quantarch`.`understand_raw` (
+  `plotId` BIGINT NOT NULL,
+  `time` DATETIME NOT NULL,
+  `kind` VARCHAR(30) NOT NULL,
+  `name` VARCHAR(45) NULL,
+  `variable` VARCHAR(45) NOT NULL,
+  `value` DOUBLE NOT NULL,
+  PRIMARY KEY (`plotId`),
+  CONSTRAINT `understand_raw_id_ref`
+    FOREIGN KEY (`plotId`)
+    REFERENCES `quantarch`.`plots` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE UNIQUE INDEX `time_UNIQUE` ON `quantarch`.`understand_raw` (`time` ASC);
+
 USE `quantarch` ;
 
 -- -----------------------------------------------------
