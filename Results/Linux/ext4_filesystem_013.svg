@@ -1,0 +1,674 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.2 r9819"
+   width="1186.25"
+   height="983.75"
+   xml:space="preserve"
+   sodipodi:docname="ext4_filesystem_013.svg"><metadata
+     id="metadata8"><rdf:RDF><cc:Work
+         rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title /></cc:Work></rdf:RDF></metadata><defs
+     id="defs6" /><sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1680"
+     inkscape:window-height="1002"
+     id="namedview4"
+     showgrid="false"
+     inkscape:zoom="0.67853499"
+     inkscape:cx="674.33675"
+     inkscape:cy="569.06389"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer2" /><g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="Layer#2" /><g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Layer#1"><rect
+       style="fill:#ffffff"
+       id="rect3196"
+       width="194.53676"
+       height="148.8501"
+       x="75.161934"
+       y="27.277586"
+       ry="53.055481" /><rect
+       style="fill:#ffffff"
+       id="rect3200"
+       width="1190.8007"
+       height="987.42145"
+       x="-1.4297308e-07"
+       y="-0.7239182"
+       ry="53.055481" /></g><g
+     id="g10"
+     inkscape:groupmode="layer"
+     inkscape:label="ext4_filesystem_013"
+     transform="matrix(1.25,0,0,-1.25,0,983.75)"><g
+       id="g12" /><g
+       id="g14"><g
+         id="g16"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,8,10)"
+   id="text18"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:30;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 16.686 31.686 40.02 55.02 62.52 84.186 92.52 105.834 117.51 129.186 136.686 156.696 171.696 195.03 218.364 233.364 248.364 256.698 265.032 280.032 287.532 302.532 317.532 325.032 345.042 360.042 383.376 406.71 421.71 436.71 445.044 453.378 468.378 475.878 497.544 512.544 525.858 534.192 542.526 550.86 565.86 573.36 590.28 605.28 620.28 627.78 642.78 657.78 672.78 687.78 702.78 717.78 732.78 747.78 762.78 777.78 792.78 807.78 822.78 837.78"
+     y="0"
+     sodipodi:role="line"
+     id="tspan20">Spin Glass Community 13 Community Quality = 0.233333333333333</tspan></text>
+
+
+
+</g><g
+         id="g22"
+         transform="translate(40,41)"><path
+           d="m 248.4974,400.8234 -72.0533,0 0,-36 72.0533,0 0,36 z"
+           style="fill:#c9c9c9;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:2.699914;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path24" /></g><g
+         id="g26"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,184.2082,376.4108)"
+   id="text28"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:16.03149;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 6.23945591 13.35423117 21.36997617 25.37784867 36.95579075 44.07056601 49.40905218"
+     y="0"
+     sodipodi:role="line"
+     id="tspan30">Jan Kara</tspan></text>
+
+
+
+</g><g
+         id="g32"
+         transform="translate(40,41)"><path
+           d="m 459.194,494.6951 -107.3479,0 0,-36 107.3479,0 0,36 z"
+           style="fill:#c4c4c4;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:3.01775;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path34" /></g><g
+         id="g36"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,359.9331,470.0572)"
+   id="text38"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:16.59474;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 10.13606719 18.43343719 25.7981828 34.0955528 42.3929228 50.6902928 56.21634122 63.58108684 67.43770441 76.41545875 82.87413156"
+     y="0"
+     sodipodi:role="line"
+     id="tspan40">Theodore Tso</tspan></text>
+
+
+
+</g><g
+         id="g42"
+         transform="translate(40,41)"><path
+           d="m 248.7818,400.4799 c 31.2486,15.1949 76.5156,37.2063 110.3769,53.6716"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path44" /></g><g
+         id="g46"
+         transform="translate(40,41)"><path
+           d="m 357.862,457.4128 10.5237,1.2254 -7.4626,-7.5206 -3.0611,6.2952 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path48" /></g><g
+         id="g50"
+         transform="translate(40,41)"><path
+           d="m 268.096,277.0481 -113.7911,0 0,-36 113.7911,0 0,36 z"
+           style="fill:#ebebeb;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1.728103;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path52" /></g><g
+         id="g54"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,162.2527,253.0481)"
+   id="text56"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 9.162 16.662 23.319 30.819 34.569 45.402 52.902 60.402 67.902 72.069 76.236 82.893 90.393"
+     y="0"
+     sodipodi:role="line"
+     id="tspan58">Zhao Hongjiang</tspan></text>
+
+
+
+</g><g
+         id="g60"
+         transform="translate(40,41)"><path
+           d="m 212.2833,364.5599 c -0.2083,-20.2937 -0.5472,-53.3206 -0.7904,-77.0201"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path62" /></g><g
+         id="g64"
+         transform="translate(40,41)"><path
+           d="m 214.9912,287.35 -3.6025,-9.9635 -3.3971,10.0354 6.9996,-0.0719 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path66" /></g><g
+         id="g68"
+         transform="translate(40,41)"><path
+           d="m 530.7884,558.1071 -95.0988,0 0,-36 95.0988,0 0,36 z"
+           style="fill:#dbdbdb;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:2.378145;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path70" /></g><g
+         id="g72"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,443.4648,534.1071)"
+   id="text74"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 9.162 14.157 18.324 24.981 28.731 37.074 43.731 51.231 58.731 65.388 72.045"
+     y="0"
+     sodipodi:role="line"
+     id="tspan76">Eric Sandeen</tspan></text>
+
+
+
+</g><g
+         id="g78"
+         transform="translate(40,41)"><path
+           d="m 229.2609,400.9662 c 24.1639,25.1152 71.1753,70.3752 119.4722,96.9289 23.845,13.11 52.3485,22.7946 76.9665,29.5563"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path80" /></g><g
+         id="g82"
+         transform="translate(40,41)"><path
+           d="m 425.0686,530.9048 10.5628,-0.8237 -8.7711,-5.9431 -1.7917,6.7668 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path84" /></g><g
+         id="g86"
+         transform="translate(40,41)"><path
+           d="m 487.0757,330.444 -104.2847,0 0,-36 104.2847,0 0,36 z"
+           style="fill:#d4d4d4;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:2.589199;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path88" /></g><g
+         id="g90"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,390.6124,306.3917)"
+   id="text92"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15.13071;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 9.24183767 16.80719267 24.37254767 31.08755677 36.9764291 40.7591066 50.85129017 57.56629927 64.28130836 69.31983479 76.88518979 83.60019889"
+     y="0"
+     sodipodi:role="line"
+     id="tspan94">Lukas Czerner</tspan></text>
+
+
+
+</g><g
+         id="g96"
+         transform="translate(40,41)"><path
+           d="M 248.7083,371.3591 C 282.2621,360.7438 332.858,344.737 372.8469,332.086"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path98" /></g><g
+         id="g100"
+         transform="translate(40,41)"><path
+           d="m 374.0281,335.3833 8.4785,-6.3533 -10.59,-0.3206 2.1115,6.6739 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path102" /></g><g
+         id="g104"
+         transform="translate(40,41)"><path
+           d="m 309.9665,548.8975 -128.1504,0 0,-36 128.1504,0 0,36 z"
+           style="fill:#bfbfbf;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:2.951419;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path106" /></g><g
+         id="g108"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,189.8537,524.8975)"
+   id="text110"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 10.833 22.5 26.667 30.834 35.829 43.329 47.079 60.417 67.917 75.417 82.074 89.574 97.074 104.574"
+     y="0"
+     sodipodi:role="line"
+     id="tspan112">Dmitry Monakhov</tspan></text>
+
+
+
+</g><g
+         id="g114"
+         transform="translate(40,41)"><path
+           d="m 216.5688,400.9801 c 5.7378,25.4221 16.2187,71.8591 22.9717,101.7793"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:4;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path116" /></g><g
+         id="g118"
+         transform="translate(40,41)"><path
+           d="m 236.144,503.6081 5.6158,8.9841 1.2124,-10.5253 -6.8282,1.5412 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path120" /></g><g
+         id="g122"
+         transform="translate(40,41)"><path
+           d="m 319.987,674.1292 -119.7345,0 0,-36 119.7345,0 0,36 z"
+           style="fill:#e5e5e5;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:2.289647;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path124" /></g><g
+         id="g126"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,208.4364,650.1292)"
+   id="text128"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 12.9645 19.6215 27.1215 34.6215 38.3715 46.7145 54.2145 60.8715 68.3715 75.8715 80.8665 91.6995 99.1995"
+     y="0"
+     sodipodi:role="line"
+     id="tspan130">Wang Sheng-Hui</tspan></text>
+
+
+
+</g><g
+         id="g132"
+         transform="translate(40,41)"><path
+           d="m 202.6913,401.0349 c -15.5603,31.4769 -42.4102,97.8014 -24.0376,151.0626 10.5664,30.6313 34.2739,59.1316 53.4042,78.5271"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path134" /></g><g
+         id="g136"
+         transform="translate(40,41)"><path
+           d="m 229.8128,633.326 9.58,4.5249 -4.6673,-9.5114 -4.9127,4.9865 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path138" /></g><g
+         id="g140"
+         transform="translate(40,41)"><path
+           d="m 137.9521,571.3992 -79.37434,0 0,-36 79.37434,0 0,36 z"
+           style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1.91876300000000000;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path142" /></g><g
+         id="g144"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,66.67144,547.3719)"
+   id="text146"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15.06833;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 9.20373596 16.73790096 23.42522582 30.95939082 38.49355582 42.26063832 51.46437428 55.65035636"
+     y="0"
+     sodipodi:role="line"
+     id="tspan148">Zheng Liu</tspan></text>
+
+
+
+</g><g
+         id="g150"
+         transform="translate(40,41)"><path
+           d="m 351.5754,479.1869 c -46.7572,3.4108 -115.7068,11.4741 -172.9217,30.5106 -15.0635,5.0119 -30.617,12.7707 -43.9824,20.368"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path152" /></g><g
+         id="g154"
+         transform="translate(40,41)"><path
+           d="m 132.6591,527.1879 -6.8582,8.0757 10.3974,-2.0362 -3.5392,-6.0395 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path156" /></g><g
+         id="g158"
+         transform="translate(40,41)"><path
+           d="m 186.8791,707.1977 -116.01084,0 0,-36 116.01084,0 0,36 z"
+           style="fill:#f0f0f0;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1.459382;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path160" /></g><g
+         id="g162"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,78.6215,683.1924)"
+   id="text164"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15.01335;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 10.84264137 16.68583719 24.19251219 28.36322082 34.20641664 41.71309164 45.46642914 53.81685441 60.47977914 67.98645414 75.49312914 86.33577051 92.99869524"
+     y="0"
+     sodipodi:role="line"
+     id="tspan166">Ashish Sangwan</tspan></text>
+
+
+
+</g><g
+         id="g168"
+         transform="translate(40,41)"><path
+           d="m 384.1781,494.7638 c -18.5282,15.5284 -46.209,38.3512 -71.0492,57.3337 -50.3045,38.442 -65.3292,44.7308 -115.8925,82.8317 -12.6847,9.5583 -26.4421,20.3867 -38.2674,29.843"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path170" /></g><g
+         id="g172"
+         transform="translate(40,41)"><path
+           d="m 156.7347,662.0775 -5.6069,8.9897 9.9891,-3.531 -4.3822,-5.4587 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path174" /></g><g
+         id="g176"
+         transform="translate(40,41)"><path
+           d="m 572.0386,438.1944 -62.0361,0 0,-36 62.0361,0 0,36 z"
+           style="fill:#dedede;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1.918763;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path178" /></g><g
+         id="g180"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,518.0115,414.1944)"
+   id="text182"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 8.115 14.772 22.272 26.022 39.36"
+     y="0"
+     sodipodi:role="line"
+     id="tspan184">Tao Ma</tspan></text>
+
+
+
+</g><g
+         id="g186"
+         transform="translate(40,41)"><path
+           d="m 448.7658,458.6626 c 16.5746,-6.9113 35.4106,-14.7655 51.722,-21.567"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:2.44949;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path188" /></g><g
+         id="g190"
+         transform="translate(40,41)"><path
+           d="m 501.8811,440.3068 7.8828,-7.0791 -10.5768,0.6183 2.694,6.4608 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path192" /></g><g
+         id="g194"
+         transform="translate(40,41)"><path
+           d="m 427.5833,494.6968 c 7.958,6.4931 17.0797,13.9356 25.6044,20.8911"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:2.44949;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path196" /></g><g
+         id="g198"
+         transform="translate(40,41)"><path
+           d="m 451.1597,518.4504 9.9609,3.61 -5.5356,-9.0338 -4.4253,5.4238 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path200" /></g><g
+         id="g202"
+         transform="translate(40,41)"><path
+           d="m 643.3302,690.0134 -105.1083,0 0,-36 105.1083,0 0,36 z"
+           style="fill:#f2f2f2;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1.459382;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path204" /></g><g
+         id="g206"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,545.9995,666.0134)"
+   id="text208"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 10.833 15 21.657 25.824 32.481 36.648 40.398 51.231 57.888 62.883 70.383 77.883 85.383"
+     y="0"
+     sodipodi:role="line"
+     id="tspan210">Djalal Harouni</tspan></text>
+
+
+
+</g><g
+         id="g212"
+         transform="translate(40,41)"><path
+           d="m 407.7685,494.7451 c 3.0185,18.2607 9.8105,46.5734 24.4963,66.562 16.4327,22.3662 77.777,62.031 119.1538,87.3133"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path214" /></g><g
+         id="g216"
+         transform="translate(40,41)"><path
+           d="m 549.8146,651.7412 10.364,2.1997 -6.7301,-8.1827 -3.6339,5.983 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path218" /></g><g
+         id="g220"
+         transform="translate(40,41)"><path
+           d="m 408.7802,458.4898 c 5.1017,-28.4892 15.0128,-83.8355 21.0613,-117.6119"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:2.828427;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path222" /></g><g
+         id="g224"
+         transform="translate(40,41)"><path
+           d="m 433.341,341.1912 -1.6824,-10.4604 -5.208,9.2265 6.8904,1.2339 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path226" /></g><g
+         id="g228"
+         transform="translate(40,41)"><path
+           d="m 374.6436,321.0481 -117.4858,0 0,-36 117.4858,0 0,36 z"
+           style="fill:#c9c9c9;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:2.066651;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path230" /></g><g
+         id="g232"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,265.2793,297.0481)"
+   id="text234"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 10.833 18.333 24.99 29.157 36.657 40.824 44.574 52.917 60.417 72.084 79.584 86.241 93.741"
+     y="0"
+     sodipodi:role="line"
+     id="tspan236">Anatol Pomozov</tspan></text>
+
+
+
+</g><g
+         id="g238"
+         transform="translate(40,41)"><path
+           d="M 396.0986,458.44 C 380.2571,427.7455 348.2148,365.6601 329.7883,329.9568"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:2.44949;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path240" /></g><g
+         id="g242"
+         transform="translate(40,41)"><path
+           d="m 332.8924,328.3397 -7.6965,-7.2812 1.4761,10.4916 6.2204,-3.2104 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path244" /></g><g
+         id="g246"
+         transform="translate(40,41)"><path
+           d="m 352.366,494.7437 c -13.9274,4.7291 -29.0785,9.8737 -43.4663,14.7591"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:6;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path248" /></g><g
+         id="g250"
+         transform="translate(40,41)"><path
+           d="m 306.8662,504.6488 -7.781,8.1865 11.1571,1.756 -3.3761,-9.9425 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path252" /></g><g
+         id="g254"
+         transform="translate(40,41)"><path
+           d="m 390.7781,494.8877 c -25.9086,31.973 -79.6855,98.3375 -109.5373,135.1766"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path256" /></g><g
+         id="g258"
+         transform="translate(40,41)"><path
+           d="m 278.4772,627.9156 -3.5765,9.9729 9.0151,-5.5659 -5.4386,-4.407 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path260" /></g><g
+         id="g262"
+         transform="translate(40,41)"><path
+           d="m 482.6865,646.3659 -115.7218,0 0,-36 115.7218,0 0,36 z"
+           style="fill:#cccccc;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:2.378145;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path264" /></g><g
+         id="g266"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,375.1454,622.3659)"
+   id="text268"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 9.339 16.839 24.339 31.839 39.339 43.506 50.163 57.663 65.163 68.364 77.703 84.36 91.86"
+     y="0"
+     sodipodi:role="line"
+     id="tspan270">Yongqiang Yang</tspan></text>
+
+
+
+</g><g
+         id="g272"
+         transform="translate(40,41)"><path
+           d="m 407.8487,494.9901 c 3.3193,26.0773 9.4415,74.1753 13.3557,104.9267"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:3.741657;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path274" /></g><g
+         id="g276"
+         transform="translate(40,41)"><path
+           d="m 417.7539,600.528 4.7347,9.478 2.2093,-10.3619 -6.944,0.8839 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path278" /></g><g
+         id="g280"
+         transform="translate(40,41)"><path
+           d="m 593.9903,223.884 -109.4568,0 0,-36 109.4568,0 0,36 z"
+           style="fill:#f5f5f5;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1.459382;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path282" /></g><g
+         id="g284"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,492.3979,199.884)"
+   id="text286"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 10.005 16.662 21.657 29.157 36.657 40.407 48.75 55.407 62.907 70.407 77.907 84.564 89.559"
+     y="0"
+     sodipodi:role="line"
+     id="tspan288">Bernd Schubert</tspan></text>
+
+
+
+</g><g
+         id="g290"
+         transform="translate(40,41)"><path
+           d="m 417.8416,458.2879 c 17.5498,-26.7053 50.1081,-78.0985 72.6126,-124.6439 16.15,-33.4025 30.7687,-73.6275 39.7086,-99.9017"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path292" /></g><g
+         id="g294"
+         transform="translate(40,41)"><path
+           d="m 533.5469,234.6592 -0.1339,-10.594 -6.5018,8.3653 6.6357,2.2287 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path296" /></g><g
+         id="g298"
+         transform="translate(40,41)"><path
+           d="m 342.1541,152.3923 -112.481,0 0,-36 112.481,0 0,36 z"
+           style="fill:#ebebeb;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1.459382;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path300" /></g><g
+         id="g302"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,237.7934,128.3923)"
+   id="text304"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 10.833 18.333 25.833 30.828 37.485 44.985 48.735 57.078 61.245 68.745 76.245 81.24 88.74"
+     y="0"
+     sodipodi:role="line"
+     id="tspan306">Andrey Sidorov</tspan></text>
+
+
+
+</g><g
+         id="g308"
+         transform="translate(40,41)"><path
+           d="m 401.2613,458.3045 c -6.0717,-27.1102 -17.0152,-79.4764 -21.8489,-124.6605 -1.225,-11.451 1.6552,-40.7763 -1.6904,-51.7959 -14.1319,-46.5482 -46.9075,-92.9826 -69.2197,-120.9643"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path310" /></g><g
+         id="g312"
+         transform="translate(40,41)"><path
+           d="m 310.9676,158.3677 -9.0217,-5.5551 3.5884,9.9687 5.4333,-4.4136 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path314" /></g><g
+         id="g316"
+         transform="translate(40,41)"><path
+           d="m 102.3295,571.4322 c 5.1683,22.9296 14.1479,62.7685 20.2159,89.6897"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path318" /></g><g
+         id="g320"
+         transform="translate(40,41)"><path
+           d="m 119.179,662.1045 5.6133,8.9857 1.2154,-10.5249 -6.8287,1.5392 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path322" /></g><g
+         id="g324"
+         transform="translate(40,41)"><path
+           d="m 138.2147,547.3099 c 10.369,-1.5805 21.8763,-3.3344 33.3987,-5.0907"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path326" /></g><g
+         id="g328"
+         transform="translate(40,41)"><path
+           d="m 172.3563,545.6464 9.3584,-4.9669 -10.4132,-1.9531 1.0548,6.92 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path330" /></g><g
+         id="g332"
+         transform="translate(40,41)"><path
+           d="m 786.6572,234.2072 -111.7499,0 0,-36 111.7499,0 0,36 z"
+           style="fill:#e8e8e8;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1.728103;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path334" /></g><g
+         id="g336"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,682.8448,210.123)"
+   id="text338"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15.21045;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 10.98498699 17.7353847 25.3406097 32.09100741 35.89361991 46.8786069 51.10406991 57.85446762 62.07993063 69.68515563 76.43555334 88.26624135"
+     y="0"
+     sodipodi:role="line"
+     id="tspan340">Dave Kleikamp</tspan></text>
+
+
+
+</g><g
+         id="g342"
+         transform="translate(40,41)"><path
+           d="m 675.1353,234.3086 c -50.7393,16.505 -125.5957,40.8551 -178.2262,57.9753"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path344" /></g><g
+         id="g346"
+         transform="translate(40,41)"><path
+           d="m 495.7781,288.9712 -8.4268,6.4217 10.5922,0.2349 -2.1654,-6.6566 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path348" /></g><g
+         id="g350"
+         transform="translate(40,41)"><path
+           d="m 810.1436,442.2861 -105.9643,0 0,-36 105.9643,0 0,36 z"
+           style="fill:#c9c9c9;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1.459382;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path352" /></g><g
+         id="g354"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,712.1704,418.2785)"
+   id="text356"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15.01903;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 8.65396509 12.82625162 20.33576662 27.84528162 31.60003912 41.61773213 48.28317764 52.45546418 59.12090969 66.63042469 73.29587021 78.2972072 85.8067222"
+     y="0"
+     sodipodi:role="line"
+     id="tspan358">Tino Reichardt</tspan></text>
+
+
+
+</g><g
+         id="g360"
+         transform="translate(40,41)"><path
+           d="m 733.0771,234.3088 c 4.5991,36.2781 14.9748,118.1215 20.4861,161.5946"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path362" /></g><g
+         id="g364"
+         transform="translate(40,41)"><path
+           d="m 750.1231,396.5978 4.73,9.4803 2.2145,-10.3608 -6.9445,0.8805 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path366" /></g><g
+         id="g368"
+         transform="translate(40,41)"><path
+           d="m 452.9296,330.7224 c 17.403,17.6759 43.9164,44.6049 63.3101,64.3026"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path370" /></g><g
+         id="g372"
+         transform="translate(40,41)"><path
+           d="m 513.7801,397.5156 9.51,4.6703 -4.5219,-9.5814 -4.9881,4.9111 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path374" /></g><g
+         id="g376"
+         transform="translate(40,41)"><path
+           d="m 405.8325,294.3185 c -8.7544,-4.738 -18.5747,-9.3782 -28.1105,-12.4704 -31.7956,-10.3107 -68.478,-15.9592 -99.3077,-19.0534"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path378" /></g><g
+         id="g380"
+         transform="translate(40,41)"><path
+           d="m 278.4812,259.2858 -10.2823,2.5545 9.631,4.4152 0.6513,-6.9697 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path382" /></g><g
+         id="g384"
+         transform="translate(40,41)"><path
+           d="M 705.0318,406.1924 C 648.1707,386.4565 557.2155,354.8869 496.7855,333.9123"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path386" /></g><g
+         id="g388"
+         transform="translate(40,41)"><path
+           d="m 497.5828,330.4842 -10.5948,0.0275 8.2995,6.5855 2.2953,-6.613 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path390" /></g><g
+         id="g392"
+         transform="translate(40,41)"><path
+           d="m 554.7055,79.92667 -112.8281,0 0,-36 112.8281,0 0,36 z"
+           style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path394" /></g><g
+         id="g396"
+         transform="translate(40,41)"><text
+   transform="matrix(1,0,0,-1,449.8344,55.8842)"
+   id="text398"><tspan
+     style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;font-family:Times;font-variant:normal;font-weight:normal;font-size:15.10617;writing-mode:lr;-inkscape-font-specification:Times-Roman"
+     x="0 10.90967597 18.46276097 26.01584597 33.56893097 37.765425 44.46954325 50.34886461 54.12540711 65.03508308 69.23157711 73.42807114 80.98115614 87.68527438 92.71562899"
+     y="0"
+     sodipodi:role="line"
+     id="tspan400">Douglas Gilbert</tspan></text>
+
+
+
+</g><g
+         id="g402"
+         transform="translate(40,41)"><path
+           d="M 493.7349,79.94326 C 482.8248,123.0815 455.1378,232.5556 442.0259,284.3999"
+           style="fill:none;stroke:#000000;stroke-opacity:1;stroke-width:1.414214;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path404" /></g><g
+         id="g406"
+         transform="translate(40,41)"><path
+           d="m 438.5925,283.7011 0.9412,10.5529 5.8451,-8.8365 -6.7863,-1.7164 z"
+           style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:1;stroke-dasharray:none"
+           id="path408" /></g></g><rect
+       style="fill:#ffffff"
+       id="rect3385"
+       width="1078.7948"
+       height="48.63419"
+       x="54.529243"
+       y="887.95538"
+       transform="matrix(0.8,0,0,-0.8,0,787)" /></g><g
+     inkscape:groupmode="layer"
+     id="layer1"
+     inkscape:label="Layer" /></svg>

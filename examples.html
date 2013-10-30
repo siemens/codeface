@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Codeface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link type="text/css" href="css/bootstrap.min.css" rel="stylesheet"
+	  media="screen">
+  </head>
+  <body>
+
+    <div class="container">
+            <div class="navbar navbar-default">
+	<div class="navbar-header">
+          <button type="button" class="navbar-toggle"
+		  data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="index.html">Codeface</a>
+	</div>
+	<div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+	    <li><a href="index.html">Home</a></li>
+	    <li><a href="sshots.html">Screenshots</a></li>
+            <li class="dropdown active">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Examples <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+		<li><a href="examples.html">Analysis Examples</a></li>
+		<li><a href="linux.html">Case Study: Linux Kernel</a></li>
+              </ul>
+            </li>
+	    <li><a href="stat_details.html">Statistical Details</a></li>
+	    <li><a href="code.html">Contribute</a></li>
+          </ul>
+	</div>
+      </div>
+
+      <div class="jumbotron">
+	<div class="container">
+	  <h1>Examples</h1>
+	  
+	  <p>Some examples of analysis results and their interpretations.</p>
+	</div>
+      </div>
+
+      <div class="container">
+	<div class="row">
+	  <div class="col-md-4">
+            <h3>Community evolution</h3>
+            <p>It is well known that communication between contributors is a
+	      crucial factor for the success of a software development
+	      project. The figures on the right show how the communities
+	      of <a href="http://www.qemu.org">qemu</a> have evolved over time
+	      (dots represent contributors, and lines the collaboration
+	      strength.  The larger the dots, the more central the role of a
+	      contributor): During the early phases, the project was driven by
+	      few central developers. In recent times, the project has
+	      developed a professional development community, with roughly
+	      equally sized and shaped sub-communities without single central
+	      developers respectively points of failure.</p>
+	  </div>
+	  <div class="col-md-4">
+	    <img alt="Qemu community evolution 1" class="img-polaroid"
+		 src="img/qemu_collab_1.png" width="100%">
+	  </div>
+	  <div class="col-md-4">
+	    <img alt="Qemu community evolution 2" class="img-polaroid"
+		 src="img/qemu_collab_2.png" width="100%">
+	  </div>
+	</div>
+
+	<div class="row"><hr/></div>
+
+	<div class="row-fluid">
+	  <div class="col-md-4">
+            <h3>Discussion culture</h3>
+            <p>To determine the discussion culture on public mailing lists, we
+	      derive initiation-response diagrams that measure how many
+	      threads a given contributor initiated during a development
+	      cycle, and how many responses he/she received on average.
+	      
+	      Besides the raw numbers, the sizes of the dots indicate the
+	      centrality of a developer in the mailing list network, that is,
+	      how important he of she is for network structure.  Consider
+	      the <a href="http://httpd.apache.org/‎">Apache httpd</a>
+	      and <a href="http://www.openssl.org">OpenSSL</a> projects For
+	      Apache project, numerous contributors with little influence
+	      produce a substantial amount of traffic, while the OpenSSL
+	      community has a larger selection of medium to highly important
+	      contributors.  While a crypto library is typically only directly
+	      used by experts, a web server is of much more general interest,
+	      which attracts more non-specialist parties to contribute to
+	      discussions. Discussions in Apache are typically also more
+	      voluminous when it comes to the number of replies as compared to
+	      the openssl state, which is another indicator for a general
+	      interest versus expert community.</p>
+	  </div>
+	  <div class="col-md-8">
+	    <img alt="OpenSSL mailing list structure"
+		 src="img/openssl_9_ir.png" width="80%"><br>
+	    <img alt="Apache httpd mailing list structure"
+		 src="img/apache_15_ir.png" width="80%">
+	  </div>
+	</div>
+
+	<div class="row"><hr/></div>
+
+	<div class="row-fluid">
+	  <div class="col-md-4">
+            <h3>Connecting authors and topics</h3>
+            <p>Not only the amount of communication, but also the topics
+              discussed on the mailing list are of interest. We obtain these
+              data by employing text mining methods that detect the most
+              frequent keywords in discussions and which authors collaborate
+              on these topics; the example shows data for the OpenSSL mailing
+              list.</p>
+	  </div>
+	  <div class="col-md-6">
+	    <img alt="OpenSSL mailing list topic connections"
+		 src="img/openssl_9.dot.png" width="100%">
+	  </div>
+	</div>
+
+	<div class="row"><hr/></div>
+
+	<div class="row-fluid">
+	  <div class="col-md-4">
+            <h3>Time zone analysis</h3>
+            <p>Git records author and committer time zone information, which
+              allows for determining in which parts of the world development
+              is done (or at least at which longitude). Both projects are
+              truly international, albeit qemu tends to have a more pronounced
+              focus on Europa than the Linux kernel, which also sees very
+              active contributions from east and west America. </p>
+	  </div>
+	  <div class="col-md-4">
+	    <img alt="Qemu timezone distribution"
+		 src="img/qemu_tz.png" width="100%">
+	  </div>
+	  <div class="col-md-4">
+	    <img alt="Linux kernel timezone distribution"
+		 src="img/linux_tz.png" width="100%">
+	  </div>
+	</div>
+
+	<div class="row"><hr/></div>
+
+	<div class="row-fluid">
+	  <div class="col-md-4">
+            <h3>Engineering rigidity</h3>
+            <p>Even simple technical metrics like the covariates associated
+              with commits can deliver interesting information when examined
+              properly: The figure on the right hand side shows
+              release-resolved commit properties for the Linux kernel that
+              additionally distinguish between development and stabilisation
+              (release candidate) phases.  Thanks to the project's disciplined
+              engineering approach, code integrated during stabilisation
+              phases is consistently smaller, has more comments associated
+              with it, and touches less files than during active
+              development. This makes the Linux kernel a reliable and
+              trustworthy project.
+	    </p>
+	  </div>
+	  <div class="col-md-8">
+	    <img alt="Linux kernel engineering discipline"
+		 src="img/ts_commits_linux.png" width="80%">
+	  </div>
+	</div>
+
+	<div class="row"><hr/></div>
+
+	<div class="row-fluid">
+	  <div class="col-md-4">
+            <h3>Consistency</h3>
+            <p>When a project is supposed to be used as a component of a
+	      larger project, it is important to know how reliable the release
+	      schedule and the behaviour within a release cycle is. Compare
+	      how changes (black line, releases are indicated by red lines)
+	      flow cumulatively into the <a href="http://www.kernel.org">Linux
+	      kernel</a> (left) and <a href="http://www.jquery.org">jQuery</a>
+	      (right).</p>
+	  </div>
+	  <div class="col-md-4">
+	    <img alt="Kernel development time series"
+		 src="img/linux_ts_cum.png" width="80%">
+	  </div>
+	  <div class="col-md-4">
+	    <img alt="Jquery development time series"
+		 src="img/jquery_ts_cum.png" width="80%">
+	  </div>
+	</div>
+
+	<!-- intentionally no <hr/> line -->
+
+	<div class="row-fluid">
+	  <div class="col-md-4">
+            <p>Independent of any absolute quality notions that can be
+              subjective, it is possible to determine how self-consistent a
+              project is with regard to its development behaviour. We can
+              measure this similarity by determining how simple adjacent
+              release cycle time series are (0 for perfectly identical, 1 for
+              totally different). In addition to the Linux kernel and jQuery,
+              the comparison graph also includes
+	      <a href="http://www.qemu.org">Qemu</a>.</p>
+	  </div>
+	  <div class="col-md-6 offset 2">
+	    <img alt="Self-consistency of releases"
+		 src="img/release_dist_jquery.png" width="75%">
+	  </div>
+	</div>
+      </div>
+
+      <div class="col-md-12">
+	<hr/>
+	<footer>
+	  <p>&copy; Copyright 2013, Siemens AG</p>
+	</footer>
+      </div>
+
+    </div>
+    
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/bootstrap.min.js"></script>
+  </body>
+</html>
+
