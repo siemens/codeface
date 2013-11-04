@@ -981,7 +981,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`understand_raw` (
   `name` VARCHAR(45) NULL,
   `variable` VARCHAR(45) NOT NULL,
   `value` DOUBLE NOT NULL,
-  PRIMARY KEY (`plotId`),
   CONSTRAINT `understand_raw_id_ref`
     FOREIGN KEY (`plotId`)
     REFERENCES `codeface`.`plots` (`id`)
@@ -989,7 +988,9 @@ CREATE TABLE IF NOT EXISTS `codeface`.`understand_raw` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `time_UNIQUE` ON `codeface`.`understand_raw` (`time` ASC);
+CREATE INDEX `understand_raw_kind_idx` ON `codeface`.`understand_raw` (`kind` ASC);
+
+CREATE INDEX `understand_raw_plotId_idx` ON `codeface`.`understand_raw` (`plotId` ASC);
 
 USE `codeface` ;
 
