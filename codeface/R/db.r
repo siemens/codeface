@@ -38,7 +38,8 @@ get.project.id <- function(con, name) {
 ## plots are not created in parallel, we need no locking.
 ## Also, clear the plot for new data. This function is supposed to be
 ## used for time series that are created during the global analysis.
-get.clear.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
+get.clear.plot.id.con <- function(con, pid, plot.name, range.id=NULL,
+                                  labelx=NULL, labely=NULL) {
   query <- str_c(" FROM plots WHERE name=", sq(plot.name),
                  " AND projectId=", pid)
   if (!is.null(range.id)) {
@@ -66,8 +67,10 @@ get.clear.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
   return(res$id)
 }
 
-get.clear.plot.id <- function(conf, plot.name, range.id=NULL) {
-  return(get.clear.plot.id.con(conf$con, conf$pid, plot.name, range.id))
+get.clear.plot.id <- function(conf, plot.name, range.id=NULL, labelx=NULL,
+                              labely=NULL) {
+  return(get.clear.plot.id.con(conf$con, conf$pid, plot.name, range.id,
+                               labelx, labely))
 }
 
 ## Obtain a plot ID for a plot that is known to exist

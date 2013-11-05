@@ -408,7 +408,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
   dat <- data.frame(time=as.character(ts.df$time),
                     value=ts.df$value,
                     value.scaled=ts.df$value.scaled,
-                    plotId=activity.plot.id)
+                    plotId=activity.plot.id, labelx=NULL, labely=NULL)
 
   ## NOTE: We append new values to the existing content. This way,
   ## we can plot arbitrary subsets of the series by selecting

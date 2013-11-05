@@ -489,6 +489,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`plots` (
   `name` VARCHAR(45) NOT NULL,
   `projectId` BIGINT NOT NULL,
   `releaseRangeId` BIGINT NULL DEFAULT NULL,
+  `labelx` VARCHAR(45) NULL DEFAULT NULL,
+  `labely` VARCHAR(45) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `plot_project_ref`
     FOREIGN KEY (`projectId`)
