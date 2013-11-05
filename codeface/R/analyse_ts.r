@@ -605,6 +605,81 @@ do.release.analysis <- function(resdir, graphdir, conf) {
   ## per-determined, desirable shape of the release curve.
 }
 
+
+## Given the sloccount time series fragments in dat, create
+## coherent time series for a particular type and store the resulting
+## time series in the data base
+process.sloccount.ts <- function(con, pid, dat, type="total.cost") {
+    if (!(type %in% c("person.months", "total.cost", "schedule.months",
+                      "avg.devel"))) {
+        type <- "total.cost"
+    }
+
+    ## Adaptively change values to suitable units
+    if (type =="total.cost") {
+        if (max(dat$total.cost) > 5000*1000) {
+            dat$total.cost <- dat$total.cost/(1000*1000)
+            total.cost.unit <- "MEUR"
+        } else if (max(dat$total.cost) > 5000) {
+            dat$total.cost <- dat$total.cost/1000
+            total.cost.unit <- "kEUR"
+        } else {
+            total.cost.unit <- "EUR"
+        }
+    }
+
+    if (type=="person.months" || type=="schedule.months") {
+        if (max(dat[,type]) > 24) {
+            dat[,type] <- dat[,type]/12
+            duration.unit <- "Years"
+        } else {
+            duration.unit <- "Months"
+        }
+    }
+
+    label <- switch(type,
+                    person.months = str_c("Person ", duration.unit),
+                    total.cost = str_c("Cost [", total.cost.unit, "]"),
+                    avg.devel = "Average # of Developers",
+                    schedule.months = str_c("Scheduled duration [", duration.unit, "]"))
+
+    ## It's admissible to remove outliers for the ressource plots because
+    ## all measured/derived quantities are supposed to be continuous.
+    ## Since we randomly select commits to obtain snapshots that are analysed,
+    ## outliers are possible when we hit a commit on a branch that is substantially
+    ## different than the surrounding main development state.
+    dat.ts <- xts(dat[,type], order.by=dat$time)
+    dat.ts <- na.omit(apply.monthly(dat.ts, median))
+    ts.df <- ts.to.df(dat.ts)
+
+    return(list(ts.df=ts.df, label=label))
+}
+
+## Dispatch sloccount time series construction for the various possible
+## alternatives
+do.sloccount.analysis <- function(conf, pid) {
+    plot.id <- get.plot.id(conf, "sloccount")
+    dat <- query.sloccount.ts(conf$con, plot.id)
+
+    for (type in c("person.months", "total.cost", "schedule.months",
+                   "avg.devel")) {
+        res <- process.sloccount.ts(conf$con, pid, dat, type)
+
+        plot.name <- str_c("sloccount (", type, ")")
+        plot.id <- get.clear.plot.id(conf, plot.name, labely=res$label)
+
+        dat.out <- data.frame(time=res$ts.df$t, value=res$ts.df$val,
+                              value_scaled=0, plotId=plot.id)
+
+        res <- dbWriteTable(conf$con, "timeseries", dat.out, append=TRUE,
+                            row.names=FALSE)
+        if (!res) {
+            stop("Internal error: Could not write release distance TS into database!")
+        }
+    }
+}
+
+
 ######################### Dispatcher ###################################
 config.script.run({
   conf <- config.from.args(positional.args=list("resdir"),
@@ -641,6 +716,9 @@ config.script.run({
 
   do.update.timezone.information(conf, conf$pid)
   logdevinfo("-> Finished time zone analysis", logger="analyse_ts")
+
+  do.sloccount.analysis(conf, conf$pid)
+  logdevinfo("-> Finished sloccount time series analysis", logger="analyse_ts")
 
   Rprof(NULL)
 })

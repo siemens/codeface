@@ -42,7 +42,7 @@ query.series.merged <- function(conf, subset=NULL) {
 ## Obtain the data for the timeseries identified by a specific plot.id
 query.timeseries <- function(con, plot.id, subset=NULL) {
   query <- str_c("SELECT time, value, value_scaled ",
-                 "FROM timeseries where plotId=",
+                 "FROM timeseries WHERE plotId=",
                  plot.id)
   if (!is.null(subset)) {
     ## TODO: Handle the case of subset selection
@@ -52,6 +52,19 @@ query.timeseries <- function(con, plot.id, subset=NULL) {
   dat <- dbGetQuery(con, query)
   dat$time <- ymd_hms(dat$time, quiet=TRUE)
   colnames(dat)[3] <- "value.scaled"
+
+  return(dat)
+}
+
+query.sloccount.ts <- function(con, plot.id) {
+  query <- str_c("SELECT time, person_months, total_cost, ",
+                 "schedule_months, avg_devel FROM sloccount_ts ",
+                 "WHERE plotId=", plot.id)
+
+  dat <- dbGetQuery(con, query)
+  colnames(dat) <-  c("time", "person.months", "total.cost", "schedule.months",
+                      "avg.devel")
+  dat$time <- ymd_hms(dat$time, quiet=TRUE)
 
   return(dat)
 }
