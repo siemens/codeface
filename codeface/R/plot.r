@@ -20,7 +20,7 @@
 ## Remove outliers (statistically dubious, but when used with great
 ## care _and THREE iterations_ of think about why we actually did
 ## apply great care, it can be admissible)
-removeOutliers <- function(values) {
+remove.outliers <- function(values) {
   top <- quantile(values, probs=0.995)[1]
   values[values > top] <- NA
 

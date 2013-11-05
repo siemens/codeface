@@ -32,15 +32,15 @@ normalise.commit.dat <- function(dat, subset) {
   dat.subset$inRC <- as.factor(dat.subset$inRC)
 
   ## Remove extreme outliers in the non-logged version
-  dat.subset$DiffSize <- removeOutliers(dat.subset$DiffSize)
-  dat.subset$ChangedFiles <- removeOutliers(dat.subset$ChangedFiles)
+  dat.subset$DiffSize <- remove.outliers(dat.subset$DiffSize)
+  dat.subset$ChangedFiles <- remove.outliers(dat.subset$ChangedFiles)
 
   return(dat.subset)
 }
 
 ## Remove outliers (statistically dubious, but in this case, we won't loose
 ## much information)
-removeOutliers <- function(values) {
+remove.outliers <- function(values) {
   top <- quantile(values, probs=0.995)[1]
   values[values > top] <- NA
 

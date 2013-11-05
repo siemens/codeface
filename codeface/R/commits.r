@@ -41,8 +41,8 @@ normalise.commit.dat <- function(dat, subset=NULL) {
   dat.subset$inRC <- as.factor(dat.subset$inRC)
 
   ## Remove extreme outliers in the non-logged version
-  dat.subset$DiffSize <- removeOutliers(dat.subset$DiffSize)
-  dat.subset$ChangedFiles <- removeOutliers(dat.subset$ChangedFiles)
+  dat.subset$DiffSize <- remove.outliers(dat.subset$DiffSize)
+  dat.subset$ChangedFiles <- remove.outliers(dat.subset$ChangedFiles)
 
   return(dat.subset)
 }
