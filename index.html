@@ -6,7 +6,7 @@
     <link type="text/css" href="css/bootstrap.min.css" rel="stylesheet"
 	  media="screen">
   </head>
-  <body>
+  <body ng-controller="codefaceCtrl">
     <div class="container">
 
       <div class="navbar navbar-default" bs-navbar>
@@ -27,7 +27,7 @@
 	    <li data-match-route="/sshots">
 	      <a href="#/sshots">Screenshots</a>
 	    </li>
-            <li class="dropdown">
+            <li class="dropdown" id="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">
 		Examples <b class="caret"></b>
 	      </a>

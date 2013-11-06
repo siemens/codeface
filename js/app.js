@@ -1,4 +1,4 @@
-angular.module('codefaceApp', ['$strap.directives']).
+var app = angular.module('codefaceApp', ['$strap.directives']).
     config(['$routeProvider', function($routeProvider) {
         $routeProvider
 	    .when('/home', { templateUrl: 'home.html' })
@@ -8,6 +8,15 @@ angular.module('codefaceApp', ['$strap.directives']).
             .when('/stat_details', { templateUrl: 'stat_details.html' })
             .when('/code', { templateUrl: 'code.html' })
             .otherwise({redirectTo: '/home'});
-    }], ['$locationProvider', function($locationProvider){
-        //$locationProvider.html5Mode(true);
     }]);     
+
+app.controller('codefaceCtrl', function($scope, $window, $location) {
+    $scope.activePath = null;
+    $scope.$on('$routeChangeSuccess', function(){
+	if ($location.path().startsWith("/examples")) {
+	    $("#dropdown").addClass("active");
+	} else {
+	    $("#dropdown").removeClass("active");
+	}
+    });
+});
