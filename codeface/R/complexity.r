@@ -141,6 +141,27 @@ parse.understand <- function(results.file, commit.info) {
   return(dat.molten)
 }
 
+## Compute the statistics required for a boxplot, and save the
+## results in a data frame
+compute.boxplot.stats <- function(v) {
+  bps <- boxplot.stats(v)
+  res <- rbind(data.frame(type="q1", value=bps$stats[1]),
+               data.frame(type="q2", value=bps$stats[2]),
+               data.frame(type="q3", value=bps$stats[3]),
+               data.frame(type="q4", value=bps$stats[4]),
+               data.frame(type="q5", value=bps$stats[5]),
+               data.frame(type="num.observations", value=bps$n),
+               data.frame(type="conf1", value=bps$conf[1]),
+               data.frame(type="conf1", value=bps$conf[2]))
+
+  if (length(bps$out) > 0) {
+    res <- rbind(res, data.frame(type="outlier", value=bps$out))
+  }
+
+  return(res)
+}
+
+
 ## Given a project configuration with a release range id, prepare
 ## a sample list of commits, analyse a snapshot of the code for each
 ## of them with understand, parse the results and store them into
@@ -184,16 +205,23 @@ do.complexity.analysis <- function(conf) {
       ## SQL database, so we store a "rough" version of the data from
       ## which the actual time series are extracted later on.
       res.understand <- parse.understand(results.file, commits.list[i,])
-      res.understand <- cbind(plotId=understand.plot.id,
-                              time=res.understand$commitDate,
-                              res.understand[,c("Kind", "Name", "variable",
-                                                "value")])
-      if (ncol(res.understand) == 6) {
-        colnames(res.understand) <- c("plotId", "time", "kind", "name",
+      commit.date <- res.understand$commitDate[1]
+      res.understand <- res.understand[,c("Kind", "Name", "variable",
+                                          "value")]
+      if (ncol(res.understand) == 4) {
+        colnames(res.understand) <- c("kind", "name",
                                       "variable", "value")
 
-        res <- dbWriteTable(conf$con, "understand_raw", res.understand, append=TRUE,
-                            row.names=FALSE)
+        ## TODO: It should be possible top avoid calling compute.boxplot.stats
+        ## twice somehow.
+        res.understand <- ddply(res.understand, ~kind+variable, summarise,
+                                name=compute.boxplot.stats(value)$type,
+                                value=compute.boxplot.stats(value)$value)
+        res.understand <- cbind(plotId=understand.plot.id,
+                                time=commit.date, res.understand)
+
+        res <- dbWriteTable(conf$con, "understand_raw", res.understand,
+                            append=TRUE, row.names=FALSE)
 
         if (!res) {
           stop("Internal error: Could not write sloccount timeseries into database!")
