@@ -648,7 +648,21 @@ plot.group <- function(N, .tags, .iddb, .comm) {
 ## compute some attributes for proper visualisation, and export the
 ## result as a graphviz dot format if a filename is provided.
 save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label) {
-  g <- graph.adjacency(.tags[idx,idx], mode="directed")
+  ## Select the subset of the global graph that forms the community,
+  ## and ensure that the per-cluster indices range from 1..|V(g.cluster)|
+  subset <- .tags[idx, idx]
+
+  ## A 1x1 matrix is not of class matrix, but of class numeric,
+  ## so ncol() won't work any more in this case. Ensure that we are actually
+  ## working with a matrix before explicitely setting the row and column
+  ## names to consecutive numbers.
+  if (class(subset) == "matrix") {
+    rownames(subset) <- 1:ncol(subset)
+    colnames(subset) <- 1:ncol(subset)
+  }
+
+  g <- graph.adjacency(subset, mode="directed")
+
   ## as.character is important. The igraph C export routines bark
   ## otherwise (not sure what the actual issue is)
   ## NOTE: V(g)$name as label index does NOT work because the name attribute
@@ -698,6 +712,8 @@ store.graph.db <- function(conf, baselabel, idx, .iddb, g.reg, g.tr, j) {
   ## Construct a systematic representation of the graph for the data base
   edges <- get.data.frame(g.reg, what="edges")
   colnames(edges) <- c("fromId", "toId")
+  edges$fromId <- as.integer(edges$fromId)
+  edges$toId <- as.integer(edges$toId)
 
   ## NOTE: Index handling is somewhat complicated: idx contains a set
   ## of indices generated for the global graph. .iddx[index,]$ID.orig
