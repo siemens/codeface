@@ -194,10 +194,12 @@ do.complexity.analysis <- function(conf) {
       code.dir <- file.path(temp.dir, i)
       dir.create(code.dir, showWarnings=FALSE)
 
-      loginfo(str_c("Writing code into ", code.dir, "\n"), logger="complexity")
+      loginfo(str_c("Checking out revision ", commit.hash, " into ",
+                    code.dir, "\n"), logger="complexity")
       perform.git.checkout(conf$repodir, commit.hash, code.dir, archive.file)
 
-      loginfo("Performing understand analysis\n", logger="complexity")
+      loginfo(str_c("Performing understand analysis for ", commit.hash, "\n"),
+              logger="complexity")
       do.understand.analysis(code.dir, results.file)
 
       ## The understand output still needs to be heavily post-processed.
@@ -231,7 +233,8 @@ do.complexity.analysis <- function(conf) {
                       " -- skipping this sample"), logger="complexity")
       }
 
-      loginfo("Performing sloccount analysis\n", logger="complexity")
+      loginfo(str_c("Performing sloccount analysis for ", commit.hash, "\n"),
+              logger="complexity")
       res <- do.sloccount.analysis(code.dir)
       add.sloccount.ts(conf, sloccount.plot.id, commit.date, res)
       loginfo("Finished analysing sample ", i, "\n", logger="complexity")
