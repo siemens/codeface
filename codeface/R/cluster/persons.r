@@ -719,7 +719,7 @@ store.graph.db <- function(conf, baselabel, idx, .iddb, g.reg, g.tr, j) {
   ## of indices generated for the global graph. .iddx[index,]$ID.orig
   ## maps these back to the in-DB indices.
   ## V(g) for the current graph uses another different indexing system:
-  ## indices ar 1..|V(g)|. To convert from the graph-local indices
+  ## indices are 1..|V(g)|. To convert from the graph-local indices
   ## to the graph-global ones, use idx[V(g)]. To convert these to in-DB
   ## indices, use .iddb[idx[V(g)]]$ID.org.
 
@@ -757,12 +757,14 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank.list, .basedir,
                           ".dot", sep="")
     filename.tr <- paste(.basedir, "/", .prefix, "tr_", "group_", three.digit(i),
                           ".dot", sep="")
-	if (class(.comm) == "communities") {
-		idx <- as.vector(which(.comm$membership==i))
-	}
-	else if(class(.comm) == "overlapComm") {
-		idx <- as.vector(.comm[[i]])
-	}
+
+    if (class(.comm) == "communities") {
+      idx <- as.vector(which(.comm$membership==i))
+    }
+    else if(class(.comm) == "overlapComm") {
+      idx <- as.vector(.comm[[i]])
+    }
+
     if (!is.na(baselabel)) {
       label <- paste(baselabel, i, "Community Quality = ", comm.quality[i],
 			         sep=" ")
