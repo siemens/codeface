@@ -207,7 +207,6 @@ do.complexity.analysis <- function(conf) {
       ## SQL database, so we store a "rough" version of the data from
       ## which the actual time series are extracted later on.
       res.understand <- parse.understand(results.file, commits.list[i,])
-      commit.date <- res.understand$commitDate[1]
       res.understand <- res.understand[,c("Kind", "Name", "variable",
                                           "value")]
       if (ncol(res.understand) == 4) {
