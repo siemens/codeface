@@ -209,7 +209,7 @@ do.complexity.analysis <- function(conf) {
       res.understand <- parse.understand(results.file, commits.list[i,])
       res.understand <- res.understand[,c("Kind", "Name", "variable",
                                           "value")]
-      if (ncol(res.understand) == 4) {
+      if (!is.null(res.understand)) {
         colnames(res.understand) <- c("kind", "name",
                                       "variable", "value")
 
