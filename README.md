@@ -116,19 +116,26 @@ in the step "Database Setup", and modify codeface.conf accordingly.
 
 ## Database Setup
 
-WARNING: This step will irrevocably delete any data already stored in the database!
+NOTE: Updating the database schema after analyses have been performed
+will naturally delete all existing data stored in the schema.
 
 * Create a database user quantarch with sufficient privileges
-  to create tables and modify these
-  mysql-workbench -> Manage Security -> Users and Privileges ->
-  Add Account. Then go to Schema Privileges, select quantarch,
-  Choose "Select ALL". Finally, limit the connectivity to localhost.
+  to create and modify tables: Start mysql-workbench and connect
+  to the database.
+
+  * Select Management->Users and Privileges
+  * Click "Add Account", and create a new user (you may want to limit
+    the connectivity to localhost). Click apply.
+  * Select tab "Schema Privileges", click "Add Entry", and
+    click "Select ALL". Click Apply.
+  * Select tab "Administrative Roles", and select DBDesigner and
+    DBManager. Click Apply.
 
 * For a fresh setup, install the database schema from
-  `$CFDIR/datamodel/QuantArch.mwb` respectively
-  `$CFDIR/datamodel/quantarchSchema.sql`:
+  `$CFDIR/datamodel/codeface.mwb` respectively
+  `$CFDIR/datamodel/codeface_schema.sql`:
 
-        mysql -uquantarch -pquantarch < quantarchSchema.sql
+        mysql -ucodeface -pcodeface < codeface_schema.sql
 
 ## Build the Bug extractor
 See `bugextractor/INSTALL` for all java-related details.
