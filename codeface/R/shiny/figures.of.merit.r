@@ -188,7 +188,14 @@ figure.of.merit.construction <- function(pid) {
 
 figure.of.merit.complexity <- function(pid) {
   ## First, check if any complexity analysis plots exist
-  understand.plots <- dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE name LIKE 'Understand%' AND projectId=", pid))
+  ## (the raw data match the naming scheme, but do not represent a time
+  ## series, so omit the corresponding entry)
+  understand.plots <- dbGetQuery(conf$con,
+                                 str_c("SELECT id, name FROM plots WHERE ",
+                                       "name LIKE 'Understand%' AND ",
+                                       "name NOT LIKE 'understand_raw' AND ",
+                                       "projectId=", pid))
+
   if (length(understand.plots) == 0) {
     return(list(status=status.error, why="No complexity analysis plots were found.")) # Cannot return figure of merit if no complexity analysis was done
   }
