@@ -141,8 +141,14 @@ will naturally delete all existing data stored in the schema.
 See `bugextractor/INSTALL` for all java-related details.
 
 ## Prerequisites for the ID service
-* Make sure to follow the instructions in `id_service/README` to obtain the
-  required node.js packages.
+* Ubuntu 12.04 comes with a fairly outdated node.js release.
+  Make sure to install a more recent one (binary packages
+  are provided at http://nodejs.org/dist/)
+* The ID service requires a few node.js packages. Tnstall them by running
+
+        npm install addressparser express js-yaml mysql
+
+  in the `id_service` directory.
 
 ## Analysis Setup
 
