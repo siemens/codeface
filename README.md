@@ -10,8 +10,8 @@ in the step "Database Setup", and modify codeface.conf accordingly.
 
 * Graphviz often comes in ancient versions with distributions. For Ubuntu
   12.04, use the recent packages fro AT&T:
-  http://www.graphviz.org/Download_linux_ubuntu.php/x86_64/graphviz_2.30.1-1~precise_amd64.deb
-  (2.30 is fine; download and install the main package,
+  http://www.graphviz.org/Download_linux_ubuntu.php
+  (>= 2.30 is fine; download and install the main package and
   libgraphviz4{,-dev}. There may be some additional prerequisites for the
   packages that can be satisfied from the distro repo)
 
@@ -27,20 +27,34 @@ in the step "Database Setup", and modify codeface.conf accordingly.
         sudo -E apt-get update
         sudo -E apt-get install r-base r-base-dev
 
-  Codeface has been tested to work with R 2.15.3 and 3.0.1.
+  Codeface has been tested to work with R 2.15.x and 3.0.x.
 
-* Make sure that the following distribution packages are installed (for
-  Ubuntu, most likely non-exhaustive):
+* Make sure that the following distribution packages are installed (the
+  list is for sufficient for a pristine default installation of
+  Ubuntu 12.04 Desktop):
 
-        libopenmpi-dev, openmpi-bin, libxml2-dev,
-        libcurl4-openssl-dev, xorg-dev, libx11-dev, libgles2-mesa-dev,
-        libglu1-mesa-dev, graphviz, libmysqlclient-dev, python-mysqldb, sinntp,
-        texmf-all, exuberant-ctags (v5.9), libcairo2-dev, libxt-dev, default-jdk,
-        libcairo2-dev, libmysqlclient-dev, python-dev, exuberant-ctags
+         # Generic packages
+         sudo apt-get install python-mysqldb sinntp texlive default-jdk \
+                              mysql-common mysql-client mysql-server python-dev \
+                              exuberant-ctags nodejs npm git subversion \
+                              libgles2-mesa python-pip
 
-  (NOTE: texmf-all can likely be replaced with a smaller package, and it's only for
-  producing the textual reports.  However, keeping the possibility to generate
-  static reports would actually be a feature).
+         # Devel packages required to build the R packages below from source
+         sudo apt-get install libxml2-dev libcurl4-openssl-dev xorg-dev \
+                              libx11-dev libgles2-mesa-dev libglu1-mesa-dev \
+                              libmysqlclient-dev libcairo2-dev libxt-dev \
+                              libcairo2-dev libmysqlclient-dev
+
+         # Devel packages required for python packages
+         sudo apt-get install libyaml-dev
+
+* Install mysql-workbench 6
+  Version 5.x is not sufficient because there are subtle differences
+  when it comes to handling the binary ER models that make life fairly
+  hard. Since the latest revision is not included in Ubuntu 12.04, you
+  need to download the package directly from Oracle
+  (http://dev.mysql.com/downloads/tools/workbench/) and install it
+  via the usual distribution mechanisms.
 
 ## Preparing the R installation
 
@@ -55,7 +69,7 @@ in the step "Database Setup", and modify codeface.conf accordingly.
 * Install the required R packages in an R shell with
 
         install.packages(c("statnet", "ggplot2", "tm", "tm.plugin.mail", "optparse",
-                           "igraph", "lsa", "zoo", "xts", "lubridate", "xtable",
+                           "igraph", "zoo", "xts", "lubridate", "xtable",
                            "reshape", "wordnet", "stringr", "yaml", "plyr",
                            "scales", "gridExtra", "scales", "RMySQL",
                            "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
@@ -65,21 +79,18 @@ in the step "Database Setup", and modify codeface.conf accordingly.
   `/usr/local/lib/R/site-library/` is writeable by the current user
   so that the packages are made available system-wide.
 
-  NOTE: In case problems with old versions of installed packages are
-  encountered when the additional packages are installed, it can be helpful
-  to run `update.packages(ask="graphics")` before `install.packages()`.
-
-  NOTE2: Installing some of the packages and dependent sub-packages
-  can fail because development headers are missing on the base
-  system. This can be mended by installing the appropriate distribution
-  packages, and the re-trying the R package installation.
-
 * Some packages for R need to be installed from github resp. r-forge:
 
         devtools::install_github("shiny-gridster", "wch")
 
 * Currently, the development versions of `tm.plugin.mail` and `snatm` need to
-  be installed. Clone with
+  be installed. In a R session, use
+
+        install.packages(c("snatm", "tm-plugin-mail",
+                         repos="http://R-Forge.R-project.org")
+
+  Should an installable package be unavailable on R-Forge (which can
+  happen from time to time), clone the source manually
 
         svn checkout svn://r-forge.r-project.org/svnroot/tm-plugin-mail/
         svn checkout svn://r-forge.r-project.org/svnroot/snatm
@@ -88,10 +99,9 @@ in the step "Database Setup", and modify codeface.conf accordingly.
 
 ## Installing Python packages
 
-* Install the required python packages using pip resp. easy_install:
+* Install the required python packages using pip:
 
         sudo -E pip install pyyaml progressbar python-ctags
-        sudo -E easy_install python-ctags
 
 ## Clone the git repository
 
