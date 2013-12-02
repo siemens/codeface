@@ -54,6 +54,14 @@ load.config <- function(global.file, project.file=NULL) {
     conf$idServicePort <- as.integer(conf$idServicePort)
   }
 
+  if(is.null(conf$understand)) {
+    conf$understand <- FALSE
+  }
+
+  if(is.null(conf$sloccount)) {
+    conf$sloccount <- FALSE
+  }
+
   if (is.null(project.file)) {
       return(conf)
   }
@@ -73,6 +81,14 @@ load.config <- function(global.file, project.file=NULL) {
   if (conf$tagging != "tag" && conf$tagging != "committer2author" &&
       conf$tagging != "proximity" && conf$tagging != "file") {
     stop("Malformed configuration: Invalid tagging mode specified!")
+  }
+
+  if (!is.logical(conf$understand)) {
+    stop("Malformed configuration: understand field needs a boolean value!")
+  }
+
+  if (!is.logical(conf$sloccount)) {
+    stop("Malformed configuration: sloccount field needs a boolean value!")
   }
 
   if(length(conf$revisions) < 2) {

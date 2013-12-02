@@ -167,6 +167,12 @@ compute.boxplot.stats <- function(v) {
 ## of them with understand, parse the results and store them into
 ## the database.
 do.complexity.analysis <- function(conf) {
+  if (conf$sloccount == FALSE && conf$understand == FALSE) {
+    ## Don't waste CPU cycles when neither a sloccount nor an
+    ## understand analysis is supposed to be performed.
+    return(NULL)
+  }
+
   commits.list <- sample.commits(conf, conf$range.id)
 
   loginfo(str_c("Analysing ", nrow(commits.list), " code samples\n"),
@@ -198,44 +204,49 @@ do.complexity.analysis <- function(conf) {
                     code.dir, "\n"), logger="complexity")
       perform.git.checkout(conf$repodir, commit.hash, code.dir, archive.file)
 
-      loginfo(str_c("Performing understand analysis for ", commit.hash, "\n"),
-              logger="complexity")
-      do.understand.analysis(code.dir, results.file)
+      if (conf$understand == TRUE) {
+        loginfo(str_c("Performing understand analysis for ", commit.hash, "\n"),
+                logger="complexity")
+        do.understand.analysis(code.dir, results.file)
 
-      ## The understand output still needs to be heavily post-processed.
-      ## This is faster when we can select portions of the data from the
-      ## SQL database, so we store a "rough" version of the data from
-      ## which the actual time series are extracted later on.
-      res.understand <- parse.understand(results.file, commits.list[i,])
-      res.understand <- res.understand[,c("Kind", "Name", "variable",
+        ## The understand output still needs to be heavily post-processed.
+        ## This is faster when we can select portions of the data from the
+        ## SQL database, so we store a "rough" version of the data from
+        ## which the actual time series are extracted later on.
+        res.understand <- parse.understand(results.file, commits.list[i,])
+        res.understand <- res.understand[,c("Kind", "Name", "variable",
                                           "value")]
-      if (!is.null(res.understand)) {
-        colnames(res.understand) <- c("kind", "name",
-                                      "variable", "value")
+        if (!is.null(res.understand)) {
+          colnames(res.understand) <- c("kind", "name",
+                                        "variable", "value")
 
-        ## TODO: It should be possible top avoid calling compute.boxplot.stats
-        ## twice somehow.
-        res.understand <- ddply(res.understand, ~kind+variable, summarise,
+          ## TODO: It should be possible top avoid calling compute.boxplot.stats
+          ## twice somehow.
+          res.understand <- ddply(res.understand, ~kind+variable, summarise,
                                 name=compute.boxplot.stats(value)$type,
-                                value=compute.boxplot.stats(value)$value)
-        res.understand <- cbind(plotId=understand.plot.id,
-                                time=commit.date, res.understand)
+                                  value=compute.boxplot.stats(value)$value)
+          res.understand <- cbind(plotId=understand.plot.id,
+                                  time=commit.date, res.understand)
 
-        res <- dbWriteTable(conf$con, "understand_raw", res.understand,
-                            append=TRUE, row.names=FALSE)
+          res <- dbWriteTable(conf$con, "understand_raw", res.understand,
+                              append=TRUE, row.names=FALSE)
 
-        if (!res) {
-          stop("Internal error: Could not write sloccount timeseries into database!")
+          if (!res) {
+            stop("Internal error: Could not write sloccount timeseries into database!")
+          }
+        } else {
+          loginfo(str_c("Warning: understand analysis failed for ", commit.hash,
+                        " -- skipping this sample"), logger="complexity")
         }
-      } else {
-        loginfo(str_c("Warning: understand analysis failed for ", commit.hash,
-                      " -- skipping this sample"), logger="complexity")
       }
 
-      loginfo(str_c("Performing sloccount analysis for ", commit.hash, "\n"),
-              logger="complexity")
-      res <- do.sloccount.analysis(code.dir)
-      add.sloccount.ts(conf, sloccount.plot.id, commit.date, res)
+      if (conf$sloccount == TRUE) {
+        loginfo(str_c("Performing sloccount analysis for ", commit.hash, "\n"),
+                logger="complexity")
+        res <- do.sloccount.analysis(code.dir)
+        add.sloccount.ts(conf, sloccount.plot.id, commit.date, res)
+      }
+
       loginfo("Finished analysing sample ", i, "\n", logger="complexity")
 
       return(NULL)
