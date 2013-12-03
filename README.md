@@ -143,7 +143,8 @@ See `bugextractor/INSTALL` for all java-related details.
 ## Prerequisites for the ID service
 * Ubuntu 12.04 comes with a fairly outdated node.js release.
   Make sure to install a more recent one (binary packages
-  are provided at http://nodejs.org/dist/)
+  are provided at http://nodejs.org/dist/), and pick a stable
+  release (even version numbers, 0.10.x at the time of writing).
 * The ID service requires a few node.js packages. Tnstall them by running
 
         npm install addressparser express js-yaml mysql
