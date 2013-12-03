@@ -6,7 +6,15 @@ database instance, you can search/replace 'quantarch' with 'my_database_name'
 in the step "Database Setup", and modify codeface.conf accordingly.
 
 ## Required Programs
-* Install GNU R, mysql, mysql workbench, node.js and npm from the distribution repository
+* Install GNU R, mysql, mysql-workbench 6 (see below), node.js and npm from the distribution repository
+
+* Install mysql-workbench 6
+  Version 5.x is not sufficient because there are subtle differences
+  when it comes to handling the binary ER models that make life fairly
+  hard. Since the latest revision is not included in Ubuntu 12.04, you
+  need to download the package directly from Oracle
+  (http://dev.mysql.com/downloads/tools/workbench/) and install it
+  via the usual distribution mechanisms.
 
 * Graphviz often comes in ancient versions with distributions. For Ubuntu
   12.04, use the recent packages fro AT&T:
@@ -47,14 +55,6 @@ in the step "Database Setup", and modify codeface.conf accordingly.
 
          # Devel packages required for python packages
          sudo apt-get install libyaml-dev
-
-* Install mysql-workbench 6
-  Version 5.x is not sufficient because there are subtle differences
-  when it comes to handling the binary ER models that make life fairly
-  hard. Since the latest revision is not included in Ubuntu 12.04, you
-  need to download the package directly from Oracle
-  (http://dev.mysql.com/downloads/tools/workbench/) and install it
-  via the usual distribution mechanisms.
 
 ## Preparing the R installation
 
