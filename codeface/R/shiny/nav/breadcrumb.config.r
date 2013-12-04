@@ -17,11 +17,11 @@
 ## All Rights Reserved.
 
 ##
-## Central configuration of navigation elements for Quantarch apps
+## Central configuration of navigation elements for Codeface apps
 ##
 
 ## REMARKS: - All sourcing is done in server.r.
-##  		- The only data needed currently is projects.list
+##          - The only data needed currently is projects.list
 
 source("../symbols.r")
 source("../widgets.r", chdir=TRUE)
@@ -41,12 +41,12 @@ nav.list <- list()
 nav.list$projects <- list(
   ## (1) Configure he label displayed in the breadcrumb entry
   label = function(paramstr = "") {
-    "Quantarch projects"
+    "Codeface projects"
   },
   ## (2) configure URL for the breadcrumb entry
   url = function(paramstr = "") {
     "../dashboard/"
-  }, # params kann man z.B. zum highliten verwende
+  }, # params can, for instance, be used for highlighting
 
   ## (3) configure children displayed in dropdown
   childrenIds = function(paramstr = "") {
