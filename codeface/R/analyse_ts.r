@@ -272,7 +272,13 @@ do.cluster.analysis <- function(resdir, graphdir, conf,
   ## TODO: Augment the date labels with release specifications; additionally,
   ## sort the clusters by average page rank per release
   logdevinfo("Preparing global cluster plots", logger="analyse_ts")
+
+  ## Only consider releases that do have clusters
+  valid.idx <- sapply(clusters.stats.list, function(x) {
+      length(x$cluster.id) > 0 })
+  clusters.stats.list <- clusters.stats.list[valid.idx]
   clusters.all <- do.call(rbind, clusters.stats.list)
+
   clusters.summary.all <- do.call(rbind, lapply(clusters.stats.list,
                                                 summarise.clusters.stats))
 

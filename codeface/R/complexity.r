@@ -175,6 +175,12 @@ do.complexity.analysis <- function(conf) {
 
   commits.list <- sample.commits(conf, conf$range.id)
 
+  ## If there are no code samples (for tag-only commits, for instance),
+  ## skip the analysis
+  if (nrow(commits.list) == 0) {
+      return (NULL)
+  }
+
   loginfo(str_c("Analysing ", nrow(commits.list), " code samples\n"),
           logger="complexity")
 
