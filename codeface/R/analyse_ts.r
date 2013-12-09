@@ -664,6 +664,11 @@ process.sloccount.ts <- function(con, pid, dat, type="total.cost") {
 ## Dispatch sloccount time series construction for the various possible
 ## alternatives
 do.sloccount.analysis <- function(conf, pid) {
+    if (conf$sloccount == FALSE) {
+      return(NULL)
+    }
+
+    ## The plot id has already been created in complexity.r
     plot.id <- get.plot.id(conf, "sloccount")
     dat <- query.sloccount.ts(conf$con, plot.id)
 
