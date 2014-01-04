@@ -7,4 +7,4 @@ install.packages(c("statnet", "ggplot2", "tm", "tm.plugin.mail", "optparse",
                    "scales", "gridExtra", "scales", "RMySQL",
                    "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
                    "corrgram", "logging", "png"), dependencies=T)
-
+devtools::install_github("shiny-gridster", "wch")
