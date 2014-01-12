@@ -6,5 +6,8 @@ install.packages(c("statnet", "ggplot2", "tm", "tm.plugin.mail", "optparse",
                    "reshape", "wordnet", "stringr", "yaml", "plyr",
                    "scales", "gridExtra", "scales", "RMySQL",
                    "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
-                   "corrgram", "logging", "png"), dependencies=T)
+                   "corrgram", "logging", "png", "rjson", "lsa"),
+                         dependencies=T)
+install.packages(c("snatm", "tm-plugin-mail",
+                         repos="http://R-Forge.R-project.org")
 devtools::install_github("shiny-gridster", "wch")
