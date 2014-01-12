@@ -45,7 +45,7 @@ in the step "Database Setup", and modify codeface.conf accordingly.
          sudo apt-get install python-mysqldb sinntp texlive default-jdk \
                               mysql-common mysql-client mysql-server python-dev \
                               exuberant-ctags nodejs npm git subversion \
-                              libgles2-mesa python-pip sloccount
+                              libgles2-mesa python-pip sloccount graphviz
 
          # Devel packages required to build the R packages below from source
          sudo apt-get install libxml2-dev libcurl4-openssl-dev xorg-dev \
@@ -73,7 +73,7 @@ in the step "Database Setup", and modify codeface.conf accordingly.
                            "reshape", "wordnet", "stringr", "yaml", "plyr",
                            "scales", "gridExtra", "scales", "RMySQL",
                            "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
-                           "corrgram", "logging", "png"), dependencies=T)
+                           "corrgram", "logging", "png", "rjson", "lsa"), dependencies=T)
 
   If necessary, make sure _before_ the installation that
   `/usr/local/lib/R/site-library/` is writeable by the current user
