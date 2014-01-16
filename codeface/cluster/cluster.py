@@ -950,7 +950,7 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
 
     # Clear the information before writing new commints
     dbm.doExec("DELETE FROM author_commit_stats WHERE releaseRangeId=%s",
-               (int(releaseRangeID)))
+               (int(releaseRangeID),))
 
     for id in sorted(id_mgr.getPersons().keys()):
         pi = id_mgr.getPI(id)

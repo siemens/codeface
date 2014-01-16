@@ -98,7 +98,7 @@ class DBManager:
                     format(name, analysisMethod))
             self.doExecCommit("INSERT INTO project (name, analysisMethod) " +
                         "VALUES (%s, %s);", (name, analysisMethod))
-            self.doExec("SELECT id FROM project WHERE name=%s;", name)
+            self.doExec("SELECT id FROM project WHERE name=%s;", (name,))
         elif self.cur.rowcount > 1:
             raise Exception("Duplicate projects {}/{} in database!".
                     format(name, analysisMethod))
