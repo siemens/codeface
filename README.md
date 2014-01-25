@@ -2,7 +2,7 @@
 
 Note that only the sections /Git Clone/ and /Analysis Setup/ are relevant if
 your machine is already set up for Codeface. If you want to use your own
-database instance, you can search/replace 'quantarch' with 'my_database_name'
+database instance, you can search/replace 'codeface' with 'my_database_name'
 in the step "Database Setup", and modify codeface.conf accordingly.
 
 ## Required Programs
@@ -86,7 +86,7 @@ in the step "Database Setup", and modify codeface.conf accordingly.
 * Currently, the development versions of `tm.plugin.mail` and `snatm` need to
   be installed. In a R session, use
 
-        install.packages(c("snatm", "tm-plugin-mail",
+        install.packages(c("snatm", "tm-plugin-mail"),
                          repos="http://R-Forge.R-project.org")
 
   Should an installable package be unavailable on R-Forge (which can
@@ -119,7 +119,7 @@ in the step "Database Setup", and modify codeface.conf accordingly.
 NOTE: Updating the database schema after analyses have been performed
 will naturally delete all existing data stored in the schema.
 
-* Create a database user quantarch with sufficient privileges
+* Create a database user codeface with sufficient privileges
   to create and modify tables: Start mysql-workbench and connect
   to the database.
 
