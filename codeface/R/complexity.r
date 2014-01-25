@@ -170,10 +170,18 @@ do.complexity.analysis <- function(conf) {
   if (conf$sloccount == FALSE && conf$understand == FALSE) {
     ## Don't waste CPU cycles when neither a sloccount nor an
     ## understand analysis is supposed to be performed.
+    logdevinfo("No complexity modules active, exiting analysis early")
     return(NULL)
   }
 
   commits.list <- sample.commits(conf, conf$range.id)
+
+  ## If there are no code samples (for tag-only commits, for instance),
+  ## skip the analysis
+  if (nrow(commits.list) == 0) {
+      logdevinfo("No commits to sample, exiting analysis early")
+      return (NULL)
+  }
 
   loginfo(str_c("Analysing ", nrow(commits.list), " code samples\n"),
           logger="complexity")
@@ -190,7 +198,7 @@ do.complexity.analysis <- function(conf) {
   understand.plot.id <- get.or.create.plot.id(conf, "understand_raw")
 
   res.list <- mclapply.db(conf, 1:nrow(commits.list), function(conf, i) {
-      loginfo(str_c("Analysing sample ", i, "\n"), logger="complexity")
+      logdevinfo(str_c("Analysing sample ", i, "\n"), logger="complexity")
       commit.hash <- commits.list[[i, "commitHash"]]
       commit.date <- commits.list[[i, "commitDate"]]
 
@@ -247,7 +255,7 @@ do.complexity.analysis <- function(conf) {
         add.sloccount.ts(conf, sloccount.plot.id, commit.date, res)
       }
 
-      loginfo("Finished analysing sample ", i, "\n", logger="complexity")
+      logdevinfo("Finished analysing sample ", i, "\n", logger="complexity")
 
       return(NULL)
   })
