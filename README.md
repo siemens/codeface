@@ -53,6 +53,9 @@ in the step "Database Setup", and modify codeface.conf accordingly.
                               libmysqlclient-dev libcairo2-dev libxt-dev \
                               libcairo2-dev libmysqlclient-dev
 
+         # Devel packages required for Ubuntu 14.04
+         sudo apt-get install libpoppler-dev libpoppler-glib-dev
+
          # Devel packages required for python packages
          sudo apt-get install libyaml-dev
 
