@@ -148,6 +148,10 @@ See `bugextractor/INSTALL` for all java-related details.
   Make sure to install a more recent one (binary packages
   are provided at http://nodejs.org/dist/), and pick a stable
   release (even version numbers, 0.10.x at the time of writing).
+* Debian-based distros like Ubuntu name the node.js binary differently than upstream. To fix this, run
+
+        sudo update-alternatives --install /usr/bin/node node /usr/bin/nodejs 99
+  
 * The ID service requires a few node.js packages. Install them by running
 
         npm install addressparser express js-yaml mysql
