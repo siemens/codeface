@@ -114,6 +114,27 @@ class DBManager:
             raise Exception("Project id {} not found!".format(pid))
         return self.doFetchAll()[0]
 
+    def get_edgelist(self, cid):
+        self.doExec("SELECT fromId, toId, weight FROM edgelist \
+                    WHERE clusterId={}".format(cid))
+        if self.cur.rowcount == 0:
+            raise Exception("Cluster id {} not found!".format(cid))
+        return self.doFetchAll()
+
+    def get_cluster_id(self, pid):
+        self.doExec("SELECT id FROM cluster WHERE clusterNumber=-1 \
+                    AND projectId={}".format(pid))
+        if self.cur.rowcount == 0:
+            raise Exception("Cluster from project {} not found!".format(pid))
+        return self.doFetchAll()[0][0]
+
+    def get_project_persons(self, pid):
+        self.doExec("SELECT id, name FROM person \
+                    WHERE projectId={}".format(pid))
+        if self.cur.rowcount == 0:
+            raise Exception("Persons from project {} not found!".format(pid))
+        return(self.doFetchAll())
+
     def getTagID(self, projectID, tag, type):
         """Determine the ID of a tag, given its textual form and the type"""
         self.doExec("SELECT id FROM release_timeline WHERE projectId=%s " +
