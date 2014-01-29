@@ -974,15 +974,26 @@ writePageRankData <- function(conf, outdir, .iddb, devs.by.pr, devs.by.pr.tr) {
 performAnalysis <- function(outdir, conf) {
   ################## Process the data #################
   logdevinfo("Reading files", logger="cluster.persons")
-  adjMatrix <- read.table(file=paste(outdir, "/adjacencyMatrix.txt", sep=""),
-                     sep="\t", header=FALSE)
+  mat.file <- paste(outdir, "/adjacencyMatrix.txt", sep="")
+  adjMatrix <- read.table(mat.file, sep="\t", header=TRUE)
+  adjMatrix.ids <- unlist(strsplit(readLines(mat.file, n=1), "\t"))
+
   colnames(adjMatrix) <- rownames(adjMatrix)
 
   ## The adjacency matrix file format uses a different convention for edge
   ## direction than GNU R, so we need to transpose the matrix
   adjMatrix <- t(adjMatrix)
 
-  ids <- get.range.stats(conf$con, conf$range.id)
+  ids.db <- get.range.stats(conf$con, conf$range.id)
+
+  ## Check that ids are in correct order, the ids queried from the
+  ## db are not necessarily in the same order as the adjacency matrix
+  ## columns. Here we remap ids to the correct order.
+  remapping <- unlist(lapply(adjMatrix.ids, function(id) {which(id == ids.db$ID)}))
+  ids <- ids.db[remapping,]
+  if(!all(ids$ID==adjMatrix.ids)) {
+      logerror("Id mismatch", logger="cluster.persons")
+  }
 
   id.subsys <- read.csv(file=paste(outdir, "/id_subsys.txt", sep=""),
 			sep="\t", header=TRUE)
