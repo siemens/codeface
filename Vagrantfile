@@ -30,7 +30,7 @@ sudo mysql -ucodeface -pcodeface < datamodel/codeface_schema.sql
 
 # Generic packages
 sudo apt-get -qq -y install python-mysqldb sinntp texlive default-jdk \
-                            python-dev \
+                            python-dev graphviz wordnet \
                             exuberant-ctags git subversion \
                             libgles2-mesa python-pip sloccount
 

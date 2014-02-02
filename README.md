@@ -45,7 +45,7 @@ in the step "Database Setup", and modify codeface.conf accordingly.
          sudo apt-get install python-mysqldb sinntp texlive default-jdk \
                               mysql-common mysql-client mysql-server python-dev \
                               exuberant-ctags nodejs npm git subversion \
-                              libgles2-mesa python-pip sloccount graphviz
+                              libgles2-mesa python-pip sloccount graphviz wordnet
 
          # Devel packages required to build the R packages below from source
          sudo apt-get install libxml2-dev libcurl4-openssl-dev xorg-dev \
