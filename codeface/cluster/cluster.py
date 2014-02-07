@@ -950,7 +950,7 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
 
     # Clear the information before writing new commints
     dbm.doExec("DELETE FROM author_commit_stats WHERE releaseRangeId=%s",
-               (int(releaseRangeID)))
+               (int(releaseRangeID),))
 
     for id in sorted(id_mgr.getPersons().keys()):
         pi = id_mgr.getPI(id)
@@ -985,8 +985,8 @@ def writeAdjMatrix2File(id_mgr, outdir, conf):
     out = open(os.path.join(outdir, "adjacencyMatrix.txt"), 'wb')
     idlist = sorted(id_mgr.getPersons().keys())
     # Header
-    out.write("# " +
-              "\t".join([str(id_mgr.getPI(elem).getName()) for elem in idlist]) +
+    out.write("" +
+              "\t".join([str(elem) for elem in idlist]) +
               "\n")
 
     # Matrix. The sum of all elements in row N describes how many
