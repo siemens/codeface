@@ -465,48 +465,54 @@ generate.community.tables <- function(con, cluster.method, analysis.method) {
   projects   <- query.projects(con, analysis.method)
   range.data <- lapply(projects$id, function(p.id) get.cycles.con(con, p.id))
   metrics.df <- data.frame()
-
+  project.list <- list()
   for(i in 1:nrow(projects)) {
     p.id <- projects$id[i]
-    p.range.ids   <- range.data[[i]]$range.id
-    p.range.names <- range.data[[i]]$cycle
-    graph.data <- lapply(p.range.ids, function(r.id)
-          get.graph.data.local(con, p.id, r.id, cluster.method))
-    graph <- lapply(graph.data,
+    p.ranges <- data.frame(range.ids=range.data[[i]]$range.id,
+                           range.cycles=range.data[[i]]$cycle)
+
+    graph.data <- apply(p.ranges, 1,function(r) {
+          r.id <- as.character(r["range.ids"])
+          cycle <- as.character(r["range.cycles"])
+          graph <- get.graph.data.local(con, p.id, r.id, cluster.method)
+          graph$p.id <- p.id
+          graph$range.id <- r.id
+          graph$cycle <- cycle
+          return(graph)
+          })
+
+    ## check edgelist, if no edges then the graph is not needed
+    graph.data <- lapply(graph.data, function(x) { 
+                         if(length(x$edgelist) == 0) {
+                           x <- NA
+                         } 
+                         return (x)
+                        })
+    ## remove NA from graph list
+    graph.data <- graph.data[!is.na(graph.data)]
+    
+    graph.data <- lapply(graph.data,
         function(x) {
-          graph.data.frame(x$edgelist, directed=TRUE,
-              vertices=data.frame(x$v.local.ids))})
+          x$graph <- graph.data.frame(x$edgelist, directed=TRUE,
+              vertices=data.frame(x$v.local.ids))
+          return(x)
+          })
 
     ## Compute community metrics
-    idx <- 1:length(p.range.ids)
-    graph.comm <- lapply(idx, function(j) minCommGraph(graph[[j]],
-              graph.data[[j]]$comm, min=4))
-    comm.stats <- lapply(idx, function(j)
-          compute.community.metrics(graph.comm[[j]]$graph,
-              graph.comm[[j]]$community))
-    comm.stat.rows <- lapply(idx, function(j) {
-          comm.stats[[j]]$p.id <- p.id
-          comm.stats[[j]]$r.id <- p.range.names[[j]]
-          return(comm.stats[[j]])})
-
-    rows <- lapply(comm.stat.rows, function(x)
-          rbind(list(id=x$p.id, network=analysis.method,
-                  release.range=x$r.id,
-                  developers=x$vcount, num.comms=x$num.comms,
-                  mean.conductance=x$mean.conductance,
-                  sd.conductance=x$sd.conductance,
-                  modularity=x$modularity,
-                  mean.size=x$mean.size,
-                  sd.size=x$sd.size,
-                  mean.edges=x$mean.num.edges,
-                  sd.edges=x$sd.num.edges)))
-
-    for(i in idx){
-      metrics.df <- rbind(metrics.df, rows[[i]])
-    }
+    ## select communities which are of a minimum size 4
+    graph.data <- lapply(graph.data, function(g) {
+                         graph.comm <- minCommGraph(g$graph, g$comm, min=4)
+                         g$graph <- graph.comm$graph
+                         g$comm <- graph.comm$community
+                         return(g)})
+    
+    graph.data <- lapply(graph.data, function(g) {
+                         g$comm.stats <- compute.community.metrics(g$graph, 
+                                                                   g$comm)
+                         return(g)})
+ 
+    project.list[[i]] <- graph.data
   }
-
-  df <- merge(projects, metrics.df, all=TRUE)
-
-  return(df)
+  
+  return(project.list)
 }
