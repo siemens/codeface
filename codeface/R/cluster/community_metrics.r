@@ -446,6 +446,9 @@ compute.community.metrics <- function(g, comm) {
   res$modularity     <- modularity(g, comm$membership)
 
   ## global
+  res$clust.coeff <- transitivity(g, type="local")
+  res$p.rank <- page.rank(g)$vector
+  res$v.degree <- igraph::degree(g, mode="all")
   res$mean.size <- mean(comm$csize)
   res$sd.size   <- sd(comm$csize)
   res$max.size  <- max(comm$csize)
