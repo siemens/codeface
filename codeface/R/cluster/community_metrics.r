@@ -431,7 +431,7 @@ compute.community.metrics <- function(g, comm) {
   ## inter-community
   g.con     <- contract.vertices(g, membership(comm), vertex.attr.comb=toString)
   g.con.sim <- simplify(g.con)
-  res$inter.betweeness   <- betweenness(g.con.sim)
+  res$inter.betweenness   <- betweenness(g.con.sim)
   res$inter.transitivity <- transitivity(g.con.sim, type="local")
   res$inter.in.deg       <- igraph::degree(g.con.sim, mode="in")
   res$inter.out.deg      <- igraph::degree(g.con.sim, mode="out")
