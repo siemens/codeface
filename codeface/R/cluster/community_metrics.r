@@ -464,15 +464,17 @@ compute.community.metrics <- function(g, comm, link.type=NULL) {
   res$sd.num.edges   <- sd(intra.edges)
   res$max.edges <- max(intra.edges)
   res$vcount    <- vcount(g)
+  res$diameter  <- diameter(g.con.sim)
   return(res)
 }
 
 
-generate.community.tables <- function(con, cluster.method, analysis.method) {
-  projects   <- query.projects(con, analysis.method)
+generate.graph.trends <- function(con, cluster.method="Spin Glass Community", analysis.method="tag") {
+  projects   <- data.frame(id=c(17))#query.projects(con, analysis.method)
   range.data <- lapply(projects$id, function(p.id) get.cycles.con(con, p.id))
   metrics.df <- data.frame()
   project.list <- list()
+  projects.df.list <- list()
   for(i in 1:nrow(projects)) {
     p.id <- projects$id[i]
     p.ranges <- data.frame(range.ids=range.data[[i]]$range.id,
@@ -514,12 +516,89 @@ generate.community.tables <- function(con, cluster.method, analysis.method) {
                          return(g)})
     
     graph.data <- lapply(graph.data, function(g) {
-                         g$comm.stats <- compute.community.metrics(g$graph, 
+                         g$stats <- compute.community.metrics(g$graph, 
                                                                    g$comm)
                          return(g)})
- 
+    
+    ## create data frame for scalar graph measures
+    df.list <- lapply(graph.data, function(g) {
+                                    stats <- g$stats
+                                    row <- list()
+				    ## Meta Data
+                                    row$project <- g$p.id
+                                    row$cycle <- g$cycle
+                                    ## Global graph
+                                    row$diameter <- stats$diameter 
+                                    row$vcount <- stats$vcount
+                                    row$p.rank.mean <- mean(stats$p.rank)
+                                    row$p.rank.sd <- sd(stats$p.rank)
+                                    row$deg.mean <- mean(stats$v.degree)
+                                    row$c.coef <- mean(stats$clust.coeff)
+                                    row$conductance.mean <- stats$mean.conductance
+                                    row$modularity <- stats$modularity
+                                    
+                                    ## Inter Community
+                                    row$num.comms <- stats$num.comms
+                                    row$inter.comm.diameter <- stats$inter.diameter
+                                    row$inter.bet.mean <- mean(stats$inter.betweenness)
+                                    row$inter.tran.mean <- mean(stats$inter.transitivity)
+					
+			            ## Intra Community
+                                    row$diameter.mean <- mean(stats$intra.diameter)
+                                    row$inter.bet.mean <- mean(unlist(stats$intra.betweenness))
+                                    row$inter.tran.mean <- mean(unlist(stats$intra.transitivity))
+                                    df <- data.frame(row)
+                                    return(df)})
+
+
+    projects.df.list[[i]] <- do.call("rbind", df.list)
+    ## Handle higher dimensional data differently
     project.list[[i]] <- graph.data
   }
   
-  return(project.list)
+  projects.df <- do.call("rbind", projects.df.list)
+  return(projects.df)
 }
+
+plot.influence.ts <- function(project.stats) {
+  project.ranks <- lapply(project.stats, function(x) {
+                                   y <- list()
+                                   y$rank <- as.vector(x$comm.stats$p.rank)
+                                   y$length <- length(y$rank)
+                                   y$cycle <- x$cycle
+                                   return (y)})
+         
+  ranks <- unlist(lapply(project.ranks, function(x) x$rank))
+  
+  cycles <- unlist(lapply(project.ranks, function(x) x$cycle))
+  lengths <- unlist(lapply(project.ranks, function(x) x$length))
+  cycle <- factor(rep(cycles, lengths))                                 
+  
+  data <- data.frame(cycle, page.rank=ranks)
+  rank.mean <- aggregate(data$page.rank, by=list(cycle=data$cycle), mean)
+  rank.sd <- aggregate(data$page.rank, by=list(cycle=data$cycle), sd)
+  browser()
+  
+  plot1 <- ggplot(data, aes(x=page.rank, colour=cycle)) + geom_density()
+  return(plot1)
+}
+
+## Change plot to create box plots for page rank
+## not just use mean and sd 
+plot.project.trends <- function(g.trends) {
+   plots <- list()
+   # Developer Influence
+   columns <- 3:ncol(g.trends)
+
+   plots <- lapply(columns, function(col) {
+                              y <- g.trends[,col]
+                              ylab <- colnames(g.trends)[col]
+                              qplot(data=g.trends, y=y, ylab=ylab, xlab="revision")
+                              })
+   
+  
+  do.call(grid.arrange,c(plots))
+      
+
+}
+
