@@ -415,7 +415,7 @@ community.metric <- function(graph, community, test) {
 ##  comm: igraph communities object
 ## RETURNS:
 ##  res: list containing all statistics
-compute.community.metrics <- function(g, comm) {
+compute.community.metrics <- function(g, comm, link.type=NULL) {
   res <- list()
 
   ## intra-community
@@ -447,6 +447,13 @@ compute.community.metrics <- function(g, comm) {
 
   ## global
   res$clust.coeff <- transitivity(g, type="local")
+  
+  ## transpose matrix for tag network
+  if(link.type == "tag") {
+    adj.mat <- get.adjacency(g)
+    g       <- graph.adjacency(t(adj.mat))
+  }
+
   res$p.rank <- page.rank(g)$vector
   res$v.degree <- igraph::degree(g, mode="all")
   res$mean.size <- mean(comm$csize)
