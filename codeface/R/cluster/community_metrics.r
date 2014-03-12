@@ -469,8 +469,9 @@ compute.community.metrics <- function(g, comm, link.type=NULL) {
 }
 
 
-generate.graph.trends <- function(con, cluster.method="Spin Glass Community", analysis.method="tag") {
-  projects   <- data.frame(id=c(17))#query.projects(con, analysis.method)
+generate.graph.trends <- function(con, cluster.method="Spin Glass Community", 					  
+                                  construct.method="prox") {
+  projects   <- data.frame(id=c(11))#query.projects(con, analysis.method)
   range.data <- lapply(projects$id, function(p.id) get.cycles.con(con, p.id))
   metrics.df <- data.frame()
   project.list <- list()
@@ -516,8 +517,8 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community", an
                          return(g)})
     
     graph.data <- lapply(graph.data, function(g) {
-                         g$stats <- compute.community.metrics(g$graph, 
-                                                                   g$comm)
+                         g$stats <- compute.community.metrics(g$graph,  g$comm,
+                                                              construct.method)
                          return(g)})
     
     ## create data frame for scalar graph measures
@@ -549,15 +550,15 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community", an
                                     row$inter.tran.mean <- mean(unlist(stats$intra.transitivity))
                                     df <- data.frame(row)
                                     return(df)})
-
-
+     
     projects.df.list[[i]] <- do.call("rbind", df.list)
     ## Handle higher dimensional data differently
-    project.list[[i]] <- graph.data
+    project.list[[i]] <- graph.data    
   }
+  projects.data <- list()
+  projects.data$df <- do.call("rbind", projects.df.list)
   
-  projects.df <- do.call("rbind", projects.df.list)
-  return(projects.df)
+  return(project.list)
 }
 
 plot.influence.ts <- function(project.stats) {
@@ -600,5 +601,25 @@ plot.project.trends <- function(g.trends) {
   do.call(grid.arrange,c(plots))
       
 
+}
+
+plot.page.rank.box <- function(project.data) {
+
+  p.rank.list <- lapply(project.data, function(g) {
+                                      stats <- g$stats
+                                      return (stats$p.rank)    
+                                    })
+  df <- melt(p.rank.list)
+  names(df) <- c("rank", "rev")
+  df$rev <- as.factor(df$rev)
+  p0 <- ggplot(df, aes(x=rev, y=rank)) + geom_boxplot() + ylab("Page Rank") + 
+               xlab("Project Revision") + labs(title="Project Evolution")
+  ylim1 <- boxplot.stats(df$rank)$stats[c(1,5)]
+  ylim1[1] <- 0
+  p1 = p0 + coord_cartesian(ylim = ylim1*1.05)
+  
+  ggsave("qemu_prox.png", p1, height=8, width=11)
+  
+  browser()
 }
 
