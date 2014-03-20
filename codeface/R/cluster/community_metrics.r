@@ -603,23 +603,40 @@ plot.project.trends <- function(g.trends) {
 
 }
 
-plot.page.rank.box <- function(project.data) {
+plot.page.rank <- function(project.data) {
+  cycles <- sapply(1:length(project.data), function(x) project.data[[x]]$cycle)
+  cycles <- sapply(cycles, function(x) strsplit(x, split="-")[[1]][1])
 
   p.rank.list <- lapply(project.data, function(g) {
                                       stats <- g$stats
                                       return (stats$p.rank)    
                                     })
+ 
+  p.rank.median <- sapply(p.rank.list, function(x) median(x))
+  p.rank.med.df <- data.frame(cycles, p.rank.median)
+
+  median.plot <- ggplot(p.rank.med.df, aes(x=cycles, y=p.rank.median)) + 
+                        geom_point() + ylab("Median Page Rank") + xlab("Revision") + 
+                        ggtitle("Linux Developer Page Rank Evolution") + 
+                        theme(axis.text.x = element_text(family="Arial Narrow", 
+                                            colour="black",size=12,angle=60,
+                                            hjust=.6,vjust=.7,face="plain"))
+
   df <- melt(p.rank.list)
   names(df) <- c("rank", "rev")
+  df$rev <- cycles[df$rev]
   df$rev <- as.factor(df$rev)
-  p0 <- ggplot(df, aes(x=rev, y=rank)) + geom_boxplot() + ylab("Page Rank") + 
-               xlab("Project Revision") + labs(title="Project Evolution")
+  p0 <- ggplot(df, aes(x=rev, y=rank)) + geom_boxplot(outlier.shape = NA) + ylab("Page Rank") + 
+               xlab("Revision") + labs(title="Linux Developer Page Rank Evolution") + 
+               theme(axis.text.x = element_text(family="Arial Narrow", 
+                                   colour="black",size=12,angle=60,
+                                   hjust=.6,vjust=.7,face="plain"))
   ylim1 <- boxplot.stats(df$rank)$stats[c(1,5)]
   ylim1[1] <- 0
-  p1 = p0 + coord_cartesian(ylim = ylim1*1.05)
+  p1 = p0 + coord_cartesian(ylim = ylim1*1.6)
   
-  ggsave("qemu_prox.png", p1, height=8, width=11)
-  
-  browser()
+  ggsave("linux.png", p1, height=8, width=11)
+  ggsave("linux_median.png", median.plot, height=8, width=11)
+
 }
 
