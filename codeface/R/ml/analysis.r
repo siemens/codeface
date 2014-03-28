@@ -186,6 +186,40 @@ analyse.networks <- function(forest, interest.networks, communication.network) {
 }
 
 
+## Check corpus for conditions that must be statisfied by the
+## documents
+check.corpus.precon <- function(corp.base) {
+  idx <- 1:length(corp.base$corp)
+
+  ######
+  ## Preconditions
+  ######
+  ## Condition #1: Emails must have at most one reference Id
+  get.ref.id.lines <- function(x) { grep("^References:", attr(x, "Header"),
+                                    value = FALSE, useBytes = TRUE)}
+  rmv.multi.refs <- function(x) {
+                      doc <- corp.base$corp[[x]]
+                      ref.id.lines <- get.ref.id.lines(doc)
+                      rmv.lines <- ref.id.lines[-1]
+                      if(length(rmv.lines) != 0) {
+                        ## Log number of removed reference id lines
+                        msg <- sprintf(paste("Removing %d id references",
+                                             "from corpus due to precondition",
+                                             "violation(s)", sep=" "),
+                                       length(rmv.lines))
+                        loginfo(msg, logger="ml.analysis")
+                        header <- attr(doc,"Header")
+                        attr(doc, "Header") <- header[-rmv.lines]
+                      }
+                      return(doc)}
+
+  ## remove all "References:" lines after the first one, as per RFC5322 an email
+  ## should only have one reference Id
+  corp.base$corp <- lapply(idx, rmv.multi.refs)
+  class(corp.base$corp) <- class(corp.base$corp.orig)
+ 
+  return(corp.base)
+}
 ## ################### Analysis dispatcher ######################
 ## ################### Let the above rip ########################
 
@@ -197,6 +231,10 @@ dispatch.all <- function(conf, repo.path, resdir) {
   ## to just update the corpus, and let all other operations run
   ## from scratch then? This would likely be the technically easiest
   ## solution..
+
+  ## Remove documents in the corpus that do not satisfy the necessary
+  ## preconditions
+  corp.base <- check.corpus.precon(corp.base)
 
   ## #######
   ## Split the data into smaller chunks for time-resolved analysis
