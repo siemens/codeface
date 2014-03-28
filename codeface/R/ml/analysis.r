@@ -607,7 +607,8 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
               interest.networks=interest.networks,
               twomode.graphs=twomode.graphs,
               networks.dat=networks.dat,
-              thread.info=thread.info)
+              thread.info=thread.info,
+              communication.network=communication.network)
   save(file=file.path(data.path, "vis.data"), res)
 
   ####### End of actual computation. Generate graphs and store data etc. #######
@@ -653,10 +654,20 @@ store.initiate.response <- function(conf, ir, ml.id, range.id) {
   }
 }
 
+store.communication.graph <- function(conf, communication.network, range.id) {
+  g <- graph.adjacency(communication.network)
+  edgelist <- get.data.frame(g, what="edges")
+  colnames(edgelist) <- c("fromId", "toId")
+  edgelist <- gen.weighted.edgelist(edgelist)
+  type <- "email"
+  write.graph.db(conf, range.id, type, edgelist, -1)
+}
+
 ## Dispatcher for all data storing functions above
 store.data <- function(conf, res, range.id, ml.id) {
   store.initiate.response(conf, res$networks.dat$ir, ml.id, range.id)
   store.twomode.graphs(conf, res$twomode.graphs, ml.id, range.id)
+  store.communication.graph(conf, res$communication.network, range.id)
 }
 
 create.network.plots <- function(conf, plots.path, res) {
