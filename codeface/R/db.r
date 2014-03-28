@@ -424,3 +424,20 @@ clusters.2.communities <- function(cluster.list, cluster.method, map) {
 
   return(comm)
 }
+
+
+## Write graph data into the database
+write.graph.db <- function(conf, range.id, baselabel, edgelist, j) {
+  ## Get a unique cluster id
+  cluster.id <- get.clear.cluster.id(conf, range.id, baselabel, j)
+
+  ## Get all ids and write the user cluster mapping
+  users <- unique(c(edgelist$fromId, edgelist$toId))
+  users.df <- data.frame(id=NA, personId=users, clusterId=cluster.id)
+  dbWriteTable(conf$con, "cluster_user_mapping", users.df, append=TRUE, row.names=FALSE)
+
+  ## Write edge list into database
+  edgelist <- cbind(clusterId=cluster.id, edgelist)
+  dbWriteTable(conf$con, "edgelist", edgelist, append=TRUE, row.names=FALSE)
+  ## TODO: Insert the generated dot files into the database
+}

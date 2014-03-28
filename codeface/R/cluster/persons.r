@@ -695,20 +695,8 @@ save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label) {
 }
 
 
-## Write clusters into the database
+## Prepare graph data for database and insert
 store.graph.db <- function(conf, baselabel, idx, .iddb, g.reg, g.tr, j) {
-  cluster.id <- get.clear.cluster.id(conf, conf$range.id, baselabel, j)
-
-  users.df <- lapply(idx, function(index.local) {
-    person.id <- .iddb[index.local,]$ID.orig
-    return(data.frame(id=NA, personId=person.id, clusterId=cluster.id))
-  })
-  users.df <- do.call(rbind, users.df)
-
-  dbWriteTable(conf$con, "cluster_user_mapping", users.df, append=TRUE, row.names=FALSE)
-
-  ## TODO: Insert the generated dot files into the database
-
   ## Construct a systematic representation of the graph for the data base
   edges <- get.data.frame(g.reg, what="edges")
   colnames(edges) <- c("fromId", "toId")
@@ -731,9 +719,7 @@ store.graph.db <- function(conf, baselabel, idx, .iddb, g.reg, g.tr, j) {
   if (dim(edges)[1] > 0) {
     ## Only write an edge list if the cluster has any edges, actually
     edges <- gen.weighted.edgelist(edges)
-    edges <- cbind(clusterId=cluster.id, edges)
-
-    dbWriteTable(conf$con, "edgelist", edges, append=TRUE, row.names=FALSE)
+    write.graph.db(conf, conf$range.id, baselabel, edges, j)
   }
 }
 
