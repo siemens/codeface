@@ -183,6 +183,11 @@ class gitVCS (VCS):
         self.diffStatFilesPattern = re.compile(r'(\d*?) file(|s) changed')
         self.diffStatInsertPattern = re.compile(r' (\d*?) insertion')
         self.diffStatDeletePattern = re.compile(r' (\d*?) deletion')
+        # Commit Sign-off patterns
+        sign_off_prefix = ("CC:", "Signed-off-by:", "Acked-by:", "Reviewed-by:",
+                           "Reported-by:", "Tested-by:", "LKML-Reference:", "Patch:")
+        sign_off_prefix = ["("+s+")(\s*)(.*)$" for s in sign_off_prefix]
+        self.signOffPatterns = [re.compile(prefix, re.I) for prefix in sign_off_prefix]
 
     def getDiffVariations(self):
         # We support diffs formed of 2x2 combinations:
@@ -588,26 +593,21 @@ class gitVCS (VCS):
             if (match):
                 cmt.committer = match.group(1)
 
-        signed_off_part = parts[descr_index].split("\n    \n    ")[-1]
-        # Ensure that there are actually signed-offs in the signed-off
-        # part
+        descr = parts[descr_index].split("\n")
+        # Ensure that there are actually sign off tags in the commit message
         found = False
-        for line in signed_off_part.split("\n"):
-            line = re.sub("^    ", "", line)
-            if (line.startswith("CC:")
-                or line.startswith("Signed-off-by:")
-                or line.startswith("Acked-by:")
-                or line.startswith("Reviewed-by:")
-                or line.startswith("Reported-by:")
-                or line.startswith("Tested-by:")
-                or line.startswith("LKML-Reference:")):
-                found = True
+        i = 0
+        for line in descr:
+            line = line.lstrip()
+            found = any([prefix.match(line) for prefix in self.signOffPatterns])
+            if found:
                 break
+            i+=1
 
         if found:
             descr_message = "\n".join(parts[descr_index].
-                                      split("\n    \n    ")[0:-1])
-            self._analyseSignedOffs(signed_off_part, cmt)
+                                      split("\n \n ")[0:i-1])
+            self._analyseSignedOffs(descr[i:], cmt)
         else:
             descr_message = parts[descr_index]
 
@@ -624,13 +624,14 @@ class gitVCS (VCS):
         """Analyse the Signed-off-part of a commit message."""
 
         tag_names_list = cmt.getTagNames()
-        for entry in msg.split("\n"):
-            entry = re.sub("^    ", "", entry)
-            match = self.signedOffPattern.search(entry)
-            if (match):
+        for entry in msg:
+            entry = entry.lstrip()
+            matches = [tag.search(entry) for tag in self.signOffPatterns
+                       if tag.search(entry)!=None]
+            if (matches):
+                match = matches[0]
                 key = match.group(1).replace(" ", "").replace(":", "")
-                value = match.group(2)
-
+                value = match.group(3)
                 if key in tag_names_list.keys():
                     tag_names_list[key].append(value)
                 else:

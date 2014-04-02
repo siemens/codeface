@@ -25,9 +25,9 @@ from TimeSeries import TimeSeries
 from logging import getLogger; log = getLogger(__name__)
 
 tag_types = [ "Signed-off-by", "Acked-by", "CC", "Reviewed-by",
-             "Reported-by", "Tested-by" ]
+             "Reported-by", "Tested-by", "Patch"]
 active_tag_types = [ "Signed-off-by", "Acked-by", "Reviewed-by",
-                    "Tested-by" ]
+                    "Tested-by", "Patch"]
 proximity_relation = "proximity"
 file_relation = "file"
 committer2author_relation = "committer2author"
