@@ -23,6 +23,7 @@ import httplib
 import urllib
 import json
 import string
+import random
 
 class idManager:
     """Provide unique IDs for developers.
@@ -88,7 +89,9 @@ class idManager:
                 # In this case, no eMail address was specified.
 #                print("Fixup for email required, but FAILED for {0}".format(addr))
                 name = addr
-                email = "could.not@be.resolved.tld"
+                rand_str = "".join(random.choice(string.ascii_lowercase + string.digits)
+                                   for i in range(10))
+                email = "could.not.resolve@"+rand_str
 
         email = email.lower()
 
