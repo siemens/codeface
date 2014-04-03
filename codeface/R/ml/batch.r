@@ -80,6 +80,9 @@ config.script.run({
       lw("Are you sure this setup is correct? Continuing nevertheless.")
     }
 
+    ## Email parser relies on locale and should be set to english
+    Sys.setlocale(category="LC_ALL", locale ="en_US.UTF-8")
+
     conf <- init.mc(conf)
     dispatch.all(conf, conf$mldir, conf$resdir)
 })
