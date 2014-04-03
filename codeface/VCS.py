@@ -529,9 +529,9 @@ class gitVCS (VCS):
                     log.exception("Could not spawn git")
                     raise
 
-            # The commit message is independent of the diff type, so we
-            # can re-use the information in msg
-            self._analyseCommitMsg(msg, cmt)
+        # The commit message is independent of the diff type, so we
+        # can re-use the information in msg
+        self._analyseCommitMsg(msg, cmt)
 
 
 
