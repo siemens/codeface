@@ -154,11 +154,11 @@ int.to.hex <- function(n, fill=2) {
   return(as.character(loc))
 }
 
-three.digit <- function(n) {
+four.digit <- function(n) {
   loc <- as.character(n)
 
-  if (nchar(loc) != 3) {
-    loc <- paste(paste(rep("0", 3-nchar(loc)), collapse=''), loc, sep="")
+  if (nchar(loc) != 4) {
+    loc <- paste(paste(rep("0", 4-nchar(loc)), collapse=''), loc, sep="")
   }
 
   return(loc)
@@ -753,9 +753,9 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank.list, .basedir,
   j <- 0
 
   for (i in unique(.comm$membership)) {
-    filename.reg <- paste(.basedir, "/", .prefix, "reg_", "group_", three.digit(i),
+    filename.reg <- paste(.basedir, "/", .prefix, "reg_", "group_", four.digit(i),
                           ".dot", sep="")
-    filename.tr <- paste(.basedir, "/", .prefix, "tr_", "group_", three.digit(i),
+    filename.tr <- paste(.basedir, "/", .prefix, "tr_", "group_", four.digit(i),
                           ".dot", sep="")
 
     if (class(.comm) == "communities") {
@@ -827,7 +827,7 @@ save.cluster.stats.subsys <- function(.comm, .id.subsys, .elems,
                                       .outdir, .basename) {
   for (i in .elems) {
     print(xtable(txt.comm.subsys(.comm, .id.subsys, i)), type="latex",
-          floating=FALSE, file=paste(.outdir, "/", .basename, three.digit(i), ".tex", sep=""))
+          floating=FALSE, file=paste(.outdir, "/", .basename, four.digit(i), ".tex", sep=""))
   }
 }
 
