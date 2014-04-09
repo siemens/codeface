@@ -46,6 +46,9 @@ class FileCommit:
         # optimizing the process of finding a function Id given a line number
         self.functionLineNums = [0]
 
+        # Function Implementation
+        self.functionImpl = {}
+
     #Getter/Setters
     def getFileSnapShots(self):
         return self.fileSnapShots
@@ -53,14 +56,21 @@ class FileCommit:
     def getFileSnapShot(self):
         return self.fileSnapShots.values()[0]
 
+    def getFilename(self):
+        return self.filename
+
     def setCommitList(self, cmtList):
         self.revCmts = cmtList
 
     def getrevCmts(self):
         return self.revCmts
 
+    def getFuncImpl(self,id):
+        return self.functionImpl[id]
+
     def setFunctionLines(self, functionIds):
         self.functionIds.update(functionIds)
+        [self.functionImpl.update({id:[]}) for id in self.functionIds.values()]
         self.functionLineNums.extend(sorted(self.functionIds.iterkeys()))
 
     #Methods
@@ -69,6 +79,23 @@ class FileCommit:
 
     def findFuncId(self, lineNum):
         # returns the identifier of a function given a line number
+        lineNum = int(lineNum)
         i = bisect.bisect_right(self.functionLineNums, lineNum)
         funcLine = self.functionLineNums[i-1]
         return self.functionIds[funcLine]
+
+    def getLineCmtId(self, line_num):
+        ## Retrieve the first file snap
+        line_num = str(line_num)
+        file_snapshot = self.getFileSnapShot()
+        return file_snapshot[line_num]
+
+    def getLength(self):
+        return len(self.getFileSnapShot())
+
+    def getIndx(self):
+        return self.getFileSnapShot().keys()
+
+    def addFuncImplLine(self, lineNum, srcLine):
+        id = self.findFuncId(lineNum)
+        self.functionImpl[id].append(srcLine)

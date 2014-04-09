@@ -28,6 +28,7 @@ import codeBlock
 import codeLine
 import math
 import random
+import itertools
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from logging import getLogger; log = getLogger(__name__)
 
@@ -849,7 +850,8 @@ def createStatisticalData(cmtlist, id_mgr, link_type):
     return None
 
 
-def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
+def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf, 
+                         cmt_depends=None, fileCommitDict=None):
     '''
     commit information is written to the outdir location
     '''
@@ -980,6 +982,39 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
                      author_cmt_stats_rows)
 
 
+def writeDependsToDB(logical_depends, fileCommitDict, cmtlist, releaseRangeID, dbm, conf)  :
+    '''
+    Write logical dependency data to database
+    '''
+
+    '''
+    Input:
+    logical_depends - dictionary key=cmthash, value=list of
+                 co-changed subroutines (i.e., functions)
+    '''
+    projectID = dbm.getProjectID(conf["project"], conf["tagging"])
+
+    # List of tuples to store rows of DB table
+    cmt_depend_rows = []
+
+    for cmt in cmtlist:
+        if (cmt.id in logical_depends) & (logical_depends is not None):
+            key = dbm.getCommitId(projectID, cmt.id)
+            depends_list = logical_depends[cmt.id]
+            function_loc = [depend for depend, count in depends_list]
+            depend_impl_list = [' '.join(fileCommitDict[file].getFuncImpl(funcId)) for file, funcId in function_loc]
+            depends_list = [depends_list[indx][0] + (depends_list[indx][1], impl) for indx, impl in enumerate(depend_impl_list)]
+
+            # Write Function level dependencies
+            rows = [(key, file, entityId, "Function", count, impl) for file, entityId, count, impl in depends_list]
+            cmt_depend_rows.extend(rows)
+    # For cmt.id
+
+    # Perform batch insert
+    dbm.doExecCommit("INSERT INTO commit_dependency (commitId, file, entityId, entityType, size, impl)" +
+                     " VALUES (%s,%s,%s,%s,%s,%s)", cmt_depend_rows)
+
+
 def writeAdjMatrix2File(id_mgr, outdir, conf):
     '''
     Connections between the developers are written to the outdir location
@@ -1021,7 +1056,8 @@ def writeAdjMatrix2File(id_mgr, outdir, conf):
     out.close()
 
 
-def emitStatisticalData(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
+def emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir, releaseRangeID, dbm, conf, 
+                        fileCommitDict):
     """Save the available information for a release interval for further statistical processing.
 
     Several files are created in outdir respectively the database:
@@ -1040,6 +1076,8 @@ def emitStatisticalData(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
     writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf)
 
     writeAdjMatrix2File(id_mgr, outdir, conf)
+
+    writeDependsToDB(logical_depends, fileCommitDict, cmtlist, releaseRangeID, dbm, conf)
 
     return None
 
@@ -1062,6 +1100,62 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
             pi.addCommit(cmt)
 
     return None
+
+def computeLogicalDepends(fileCommit_list, cmt_dict, start_date):
+    '''
+    Compute logical dependencies at subroutine level
+    '''
+
+    '''
+    Input:
+    fileCommitList - A list of fileCommit objects, the object
+                     contains the source code structural information
+                     and a commit reference for every line of a file
+    Output:
+    funcDepends - dictionary where key=commit hash (unique id) and
+                  value=the list subroutines changed with that commit
+
+    Description:
+    We use the source code structural information we acquired from the
+    ctags analysis to identify which lines of code fall under a particular
+    subroutine space. We could have alternatively used gits ability
+    to identy the function space for a particular commit and then
+    identified logical dependencies that way. The disadvantage is
+    gits mechanism sometimes gives unrealiable results and if an
+    entirely new function is added git will be completely wrong. We
+    save the subroutine name together with the filename that the
+    subroutine belongs.
+    '''
+
+    func_depends_count = {}
+    for file in fileCommit_list.values():
+      func_depends = {}
+      filename = file.getFilename()
+      idx = file.getIndx()
+      for line_num in idx:
+          cmt_id = file.getLineCmtId(line_num)
+
+          if cmt_id not in func_depends_count:
+              func_depends_count[cmt_id] = []
+
+          if cmt_id in cmt_dict:
+            # If line is older than start date then ignore
+            if cmt_dict[cmt_id].getCdate() >= start_date:
+              func_id = file.findFuncId(line_num)
+              func_loc = [(filename, func_id)]
+              if cmt_id in func_depends:
+                func_depends[cmt_id].extend(func_loc)
+              else:
+                func_depends[cmt_id] = func_loc
+
+      # Compute the number of lines of code changed for each dependency.
+      # We captured the function dependency on a line by line basis above
+      # now we aggregate the lines that change one function
+      [func_depends_count[cmt_id].extend([(func_id, len(list(group))) \
+       for func_id, group in itertools.groupby(sorted(depend_list))]) \
+       for cmt_id, depend_list in func_depends.iteritems()]
+
+    return func_depends_count
 
 
 def computeProximityLinks(fileCommitList, cmtList, id_mgr, link_type, \
@@ -1277,9 +1371,11 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
         else:
             startDate = None
 
-        fileCommitList = git.getFileCommitDict()
-        computeProximityLinks(fileCommitList, cmtdict, id_mgr, link_type,
+        fileCommitDict = git.getFileCommitDict()
+        computeProximityLinks(fileCommitDict, cmtdict, id_mgr, link_type,
                               startDate)
+        logical_depends = computeLogicalDepends(fileCommitDict, cmtdict,
+                                                startDate)
     #---------------------------------
     #compute statistical information
     #---------------------------------
@@ -1289,7 +1385,8 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     #Save the results in text files that can be further processed with
     #statistical software, that is, GNU R
     #---------------------------------
-    emitStatisticalData(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf)
+    emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir, releaseRangeID,\
+                        dbm, conf, fileCommitDict)
 
 
 ##################################################################
