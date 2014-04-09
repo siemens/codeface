@@ -994,6 +994,30 @@ CREATE INDEX `understand_raw_kind_idx` ON `codeface`.`understand_raw` (`kind` AS
 
 CREATE INDEX `understand_raw_plotId_idx` ON `codeface`.`understand_raw` (`plotId` ASC);
 
+
+-- -----------------------------------------------------
+-- Table `codeface`.`commit_dependency`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `codeface`.`commit_dependency` ;
+
+CREATE TABLE IF NOT EXISTS `codeface`.`commit_dependency` (
+  `id` BIGINT NULL AUTO_INCREMENT,
+  `commitId` BIGINT NOT NULL,
+  `file` VARCHAR(255) NOT NULL,
+  `entityId` VARCHAR(255) NOT NULL,
+  `entityType` VARCHAR(100) NOT NULL,
+  `size` INT NULL,
+  `impl` TEXT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_commit_dependency`
+    FOREIGN KEY (`commitId`)
+    REFERENCES `codeface`.`commit` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+CREATE INDEX `fk_1_idx` ON `codeface`.`commit_dependency` (`commitId` ASC);
+
 USE `codeface` ;
 
 -- -----------------------------------------------------
