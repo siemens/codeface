@@ -74,7 +74,7 @@ class idManager:
 
         # The eMail parser cannot handle Surname, Name <email@domain.tld> properly.
         # Provide a fixup hack for this case
-        if (name == "" and email.count("@") == 0):
+        if (name == "" or email.count("@") == 0):
             m = re.search(self.fixup_emailPattern, addr)
             if m:
                 name = m.group(1)
