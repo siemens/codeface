@@ -380,3 +380,38 @@ def check4ctags():
         # TODO: change this to use standard mechanism for error logging
         log.error("Ctags version '{0}' not found".format(prog_version))
         raise Exception("Incompatible ctags-exuberant version")
+
+def generate_analysis_windows(repo, window_size_months):
+	'''
+	Generates a list of revisions (commit hash) in increments of the window_size
+	parameter. The window_size parameter specifies the number of months between
+	revisions. This function is useful when the git repository has no tags
+	referencing releases.
+	'''
+	revs = []
+	start = window_size_months # Window size time ago
+	end = 0 # Present time
+	cmd_base = 'git --git-dir={0} log --no-merges --format=%H'.format(repo).split()
+	cmd_base_max1 = cmd_base + ['--max-count=1']
+	cmd = cmd_base_max1 + ['--before=' + str(end) + '.months.ago']
+	rev_end = execute_command(cmd).splitlines()
+	revs.extend(rev_end)
+
+	while start != end:
+		cmd = cmd_base_max1 + ['--before=' + str(start) + '.months.ago']
+		rev_start = execute_command(cmd).splitlines()
+
+		if len(rev_start) == 0:
+			start = end
+			cmd = cmd_base + ['--reverse']
+			rev_start = [execute_command(cmd).splitlines()[0]]
+		else:
+			end = start
+			start = end + window_size_months
+
+		revs = rev_start + revs
+	# End while
+
+	rcs = [None for x in range(len(revs))]
+
+	return revs, rcs

@@ -121,8 +121,8 @@ class Configuration(Mapping):
             raise ConfigurationError('Unsupported tagging mechanism.')
 
         if len(self["revisions"]) < 2:
-            log.critical("Malformed configuration: At least 2 revisions required")
-            raise ConfigurationError('Malformed configuration.')
+            log.info("No revision range specified in configuration, analyzing history "
+                     "in 3 month increments")
 
         if len(self["revisions"]) != len(self["rcs"]):
             log.critical("Malformed configuration: revision and rcs list "
@@ -137,6 +137,9 @@ class Configuration(Mapping):
     # Function for the Configuration object to function as a dict
     def __getitem__(self, key):
         return self._conf[key]
+
+    def __setitem__(self, key, value):
+        self._conf[key] = value
 
     def __len__(self):
         return len(self._conf)
