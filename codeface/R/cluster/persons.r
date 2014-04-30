@@ -992,7 +992,12 @@ performAnalysis <- function(outdir, conf) {
     id.subsys <- NULL
   }
 
-  performGraphAnalysis(conf, adjMatrix, ids, outdir, id.subsys)
+  if(sum(adjMatrix) == 0) {
+    loginfo("Adjacency matrix empty, exiting cluster analysis", logger="cluster.persons")
+    return(1)
+  } else {
+    performGraphAnalysis(conf, adjMatrix, ids, outdir, id.subsys)
+  }
 }
 
 writeClassicalStatistics <- function(outdir, ids.connected) {
