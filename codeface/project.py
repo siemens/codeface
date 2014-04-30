@@ -69,6 +69,11 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         check4ctags()
 
     project_id, dbm, all_range_ids = project_setup(conf, recreate)
+
+    ## Save configuration file
+    conf.write()
+    project_conf = conf.get_conf_file_loc()
+
     # Analyse new revision ranges
     for i, range_id in enumerate(all_range_ids):
         start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)

@@ -22,6 +22,7 @@ Encapsulates a configuration as an immutable dict
 import yaml
 from collections import Mapping
 from logging import getLogger; log = getLogger(__name__)
+from tempfile import NamedTemporaryFile
 
 class ConfigurationError(Exception):
     '''Raised if any part of the configuration is malformed'''
@@ -49,6 +50,8 @@ class Configuration(Mapping):
                 'idServiceHostname' : '127.0.0.1',
                 'idServicePort' : 8080
                 }
+
+	self._conf_file_loc = None
 
     @classmethod
     def load(self, global_conffile, local_conffile=None):
@@ -133,6 +136,16 @@ class Configuration(Mapping):
         unknown_keys = [k for k in self if k not in self.ALL_KEYS]
         for key in unknown_keys:
             log.warning("Unknown key '{}' in configuration.".format(key))
+
+    def write(self):
+      conf_file = NamedTemporaryFile(mode='w', prefix=self._conf['project'],
+                                     delete=False)
+      yaml.dump(self._conf, conf_file)
+      self._conf_file_loc = conf_file.name
+      conf_file.close()
+
+    def get_conf_file_loc(self):
+      return self._conf_file_loc
 
     # Function for the Configuration object to function as a dict
     def __getitem__(self, key):
