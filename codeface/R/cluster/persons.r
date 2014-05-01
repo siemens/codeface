@@ -1001,8 +1001,14 @@ performAnalysis <- function(outdir, conf) {
   if (length(colnames(id.subsys)) == 2) {
     id.subsys <- NULL
   }
+  
+  ## Get off diagonal sum  
+  mat.diag <- diag(adjMatrix) 
+  diag(adjMatrix) <- 0
+  non.diag.sum <- sum(adjMatrix)
+  diag(adjMatrix) <- mat.diag
 
-  if(sum(adjMatrix) == 0) {
+  if(sum(non.diag.sum) == 0) {
     loginfo("Adjacency matrix empty, exiting cluster analysis", logger="cluster.persons")
     return(1)
   } else {
