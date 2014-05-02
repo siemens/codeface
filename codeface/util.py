@@ -409,7 +409,11 @@ def generate_analysis_windows(repo, window_size_months):
 			end = start
 			start = end + window_size_months
 
-		revs = rev_start + revs
+		# Check if any commits occured since the last analysis window
+                if rev_start[0] != revs[0]:
+                  revs = rev_start + revs
+                # else: no commit happened since last window, don't add duplicate
+                #       revisions
 	# End while
 
 	rcs = [None for x in range(len(revs))]
