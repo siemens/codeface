@@ -546,8 +546,8 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
 					
 			            ## Intra Community
                                     row$diameter.mean <- mean(stats$intra.diameter)
-                                    row$inter.bet.mean <- mean(unlist(stats$intra.betweenness))
-                                    row$inter.tran.mean <- mean(unlist(stats$intra.transitivity))
+                                    row$intra.bet.mean <- mean(unlist(stats$intra.betweenness))
+                                    row$intra.tran.mean <- mean(unlist(stats$intra.transitivity))
                                     df <- data.frame(row)
                                     return(df)})
      
