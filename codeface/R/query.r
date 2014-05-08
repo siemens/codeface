@@ -88,6 +88,12 @@ query.project.name <- function(con, pid) {
   return(dat$name)
 }
 
+query.project.analysis.method <- function(con, pid) {
+  dat <- dbGetQuery(con, str_c("SELECT analysisMethod FROM project WHERE id=", sq(pid)))
+
+  return(dat$analysisMethod)
+}
+
 query.projects <- function(con, analysis.method=NULL) {
   if(is.null(analysis.method)){
     query.str <-  str_c("SELECT id, name FROM project")

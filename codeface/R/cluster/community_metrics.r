@@ -418,44 +418,53 @@ community.metric <- function(graph, community, test) {
 compute.community.metrics <- function(g, comm, link.type=NULL) {
   res <- list()
 
-  ## intra-community
+  ## Intra-community features
   res$intra.betweenness  <- community.metric(g, comm,
-      "betweenness")
+                                             "betweenness")
   res$intra.transitivity <- community.metric(g, comm,
-      "transitivity")
+                                             "transitivity")
   res$intra.in.deg     <- community.metric(g, comm, "in.deg")
   res$intra.out.deg    <- community.metric(g, comm, "out.deg")
   res$intra.in.weight  <- community.metric(g, comm, "in.weight")
   res$intra.out.weight <- community.metric(g, comm, "out.weight")
   res$intra.diameter   <- community.metric(g, comm, "diameter")
-  ## inter-community
+  
+  ## Inter-community features
   g.con     <- contract.vertices(g, membership(comm), vertex.attr.comb=toString)
   g.con.sim <- simplify(g.con)
   res$inter.betweenness   <- betweenness(g.con.sim)
-  res$inter.transitivity <- transitivity(g.con.sim, type="local")
+  res$inter.transitivity <- transitivity(g.con.sim, type="local", isolates='zero')
   res$inter.in.deg       <- igraph::degree(g.con.sim, mode="in")
   res$inter.out.deg      <- igraph::degree(g.con.sim, mode="out")
   res$inter.in.weight    <- graph.strength(g.con.sim, mode="in")
   res$inter.out.weight   <- graph.strength(g.con.sim, mode="out")
-  res$inter.diameter     <- diameter(g.con.sim)
-  res$num.comms          <- vcount(g.con.sim)
-  ## quality
+  res$inter.diameter     <- diameter(g.con.sim, weights=NULL)
+  res$num.communities    <- vcount(g.con.sim)
+
+  ## Community Quality
   res$conductance <- community.metric(g, comm, "conductance")
   res$mean.conductance <- mean(res$conductance, na.rm=TRUE)
   res$sd.conductance <- sd(res$conductance, na.rm=TRUE)
   res$modularity     <- modularity(g, comm$membership)
 
-  ## global
-  res$clust.coeff <- transitivity(g, type="local")
-  
-  ## transpose matrix for tag network
-  if(link.type == "tag") {
-    adj.mat <- get.adjacency(g)
-    g       <- graph.adjacency(t(adj.mat))
-  }
+  ## Transpose matrix for tag network
+  #if(link.type == "tag") {
+    #adj.mat <- get.adjacency(g)
+    #g       <- graph.adjacency(t(adj.mat))
+  #}
 
-  res$p.rank <- page.rank(g)$vector
+  ## Global graph features
+  global.df <- data.frame()
+  res$cluster.coefficient <- transitivity(g, type="local", isolates='zero')
+  res$betweenness.centrality <- log(betweenness(g, directed=FALSE)/ sum(get.adjacency(g)))
+  res$page.rank <- seq(1,100)#page.rank(g, directed=FALSE)$vector  
+  res$average.path.len <- average.path.length(g, directed=FALSE)
   res$v.degree <- igraph::degree(g, mode="all")
+  res$num.vertices <- vcount(g)
+  res$diameter <- diameter(g, weights=NULL)
+  
+
+  ## Community Aggregates
   res$mean.size <- mean(comm$csize)
   res$sd.size   <- sd(comm$csize)
   res$max.size  <- max(comm$csize)
@@ -463,31 +472,50 @@ compute.community.metrics <- function(g, comm, link.type=NULL) {
   res$mean.num.edges <- mean(intra.edges)
   res$sd.num.edges   <- sd(intra.edges)
   res$max.edges <- max(intra.edges)
-  res$vcount    <- vcount(g)
-  res$diameter  <- diameter(g.con.sim)
   return(res)
 }
 
 
 generate.graph.trends <- function(con, cluster.method="Spin Glass Community", 					  
                                   construct.method="prox") {
-  projects   <- data.frame(id=c(11))#query.projects(con, analysis.method)
-  range.data <- lapply(projects$id, function(p.id) get.cycles.con(con, p.id))
+  project.data   <- data.frame(id=c(18,23,37,38,39)) #query.projects(con) 
+  project.data$name <- apply(project.data, 1, 
+                             function(p.id) query.project.name(con, p.id))
+  project.data$analysis.method <- apply(project.data, 1, 
+                                        function(p.id) query.project.analysis.method(con, p.id))
+  range.data <- lapply(project.data$id, function(p.id) get.cycles.con(con, p.id))
   metrics.df <- data.frame()
   project.list <- list()
   projects.df.list <- list()
-  for(i in 1:nrow(projects)) {
-    p.id <- projects$id[i]
+
+  for(i in 1:nrow(project.data)) {
+    project <- project.data[i,]
+    p.id <- project$id
+    project.name <- project$name
+    analysis.method <- project$analysis.method
     p.ranges <- data.frame(range.ids=range.data[[i]]$range.id,
-                           range.cycles=range.data[[i]]$cycle)
+                           range.start=round_date(range.data[[i]]$date.start,'day'),
+                           range.end=round_date(range.data[[i]]$date.end,'day'))
+
+    ## Check if revision has an associate graph
+    range.has.graph <- sapply(p.ranges$range.ids,
+                              function(range.id) {
+                                g.id <- query.global.collab.con(con, p.id, range.id)
+                                return(!is.null(g.id))
+                              })
+
+    ## Keep only the revisions that have graphs
+    p.ranges <- p.ranges[range.has.graph,]
 
     graph.data <- apply(p.ranges, 1,function(r) {
           r.id <- as.character(r["range.ids"])
-          cycle <- as.character(r["range.cycles"])
+          cycle <- paste(r['range.start'], r['range.end'], sep='-')
           graph <- get.graph.data.local(con, p.id, r.id, cluster.method)
           graph$p.id <- p.id
           graph$range.id <- r.id
           graph$cycle <- cycle
+          graph$project.name <- project.name
+          graph$analysis.method <- analysis.method
           return(graph)
           })
 
@@ -515,6 +543,9 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
                          g$graph <- graph.comm$graph
                          g$comm <- graph.comm$community
                          return(g)})
+
+    ## Remove graphs that have no communities
+    graph.data <- graph.data[sapply(graph.data, function(g) return(!is.null(g$comm)))]
     
     graph.data <- lapply(graph.data, function(g) {
                          g$stats <- compute.community.metrics(g$graph,  g$comm,
@@ -525,14 +556,14 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
     df.list <- lapply(graph.data, function(g) {
                                     stats <- g$stats
                                     row <- list()
-				    ## Meta Data
+				                            ## Meta Data
                                     row$project <- g$p.id
                                     row$cycle <- g$cycle
                                     ## Global graph
                                     row$diameter <- stats$diameter 
                                     row$vcount <- stats$vcount
-                                    row$p.rank.mean <- mean(stats$p.rank)
-                                    row$p.rank.sd <- sd(stats$p.rank)
+                                    row$p.rank.mean <- mean(stats$page.rank)
+                                    row$p.rank.sd <- sd(stats$page.rank)
                                     row$deg.mean <- mean(stats$v.degree)
                                     row$c.coef <- mean(stats$clust.coeff)
                                     row$conductance.mean <- stats$mean.conductance
@@ -544,13 +575,13 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
                                     row$inter.bet.mean <- mean(stats$inter.betweenness)
                                     row$inter.tran.mean <- mean(stats$inter.transitivity)
 					
-			            ## Intra Community
+			                              ## Intra Community
                                     row$diameter.mean <- mean(stats$intra.diameter)
                                     row$intra.bet.mean <- mean(unlist(stats$intra.betweenness))
                                     row$intra.tran.mean <- mean(unlist(stats$intra.transitivity))
                                     df <- data.frame(row)
                                     return(df)})
-     
+
     projects.df.list[[i]] <- do.call("rbind", df.list)
     ## Handle higher dimensional data differently
     project.list[[i]] <- graph.data    
@@ -603,6 +634,57 @@ plot.project.trends <- function(g.trends) {
 
 }
 
+plot.box <- function(project.data, feature, outdir) {
+  cycles <- do.call(rbind, lapply(project.data, 
+                                  function(p) data.frame(cycle=p$cycle)))
+  analysis.method <- project.data[[1]]$analysis.method
+  project.name <- project.data[[1]]$project.name
+  graph.feature <- lapply(project.data, 
+                          function(g) return(g$stats[feature]))
+
+  df <- melt(graph.feature)
+  names(df) <- c("value", 'feature',"row.id")
+  df <- merge(df, cycles, by.x='row.id', by.y='row.names')
+  df$cycle <- as.factor(df$cycle)
+
+  p0 <- ggplot(df, aes(x=cycle, y=value)) + geom_boxplot(outlier.shape = NA) + ylab(feature) + 
+    xlab("Revision") + labs(title=project.name) + expand_limits(y=0) +
+    theme(axis.text.x = element_text(family="Arial Narrow", 
+                                     colour="black",size=12,angle=60,
+                                     hjust=.6,vjust=.7,face="plain"))
+  #ylim1 <- boxplot.stats(df$rank)$stats[c(1,5)]
+  #ylim1[1] <- 0
+  #p1 = p0 + coord_cartesian(ylim = ylim1*1.05)
+  file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
+  dir.create(file.dir)
+  file.name <- paste(file.dir, "/", feature, ".png",sep="")
+  ggsave(file.name, p0, height=8, width=11)
+
+}
+
+plot.series <- function(project.data, feature, outdir) {
+  cycles <- do.call(rbind, lapply(project.data, 
+                                  function(p) data.frame(cycle=p$cycle)))
+  analysis.method <- project.data[[1]]$analysis.method
+  project.name <- project.data[[1]]$project.name
+  graph.feature <- lapply(project.data, 
+                          function(g) return(g$stats[feature]))
+  df <- melt(graph.feature)
+  names(df) <- c('value', 'feature', 'row.id')
+  df <- merge(df, cycles, by.x='row.id', by.y='row.names')
+  df$cycle <- as.factor(df$cycle)
+  p <- ggplot(df, aes(x=cycle, y=value)) + geom_point(color= I('black')) + ylab(feature) + 
+              xlab("Revision") + labs(title=project.name) + expand_limits(y=0) +
+              theme(axis.text.x = element_text(family="Arial Narrow", 
+                                     colour="black",size=12,angle=60,
+                                     hjust=.6,vjust=.7,face="plain"))
+  
+  file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
+  dir.create(file.dir)
+  file.name <- paste(file.dir, "/", feature, ".png",sep="")
+  ggsave(file.name, p, height=8, width=11)
+}
+
 plot.page.rank <- function(project.data) {
   cycles <- sapply(1:length(project.data), function(x) project.data[[x]]$cycle)
   cycles <- sapply(cycles, function(x) strsplit(x, split="-")[[1]][1])
@@ -611,8 +693,8 @@ plot.page.rank <- function(project.data) {
                                       stats <- g$stats
                                       return (stats$p.rank)    
                                     })
- 
-  p.rank.median <- sapply(p.rank.list, function(x) median(x))
+
+  p.rank.median <- sapply(p.rank.list, function(x) mhedian(x))
   p.rank.med.df <- data.frame(cycles, p.rank.median)
 
   median.plot <- ggplot(p.rank.med.df, aes(x=cycles, y=p.rank.median)) + 
@@ -640,3 +722,25 @@ plot.page.rank <- function(project.data) {
 
 }
 
+run.trends.analysis <- function (con) {
+  outdir <- "/home/mitchell/workspace/trends"
+  trends <- generate.graph.trends(con)
+  metrics.box <- c('cluster.coefficient',
+                   'betweenness.centrality',
+                   'conductance',
+                   'page.rank')
+  metrics.series <- c('diameter',
+                      'average.path.len',
+                      'num.communities',
+                      'num.vertices',
+                      'inter.diameter',
+                      'modularity')
+
+  ## Generate and save box plots
+  lapply(trends, function(t) sapply(metrics.box, function(m) plot.box(t, m, outdir)))
+   
+  ## Generate and save series plots
+  lapply(trends, function(t) sapply(metrics.series, function(m) plot.series(t, m, outdir)))
+  
+  return(0)
+}
