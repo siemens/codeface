@@ -234,7 +234,7 @@ query.cluster.ids <- function(conf, range.id, cluster.method) {
 
 ## Cluster -1 is not a proper cluster, but contains the global
 ## collaboration structure
-query.global.collab.con <- function(con, pid, range.id, cluster.method) {
+query.global.collab.con <- function(con, pid, range.id, cluster.method="Spin Glass Community") {
   dat <- dbGetQuery(con, str_c("SELECT id FROM cluster WHERE ",
                                "projectId=", pid, " AND releaseRangeId=",
                                range.id, " AND clusterMethod=",
