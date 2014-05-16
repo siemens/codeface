@@ -91,8 +91,12 @@ load.config <- function(global.file, project.file=NULL) {
     stop("Malformed configuration: sloccount field needs a boolean value!")
   }
 
-  if(length(conf$revisions) < 2) {
-    stop("Malformed configuration: Revision list must include at least 2 commits!")
+  ## It is possible to specify no revision at all; in this case,
+  ## revisisons will be created automatically at fixed time periods.
+  ## If revisions are specified, we need at least 2, though. This
+  ## leaves one single commit as only invalid option
+  if(length(conf$revisions) == 1) {
+    stop("Malformed configuration: Revision list must include either 0 or at least 2 commits!")
   }
 
   if (length(conf$rcs) > 0 && (length(conf$revisions) != length(conf$rcs))) {
