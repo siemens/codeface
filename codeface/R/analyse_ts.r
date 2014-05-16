@@ -236,35 +236,41 @@ do.cluster.analysis <- function(resdir, graphdir, conf,
                                      function(conf, i) {
     clusters.stats <- compute.release.clusters.stats(conf, cycles$range.id[[i]],
                                                      cluster.method)
-    clusters.stats$cycle <- cycles$cycle[[i]]
 
-    return(clusters.stats)
+    ## NOTE: clusters.stats can return an empty list, which happens when
+    ## there are no clusters. Return a NULL element in this case.
+    if(!is.null(clusters.stats)) {
+        clusters.stats$cycle <- cycles$cycle[[i]]
+    }
+
+    return (clusters.stats)
   })
 
   dummy <- mclapply(seq_along(clusters.stats.list), function(i) {
     range.id <- cycles$range.id[[i]]
-    if (is.null(clusters.stats.list[[i]]))
-      next
-
     clusters.stats <- clusters.stats.list[[i]]
 
     ## Create release-specific plots
     ## NOTE: We need to decide if it's statistically acceptable
     ## to sqrt-transform a boxplot. Purists would deem it inappropriate,
     ## but I'm not sure if we should just ignore these voices in our heads.
-    g <- ggplot(clusters.stats, aes(x=cluster.id, y=rankValue)) +
-      geom_boxplot(position="dodge") + scale_y_log10() + xlab("Cluster No.") +
-        ylab("Page rank (median)")
-    ggsave(file.path(graphdir, paste("cluster_prank_", conf$boundaries$tag[i],
-                                     ".pdf", sep="")),
-           g, width=7, height=7)
+    if (!is.null(clusters.stats)) {
+        g <- ggplot(clusters.stats, aes(x=cluster.id, y=rankValue)) +
+            geom_boxplot(position="dodge") + scale_y_log10() +
+                xlab("Cluster No.") + ylab("Page rank (median)")
+        ggsave(file.path(graphdir, paste("cluster_prank_",
+                                         conf$boundaries$tag[i],
+                                         ".pdf", sep="")),
+               g, width=7, height=7)
 
-    g <- ggplot(clusters.stats, aes(x=cluster.id, y=total)) +
-      geom_boxplot(position="dodge") + scale_y_sqrt() + xlab("Cluster No.") +
-        ylab("Amount of code changes (add+del)")
-    ggsave(file.path(graphdir, paste("cluster_code_changes_",
-                                     conf$boundaries$tag[i], ".pdf", sep="")),
-           g, width=7, height=7)
+        g <- ggplot(clusters.stats, aes(x=cluster.id, y=total)) +
+            geom_boxplot(position="dodge") + scale_y_sqrt() +
+                xlab("Cluster No.") + ylab("Amount of code changes (add+del)")
+        ggsave(file.path(graphdir, paste("cluster_code_changes_",
+                                         conf$boundaries$tag[i], ".pdf",
+                                         sep="")),
+               g, width=7, height=7)
+    }
   })
 
 
