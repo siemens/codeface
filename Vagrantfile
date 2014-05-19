@@ -30,7 +30,7 @@ sudo mysql -ucodeface -pcodeface < datamodel/codeface_schema.sql
 
 # Generic packages
 sudo apt-get -qq -y install python-mysqldb sinntp texlive default-jdk \
-                            python-dev \
+                            python-dev graphviz \
                             exuberant-ctags git subversion \
                             libgles2-mesa python-pip sloccount
 
@@ -56,15 +56,23 @@ sudo R CMD javareconf
 sudo cp .Rprofile ~/.Rprofile
 sudo R --save < packages.R 
 
-sudo python setup.py develop --user
 sudo -E npm install -g \
         https://github.com/JohannesEbke/shiny-server/archive/no-su.tar.gz
-shiny-server shiny-server.config &
 
-# TODO: setup the missing stuff
 
 echo "provisioning of Codeface done."
 echo "see http://siemens.github.io/codeface/ for further info"
+
+echo "now do these steps:"
+echo "vagrant ssh"
+echo "cd /vagrant"
+echo "mkdir repos result"
+echo "cd repos ; git clone http://git-wip-us.apache.org/repos/asf/thrift.git ; cd .."
+echo "nodejs id_service/id_service.js codeface.conf &"
+echo "python setup.py develop --user"
+echo "~/.local/bin/codeface run -c /vagrant/codeface.conf -p conf/apache_thrift.conf result repos"
+echo "shiny-server shiny-server.config &"
+
 SCRIPT
 
 Vagrant.configure("2") do |config|
