@@ -550,6 +550,7 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
     graph.data <- lapply(graph.data, function(g) {
                          g$stats <- compute.community.metrics(g$graph,  g$comm,
                                                               construct.method)
+                         g$stats$page.rank <- g$rank
                          return(g)})
     
     ## create data frame for scalar graph measures
@@ -652,13 +653,16 @@ plot.box <- function(project.data, feature, outdir) {
     theme(axis.text.x = element_text(family="Arial Narrow", 
                                      colour="black",size=12,angle=60,
                                      hjust=.6,vjust=.7,face="plain"))
-  #ylim1 <- boxplot.stats(df$rank)$stats[c(1,5)]
-  #ylim1[1] <- 0
-  #p1 = p0 + coord_cartesian(ylim = ylim1*1.05)
+  up.lim <- max(unlist(lapply(split(df$value, df$cycle), function(x) boxplot.stats(x)$stats[c(2,4)])))
+  print(up.lim)
+  ylim1 <- boxplot.stats(df$value)$stats[c(2,4)]
+  ylim1[2] <- up.lim
+  ylim1[1] <- 0
+  p1 = p0 + coord_cartesian(ylim = ylim1*1.05)
   file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
   dir.create(file.dir)
   file.name <- paste(file.dir, "/", feature, ".png",sep="")
-  ggsave(file.name, p0, height=8, width=11)
+  ggsave(file.name, p1, height=8, width=11)
 
 }
 
