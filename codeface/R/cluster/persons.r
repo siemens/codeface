@@ -751,6 +751,11 @@ save.groups <- function(conf, .tags, .iddb, .comm, .prank.list, .basedir,
 
     if (class(.comm) == "communities") {
       idx <- as.vector(which(.comm$membership==i))
+
+      ## Do not store clusters of size one
+      if(length(idx) < 2) {
+        next
+      }
     }
     else if(class(.comm) == "overlapComm") {
       idx <- as.vector(.comm[[i]])
