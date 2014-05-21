@@ -688,7 +688,12 @@ save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label) {
   }
 
   if (!is.null(.filename)) {
-    write.graph(g, .filename, format="dot")
+    ## Scale edge weights, extremely large weights will cause graphviz to
+    ## fail during rendering
+    g.scaled <- g
+    E(g.scaled)$weights <- scale.data(log(E(g.scaled)$weights + 1), 0, 100)
+    
+    write.graph(g.scaled, .filename, format="dot")
   }
 
   return(g)
