@@ -661,7 +661,7 @@ save.group <- function(conf, .tags, .iddb, idx, .prank, .filename=NULL, label) {
     colnames(subset) <- 1:ncol(subset)
   }
 
-  g <- graph.adjacency(subset, mode="directed")
+  g <- graph.adjacency(subset, mode="directed", weighted=TRUE)
 
   ## as.character is important. The igraph C export routines bark
   ## otherwise (not sure what the actual issue is)
