@@ -753,7 +753,7 @@ class gitVCS (VCS):
             #the lines we want to match start with a commit hash
             if(self.cmtHashPattern.match( line[0] ) ):
 
-               lineNum    = line[2]
+               lineNum    = str(int(line[2]) - 1)
                commitHash = line[0]
 
                commitLineDict[lineNum] = commitHash
@@ -986,7 +986,9 @@ class gitVCS (VCS):
 
         while(tags.next(entry)):
             if entry['kind'] in structures:
-                funcLines[int(entry['lineNumber'])] = entry['name']
+                ## Ctags indexes starting at 1
+                lineNum = int(entry['lineNumber']) - 1
+                funcLines[lineNum] = entry['name']
 
         # clean up temporary files
         srcFile.close()
