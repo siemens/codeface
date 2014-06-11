@@ -80,7 +80,8 @@ class VCS:
     def __init__(self):
         # "None" represents HEAD for end and the inital
         # commit for start
-        self.rev_startDate = None;
+        self._rev_start_date = None;
+        self._rev_end_date = None;
         self.rev_start     = None;
         self.rev_end       = None;
         self.repo          = None
@@ -115,7 +116,10 @@ class VCS:
         return self._commit_dict
 
     def getRevStartDate(self):
-        return self.rev_startDate
+        return self._rev_start_date
+
+    def getRevEndDate(self):
+        return self._rev_end_date
 
     def getCommitDate(self, rev):
         return self._getCommitDate(rev)
@@ -393,6 +397,12 @@ class gitVCS (VCS):
         for cmt in self._commit_list_dict["__main__"]:
             self._commit_dict[cmt.id] = cmt
 
+        # Retrieve the dates for the first and last commits,
+        # relies on sorting of commits based on commit date
+        first_cmt = self._commit_list_dict["__main__"][0]
+        last_cmt = self._commit_list_dict["__main__"][-1]
+        self._rev_start_date = min(first_cmt.getCdate(), last_cmt.getCdate())
+        self._rev_end_date = max(first_cmt.getCdate(), last_cmt.getCdate())
 
     def _Logstring2ID(self, str):
         """Extract the commit ID from a log string."""
@@ -849,11 +859,6 @@ class gitVCS (VCS):
 
         #end for fnameList
         pbar.finish()
-
-        #find the date of earliest commit made for this revision
-        #Check if time zones influence this or its already normalized
-        self.rev_startDate = min( [cmt.getCdate() for cmt in self._commit_dict.values()] )
-
 
         #-------------------------------
         #capture old commits
