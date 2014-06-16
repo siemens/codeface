@@ -155,7 +155,7 @@ See `bugextractor/INSTALL` for all java-related details.
 
 * The ID service requires a few node.js packages. Install them by running
 
-        npm install addressparser express js-yaml mysql
+        npm install addressparser express js-yaml mysql body-parser
 
   in the `id_service` directory.
 
