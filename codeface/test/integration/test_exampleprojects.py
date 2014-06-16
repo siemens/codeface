@@ -22,6 +22,7 @@ from textwrap import dedent
 from os.path import dirname, join as pathjoin
 from pkg_resources import load_entry_point
 
+from codeface.logger import set_log_level, start_logfile, log
 from .example_projects import example_project_func
 from codeface.project import project_analyse, mailinglist_analyse
 from codeface.configuration import Configuration
@@ -95,7 +96,10 @@ class EndToEndTestSetup(unittest.TestCase):
         self.logfile = pathjoin(path, ".git", "log")
         self.recreate = False
         # This config_file is added in the codeface test command handler
-        self.codeface_conf = self.config_file
+        if hasattr(self, 'config_file'):
+            self.codeface_conf = self.config_file
+        else:
+            self.codeface_conf = 'codeface_testing.conf'
         conf = Configuration.load(self.codeface_conf, self.project_conf)
         dbm = DBManager(conf)
         for table in pid_tables + other_tables:
