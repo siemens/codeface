@@ -2,13 +2,16 @@ require(arules)
 require(plyr)
 require(parallel)
 require(ggplot2)
+require(reshape)
 
 source("db.r")
 source("config.r")
 
 ## Global Constants
 cores <- 4
-rule.support <- 4
+rule.support <- 2.5
+entity.threshold <- 50
+
 ## Experiments
 ## Naviation
 navigation <- 'navigation'
@@ -49,7 +52,7 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date)
   ##        a single commit. Often one would want to eliminate commits
   ##        that touch a very large number of files because the nature
   ##        of them is unique (e.g., change licence information)
-  query <- str_c("SELECT commit.id, entityName, entityType, size ",
+  query <- str_c("SELECT commit.id, file, entityId, entityType, size ",
                  "FROM commit, commit_dependency ",
                  "WHERE commit.id = commit_dependency.commitId ",
                  "AND commit.projectId=", project.id, " ",
@@ -60,6 +63,13 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date)
                  "ORDER BY commit.id ASC")
 
   dat <- dbGetQuery(con, query)
+  cols <- c('file', 'entityId')
+
+  if(nrow(dat) > 0) {
+    dat$entity <- apply(dat[,cols], 1, paste, collapse="/")
+  }
+
+  dat <- dat[, !names(dat) %in% cols]
 
   return(dat)
 }
@@ -90,9 +100,9 @@ aggregate.commit.dependencies <- function(depend.df) {
     ## under some cases we get duplicate dependencies for a single
     ## commit. This can happen when an entity with the same identifier
     ## is defined in two places in the same file.
-    depend.df.no.dups <- ddply(depend.df, .(id, entityName), function(r) sum(r['size']))
+    depend.df.no.dups <- ddply(depend.df, .(id, entity), function(r) sum(r['size']))
 
-    depend.list <- split(depend.df.no.dups$entityName, depend.df.no.dups$id)
+    depend.list <- split(depend.df.no.dups$entity, depend.df.no.dups$id)
   }
 
   return(depend.list)
@@ -100,8 +110,6 @@ aggregate.commit.dependencies <- function(depend.df) {
 
 
 generate.rules <- function(depend.list) {
-  print("Computing association rules...")
-
   ## create transations object
   entity.trans <- as(depend.list, "transactions")
 
@@ -141,10 +149,11 @@ check.rule <- function(rules, query, expected) {
   if(!is.null(query) && length(rules) != 0 && all(items.present)) {
     #rules.subset <- subset(rules, subset = lhs %in% query)
     match.lhs <- sapply(as(rules@lhs, 'list'), function(lhs) setequal(lhs, query))
-    #print(match.lhs)
-    rules.subset <- subset(rules, subset=match.lhs)
+    consequent <- unlist(as(rules@rhs, 'list')[match.lhs])
 
-    consequent <- unlist(as(rules.subset@rhs, 'list'))
+    #rules.subset <- subset(rules, subset=match.lhs)
+
+    #consequent <- unlist(match.rhs) #unlist(as(rules.subset@rhs, 'list'))
 
     intersect <- intersect(expected, consequent)
 
@@ -168,14 +177,22 @@ check.rule <- function(rules, query, expected) {
     } else{
       precision <- length(intersect) / consequent.card
     }
+
+    antecedent_str <- paste(query, collapse=' ')
+    consequent_str <- paste(consequent, collapse=' ')
+    expected_str <- paste(expected, collapse=' ')
   } else {
     ## Query contains items that have never been seen before,
     ## therefore we cannot assign reasonable values
     precision <- NA
     recall <- NA
+    consequent_str <- NA
+    antecedent_str <- NA
+    expected_str <- NA
   }
 
-  res <- list(precision=precision, recall=recall)
+  res <- list(precision=precision, recall=recall, antecedent=antecedent_str,
+              consequent=consequent_str, expected=expected_str)
 
   return(res)
 }
@@ -220,13 +237,9 @@ generate.all.queries <- function(all.transactions) {
 }
 
 compute.precision.recall <- function(rules, all.queries, type){
-
-  print("Computing precision and recall")
-
   ## get all navigation queries
   query.list <- sapply(all.queries, function(q) q[type])
   query.list <- unlist(query.list, recursive=FALSE)
-
   ## compute precisions and recall
   prec.rec <- mclapply(query.list, mc.cores=cores,
                        function(x) check.rule(rules, unlist(x$query), x$exp))
@@ -237,14 +250,14 @@ compute.precision.recall <- function(rules, all.queries, type){
 perform.analysis <- function(project.id, start.date, training.span, evaluation.span, con) {
   ## compute timelines
   training.start.date <- start.date
-  training.end.date <- training.start.date + months(training.span)
+  training.end.date <- training.start.date + training.span
   evaluation.start.date <- training.end.date
-  evaluation.end.date <- evaluation.start.date + weeks(evaluation.span)
+  evaluation.end.date <- evaluation.start.date + evaluation.span
   evaluation.period <- paste(evaluation.start.date, evaluation.end.date, sep="-")
 
   ## Query database for dependency training data and limit maximium number
   ## of files edited by one commit to less than or equal to 30
-  commit.file.edit.limit <- 10
+  commit.file.edit.limit <- 30
   depend.training.df <- query.dependency(con, project.id, 'Function', commit.file.edit.limit,
                                          training.start.date, training.end.date)
 
@@ -255,11 +268,15 @@ perform.analysis <- function(project.id, start.date, training.span, evaluation.s
   #                                             min(nrow(depend.evaluation.df),50)), ]
 
   ## Trim the training set to relavent transactions
-  depend.training.trimmed.df <-remove.extraneous.commits(depend.training.df, depend.evaluation.df)
+  depend.training.trimmed.df <- remove.extraneous.commits(depend.training.df,
+                                                          depend.evaluation.df)
 
   ## Compute transations
   depend.training.list <- aggregate.commit.dependencies(depend.training.trimmed.df)
   depend.evaluation.list <- aggregate.commit.dependencies(depend.evaluation.df)
+  ## Remove large commits
+  depend.training.list <- remove.large.commits(depend.training.list, entity.threshold)
+  depend.evaluation.list <- remove.large.commits(depend.evaluation.list, entity.threshold)
 
   ## Check preconditions
   ## The training data and evaluation data must satisfy a mimumum set
@@ -276,18 +293,27 @@ perform.analysis <- function(project.id, start.date, training.span, evaluation.s
     ## Generate the evaluation queries and expected values
     queries <- generate.all.queries(depend.evaluation.list)
 
+    save(rules, file='/home/mitchell/workspace/depend/temp_rules.dat')
     ## Compute precision and recall for different experiments
     res <- lapply(experiments, function(ex) compute.precision.recall(rules, queries, ex))
     names(res) <- experiments
+    save(res,file='/home/mitchell/workspace/depend/temp_recall_precision.dat')
 
     ## Add results to dataframe
     for (ex in experiments) {
       recall <- sapply(unlist(res[ex], recursive=FALSE, use.names=FALSE),
-                       function(i) i$recall)
+                       function(i) i[['recall']])
       precision <- sapply(unlist(res[ex], recursive=FALSE, use.names=FALSE),
-                          function(i) i$precision)
+                          function(i) i[['precision']])
+      antecedent <- sapply(unlist(res[ex], recursive=FALSE, use.names=FALSE),
+                          function(i) i[['antecedent']])
+      consequent <- sapply(unlist(res[ex], recursive=FALSE, use.names=FALSE),
+                           function(i) i[['consequent']])
+      expected <- sapply(unlist(res[ex], recursive=FALSE, use.names=FALSE),
+                         function(i) i[['expected']])
       ex.df <- data.frame(experiment=ex, evaluation.period=evaluation.period,
-                          recall=recall, precision=precision)
+                          recall=recall, precision=precision, antecedent=antecedent,
+                          consequent=consequent, expected=expected)
       res.df <- rbind(res.df, ex.df)
     }
   }
@@ -298,8 +324,9 @@ perform.analysis <- function(project.id, start.date, training.span, evaluation.s
 
 run.analysis <- function(project.id) {
 
-  if(!exists('con')) {
+  if(!exists('dbcon')) {
     con <- connect.db("../../codeface.conf")$con
+    dbcon <- TRUE
   }
   ## Time constants
   ## TODO: check how long of a span is needed, using the
@@ -310,8 +337,8 @@ run.analysis <- function(project.id) {
   ## useful rules for the additional commits. Make a formal
   ## analysis of the potential for useful rules using the
   ## overlap principle.
-  training.span <- 12 # Months
-  evaluation.span <- 2 #weeks
+  training.span <- ddays(365) # Months
+  evaluation.span <- ddays(1) #Days
 
   ## Query commit date range
   date <- query.commit.date.range(con, project.id)
@@ -321,10 +348,10 @@ run.analysis <- function(project.id) {
   end.date <- round_date(end.date, 'day')
 
   ## Calculate time intervals
-  window_delta = 1 #weeks
-  latest.possible.start.date <- end.date - months(training.span) - weeks(evaluation.span)
-  n.inter <- floor((latest.possible.start.date - start.date) / dweeks(window_delta))
-  intervals <- lapply(0:n.inter, function(x) start.date + weeks(x*window_delta))
+  window_delta = ddays(1) #days
+  latest.possible.start.date <- end.date - training.span - evaluation.span
+  n.inter <- floor((latest.possible.start.date - start.date) / window_delta)
+  intervals <- lapply(0:n.inter, function(x) start.date + (x*window_delta))
 
   ## Perform recall and precision computation for all intervals
   res.list <- lapply_pb(intervals, function(start.date) {
@@ -362,7 +389,7 @@ check.conditions <- function(training.data, evaluation.data) {
   training.size.condition <- length(training.data) > 10
 
   ## There must be at least one evaluation
-  evaluation.size.condition <- length(evaluation.data) > 1
+  evaluation.size.condition <- length(evaluation.data) > 0
 
   ## The evaluation cannot be too small otherwise the result
   ## will contain empty expectations or empty queries
@@ -380,6 +407,18 @@ check.conditions <- function(training.data, evaluation.data) {
 }
 
 
+remove.large.commits <- function(commit.list, threshold) {
+  res <- list()
+
+  if(length(commit.list) != 0) {
+    keep <- sapply(commit.list, function(c) length(c) <= threshold)
+    res <- commit.list[keep]
+  }
+
+  return(res)
+}
+
+
 remove.extraneous.commits <- function(training.df, evaluation.df) {
   ## Remove commits that will not result in producing rules
   ## that contribute to preductions on the evaluation commits.
@@ -387,11 +426,11 @@ remove.extraneous.commits <- function(training.df, evaluation.df) {
   if(nrow(evaluation.df) == 0) {
     training.trimmed.df <- data.frame()
   } else {
-    evaluation.entity <- unique(evaluation.df[,'entityName'])
+    evaluation.entity <- unique(evaluation.df[,'entity'])
 
     training.trimmed.df <- ddply(training.df, .(id),
                                  function(r) {
-                                   keep <- any(r[,'entityName'] %in% evaluation.entity)
+                                   keep <- any(r[,'entity'] %in% evaluation.entity)
                                    if(keep) res <- r
                                    else res <- data.frame()})
   }
@@ -400,16 +439,24 @@ remove.extraneous.commits <- function(training.df, evaluation.df) {
 
 
 save.results <- function(pr.df) {
+
+  ## Compute x-axis ticks for time series
+  times <- unique(pr.df[,'evaluation.period'])
+  step <- floor(length(times)/10)
+  labels <- sapply(seq(1,length(times), step), function(x) times[[x]])
+
   ## Plot precision and recall values for all experiments
   reca.plot <- ggplot(aes(y=recall, x=evaluation.period, fill=experiment), data=res) +
-                      geom_boxplot() + theme(axis.text.x=element_text(angle=45,hjust=1)) +
+                      geom_boxplot() + theme(axis.text.x=element_text(angle=45,hjust=0.5)) +
                       ylab('Recall') +
-                      xlab('Evaluation Period')
+                      xlab('Evaluation Period') +
+                      scale_x_discrete(breaks=labels)
 
   prec.plot <- ggplot(aes(y=precision, x=evaluation.period, fill=experiment), data=res) +
-                      geom_boxplot() + theme(axis.text.x=element_text(angle=45,hjust=1)) +
+                      geom_boxplot() + theme(axis.text.x=element_text(angle=45,hjust=0.5)) +
                       ylab('Precision') +
-                      xlab('Evaluation Period')
+                      xlab('Evaluation Period') +
+                      scale_x_discrete(breaks=labels)
 
   ## Get macro evaluation for recal and precision
   ## avaerage precision, NA in the precision indicates
@@ -417,13 +464,17 @@ save.results <- function(pr.df) {
   ## compute sum precision
   desc.stats <- ddply(pr.df, .(evaluation.period,experiment),
                      function(df) {
+                       ## Remove rows with NA in recall and precision
+                       keep.row <- !(is.na(df[,'recall']) & is.na(df[,'precision']))
+                       df <- df[keep.row,]
                        experiment <- df[1,'experiment']
                        period <- df[1,'evaluation.period']
                        precision <- df[,'precision']
                        recall <- df[,'recall']
-                       sum.pre <- sum(precision, na.rm=TRUE)
-                       sum.rec <- sum(recall, na.rm=TRUE)
-                       z_nonempty <- sum(!is.na(precision))
+                       non.empty <- !is.na(precision)
+                       sum.pre <- sum(precision[non.empty], na.rm=TRUE)
+                       sum.rec <- sum(recall[non.empty], na.rm=TRUE)
+                       z_nonempty <- sum(non.empty)
                        z_total <- nrow(df)
                        avg.pre <- sum.pre / z_nonempty
                        avg.rec <- sum.rec / z_nonempty
@@ -437,16 +488,12 @@ save.results <- function(pr.df) {
 
   desc.stats <- melt(desc.stats, id=c('evaluation.period','experiment'))
 
-  times <- unique(desc.stats[,'evaluation.period'])
-  step <- floor(length(times)/10)
-  labels <- sapply(seq(1,length(times), step), function(x) times[[x]])
-
   desc.stats.plot <-  ggplot(desc.stats,
                              aes(y=value, x=evaluation.period, shape=experiment,
                                   color=variable)) +
                              geom_point() +
                              scale_x_discrete(breaks=labels) +
-                             theme(axis.text.x=element_text(angle=45, hjust=1))
+                             theme(axis.text.x=element_text(angle=0, hjust=0.5))
 
   ## Get percentage of unknown queries
   compute.percent.na <- function(df) {
@@ -461,17 +508,18 @@ save.results <- function(pr.df) {
   percent.na.df <- ddply(pr.df, ~evaluation.period, compute.percent.na)
   percent.na.plot <- ggplot(percent.na.df, aes(x=evaluation.period, y=percent)) +
                             geom_point(size=3, color='red') +
-                            theme(axis.text.x=element_text(angle=45,hjust=1)) +
+                            theme(axis.text.x=element_text(angle=45,hjust=0.5)) +
                             ylab('Percent Unseen Development') +
-                            xlab('Evaluation Period')
+                            xlab('Evaluation Period') +
+                            scale_x_discrete(breaks=labels)
 
    ## Save plots to files
    ggsave(filename='/home/mitchell/workspace/depend/precision.png', plot=prec.plot,
-          width=11, height=8)
+          width=20, height=8)
    ggsave(filename='/home/mitchell/workspace/depend/recall.png', plot=reca.plot,
-          width=11, height=8)
+          width=20, height=8)
    ggsave(filename='/home/mitchell/workspace/depend/unseen.png', plot=percent.na.plot,
-          width=11, height=8)
+          width=20, height=8)
    ggsave(filename='/home/mitchell/workspace/depend/means.png', plot=desc.stats.plot,
           width=20, height=8)
 
@@ -481,3 +529,5 @@ save.results <- function(pr.df) {
 ## Main ##
 res <- run.analysis(3)
 save.results(res)
+non.na.rows <- !(is.na(res[,'precision']) | is.na(res[,'recall']))
+save(res[non.na.rows,],file='/home/mitchell/workspace/depend/rule_analysis.dat')
