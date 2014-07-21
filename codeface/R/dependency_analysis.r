@@ -438,7 +438,7 @@ remove.extraneous.commits <- function(training.df, evaluation.df) {
 }
 
 
-save.results <- function(pr.df) {
+save.results <- function(pr.df, outdir) {
 
   ## Compute x-axis ticks for time series
   times <- unique(pr.df[,'evaluation.period'])
@@ -514,20 +514,18 @@ save.results <- function(pr.df) {
                             scale_x_discrete(breaks=labels)
 
    ## Save plots to files
-   ggsave(filename='/home/mitchell/workspace/depend/precision.png', plot=prec.plot,
+   ggsave(filename=paste(outdir,precision.png, sep="/"), plot=prec.plot,
+          width=11, height=8)
+   ggsave(filename=paste(outdir, recall.png, sep="/"), plot=reca.plot,
+          width=11, height=8)
+   ggsave(filename=paste(outdir, unseen.png, sep="/"), plot=percent.na.plot,
+          width=11, height=8)
+   ggsave(filename=paste(outdir, means.png, sep="/"), plot=desc.stats.plot,
           width=20, height=8)
-   ggsave(filename='/home/mitchell/workspace/depend/recall.png', plot=reca.plot,
-          width=20, height=8)
-   ggsave(filename='/home/mitchell/workspace/depend/unseen.png', plot=percent.na.plot,
-          width=20, height=8)
-   ggsave(filename='/home/mitchell/workspace/depend/means.png', plot=desc.stats.plot,
-          width=20, height=8)
-
-
 }
 
 ## Main ##
 res <- run.analysis(3)
-save.results(res)
+save.results(res, outdir)
 non.na.rows <- !(is.na(res[,'precision']) | is.na(res[,'recall']))
 save(res[non.na.rows,],file='/home/mitchell/workspace/depend/rule_analysis.dat')
