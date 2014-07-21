@@ -655,7 +655,7 @@ plot.box <- function(project.data, feature, outdir) {
                                      colour="black",size=12,angle=60,
                                      hjust=.6,vjust=.7,face="plain"))
   up.lim <- max(unlist(lapply(split(df$value, df$cycle), function(x) boxplot.stats(x)$stats[c(2,4)])))
-  print(up.lim)
+
   ylim1 <- boxplot.stats(df$value)$stats[c(2,4)]
   ylim1[2] <- up.lim
   ylim1[1] <- 0
