@@ -456,7 +456,7 @@ compute.community.metrics <- function(g, comm, link.type=NULL) {
   ## Global graph features
   global.df <- data.frame()
   res$cluster.coefficient <- transitivity(g, type="local", isolates='zero')
-  res$betweenness.centrality <- log(betweenness(g, directed=FALSE)/ sum(get.adjacency(g)))
+  res$betweenness.centrality <- betweenness(g, directed=FALSE, normalize=TRUE)
   res$page.rank <- seq(1,100)#page.rank(g, directed=FALSE)$vector  
   res$average.path.len <- average.path.length(g, directed=FALSE)
   res$v.degree <- igraph::degree(g, mode="all")
