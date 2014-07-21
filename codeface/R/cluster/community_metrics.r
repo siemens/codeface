@@ -645,6 +645,7 @@ plot.box <- function(project.data, feature, outdir) {
 
   df <- melt(graph.feature)
   names(df) <- c("value", 'feature',"row.id")
+  df$value <- remove.outliers(df$value)
   df <- merge(df, cycles, by.x='row.id', by.y='row.names')
   df$cycle <- as.factor(df$cycle)
 
@@ -747,4 +748,12 @@ run.trends.analysis <- function (con) {
   lapply(trends, function(t) sapply(metrics.series, function(m) plot.series(t, m, outdir)))
   
   return(0)
+}
+
+remove.outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.97), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x > (qnt + H)] <- NA
+  return(y)
 }
