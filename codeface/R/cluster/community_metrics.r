@@ -480,9 +480,9 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
                                   construct.method="prox") {
   project.data   <- data.frame(id=c(18,23,37,38,39)) #query.projects(con) 
   project.data$name <- apply(project.data, 1, 
-                             function(p.id) query.project.name(con, p.id))
+                             function(r) query.project.name(con, r[['id']]))
   project.data$analysis.method <- apply(project.data, 1, 
-                                        function(p.id) query.project.analysis.method(con, p.id))
+                                        function(r) query.project.analysis.method(con, r[['id']]))
   range.data <- lapply(project.data$id, function(p.id) get.cycles.con(con, p.id))
   metrics.df <- data.frame()
   project.list <- list()
