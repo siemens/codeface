@@ -19,6 +19,7 @@
 ##  or cluster in a graph structure
 suppressMessages(library(BiRewire))
 suppressMessages(library(parallel))
+suppressMessages(library(robustbase))
 
 edge.weight.to.multi <- function(g) {
   ## Converters an edge weight to multiple edges between the connected nodes
@@ -665,6 +666,25 @@ plot.box <- function(project.data, feature, outdir) {
   file.name <- paste(file.dir, "/", feature, ".png",sep="")
   ggsave(file.name, p1, height=8, width=11)
 
+  ## Adjusted box plots for skewed data
+  file.name <- paste(file.dir, "/", feature, "_adjusted.pdf", sep="")
+  
+  pdf(file.name)
+
+  adjbox(value ~ cycle, data=df, outline=FALSE)
+
+  ## x axis with ticks but without labels
+  axis(1, labels = FALSE)
+
+  dev.off()
+
+  if(feature %in% c('page.rank','v.degree')) {
+    file.name <- paste(file.dir, '/', feature, "_distribution.pdf", sep="")
+    p2 <- ggplot(df, aes(x=value)) + 
+          geom_histogram(aes(y=..density..),colour="black", fill="white") +
+          geom_density(alpha=.2, fill="#FF6666")
+    ggsave(file.name, p2, height=8, width=11)
+  }
 }
 
 plot.series <- function(project.data, feature, outdir) {
