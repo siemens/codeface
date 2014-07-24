@@ -568,9 +568,11 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
     df.list <- lapply(graph.data, function(g) {
                                     stats <- g$stats
                                     row <- list()
-				                            ## Meta Data
+
+                                    ## Meta Data
                                     row$project <- g$p.id
                                     row$cycle <- g$cycle
+
                                     ## Global graph
                                     row$diameter <- stats$diameter 
                                     row$vcount <- stats$vcount
@@ -586,8 +588,8 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
                                     row$inter.comm.diameter <- stats$inter.diameter
                                     row$inter.bet.mean <- mean(stats$inter.betweenness)
                                     row$inter.tran.mean <- mean(stats$inter.transitivity)
-					
-			                              ## Intra Community
+
+                                    ## Intra Community
                                     row$diameter.mean <- mean(stats$intra.diameter)
                                     row$intra.bet.mean <- mean(unlist(stats$intra.betweenness))
                                     row$intra.tran.mean <- mean(unlist(stats$intra.transitivity))
