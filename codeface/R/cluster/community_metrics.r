@@ -405,6 +405,13 @@ community.metric <- function(graph, community, test) {
           return (diameter(g.sub))
         })
   }
+  else if(test == "v.size") {
+    metric.vec <- sapply(community.id,
+        function(x) {
+          comm.size <- length(members[[x]])
+          return(comm.size)
+        })
+  }
 
   return(metric.vec)
 }
@@ -420,6 +427,7 @@ compute.community.metrics <- function(g, comm, link.type=NULL) {
   res <- list()
 
   ## Intra-community features
+  res$community.v.size <- unlist(community.metric(g, comm, "v.size"))
   res$intra.betweenness  <- community.metric(g, comm,
                                              "betweenness")
   res$intra.transitivity <- community.metric(g, comm,
@@ -753,7 +761,9 @@ run.trends.analysis <- function (con) {
   metrics.box <- c('cluster.coefficient',
                    'betweenness.centrality',
                    'conductance',
-                   'page.rank')
+                   'page.rank',
+                   'community.v.size',
+                   'v.degree')
   metrics.series <- c('diameter',
                       'average.path.len',
                       'num.communities',
