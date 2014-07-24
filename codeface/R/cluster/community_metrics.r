@@ -559,7 +559,9 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
     graph.data <- lapply(graph.data, function(g) {
                          g$stats <- compute.community.metrics(g$graph,  g$comm,
                                                               construct.method)
-                         g$stats$page.rank <- g$rank
+                         page.rank <- g$rank
+                         page.rank[page.rank < 0] <- NA
+                         g$stats$page.rank <- page.rank
                          return(g)})
     
     ## create data frame for scalar graph measures
