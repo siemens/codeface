@@ -309,7 +309,7 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, link_type, maxDist,
     contributed code in close proximity the commit of interests
     contributions. The method computes all possible combinations
     of code block relationships then averages. This is very similar
-    to the function "computerPersonsCollaboration" except we consider
+    to the function "computePersonsCollaboration" except we consider
     the commit hash to identify the contribution instead of the person
     then later map the commit to a person. The advantages is we can
     differentiate between when an author made a contribution. This way
