@@ -57,6 +57,13 @@ class FileCommit:
         # meta data
         self._src_elem_list = []
 
+        # dictionary with key = line number, value = feature list
+        self.featureLists = {}
+
+        # list of function line numbers in sorted order, this is for
+        # optimizing the process of finding a feature list given a line number
+        self.featureLineNums = [0]
+
     #Getter/Setters
     def getFileSnapShots(self):
         return self.fileSnapShots
@@ -84,6 +91,9 @@ class FileCommit:
     def setSrcElems(self, src_elem_list):
         self._src_elem_list.extend(src_elem_list)
 
+    def setFeatureLines(self, featureLineNums, featureLists):
+        self.featureLists.update(featureLists)
+        self.featureLineNums = featureLineNums  # .extend(sorted(self.featureLists.iterkeys()))
     #Methods
     def addFileSnapShot(self, key, dict):
         self.fileSnapShots[key] = dict
@@ -116,3 +126,9 @@ class FileCommit:
     def addFuncImplLine(self, lineNum, srcLine):
         id = self.findFuncId(lineNum)
         self.functionImpl[id].append(srcLine)
+
+    def findFeatureList(self, lineNum):
+        # returns the identifier of a feature given a line number
+        i = bisect.bisect_right(self.featureLineNums, lineNum)
+        featureLine = self.featureLineNums[i-1]
+        return self.featureLists[featureLine]
