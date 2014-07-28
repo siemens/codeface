@@ -255,7 +255,7 @@ class gitVCS (VCS):
                  for logstring in reversed(clist)]
 
         # Finally, we also create commit ID lists for ranges of
-        # interest (currently, only to decide wether a commit is in
+        # interest (currently, only to decide whether a commit is in
         # a feature freeze phase or not)
         if self._rc_ranges != None:
             for range in self._rc_ranges:
