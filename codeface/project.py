@@ -23,7 +23,7 @@ from .configuration import Configuration
 from .cluster.cluster import doProjectAnalysis
 from .ts import dispatch_ts_analysis
 from .util import (execute_command, generate_reports, layout_graph,
-        check4ctags, BatchJobPool, generate_analysis_windows)
+                   check4ctags, check4cppstats, BatchJobPool, generate_analysis_windows)
 
 def loginfo(msg):
     ''' Pickleable function for multiprocessing '''
@@ -54,7 +54,20 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
                     no_report, loglevel, logfile, recreate, profile_r, n_jobs):
     pool = BatchJobPool(int(n_jobs))
     conf = Configuration.load(codeface_conf, project_conf)
-    project, tagging = conf["project"], conf["tagging"]
+    tagging = conf["tagging"]
+    if collab_type is not "default":
+        # as collab_type is ignored on some tagging values we should either
+        # => throw an exception to tell the user he specified something weird
+        # => set tagging to something valid
+        if tagging is not "proximity":
+            log.warn("tagging value is overwritten to proximity because of --collaboration")
+            tagging = "proximity"
+            conf["tagging"] = tagging
+    else:
+        # default is function
+        collab_type = "function"
+
+    project = conf["project"]
     repo = pathjoin(gitdir, conf["repo"], ".git")
     project_resdir = pathjoin(resdir, project, tagging)
     range_by_date = False
@@ -67,8 +80,11 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         range_by_date = True
 
     # TODO: Sanity checks (ensure that git repo dir exists)
-    if 'proximity' == conf["tagging"]:
-        check4ctags()
+    if 'proximity' == tagging:
+        if collab_type is 'function':
+            check4ctags()
+        else:
+            check4cppstats()
 
     project_id, dbm, all_range_ids = project_setup(conf, recreate)
 

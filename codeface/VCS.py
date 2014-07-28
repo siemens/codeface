@@ -34,15 +34,19 @@
 # VCS-specific.
 # TODO: Unify range handling. Either a range is always a list, or always
 # represented by two parameters.
+import itertools
+import readline
 
 import commit
 import fileCommit
 import re
 import os
+import bisect
 import ctags
 import tempfile
 import source_analysis
 import shutil
+from fileCommit import FileDict
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from ctags import CTags, TagEntry
 from logging import getLogger; log = getLogger(__name__)
@@ -180,6 +184,181 @@ class VCS:
     def _subsysIsValid(self, subsys):
         """Check if subsystem subsys is valid."""
         return subsys=="__main__" or subsys in self.subsys_description.keys()
+
+
+def parse_sep_line(line):
+    if not line.startswith("\"sep="):
+        raise ParseError(
+            ("expected that the csv file header starts with '\"sep=' "
+             "but it started with '{}'")
+            .format(line), 'CSVFile')
+    stripped = line.rstrip()
+    if not stripped.endswith("\""):
+        raise ParseError(
+            ("expected that the csv file header ends with '\"' "
+             "but the line was '{}'")
+            .format(line), 'CSVFile')
+    return stripped[5:-1]
+
+
+def parse_line(sep, line):
+    """
+    Parses a line from a csv file
+    :param sep:
+    :param line:
+    :return:
+    """
+    # TODO: Handle escaping: sep is escaped with quotes, quotes are escaped with quotes
+    # 'test,test' will be '"test,test"' in the csv file
+    # 'test"this,"test' will be '"test""this,""test"' in the csv file
+    return [l.strip() for l in line.split(sep)]
+
+
+class LineType:
+    IF = "#if"
+    ELSE = "#else"
+    ELIF = "#elif"
+
+
+def parse_feature_line(sep, line):
+    """
+    parse the current line which is something like:
+    FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS
+    :param line: the line to parse
+    :return: start_line, end_line, line_type, feature_list
+    """
+    parsed_line = parse_line(sep, line)
+    # FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS
+    try:
+        start_line = int(parsed_line[1])
+        end_line = int(parsed_line[2])
+        line_type_raw = parsed_line[3]
+        if line_type_raw not in (LineType.IF, LineType.ELSE, LineType.ELIF):
+            raise ParseError(
+                ("could not parse feature line (because we could"
+                 "not parse the line_type): \"{}\"")
+                .format(line), 'CSVFile')
+        line_type = line_type_raw
+        feature_list = parsed_line[5].split(';')
+        return start_line, end_line, line_type, feature_list
+    except ValueError:
+        raise ParseError(
+            ("could not parse feature line (most likely because we "
+             "could not parse the start- or end-line which should "
+             "be on index 2 and 3): \"{}\"")
+            .format(line), 'CSVFile')
+
+
+def get_feature_lines(parsed_lines, filename):
+    """
+    calculates an dictionary representing the feature sets for any line
+    of the given file.
+    :param parsed_lines: a list of tuples with
+    (start_line, end_line, line_type, feature_list) elements
+    :param filename: the name or the analysed files
+    (only used for descriptive error messages if the calculation fails)
+    :return:
+    feature_lines: a FileDict object to access the feature sets on any line
+    """
+    # mapping line -> feature list, we only add changing elements
+    feature_lines = FileDict()
+    feature_lines.add_line(0, [])
+
+    # we want a format like (is_start, features) for every line with an
+    # #ifdef (ie. line that changes the feature set)
+    annotated_lines = {}
+
+    def check_line(line):
+        if line in annotated_lines:
+            raise ParseError(
+                ("every line index can be used at most once "
+                 "(problematic line was {0} in file {1})")
+                .format(line, filename), filename)
+
+    # We now transform the cppstats output in another output which will
+    # help to implement the algorithm below in a simple and fast way.
+    # The old format is a list of
+    # (start_line, end_line, line_type, feature_list) tuples for every
+    # #ifdef/#else.
+    # The new format is a list of (is_start, feature_set)
+    # for every #ifdef(/#else)/#endif
+    # We try to ignore #else wherever possible or handle
+    # the #else like a nested #if.
+    for start_line, end_line, line_type, feature_list in parsed_lines:
+        if start_line >= end_line:
+            raise ParseError(
+                ("start_line can't be greater or equal to end_line "
+                 "(problematic line was {0} in file {1})")
+                .format(start_line, filename), filename)
+
+        if line_type == LineType.IF:
+            # ifs start on their own line, however the end_line could
+            # already be used by the start of an else/elif
+            # (#else is the end of the previous #if
+            # and the start of another '#if')
+            check_line(start_line)
+            if end_line in annotated_lines:
+                # in that case we just say the #else line belongs to the
+                # virtual starting '#if'
+                end_line -= 1
+            # Now end_line should be unused
+            check_line(end_line)
+            annotated_lines[start_line] = (True, feature_list)
+            annotated_lines[end_line] = (False, feature_list)
+        else:
+            # we try to mostly ignore else and elif if the feature_
+            # list doesn't change
+            is_start, old_feature_list = annotated_lines[start_line]
+            if (not is_start) and old_feature_list == feature_list:
+                # We are on an ELSE, however the feature list did not
+                # change so we just delete the current line and move the
+                # list to the new end
+                del annotated_lines[start_line]
+                annotated_lines[end_line] = is_start, old_feature_list
+            elif is_start:
+                raise ParseError(
+                    ("line {0} appeared twice as start line "
+                     "(problematic file was {1})")
+                        .format(start_line, filename), filename)
+            else:
+                # So we have a elif with different features,
+                # so we start more features now end add them to the ending
+                # later
+                # (so we handle this as if there was a new #ifdef started)
+                del annotated_lines[start_line]
+                annotated_lines[start_line] = (True, feature_list)
+                annotated_lines[end_line] = \
+                    (False, old_feature_list + feature_list)
+
+    # Now that we have calculated the annotated_lines we just calculate the
+    # feature sets on those lines and save them in a FileDict instance.
+    # We can always access the last feature_list with the FileDict
+    # (because we sorted the lines)
+    for line in sorted(annotated_lines):
+        is_start, features = annotated_lines[line]
+        # Get last info
+        last_feature_list = feature_lines.get_line_info_raw(line)
+        # Copy last list and create new list for current line
+        new_feature_list = list(last_feature_list)
+        if is_start:
+            # if the current line starts a new list of features,
+            # we just need to add those to
+            # the new list (note that order matters in this case).
+            for r in features:
+                new_feature_list.insert(0, r)
+        else:
+            # if the current line ends a list of features,
+            # we remove them from the list
+            # (reverse order as adding).
+            for r in reversed(features):
+                item = new_feature_list.pop(0)
+                assert(item == r)
+            # Remove in next line
+            # (because we want to count the current #endif line as well).
+            line += 1
+
+        feature_lines.add_line(line, new_feature_list)
+    return feature_lines
 
 
 class gitVCS (VCS):
@@ -1066,6 +1245,57 @@ class gitVCS (VCS):
         for line_num, src_line in enumerate(file_layout_src):
             src_line_rmv = re.sub(rmv_char, ' ', src_line.strip())
             file_commit.addFuncImplLine(line_num, src_line_rmv)
+
+    @staticmethod
+    def _get_feature_lines(file_layout_src, file_commit):
+        """
+        similar to _getFunctionLines but computes the line numbers of each
+        feature in the file.
+        """
+        '''
+        - Input -
+        file_layout_src:
+            dictionary with 'key=line number' and 'value=line of code'
+        file_commit: fileCommit instance where the results will be stored
+
+        - Description -
+        The file_layout is used to construct a source code file that can be
+        parsed by cppstats to generate a cppstats csv file.
+        The cppstats csv file is then accessed to extract the feature sets
+        and line numbers to be saved in the fileCommit object
+        '''
+
+        # grab the file extension to determine the language of the file
+        fileExt = os.path.splitext(file_commit.filename)[1]
+
+        # temporary file where we write transient data needed for ctags
+        srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
+        featurefile = tempfile.NamedTemporaryFile(suffix=".csv")
+        # generate a source code file from the file_layout_src dictionary
+        # and save it to a temporary location
+        for line in file_layout_src:
+            srcFile.write(line)
+        srcFile.flush()
+
+        # run cppstats analysis on the file to get the feature locations
+        cmd = "/usr/bin/env cppstats --kind featurelocations --file {0} {1}"\
+            .format(srcFile.name, featurefile.name).split()
+        output = execute_command(cmd).splitlines()
+
+        results_file = open(featurefile.name, 'r')
+        sep = parse_sep_line(next(results_file))
+        headlines = parse_line(sep, next(results_file))
+        feature_lines = \
+            get_feature_lines(
+                [parse_feature_line(sep, line) for line in results_file],
+                file_commit.filename)
+
+        # clean up temporary files
+        srcFile.close()
+        featurefile.close()
+
+        # save result to the file commit instance
+        file_commit.set_feature_infos(feature_lines)
 
     def cmtHash2CmtObj(self, cmtHash):
         '''
