@@ -226,7 +226,7 @@ class gitVCS (VCS):
         project including all subsystems) is stored under "__main__".
         """
         if self.repo == None:
-            logger.critical("Repository unset in Git VCS")
+            log.critical("Repository unset in Git VCS")
             raise Error("Can't do anything without repo")
 
         ## Retrieve and store the commit timestamp for the revision range
@@ -338,7 +338,7 @@ class gitVCS (VCS):
         revrange = ""
 
         if rev_start == None and rev_end != None:
-            revrange += reg_end
+            revrange += rev_end
         else:
             if rev_start:
                 revrange += "{0}..".format(rev_start)
@@ -1114,7 +1114,7 @@ class gitVCS (VCS):
         rev_start = self.rev_start
         rev_end = self.rev_end
         if rev_start == None and rev_end != None:
-            revrange += reg_end
+            revrange += rev_end
         else:
             if rev_start:
                 revrange += "{0}..".format(rev_start)
