@@ -39,6 +39,7 @@ import commit
 import fileCommit
 import re
 import os
+import bisect
 import ctags
 import tempfile
 from progressbar import ProgressBar, Percentage, Bar, ETA
@@ -994,6 +995,101 @@ class gitVCS (VCS):
         # save result to the file commit instance
         file_commit.setFunctionLines(funcLines)
 
+
+    def _getFeatureLines(self, file_layout_src, file_commit):
+        '''
+        similar to _getFunctionLines but computes the line numbers of each
+        feature in the file.
+        '''
+        '''
+        - Input -
+        file_name: original name of the file, used only to determine the
+                    programming language (ie. file.c is a c-language file)
+        file_layout_scr: dictionary with key=line number value = line of code
+        file_commit: fileCommit instance where the results will be stored
+
+        - Description -
+        The file_layout is used to construct a source code file that can be
+        parsed by ctags to generate a ctags file. The ctags file is then
+        accessed to extract the function tags and line numbers to be save in
+        the fileCommit object
+        '''
+
+        # grab the file extension to determine the language of the file
+        fileExt = os.path.splitext(file_commit.filename)[1]
+
+        # temporary file where we write transient data needed for ctags
+        srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
+        featurefile = tempfile.NamedTemporaryFile()
+        # generate a source code file from the file_layout_src dictionary
+        # and save it to a temporary location
+        for line in file_layout_src:
+            srcFile.write(line)
+        srcFile.flush()
+
+        # run cppstats analysis on the file to get the feature locations
+        cmd = "cppstats -f {0} {1}".format(featurefile.name, srcFile.name).split()
+        output = execute_command(cmd).splitlines()
+
+        # mapping line -> feature list, we only add changing elements
+        feature_lines = {0: []}
+        # Helper list to get the last element of feature_lines (which contains only lines with changes)
+        line_nums = [0]
+
+        def parse_result_line(line):
+            """
+            parse the current line which is something like: feature_list, start_line, end_line
+            :param line: the line to parse
+            :return: start_line, end_line, feature_list
+            """
+            start_line = 0
+            end_line = 0
+            feature_list = {}
+            return start_line, end_line, feature_list
+
+        try:
+            results_file = open(featurefile.name, 'r')
+            parsed_lines = [parse_result_line(featureLine) for featureLine in results_file]
+            # we want a format like (is_start, features) for every changing line
+            better_format = {}
+            # We assume that every line is used at most once as start_line or end_line
+
+            def check_line(line):
+                if line in better_format:
+                    raise ParseError(
+                        "every line index can be used at most once (problematic line was {0} in file {1})"
+                        .format(line, file_commit.filename))
+
+            for start_line, end_line, feature_list in parsed_lines:
+                check_line(start_line)
+                check_line(end_line)
+                better_format[start_line] = (True, feature_list)
+                better_format[end_line] = (False, feature_list)
+
+            for line in sorted(better_format):
+                is_start, features = better_format[line]
+                # Get last line
+                line_nums.append(line)
+                last_feature_list_line = bisect.bisect_right(line_nums, line)
+                last_feature_list = feature_lines[last_feature_list_line-1]
+                # Copy last list and create new list for current line
+                new_feature_list = list(last_feature_list)
+                if is_start:
+                    new_feature_list.extend(features)
+                else:
+                    for r in features:
+                        new_feature_list.remove(r)
+                feature_lines[line] = new_feature_list
+        except:
+            log.critical("was unable unable to parse feature information of cppstats")
+            raise
+
+        # clean up temporary files
+        srcFile.close()
+        featurefile.close()
+
+        # save result to the file commit instance
+        file_commit.setFeatureLines(line_nums, feature_lines)
 
     def cmtHash2CmtObj(self, cmtHash):
         '''

@@ -40,11 +40,18 @@ class FileCommit:
         self.revCmts = []
 
         # dictionary with key = line number, value = function name
-        self.functionIds = {0:"FILE_LEVEL"}
+        self.functionIds = {0: "FILE_LEVEL"}
 
         # list of function line numbers in sorted order, this is for
         # optimizing the process of finding a function Id given a line number
         self.functionLineNums = [0]
+
+        # dictionary with key = line number, value = feature list
+        self.featureLists = {}
+
+        # list of function line numbers in sorted order, this is for
+        # optimizing the process of finding a feature list given a line number
+        self.featureLineNums = [0]
 
     #Getter/Setters
     def getFileSnapShots(self):
@@ -63,6 +70,10 @@ class FileCommit:
         self.functionIds.update(functionIds)
         self.functionLineNums.extend(sorted(self.functionIds.iterkeys()))
 
+    def setFeatureLines(self, featureLineNums, featureLists):
+        self.featureLists.update(featureLists)
+        self.featureLineNums = featureLineNums  # .extend(sorted(self.featureLists.iterkeys()))
+
     #Methods
     def addFileSnapShot(self, key, dict):
         self.fileSnapShots[key] = dict
@@ -72,3 +83,9 @@ class FileCommit:
         i = bisect.bisect_right(self.functionLineNums, lineNum)
         funcLine = self.functionLineNums[i-1]
         return self.functionIds[funcLine]
+
+    def findFeatureList(self, lineNum):
+        # returns the identifier of a feature given a line number
+        i = bisect.bisect_right(self.featureLineNums, lineNum)
+        featureLine = self.featureLineNums[i-1]
+        return self.featureLists[featureLine]
