@@ -542,6 +542,7 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
         function(x) {
           x$graph <- graph.data.frame(x$edgelist, directed=TRUE,
               vertices=data.frame(x$v.local.ids))
+          V(x$graph)$name <- x$v.global.ids
           return(x)
           })
 
