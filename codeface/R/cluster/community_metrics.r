@@ -781,6 +781,9 @@ run.trends.analysis <- function (con) {
   ## Generate and save series plots
   lapply(trends, function(t) sapply(metrics.series, function(m) plot.series(t, m, outdir)))
   
+  ## Write graph in graphML format
+  lapply(trends, function(t) save.as.graphml(t, outdir))
+
   return(0)
 }
 
@@ -791,3 +794,16 @@ remove.outliers <- function(x, na.rm = TRUE, ...) {
   y[x > (qnt + H)] <- NA
   return(y)
 }
+
+save.as.graphml <- function(project.data, outdir) {
+  project.name <- project.data[[1]]$project.name
+  analysis.method <- project.data[[1]]$analysis.method
+  file.dir <- paste(outdir, "/", project.name, "_", analysis.method, "/", "GraphML",sep="")
+  dir.create(file.dir)
+  graph.list <- lapply(project.data,
+                          function(g) return(g$graph))
+
+  sapply(1:length(graph.list), function(i) {
+                                filename <- paste(file.dir, "/", "graph_", as.character(i), ".graphml", sep="") 
+                                 write.graph(graph.list[[i]], file=filename, format="graphml")})
+} 
