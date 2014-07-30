@@ -25,11 +25,18 @@ get.boundaries <- function(i, conf) {
   rc <- NA
   rc <- tstamps.rc[i,]$date
 
-  return(data.frame(date.start=tstamps.release[i,]$date,
-                    date.end=tstamps.release[i+1,]$date,
-                    date.rc_start=rc,
-                    tag=tag,
-                    cycle=paste(tag.start, tag, sep="-")))
+  if(identical(tag, character(0)) | identical(tag.start, character(0))) {
+    df <- data.frame()
+  }
+  else {
+    df <- data.frame(date.start=tstamps.release[i,]$date,
+                     date.end=tstamps.release[i+1,]$date,
+                     date.rc_start=rc,
+                     tag=tag,
+                     cycle=paste(tag.start, tag, sep="-"))
+  }
+
+  return(df)
 }
 
 prepare.release.boundaries <- function(conf) {
