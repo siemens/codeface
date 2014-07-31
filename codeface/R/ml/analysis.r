@@ -189,18 +189,17 @@ analyse.networks <- function(forest, interest.networks, communication.network) {
 ## Check corpus for conditions that must be statisfied by the
 ## documents
 check.corpus.precon <- function(corp.base) {
-  idx <- 1:length(corp.base$corp)
-
   ######
   ## Preconditions
   ######
   ## Condition #1: Emails must have at most one reference Id
   get.ref.id.lines <- function(x) { grep("^References:", attr(x, "Header"),
                                     value = FALSE, useBytes = TRUE)}
-  rmv.multi.refs <- function(x) {
-                      doc <- corp.base$corp[[x]]
+  rmv.multi.refs <- function(doc) {
                       ref.id.lines <- get.ref.id.lines(doc)
                       rmv.lines <- ref.id.lines[-1]
+                      header <- attr(doc, "Header")
+
                       if(length(rmv.lines) != 0) {
                         ## Log number of removed reference id lines
                         msg <- sprintf(paste("Removing %d id references",
@@ -208,16 +207,78 @@ check.corpus.precon <- function(corp.base) {
                                              "violation(s)", sep=" "),
                                        length(rmv.lines))
                         loginfo(msg, logger="ml.analysis")
-                        header <- attr(doc,"Header")
-                        attr(doc, "Header") <- header[-rmv.lines]
+                        header <- header[-rmv.lines]
                       }
-                      return(doc)}
 
-  ## remove all "References:" lines after the first one, as per RFC5322 an email
-  ## should only have one reference Id
-  corp.base$corp <- lapply(idx, rmv.multi.refs)
+                      return(header)
+                    }
+
+  ## Condition #2: Authors must be specified using "name <email>" format
+  fix.author <- function(doc) {
+    author <- attr(doc, "Author")
+
+    if(identical(author, character(0))) {
+      author <- "unknown"
+    }
+
+    ## Trim trailing and leading whitespace
+    author <- str_trim(author)
+
+    ## Check if email exists
+    email.exists <- grepl("<.+>", author, TRUE)
+
+    if(!email.exists) {
+      msg <- "Incorrectly formatted author field, attempting to recover..."
+      loginfo(msg, logger="ml.analysis")
+
+      ## Replace textual ' at  ' with @, sometimes
+      ## we can recover an email
+      author <- gsub(' at ', '@', author)
+
+      ## Check for @ symbol
+      r <- regexpr("\\S+@\\S+", author, TRUE)
+      email <- substr(author, r, r + attr(r,"match.length")-1)
+      name <- gsub(email, "", author)
+      name <- str_trim(name)
+
+      ## Check if email was recovered
+      if(email == "") {
+        email <- paste('could.not.resolve@', name, sep="")
+      }
+
+      author <- paste(name, ' <', email, '>', sep="")
+    }
+    else {
+      ## Verify that the order is correct
+      ## Get email and name parts
+      r <- regexpr("<.+>", author, TRUE)
+      if(r[[1]] == 1) {
+        email <- substr(author, r, r + attr(r,"match.length")-1)
+        name <- gsub(email, "", author)
+        name <- str_trim(name)
+        email <- str_trim(email)
+        author <- paste(name,email)
+      }
+    }
+
+    return(author)
+  }
+
+  ## Apply checks of conditions to all documents
+  fix.corpus <- function(i) {
+    doc <- corp.base$corp[[i]]
+    attr(doc, "Header") <- rmv.multi.refs(doc)
+    attr(doc, "Author") <- fix.author(doc)
+
+    return(doc)
+  }
+
+  ## Apply checks and fixes for all preconditions to all
+  ## documents in the corpus
+  idx <- 1:length(corp.base$corp)
+  corp.base$corp <- lapply(idx, fix.corpus)
   class(corp.base$corp) <- class(corp.base$corp.orig)
- 
+
   return(corp.base)
 }
 ## ################### Analysis dispatcher ######################
