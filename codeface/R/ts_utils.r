@@ -85,6 +85,13 @@ compute.release.distance <- function(series.merged, conf) {
   series <- gen.series(series.merged, "Averaged (large window)")
   series <- split.by.ranges(series, conf$boundaries)
 
+  ## Number of series is equal to (1 - number of revisions) provided
+  ## by the configuration file
+  if(length(series) < 2) {
+    logerror("Less than 3 revisions provided by configuration file",
+             logger="ts_ulits")
+  }
+
   res <- sapply(1:(length(series)-1), function(i) {
     compute.ts.distance(series[[i]], series[[i+1]])
   })
