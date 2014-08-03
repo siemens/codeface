@@ -193,12 +193,12 @@ check.corpus.precon <- function(corp.base) {
   ## Preconditions
   ######
   ## Condition #1: Emails must have at most one reference Id
-  get.ref.id.lines <- function(x) { grep("^References:", attr(x, "Header"),
+  get.ref.id.lines <- function(x) { grep("^References:", meta(x, tag="header"),
                                     value = FALSE, useBytes = TRUE)}
   rmv.multi.refs <- function(doc) {
                       ref.id.lines <- get.ref.id.lines(doc)
                       rmv.lines <- ref.id.lines[-1]
-                      header <- attr(doc, "Header")
+                      header <- meta(doc, tag="header")
 
                       if(length(rmv.lines) != 0) {
                         ## Log number of removed reference id lines
@@ -215,7 +215,7 @@ check.corpus.precon <- function(corp.base) {
 
   ## Condition #2: Authors must be specified using "name <email>" format
   fix.author <- function(doc) {
-    author <- attr(doc, "Author")
+    author <- meta(doc, tag="author")
 
     if(identical(author, character(0))) {
       author <- "unknown"
@@ -267,8 +267,8 @@ check.corpus.precon <- function(corp.base) {
   ## Apply checks of conditions to all documents
   fix.corpus <- function(i) {
     doc <- corp.base$corp[[i]]
-    attr(doc, "Header") <- rmv.multi.refs(doc)
-    attr(doc, "Author") <- fix.author(doc)
+    meta(doc, tag="header") <- rmv.multi.refs(doc)
+    meta(doc, tag="author") <- fix.author(doc)
 
     return(doc)
   }
