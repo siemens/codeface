@@ -1067,7 +1067,7 @@ class gitVCS (VCS):
 
         #filter results to only get implementation files
         fileExt = (".c", ".cc", ".cpp", ".cxx", ".cs", ".asmx", ".m", ".mm",
-                   ".js", ".java", ".j", ".jav", ".php",".py", ".sh")
+                   ".js", ".java", ".j", ".jav", ".php",".py", ".sh", ".rb")
         fileNames = [fileName for fileName in output if fileName.endswith(fileExt)]
 
         self.setFileNames(fileNames)
