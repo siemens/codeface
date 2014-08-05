@@ -17,6 +17,7 @@
 ## File Description:
 ##  Various measures and test for the significance and quality of a community
 ##  or cluster in a graph structure
+suppressMessages(library(BiRewire))
 
 edge.weight.to.multi <- function(g) {
   ## Converters an edge weight to multiple edges between the connected nodes
@@ -157,7 +158,7 @@ community.quality.modularity <- function(graph, community.vertices) {
   m = sum(graph.strength(graph, mode="all")) / 2
 
   ## Measure the degree for intra-community edges
-  intra.degree <- degree(subgraph)
+  intra.degree <- igraph::degree(subgraph)
 
   ## Degree of vertices in community
   community.vertices.degree <- graph.strength(graph, community.vertices, mode="all")
@@ -182,60 +183,68 @@ community.quality.modularity <- function(graph, community.vertices) {
 ## - Output -
 ## p-value: the result of the statistical significance test
 ############################################################################
-community.stat.significance <- function(graph, cluster.algo) {
-  ## extract clusters
+community.stat.significance <- function(graph, cluster.algo, metric, niter) {
+  ## Extract clusters
   graph.clusters <- community.detection.disconnected(graph, cluster.algo)
 
-  ## compute cluster conductance values
-  cluster.conductance <- community.metric(graph, graph.clusters,
-                                          "conductance")
-  cluster.conductance <- cluster.conductance[!is.na(cluster.conductance)]
-  ## compute randomized conductance samples
-  niter <- 2
-  rand.samps <- randomised.conductance.samples(graph, niter, cluster.algo)
+  ## Compute cluster quality
+  cluster.quality <- community.metric(graph, graph.clusters,
+                                      metric)
+  cluster.quality <- cluster.quality[!is.na(cluster.quality)]
+ 
+  ## Compute randomized conductance samples
+  rand.samps <- rewired.graph.samples(graph, cluster.algo, metric, niter)
 
-  ## test for normality
+  ## Test for normality
   ## check if values are same because the test while fail if they are 
-  if( length(unique(rand.samps) == 1)){
-    normality.test <- c()
-    normality.test$p.value <- -1
+  if(length(unique(rand.samps)) == 1) {
+    shapiro.test.result <- c()
+    shapiro.test.result$p.value <- -1
   } else {
-    normality.test <- shapiro.test(rand.samps)
+    shapiro.test.result <- shapiro.test(rand.samps)
   }
 
-  ## compute normal distribution
-  mean.conductance <- mean(rand.samps)
-  sd.conductance   <- sd  (rand.samps)
+  ## Perform T-test on test statistic
+  t.test.result <- t.test(rand.samps,  mu=mean(cluster.quality))
 
-  ## perform t-test on test statistic
-  t.test.result <- t.test(rand.samps,  mu=mean(cluster.conductance))
+  ## Output result
+  res <- list(random.simulation.quality=rand.samps,
+              original.quality=cluster.quality,
+              t.test.result=t.test.result,
+              shapiro.test.result=shapiro.test.result)
 
-  ## output result
-  save.comm.sig.test(rand.samps, cluster.conductance,t.test.result,
-                     normality.test, outfile, format="png")
+  return(res)
 }
 
 
 ## write the significance test results to pdf
-save.comm.sig.test <- function(rand.samps, cluster.conductance,t.result, 
-                               shap.result, outfile, size=7, format="png") {
-	m.c = sum(cluster.conductance)
-	m.r = mean(rand.samps)
-	s.r = sd(rand.samps)
-	x.low.lim <- 0
-	x.up.lim  <- 1
-	x.lim = c(x.low.lim, x.up.lim)
-  select.graphics.dev(filename=outfile, size=size, format=format)
-	plot(density(rand.samps), main="Community Significance Test", ylab="Probability Density", xlab="Conductance", xlim=x.lim)
-	points(x=mean(cluster.conductance),y=0, col="green", pch=21, cex=2.5, bg="green")
-	abline(v=t.result$conf.int[1], col='red')
-	#abline(v=t.result$estimate, col='black')
-	abline(v=t.result$conf.int[2], col='red')
-	legendData <- character(2)
-	legendData[1] <- sprintf("T-test p-value: %e", t.result$p.value)
-	legendData[2] <- sprintf("Shapiro-Wilk p-value: %e", shap.result$p.value)
-	legend("topleft", legend=legendData, bty="n")
-	dev.off()
+plot.t.test <- function(random.samples, test.values, t.test, shapiro.test, title, metric.name) {
+  test.value.mean <- mean(test.values)
+  conf.intervals <- c(t.test$conf.int[1], t.test$conf.int[2]) 
+  x.lower.lim <- 0
+  x.upper.lim  <- 1
+  x.lim = c(x.lower.lim, x.upper.lim)
+  t.test.annotation <- paste("T-test p-value =", as.character(signif(t.test$p.value,3))) 
+  shapiro.test.annotation <- paste("Shapiro-test p-value =", as.character(signif(shapiro.test$p.value,3)))
+  total.annotation <- paste(t.test.annotation, shapiro.test.annotation, sep="\n")
+  y.upper.lim <- max(density(random.samples)$y)
+
+  t.test.plot <- ggplot(data.frame(random.samples), aes(x=random.samples)) +
+                 geom_histogram(aes(y=..density..), color="black", fill="white") +
+                 geom_density(alpha=.2, fill="grey") +
+                 geom_vline(xintercept=conf.intervals, linetype="dotted") +
+                 geom_point(data=data.frame(x=test.value.mean, y=0), aes(x=x, y=y), size=5, color='black') +
+                 scale_x_continuous(limits = x.lim) +
+                 ggtitle(title) +
+                 xlab(metric.name) +
+                 ylab("Density") +
+                 theme(plot.title = element_text(lineheight=.8, face="bold"),
+                       axis.title.x = element_text(size=rel(1.3)),
+                       axis.title.y = element_text(size=rel(1.3))) +
+                 annotate("text", label=total.annotation, x=x.upper.lim, y=y.upper.lim*1.15) +
+                 theme_bw(base_size=16)
+
+  return(t.test.plot)
 }
 
 
@@ -250,7 +259,7 @@ save.comm.sig.test <- function(rand.samps, cluster.conductance,t.result,
 ## - Ouput -
 ## conduct.vec: the conductance for each trial
 ############################################################################
-randomised.conductance.samples <- function(graph, niter, cluster.algo) {
+rewired.graph.samples <- function(graph, cluster.algo, metric, niter) {
   ## Check if loops exist in the original graph, this information is necessary
   ## to choose the appropriate rewiring strategy
   loops.exist <- any(is.loop(graph))
@@ -264,15 +273,16 @@ randomised.conductance.samples <- function(graph, niter, cluster.algo) {
   ## Perform iterations
   conduct.vec <- vector()
   graph.multi <- edge.weight.to.multi(graph)
+  graph.multi <- remove.vertex.attribute(graph.multi, 'name')
   pb <- txtProgressBar(min = 0, max = niter, style = 3)
   for (i in 1:niter) {
     ## Update progress bar
     setTxtProgressBar(pb, i)
-
     ## Rewire graph, randomize the graph while maintaining the degree distribution
+    rw.graph <- birewire.rewire(graph.multi, MAXITER_MUL=1000, exact=T, verbose=F)
     #rw.graph <- rewire(graph.multi, mode = rewire.mode,
     #                              niter = 1)#10*ecount(graph.multi))
-    rw.graph <- degree.sequence.game(igraph::degree(graph.multi, mode="all"))
+    #rw.graph <- degree.sequence.game(igraph::degree(graph.multi, mode="all"))
 
     E(rw.graph)$weight <- 1
     rw.graph <- simplify(rw.graph, remove.loops=FALSE)
@@ -280,12 +290,13 @@ randomised.conductance.samples <- function(graph, niter, cluster.algo) {
     ## Find clusters
     rw.graph.clusters <- community.detection.disconnected(rw.graph, cluster.algo)
 
-    ## Only analyze clusters that are large than 10 vertices
-    ##rw.graph.clusters.more <- select.communities.more(rw.graph.clusters, 10)
+    ## Only analyze clusters that are large than 4 vertices
+    min.community <- minCommGraph(rw.graph, rw.graph.clusters, 5)
+    rw.graph.min <- min.community$graph
+    rw.graph.clusters.min <- min.community$community
 
     ## Compute conductance
-    rw.cluster.conductance <- community.metric(rw.graph, rw.graph.clusters,
-                                               "conductance")
+    rw.cluster.conductance <- community.metric(rw.graph.min, rw.graph.clusters.min, metric)
     conduct.vec <- append(conduct.vec, mean(rw.cluster.conductance, na.rm=TRUE))
   }
   ## Close progress bar
@@ -323,10 +334,11 @@ community.metric <- function(graph, community, test) {
   }
 
   if(test == "modularity") {
-    metric.vec <- sapply(community.id,
-                          function(x) {
-                            return(community.quality.modularity(graph, members[[x]]))
-                          })
+    modularity.vec <- sapply(community.id,
+                             function(x) {
+                               return(community.quality.modularity(graph, members[[x]]))
+                            })
+    metric.vec <- sum(modularity.vec)
   }
   else if (test == "wilcox") {
     metric.vec <- sapply(community.id,
