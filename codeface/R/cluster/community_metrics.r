@@ -18,6 +18,7 @@
 ##  Various measures and test for the significance and quality of a community
 ##  or cluster in a graph structure
 suppressMessages(library(BiRewire))
+suppressMessages(library(parallel))
 
 edge.weight.to.multi <- function(g) {
   ## Converters an edge weight to multiple edges between the connected nodes
@@ -271,18 +272,12 @@ rewired.graph.samples <- function(graph, cluster.algo, metric, niter) {
   }
 
   ## Perform iterations
-  conduct.vec <- vector()
   graph.multi <- edge.weight.to.multi(graph)
   graph.multi <- remove.vertex.attribute(graph.multi, 'name')
-  pb <- txtProgressBar(min = 0, max = niter, style = 3)
-  for (i in 1:niter) {
-    ## Update progress bar
-    setTxtProgressBar(pb, i)
+
+  compute.rewire <- function(i) {
     ## Rewire graph, randomize the graph while maintaining the degree distribution
     rw.graph <- birewire.rewire(graph.multi, MAXITER_MUL=1000, exact=T, verbose=F)
-    #rw.graph <- rewire(graph.multi, mode = rewire.mode,
-    #                              niter = 1)#10*ecount(graph.multi))
-    #rw.graph <- degree.sequence.game(igraph::degree(graph.multi, mode="all"))
 
     E(rw.graph)$weight <- 1
     rw.graph <- simplify(rw.graph, remove.loops=FALSE)
@@ -297,10 +292,11 @@ rewired.graph.samples <- function(graph, cluster.algo, metric, niter) {
 
     ## Compute conductance
     rw.cluster.conductance <- community.metric(rw.graph.min, rw.graph.clusters.min, metric)
-    conduct.vec <- append(conduct.vec, mean(rw.cluster.conductance, na.rm=TRUE))
+    
+    return(mean(rw.cluster.conductance, na.rm=TRUE))
   }
-  ## Close progress bar
-  close(pb)
+
+  conduct.vec <- unlist(mclapply(1:niter, compute.rewire, mc.cores=2))
 
   return(conduct.vec)
 }
