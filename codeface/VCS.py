@@ -122,7 +122,7 @@ class VCS:
         return self._rev_end_date
 
     def getCommitDate(self, rev):
-        return self._getCommitDate(rev)
+        return self._getRevDate(rev)
 
     def getFileCommitDict(self):
         return self._fileCommit_dict
@@ -198,6 +198,12 @@ class gitVCS (VCS):
         # with and without whitespace sensitivity,
         # and regular/patience diff.
         return 4
+
+    def _getRevDate(self, rev):
+         cmd_base = 'git --git-dir={0} log --no-merges --format=%ct -1'.format(self.repo).split()
+         cmd = cmd_base + [rev]
+         date = execute_command(cmd)
+         return(date)
 
     def _prepareCommitLists(self):
         """Gets the hash values (or whatever is used to identify
@@ -306,15 +312,6 @@ class gitVCS (VCS):
         # Then, obtain the first and last commit in the desired range
         # and extract the desired subrange
         return clist
-
-    def _getCommitDate(self, rev):
-        '''
-        Return the date of the commit specified by the revision rev
-        without inserting the commit in any global listings/
-        '''
-        logmsg = self._getCommitIDsLL((), rev_range=rev, sort=False)
-        cmt = self._Logstring2Commit(logmsg[0])
-        return cmt.cdate
 
     def _getSingleCommitInfo(self, cmtHash):
         #produces the git log output for a single commit hash
