@@ -86,6 +86,11 @@ class VCS:
         self.rev_end       = None;
         self.repo          = None
 
+        # Get commit ranges using dates
+        # True: get list of commits made between revision date range
+        # False: get list of commits reachable in one revision and not the other
+        self.range_by_date = False
+
         # For each subsystem, contains a time-ordered list of all commits
         # (i.e., _commit_list_dict["block"] is a list[] of ids)
         self._commit_list_dict = None
@@ -148,6 +153,9 @@ class VCS:
     def setRCRanges(self, rc_ranges):
         self._rc_ranges = rc_ranges
         self._rc_id_list = []
+
+    def setRangeByDate(self, range_by_date):
+        self.range_by_date = range_by_date
 
     def extractCommitData(self, subsys="__main__"):
         """Analyse the repository and cache the results.
@@ -219,6 +227,10 @@ class gitVCS (VCS):
             logger.critical("Repository unset in Git VCS")
             raise Error("Can't do anything without repo")
 
+        ## Retrieve and store the commit timestamp for the revision range
+        self.rev_start_date = self._getRevDate(self.rev_start)
+        self.rev_end_date = self._getRevDate(self.rev_end)
+
         # Start with the global list for the whole project
         self._prepareGlobalCommitList()
 
@@ -226,7 +238,8 @@ class gitVCS (VCS):
         # created commit instances by placing them on subsystem specific
         # lists.
         for subsys in self.subsys_description.keys():
-            clist = self._getCommitIDsLL(self.subsys_description[subsys])
+            clist = self._getCommitIDsLL(self.rev_start, self.rev_end,
+                                         self.subsys_description[subsys])
 
             # Based on this information, prepare a list of commit.Commit
             # objects
@@ -246,36 +259,28 @@ class gitVCS (VCS):
         # a feature freeze phase or not)
         if self._rc_ranges != None:
             for range in self._rc_ranges:
-                clist = self._getCommitIDsLL("", range[0], range[1])
+                clist = self._getCommitIDsLL(range[0], range[1])
                 self._rc_id_list.extend([self._Logstring2ID(logstring)
                                           for logstring in clist])
 
-    def _getCommitIDsLL(self, dir_list, rev_start=None, rev_end=None,
-                        rev_range = None, ignoreMerges=True, sort=True):
+    def _getCommitIDsLL(self, rev_start, rev_end, dir_list=None):
         """Low-level routine to extract the commit list from the VCS.
 
-        Must be implemented specifically for every VCS, and must
-        return a list of strings that can be parsed with
-        _Logstring2ID() for a specific revision range (rev_start..rev_end)
-        in the subsystem described by the directory list dir_list."""
+        Input:
+            rev_start - start of revision range
+            rev_end - end of revision range
+            dir_list - directory list of a specific subsystems
+        Output:
+            clist - list of strings representing commits that can be parsed with
+                    _Logstring2ID()
+        """
+        if self.range_by_date:
+            start_date = self._getRevDate(rev_start)
+            end_date = self._getRevDate(rev_end)
+            rev_range = '--since={0} --until={1}'.format(start_date, end_date)
 
-        if rev_start == None and rev_end != None:
-            log.critical("Range start revision is None, but end revision specified.")
-            raise Error("Bogus range!")
-
-        if not rev_range:
-            rev_range = ""
-            if rev_start:
-                rev_range += "{0}..".format(rev_start)
-            else:
-                if self.rev_start:
-                    rev_range += "{0}..".format(self.rev_start)
-
-            if rev_end:
-                rev_range += rev_end
-            else:
-                if self.rev_end:
-                    rev_range += self.rev_end
+        else:
+            rev_range = '{0}..{1}'.format(rev_start, rev_end)
 
         # TODO: Check the effect that -M and -C (to detect copies and
         # renames) have on the output. Is there anything we need
@@ -290,14 +295,13 @@ class gitVCS (VCS):
         # Passing a simple formatted string and using getoutput() to
         # obtain the result is way nicer in python3.
         cmd = 'git --git-dir={0} log -M -C'.format(self.repo).split()
-        if ignoreMerges:
-            cmd.append('--no-merges')
+        cmd.append('--no-merges')
         cmd.append(self.prettyFormat)
         cmd.append(rev_range)
-        if (len(dir_list) > 0):
+
+        if dir_list is not None:
             cmd.append("--")
-            for dir in dir_list:
-                cmd.append(dir)
+            cmd.extend(dir_list)
 
         clist = execute_command(cmd).splitlines()
 
@@ -306,11 +310,8 @@ class gitVCS (VCS):
         # of commits can violate this for various reasons. Since these
         # outliers screw up the cumulative graph, we have to add an
         # extra sorting pass.
-        if sort:
-            clist.sort(reverse=True)
+        clist.sort(reverse=True)
 
-        # Then, obtain the first and last commit in the desired range
-        # and extract the desired subrange
         return clist
 
     def _getSingleCommitInfo(self, cmtHash):
@@ -384,7 +385,7 @@ class gitVCS (VCS):
         self._commit_list_dict = {}
         self._commit_id_list_dict = {}
         self._commit_dict = {}
-        clist = self._getCommitIDsLL("")
+        clist = self._getCommitIDsLL(self.rev_start, self.rev_end)
 
         # We need to process the array in inverse order to obtain a
         # time-wise increasing sequence. The result is a list of
@@ -393,13 +394,6 @@ class gitVCS (VCS):
                                               for logstring in reversed(clist)]
         for cmt in self._commit_list_dict["__main__"]:
             self._commit_dict[cmt.id] = cmt
-
-        # Retrieve the dates for the first and last commits,
-        # relies on sorting of commits based on commit date
-        first_cmt = self._commit_list_dict["__main__"][0]
-        last_cmt = self._commit_list_dict["__main__"][-1]
-        self._rev_start_date = min(first_cmt.getCdate(), last_cmt.getCdate())
-        self._rev_end_date = max(first_cmt.getCdate(), last_cmt.getCdate())
 
     def _Logstring2ID(self, str):
         """Extract the commit ID from a log string."""
@@ -667,10 +661,10 @@ class gitVCS (VCS):
         # NOTE: __main__ is a pseudo-subsystem that is not contained
         # in the subsystem description
         if subsys=="__main__":
-            clist = self._getCommitIDsLL("", revrange[0], revrange[1])
+            clist = self._getCommitIDsLL(revrange[0], revrange[1])
         else:
-            clist = self._getCommitIDsLL(self.subsys_description[subsys],
-                                         revrange[0], revrange[1])
+            clist = self._getCommitIDsLL(revrange[0], revrange[1],
+                                         self.subsys_description[subsys])
 
         return [self._commit_dict[self._Logstring2ID(logstring)]
                 for logstring in reversed(clist)]
