@@ -57,12 +57,14 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     project, tagging = conf["project"], conf["tagging"]
     repo = pathjoin(gitdir, conf["repo"], ".git")
     project_resdir = pathjoin(resdir, project, tagging)
+    range_by_date = False
 
     # When revisions are not provided by the configuration file
     # generate the analysis window automatically
     if len(conf["revisions"]) < 2:
-	window_size_months = 3 # Window size in months
-	conf["revisions"], conf["rcs"] = generate_analysis_windows(repo, window_size_months)
+        window_size_months = 3 # Window size in months
+        conf["revisions"], conf["rcs"] = generate_analysis_windows(repo, window_size_months)
+        range_by_date = True
 
     # TODO: Sanity checks (ensure that git repo dir exists)
     if 'proximity' == conf["tagging"]:
@@ -86,7 +88,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         s1 = pool.add(
                 doProjectAnalysis,
                 (conf, start_rev, end_rev, rc_rev, range_resdir, repo,
-                    True, True),
+                    True, True, range_by_date),
                 startmsg=prefix + "Analysing commits...",
                 endmsg=prefix + "Commit analysis done."
             )
