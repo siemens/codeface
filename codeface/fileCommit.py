@@ -45,6 +45,9 @@ class FileDict:
         self.line_dict = {}
         self.lastItem = -1
 
+    def __iter__(self):
+        return self.line_dict.__iter__()
+
     def get_line_info_raw(self, line_nr):
         """
         Returns the info for the given line (if the line was never set, the info for the last set line is returned)

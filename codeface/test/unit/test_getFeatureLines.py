@@ -13,11 +13,52 @@
 
 import unittest
 
-from codeface.VCS import (getFeatureLines, ParseError)
+from codeface.VCS import (getFeatureLines, parseFeatureLine, parseline, parseSepLine, ParseError)
 from operator import eq
 import logging
 logging.basicConfig()
 
+
+class TestFeatureLineParsing(unittest.TestCase):
+    """Tests for the getFeatureLines function"""
+
+    def testsepline(self):
+        """Check that we can parse the header"""
+        self.assertEqual(",", parseSepLine("\"sep=,\""))
+        self.assertEqual("-", parseSepLine("\"sep=-\""))
+
+        self.assertRaises(ParseError, parseSepLine, "\"sp=,\"")
+        self.assertRaises(ParseError, parseSepLine, "\"sep=,")
+
+        pass
+
+    def testline(self):
+        """Check that we can parse the first header line"""
+        self.assertListEqual(["FILENAME", "LINE_START", "LINE_END", "TYPE", "EXPRESSION", "CONSTANTS"],
+                             parseline(",", "FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS"))
+        self.assertListEqual(["FILENAME", "LINE_START", "LINE_END", "TYPE", "EXPRESSION", "CONSTANTS"],
+                             parseline("-", "FILENAME-LINE_START-LINE_END-TYPE-EXPRESSION-CONSTANTS"))
+
+        self.assertListEqual(["/tmp/tmpVemX4s_cppstats_featurelocations/_cppstats_featurelocations/tmpuAFx3b.xml", "1", "8", "#if", "defined(A)", "A"],
+                             parseline(",", "/tmp/tmpVemX4s_cppstats_featurelocations/_cppstats_featurelocations/tmpuAFx3b.xml,1,8,#if,defined(A),A"))
+        self.assertListEqual(["/tmp/tmpVemX4s_cppstats_featurelocations/_cppstats_featurelocations/tmpuAFx3b.xml", "3", "5", "#if", "(defined(A)) && ((defined(C) || defined(D)))", "A;C;D"],
+                             parseline(",", "/tmp/tmpVemX4s_cppstats_featurelocations/_cppstats_featurelocations/tmpuAFx3b.xml,3,5,#if,(defined(A)) && ((defined(C) || defined(D))),A;C;D"))
+
+        pass
+
+    def testfeatureline(self):
+        """Check that we can parse the first header line"""
+        startline, endline, featurelist = parseFeatureLine(",", "/tmp/tmpVemX4s_cppstats_featurelocations/_cppstats_featurelocations/tmpuAFx3b.xml,3,5,#if,(defined(A)) && ((defined(C) || defined(D))),A;C;D")
+        self.assertEqual(3, startline)
+        self.assertEqual(5, endline)
+        self.assertListEqual(["A", "C", "D"], featurelist)
+
+        startline, endline, featurelist = parseFeatureLine(",", "/tmp/tmpVemX4s_cppstats_featurelocations/_cppstats_featurelocations/tmpuAFx3b.xml,1,8,#if,defined(A),A")
+        self.assertEqual(1, startline)
+        self.assertEqual(8, endline)
+        self.assertListEqual(["A"], featurelist)
+
+        pass
 
 class TestFeatureLines(unittest.TestCase):
     """Tests for the getFeatureLines function"""

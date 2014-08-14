@@ -34,6 +34,8 @@
 # VCS-specific.
 # TODO: Unify range handling. Either a range is always a list, or always
 # represented by two parameters.
+import itertools
+import readline
 
 import commit
 import fileCommit
@@ -180,17 +182,46 @@ class VCS:
     def _subsysIsValid(self, subsys):
         """Check if subsystem subsys is valid."""
         return subsys=="__main__" or subsys in self.subsys_description.keys()
+def parseSepLine (line):
+    if not line.startswith("\"sep="):
+        raise ParseError(
+                    "expected that the csv file header starts with '\"sep=' but it started with '{}'"
+                    .format(line), 'CSVFile')
+    if not line.endswith("\""):
+        raise ParseError(
+                    "expected that the csv file header ends with '\"' but the line was '{}'"
+                    .format(line), 'CSVFile')
+    return line[5:-1]
 
-def parseFeatureLine(line):
+def parseline(sep, line):
+    """
+    Parses a line from a csv file
+    :param sep:
+    :param line:
+    :return:
+    """
+    # TODO: Handle escaping: sep is escaped with quotes, quotes are escaped with quotes
+    # 'test,test' will be '"test,test"' in the csv file
+    # 'test"this,"test' will be '"test""this,""test"' in the csv file
+    return line.split(sep)
+
+def parseFeatureLine(sep, line):
     """
     parse the current line which is something like: feature_list, start_line, end_line
     :param line: the line to parse
     :return: start_line, end_line, feature_list
     """
-    start_line = 0
-    end_line = 0
-    feature_list = {}
-    return start_line, end_line, feature_list
+    parsedline = parseline(sep, line)
+    # FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS
+    try:
+        start_line = int(parsedline[1])
+        end_line = int(parsedline[2])
+        feature_list = parsedline[5].split(';')
+        return start_line, end_line, feature_list
+    except ValueError:
+        raise ParseError(
+                    "could not parse feature line (most likely because we could not parse the start- or end-line which should be on index 2 and 3): \"{}\""
+                    .format(line), 'CSVFile')
 
 def getFeatureLines(parsed_lines, filename):
     """
@@ -1097,11 +1128,22 @@ class gitVCS (VCS):
         srcFile.flush()
 
         # run cppstats analysis on the file to get the feature locations
-        cmd = "cppstats -f {0} {1}".format(featurefile.name, srcFile.name).split()
+        # TODO: fix hardcoded paths
+        # BUG: THIS IS VERY BAD HARDCODED CODE AND SHOULD BE FIXED,
+        # HOWEVER IT IS NOT CLEAR HOW CPPSTATS IS DISTRUBUTED NOR WHERE IT LIVES
+        oldPath = os.getenv("PYTHONPATH")
+        os.putenv("PYTHONPATH", "/home/drag0on/projects/cppstats/lib")
+        cmd = "/home/drag0on/projects/cppstats/cppstats.py --kind featurelocations --file {0} {1}"\
+            .format(featurefile.name, srcFile.name).split()
         output = execute_command(cmd).splitlines()
+        os.putenv("PYTHONPATH", oldPath)
 
         results_file = open(featurefile.name, 'r')
-        feature_lines = getFeatureLines([parseFeatureLine(line) for line in results_file], file_commit.filename)
+        sep = parseSepLine(next(results_file))
+        headlines = parseline(sep, next(results_file))
+        feature_lines = \
+            getFeatureLines(
+                [parseFeatureLine(sep, line) for line in results_file], file_commit.filename)
         # clean up temporary files
         srcFile.close()
         featurefile.close()
