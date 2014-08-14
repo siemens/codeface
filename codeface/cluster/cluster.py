@@ -51,7 +51,8 @@ class LinkType:
     file             = "file"
 
 
-def createDB(filename, git_repo, revrange, subsys_descr, link_type, rcranges=None):
+def createDB(filename, git_repo, revrange, subsys_descr, link_type,
+             range_by_date, rcranges=None):
     #------------------
     #configuration
     #------------------
@@ -59,6 +60,7 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type, rcranges=Non
     git.setRepository(git_repo)
     git.setRevisionRange(revrange[0], revrange[1])
     git.setSubsysDescription(subsys_descr)
+    git.setRangeByDate(range_by_date)
 
     if rcranges != None:
         git.setRCRanges(rcranges)
@@ -1221,15 +1223,15 @@ def computeSimilarity(cmtlist):
 # Main part
 ###########################################################################
 def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
-                    create_db, outdir, rcranges=None,
-                    limit_history=False):
+                    create_db, outdir, limit_history,
+                    range_by_date, rcranges=None):
     link_type = conf["tagging"]
 
     if create_db == True:
         log.devinfo("Creating data base for {0}..{1}".format(revrange[0],
                                                         revrange[1]))
         createDB(dbfilename, git_repo, revrange, subsys_descr, \
-                 link_type, rcranges)
+                 link_type, range_by_date, rcranges)
 
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
     revisionIDs = (dbm.getRevisionID(projectID, revrange[0]),
@@ -1282,7 +1284,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
 
 ##################################################################
 def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
-                      git_repo, create_db, limit_history=False):
+                      git_repo, create_db, limit_history, range_by_date):
     #--------------
     #folder setup
     #--------------
@@ -1305,9 +1307,8 @@ def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
     filename = os.path.join(outdir, "vcs_analysis.db")
     dbm = DBManager(conf)
     performAnalysis(conf, dbm, filename, git_repo, [from_rev, to_rev],
-#                        kerninfo.subsysDescrLinux,
-                        None,
-                        create_db, outdir, rc_range, limit_history)
+                    None, create_db, outdir, limit_history, range_by_date,
+                    rc_range)
 
 ##################################
 #         TESTING CODE
