@@ -563,8 +563,8 @@ generate.graph.trends <- function(con, cluster.method="Spin Glass Community",
                          page.rank <- g$rank
                          page.rank[page.rank < 0] <- NA
                          g$stats$page.rank <- page.rank
+                         g$simulation <- community.stat.significance(g$graph,spinglass.community.connected,"conductance",1000)
                          return(g)})
-    
     ## create data frame for scalar graph measures
     df.list <- lapply(graph.data, function(g) {
                                     stats <- g$stats
@@ -783,6 +783,21 @@ run.trends.analysis <- function (con) {
   
   ## Write graph in graphML format
   lapply(trends, function(t) save.as.graphml(t, outdir))
+
+  ## Write Simulation Results
+  lapply(trends, function(t) {
+                   sim <- t[[1]]$simulation
+                   p <- plot.t.test(sim$random.simulation.quality, sim$original.quality,
+                                    sim$t.test.result, sim$shapiro.test.result,
+                                    "Cluster Verification", "Conductance")
+                   project.name <- t[[1]]$project.name
+                   analysis.method <- t[[1]]$analysis.method
+                   file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
+  		   dir.create(file.dir)
+                   file.name <- paste(file.dir, "/", "rewire_sim.png", sep="")
+                   ggsave(file.name, p, height=5, width=7)
+                   file.name <- paste(file.dir, "/", "rewire_sim.dat", sep="")
+                   save(sim, file=file.name)})
 
   return(0)
 }
