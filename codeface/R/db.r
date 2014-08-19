@@ -272,6 +272,10 @@ init.db <- function(conf) {
          "(Did you not run the VCS analysis before the ml analysis?)\n")
   }
 
+  ## Set Session wait_timeout variable to 24 hours, default is 8
+  query <- str_c("SET SESSION wait_timeout=", 24*60*60)
+  dbGetQuery(con, query)
+
   conf <- augment.conf(conf)
 
   return(conf)
