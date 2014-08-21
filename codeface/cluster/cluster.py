@@ -908,7 +908,7 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
         # (and likewise for %f)
         dbm.doExec("INSERT INTO commit (" + ", ".join(value_names) + ")" +
                    " VALUES (" + ", ".join("%s" for x in value_names) + ")",
-                   [values[k] for k in value_names])
+                   tuple(values[k] for k in value_names))
 
         # TODO: Continue writing here. Include at least
         # signoff-info (subsys info of signers)
