@@ -35,7 +35,6 @@ source("../db.r", chdir=TRUE)
 source("../utils.r", chdir=TRUE)
 source("../query.r", chdir=TRUE)
 source("../commits.r", chdir=TRUE)
-source("../page.rank.r", chdir=TRUE)
 
 ## Global variables
 conf <- load.global.config("codeface.conf")
