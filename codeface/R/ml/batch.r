@@ -42,7 +42,6 @@ s(library(optparse))
 s(library(xtable))
 s(library(reshape))
 s(library(plyr))
-source("../page.rank.r", chdir=TRUE)
 rm(s)
 
 ## TODO: Filter out spam. There's an incredible amount in some gmane archives

@@ -28,7 +28,6 @@ source("../../utils.r", chdir=TRUE)
 source("../../query.r", chdir=TRUE)
 source("../../commits.r", chdir=TRUE)
 source("../../vis.ports.r", chdir=TRUE)
-source("../../page.rank.r", chdir=TRUE)
 
 ## Global variables
 conf <- config.from.args(require.project=FALSE)
