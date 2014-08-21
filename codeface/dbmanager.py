@@ -63,7 +63,11 @@ class DBManager:
         with _log_db_error(stmt, args):
             while True:
                 try:
-                    return self.cur.execute(stmt, args)
+                    if isinstance(args, list):
+                        res = self.cur.executemany(stmt, args)
+                    else:
+                        res = self.cur.execute(stmt, args)
+                    return res
                 except mdb.OperationalError as dbe:
                     log.info("DBE args: " + str(dbe.args))
                     if dbe.args[0] == 1213: # Deadlock! retry...
