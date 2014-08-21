@@ -861,8 +861,11 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
 
     # Clear the commit information before writing new commints
-    dbm.doExec("DELETE FROM commit WHERE projectId=%s AND releaseRangeId=%s",
-               (projectID, int(releaseRangeID)))
+    dbm.doExecCommit("DELETE FROM commit WHERE projectId=%s AND releaseRangeId=%s",
+                     (projectID, int(releaseRangeID)))
+
+    # List of tuples where each tuple represents a row in the db
+    cmt_db_rows = []
 
     for cmt in cmtlist:
         subsys_touched = cmt.getSubsystemsTouched()
@@ -902,19 +905,21 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf):
                   "releaseRangeId" : int(releaseRangeID),
             }
         value_names = sorted(values.keys())
-
-
-        # TODO: For some reason, using %d for integers does not work
-        # (and likewise for %f)
-        dbm.doExec("INSERT INTO commit (" + ", ".join(value_names) + ")" +
-                   " VALUES (" + ", ".join("%s" for x in value_names) + ")",
-                   tuple(values[k] for k in value_names))
+        cmt_row = tuple(values[k] for k in value_names)
+        cmt_db_rows.append(cmt_row)
 
         # TODO: Continue writing here. Include at least
         # signoff-info (subsys info of signers)
         # similarity_between_author_and_signers
         # predominantly add, remove, or modify code (3-level factor)
-    dbm.doCommit()
+
+    # End for cmt
+
+    # Perform bulk insert
+    dbm.doExecCommit("INSERT INTO commit (" + ", ".join(value_names) + ")" +
+                     " VALUES (" + ", ".join("%s" for x in value_names) + ")",
+                     cmt_db_rows)
+
 
 def writeSubsysPerAuthorData2File(id_mgr, outdir):
     '''
@@ -951,8 +956,11 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
 
     # Clear the information before writing new commints
-    dbm.doExec("DELETE FROM author_commit_stats WHERE releaseRangeId=%s",
-               (int(releaseRangeID),))
+    dbm.doExecCommit("DELETE FROM author_commit_stats WHERE releaseRangeId=%s",
+                     (int(releaseRangeID),))
+
+    # Stores list of tuples for each row in db
+    author_cmt_stats_rows =[]
 
     for id in sorted(id_mgr.getPersons().keys()):
         pi = id_mgr.getPI(id)
@@ -960,14 +968,16 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
         added = cmt_stat["added"]
         deleted = cmt_stat["deleted"]
         numcommits = cmt_stat["numcommits"]
-        dbm.doExec("INSERT INTO author_commit_stats " +
-                   "(authorId, releaseRangeId, added, deleted, total, numcommits) "
-                   + "VALUES (%s, %s, %s, %s, %s, %s)",
-                   (id, releaseRangeID, cmt_stat["added"], cmt_stat["deleted"],
-                    cmt_stat["added"] + cmt_stat["deleted"],
-                    cmt_stat["numcommits"]))
+        total = added + deleted
+        row = (id, releaseRangeID, added, deleted, total, numcommits)
+        author_cmt_stats_rows.append(row)
+    # End for id
 
-    dbm.doCommit()
+    # Perform bulk insert
+    dbm.doExecCommit("INSERT INTO author_commit_stats " +
+                     "(authorId, releaseRangeId, added, deleted, total, numcommits) " +
+                     "VALUES (%s, %s, %s, %s, %s, %s)",
+                     author_cmt_stats_rows)
 
 
 def writeAdjMatrix2File(id_mgr, outdir, conf):
