@@ -56,6 +56,11 @@ def get_parser():
     run_parser.set_defaults(func=cmd_run)
     run_parser.add_argument('-c', '--config', help="Prosoda configuration file",
                 default='codeface.conf')
+    run_parser.add_argument(
+        '--collaboration',
+        help="Type of commit collaboration analysis (function, feature_file and feature). "
+             "feature is currently unsupported, default is function",
+        default='function')
     run_parser.add_argument('-p', '--project', help="Project configuration file",
                 required=True)
     run_parser.add_argument('resdir',
@@ -103,7 +108,7 @@ def cmd_run(args):
         logfile = os.path.abspath(logfile)
     project_analyse(resdir, gitdir, codeface_conf, project_conf,
                     args.no_report, args.loglevel, logfile, args.recreate,
-                    args.profile_r, args.jobs)
+                    args.profile_r, args.jobs, args.collaboration)
     return 0
 
 def cmd_ml(args):

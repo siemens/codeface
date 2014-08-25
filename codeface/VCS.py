@@ -36,6 +36,7 @@
 # represented by two parameters.
 import itertools
 import readline
+from Cython.Compiler.ParseTreeTransforms import eliminate_rhs_duplicates
 
 import commit
 import fileCommit
@@ -187,11 +188,12 @@ def parseSepLine (line):
         raise ParseError(
                     "expected that the csv file header starts with '\"sep=' but it started with '{}'"
                     .format(line), 'CSVFile')
-    if not line.endswith("\""):
+    stripped = line.rstrip()
+    if not stripped.endswith("\""):
         raise ParseError(
                     "expected that the csv file header ends with '\"' but the line was '{}'"
                     .format(line), 'CSVFile')
-    return line[5:-1]
+    return stripped[5:-1]
 
 def parseline(sep, line):
     """
@@ -203,7 +205,18 @@ def parseline(sep, line):
     # TODO: Handle escaping: sep is escaped with quotes, quotes are escaped with quotes
     # 'test,test' will be '"test,test"' in the csv file
     # 'test"this,"test' will be '"test""this,""test"' in the csv file
-    return line.split(sep)
+    return [l.strip() for l in line.split(sep)]
+
+
+def enum(*sequential, **named):
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    reverse = dict((value, key) for key, value in enums.iteritems())
+    enums['reverse_mapping'] = reverse
+    return type('Enum', (), enums)
+
+
+LineType = enum(IF='#if', ELSE='#else', ELIF='#elif')
+
 
 def parseFeatureLine(sep, line):
     """
@@ -216,12 +229,18 @@ def parseFeatureLine(sep, line):
     try:
         start_line = int(parsedline[1])
         end_line = int(parsedline[2])
+        line_type = LineType.reverse_mapping[parsedline[3]]
         feature_list = parsedline[5].split(';')
-        return start_line, end_line, feature_list
+        return start_line, end_line, line_type, feature_list
     except ValueError:
         raise ParseError(
                     "could not parse feature line (most likely because we could not parse the start- or end-line which should be on index 2 and 3): \"{}\""
                     .format(line), 'CSVFile')
+
+
+
+
+
 
 def getFeatureLines(parsed_lines, filename):
     """
@@ -236,49 +255,65 @@ def getFeatureLines(parsed_lines, filename):
     feature_lines = FileDict()
     feature_lines.add_line(0, [])
 
-    try:
-        # we want a format like (is_start, features) for every changing line
-        better_format = {}
-        # We assume that every line is used at most once as start_line or end_line
+    # we want a format like (is_start, features) for every changing line
+    better_format = {}
+    # We assume that every line is used at most once as start_line or end_line
 
-        def check_line(line):
-            if line in better_format:
-                raise ParseError(
-                    "every line index can be used at most once (problematic line was {0} in file {1})"
-                    .format(line, filename), filename)
+    def check_line(line):
+        if line in better_format:
+            raise ParseError(
+                "every line index can be used at most once (problematic line was {0} in file {1})"
+                .format(line, filename), filename)
 
-        for start_line, end_line, feature_list in parsed_lines:
+    for start_line, end_line, line_type, feature_list in parsed_lines:
+        if start_line >= end_line:
+            raise ParseError(
+                "start_line can't be greater or equal to end_line (problematic line was {0} in file {1})"
+                .format(start_line, filename), filename)
+        if line_type == 'IF':
+            # ifs start on their own line, however the end_line could already be used by the start of an else/elif
             check_line(start_line)
+            if end_line in better_format:
+                end_line -= 1
             check_line(end_line)
-            if start_line >= end_line:
-                raise ParseError(
-                    "start_line can't be greater or equal to end_line (problematic line was {0} in file {1})"
-                    .format(start_line, filename), filename)
             better_format[start_line] = (True, feature_list)
             better_format[end_line] = (False, feature_list)
-
-        for line in sorted(better_format):
-            is_start, features = better_format[line]
-            # Get last infos
-            last_feature_list = feature_lines.get_line_info_raw(line)
-            # Copy last list and create new list for current line
-            new_feature_list = list(last_feature_list)
-            if is_start:
-                for r in features:
-                    new_feature_list.insert(0, r)
+        else:
+            # we try to mostly ignore else and elif if the feature_list doesn't change
+            is_start, old_feature_list = better_format[start_line]
+            if (not is_start) and old_feature_list == feature_list:
+                # moving to the new end
+                del better_format[start_line]
+                better_format[end_line] = is_start, old_feature_list
+            elif is_start:
+                raise ParseError(
+                    "line {0} appeared twice as start line (problematic file was {1})"
+                    .format(start_line, filename), filename)
             else:
-                for r in reversed(features):
-                    item = new_feature_list.pop(0)
-                    assert(item == r)
-                    ##new_feature_list.remove(r)
-                # Remove in next line (because we want to count the current #endif line as well).
-                line += 1
+                # So we have a elif with different features,
+                # so we start more features now end add them to the ending later
+                del better_format[start_line]
+                better_format[start_line] = (True, feature_list)
+                better_format[end_line] = (False, old_feature_list + feature_list)
 
-            feature_lines.add_line(line, new_feature_list)
-    except:
-        log.critical("was unable unable to parse feature information of cppstats")
-        raise
+    for line in sorted(better_format):
+        is_start, features = better_format[line]
+        # Get last infos
+        last_feature_list = feature_lines.get_line_info_raw(line)
+        # Copy last list and create new list for current line
+        new_feature_list = list(last_feature_list)
+        if is_start:
+            for r in features:
+                new_feature_list.insert(0, r)
+        else:
+            for r in reversed(features):
+                item = new_feature_list.pop(0)
+                assert(item == r)
+                ##new_feature_list.remove(r)
+            # Remove in next line (because we want to count the current #endif line as well).
+            line += 1
 
+        feature_lines.add_line(line, new_feature_list)
     return feature_lines
 
 class gitVCS (VCS):
@@ -771,7 +806,7 @@ class gitVCS (VCS):
                 for logstring in reversed(clist)]
 
 
-    def extractCommitData(self, subsys="__main__", link_type=None):
+    def extractCommitData(self, subsys="__main__", link_type=None, collab_type="function"):
         if not(self._subsysIsValid(subsys)):
             log.critical("Subsys specification invalid: {0}\n".format(subsys))
             raise Error("Invalid subsystem specification.")
@@ -787,7 +822,7 @@ class gitVCS (VCS):
 
         if link_type in ("proximity", "file"):
             self.addFiles4Analysis()
-            self._prepareFileCommitList(self._fileNames, link_type=link_type)
+            self._prepareFileCommitList(self._fileNames, link_type=link_type, collab_type=collab_type)
 
         # _commit_list_dict as computed by _prepareCommitLists() already
         # provides a decomposition of the commit list into subsystems:
@@ -868,7 +903,7 @@ class gitVCS (VCS):
 
 
     def _prepareFileCommitList(self, fnameList, link_type, singleBlame=True,
-                               ignoreOldCmts=True):
+                               ignoreOldCmts=True, collab_type="function"):
         '''
         uses git blame to determine the file layout of a revision
         '''
@@ -937,13 +972,13 @@ class gitVCS (VCS):
             # retrieve blame data
             if singleBlame: #only one set of blame data per file
                 self._addBlameRev(self.rev_end, file_commit,
-                                  blameMsgCmtIds, link_type)
+                                  blameMsgCmtIds, link_type, collab_type=collab_type)
             else: # get one set of blame data for every commit made
                 # this option is computationally intensive thus the alternative
                 # singleBlame option is possible when speed is a higher
                 # priority than precision
                 [self._addBlameRev(cmt.id, file_commit,
-                                      blameMsgCmtIds, link_type) for cmt in cmtList]
+                                      blameMsgCmtIds, link_type, collab_type=collab_type) for cmt in cmtList]
 
             #store fileCommit object to dictionary
             self._fileCommit_dict[fname] = file_commit
@@ -989,7 +1024,7 @@ class gitVCS (VCS):
 
                 pbar.finish()
 
-    def _addBlameRev(self, rev, file_commit, blame_cmt_ids, link_type):
+    def _addBlameRev(self, rev, file_commit, blame_cmt_ids, link_type, collab_type="function"):
         '''
         saves the git blame output of a revision for a particular file
         '''
@@ -1016,7 +1051,13 @@ class gitVCS (VCS):
 
         # locate all function lines in the file
         if link_type=="proximity": # separate the file commits into code structures
-            self._getFunctionLines(src_lines, file_commit)
+            if collab_type == "function":
+                self._getFunctionLines(src_lines, file_commit)
+            elif collab_type == "feature_file" or collab_type == "feature":
+                self._getFeatureLines(src_lines, file_commit)
+            else:
+                raise Exception("unknown collaboration type!")
+
         # else: do not separate file commits into code structures, 
         #       this will result in all commits to a single file seen as 
         #       related thus the more course grained analysis
@@ -1120,7 +1161,7 @@ class gitVCS (VCS):
 
         # temporary file where we write transient data needed for ctags
         srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
-        featurefile = tempfile.NamedTemporaryFile()
+        featurefile = tempfile.NamedTemporaryFile(suffix=".csv")
         # generate a source code file from the file_layout_src dictionary
         # and save it to a temporary location
         for line in file_layout_src:
@@ -1133,9 +1174,9 @@ class gitVCS (VCS):
         # HOWEVER IT IS NOT CLEAR HOW CPPSTATS IS DISTRUBUTED NOR WHERE IT LIVES
         oldPath = os.getenv("PYTHONPATH")
         os.putenv("PYTHONPATH", "/home/drag0on/projects/cppstats/lib")
-        cmd = "/home/drag0on/projects/cppstats/cppstats.py --kind featurelocations --file {0} {1}"\
-            .format(featurefile.name, srcFile.name).split()
-        output = execute_command(cmd).splitlines()
+        cmd = "/usr/bin/env python /home/drag0on/projects/cppstats/cppstats.py --kind featurelocations --file {0} {1}"\
+            .format(srcFile.name, featurefile.name).split()
+        output = execute_command(cmd, cwd="/home/drag0on/projects/cppstats").splitlines()
         os.putenv("PYTHONPATH", oldPath)
 
         results_file = open(featurefile.name, 'r')
@@ -1149,7 +1190,7 @@ class gitVCS (VCS):
         featurefile.close()
 
         # save result to the file commit instance
-        file_commit.setFeatureLines(feature_lines)
+        file_commit.set_feature_infos(feature_lines)
 
 
     def cmtHash2CmtObj(self, cmtHash):

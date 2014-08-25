@@ -74,6 +74,9 @@ class FileDict:
         self.line_list.append(line_nr)
         self.line_dict[line_nr] = info
 
+    def values(self):
+        return self.line_dict.values()
+
 
 class FileCommit:
     def __init__(self):
@@ -118,7 +121,7 @@ class FileCommit:
         self.functionIds.update(functionIds)
         self.functionLineNums.extend(sorted(self.functionIds.iterkeys()))
 
-    def setFeatureInfos(self, feature_line_infos):
+    def set_feature_infos(self, feature_line_infos):
         self.feature_info = feature_line_infos
 
     #Methods

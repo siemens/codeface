@@ -52,7 +52,7 @@ class LinkType:
 
 
 def createDB(filename, git_repo, revrange, subsys_descr, link_type,
-             range_by_date, rcranges=None):
+             range_by_date, rcranges=None, collab_type="function"):
     #------------------
     #configuration
     #------------------
@@ -68,7 +68,7 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type,
     #------------------------
     #data extraction
     #------------------------
-    git.extractCommitData(link_type=link_type)
+    git.extractCommitData(link_type=link_type, collab_type=collab_type)
 
     #------------------------
     #save data
@@ -328,31 +328,29 @@ def group_feature_lines(file_commit, file_state, cmtList):
         curr_features = file_commit.findFeatureList(curr_line)
         next_features = file_commit.findFeatureList(next_line)
 
-        for feature_id, feature in feature_indx:
+        for feature, feature_id in feature_indx.iteritems():
             if (curr_cmt_id == next_cmt_id) and (curr_line + 1 == next_line) and \
                     (feature in curr_features) and (feature in next_features):
                 # nothing changed for this feature
-                blk_end[feature] += 1
+                blk_end[feature_id] += 1
             else:
                 # block for this feature finished
-                if feature in curr_features:
-                    feature_blks[feature_id]. \
-                        append(codeBlock.codeBlock(blk_start[feature_id], blk_end[feature_id],
-                                                   cmtList[str(curr_cmt_id)].getAuthorPI().getID(),
-                                                   cmtList[str(curr_cmt_id)].getCommitterPI().getID(),
-                                                   curr_cmt_id))
-                    blk_start[feature_id] = next_line
-                    blk_end[feature_id] = next_line
+                feature_blks[feature_id]. \
+                    append(codeBlock.codeBlock(blk_start[feature_id], blk_end[feature_id],
+                                               cmtList[str(curr_cmt_id)].getAuthorPI().getID(),
+                                               cmtList[str(curr_cmt_id)].getCommitterPI().getID(),
+                                               curr_cmt_id))
+                blk_start[feature_id] = next_line
+                blk_end[feature_id] = next_line
 
     # boundary case
-    for feature_id, feature in feature_indx:
-        if feature in curr_features:
-            feature_blks[feature_id].append(
-                codeBlock.codeBlock(
-                    blk_start[feature_id], blk_end[feature_id],
-                    cmtList[str(next_cmt_id)].getAuthorPI().getID(),
-                    cmtList[str(next_cmt_id)].getCommitterPI().getID(),
-                    next_cmt_id))
+    for feature, feature_id in feature_indx.iteritems():
+        feature_blks[feature_id].append(
+            codeBlock.codeBlock(
+                blk_start[feature_id], blk_end[feature_id],
+                cmtList[str(next_cmt_id)].getAuthorPI().getID(),
+                cmtList[str(next_cmt_id)].getCommitterPI().getID(),
+                next_cmt_id))
 
     return feature_blks
 
@@ -1255,6 +1253,25 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, link_type, \
                                     for fileSnapShot
                                     in fileCommit.getFileSnapShots().items()]
 
+def compute_feature_proximity_links_perfile(fileCommitList, cmtList, id_mgr, link_type, \
+                          startDate=None, speedUp=True):
+    '''
+    Constructs network based on commit proximity information
+    '''
+
+    '''
+    Two contributors are linked when they make a commit that is in
+    close proximity to each other (ie. same file AND nearby line numbers).
+    Collaboration is quantified by a single metric indicating the
+    strength of collaboration between two individuals.
+    '''
+    for file_commit in fileCommitList.values():
+        if speedUp:
+            compute_snapshot_collaboration_features(file_commit, cmtList, id_mgr, link_type, startDate)
+        else:
+            [compute_snapshot_collaboration_features(
+                fileSnapShot[1], [fileSnapShot[0]], cmtList, id_mgr, link_type, startDate)
+             for fileSnapShot in file_commit.getFileSnapShots().items()]
 
 def compute_feature_proximity_links(file_commit_list, cmt_list, id_mgr, link_type, \
                                     start_date=None, speed_up=True):
@@ -1268,19 +1285,10 @@ def compute_feature_proximity_links(file_commit_list, cmt_list, id_mgr, link_typ
 
     Two contributors are linked when they make a commit that is within the same feature.
     Collaboration between to contributors is quantified by the number of lines they worked on the same feature.
+    TODO!
     '''
-
+    raise Exception("feature proximity links is not implemented!")
     # First we calculate how many lines each contributor changed in each feature
-    for file_commit in file_commit_list.values():
-
-        if speedUp:
-            computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
-                                         startDate)
-        else:
-            [computeSnapshotCollaboration(fileSnapShot[1], [fileSnapShot[0]],
-                                          cmtList, id_mgr, link_type, startDate)
-             for fileSnapShot
-             in fileCommit.getFileSnapShots().items()]
 
 
 def computeCommitterAuthorLinks(cmtlist, id_mgr):
@@ -1429,7 +1437,7 @@ def computeSimilarity(cmtlist):
 ###########################################################################
 def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
                     create_db, outdir, limit_history,
-                    range_by_date, rcranges=None):
+                    range_by_date, rcranges=None, collab_type="function"):
     link_type = conf["tagging"]
 
     if create_db == True:
@@ -1473,8 +1481,14 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
             startDate = None
 
         fileCommitList = git.getFileCommitDict()
-        computeProximityLinks(fileCommitList, cmtdict, id_mgr, link_type,
-                              startDate)
+        if collab_type == "function":
+            computeProximityLinks(fileCommitList, cmtdict, id_mgr, link_type, startDate)
+        elif collab_type == "feature_file":
+            compute_feature_proximity_links_perfile(fileCommitList, cmtdict, id_mgr, link_type, startDate)
+        elif collab_type == "feature":
+            compute_feature_proximity_links(fileCommitList, cmtdict, id_mgr, link_type, startDate)
+        else:
+            raise Exception("Unsupported collaboration type!")
     #---------------------------------
     #compute statistical information
     #---------------------------------
@@ -1489,7 +1503,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
 
 ##################################################################
 def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
-                      git_repo, create_db, limit_history, range_by_date):
+                      git_repo, create_db, limit_history, range_by_date, collab_type="function"):
     #--------------
     #folder setup
     #--------------
@@ -1513,7 +1527,7 @@ def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
     dbm = DBManager(conf)
     performAnalysis(conf, dbm, filename, git_repo, [from_rev, to_rev],
                     None, create_db, outdir, limit_history, range_by_date,
-                    rc_range)
+                    rc_range, collab_type)
 
 ##################################
 #         TESTING CODE
