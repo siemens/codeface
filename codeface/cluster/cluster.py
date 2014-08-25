@@ -236,8 +236,7 @@ def compute_snapshot_collaboration_features(file_commit, cmtList, id_mgr, link_t
         #around the cmt.id hash, modify the fileState to include only the
         #lines of interest
         if (not (random)):
-            fileState_mod = lines_of_interest_features(fileState_mod, cmt.id, maxDist,
-                                            cmtList, file_commit)
+            fileState_mod = lines_of_interest_features(fileState_mod, cmt.id, cmtList, file_commit)
 
         #remove commits that occur prior to the specified startDate
         if startDate != None:
@@ -249,9 +248,10 @@ def compute_snapshot_collaboration_features(file_commit, cmtList, id_mgr, link_t
             # identify code line clustering using function location information
             clusters = group_feature_lines(file_commit, fileState_mod, cmtList)
 
-            #calculate the collaboration coefficient for each code block
-            [computeCommitCollaboration(cluster, cmt, id_mgr, link_type,
-                                        maxDist, author) for cluster in clusters if cluster]
+            for cluster in clusters:
+                #calculate the collaboration coefficient for each code block
+                if cluster:
+                    computeCommitCollaboration(cluster, cmt, id_mgr, link_type, maxDist, author)
 
 
 def groupFuncLines(file_commit, file_state, cmtList):
@@ -821,7 +821,7 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist, file_commit):
     return modFileState
 
 
-def lines_of_interest_features(file_state, snapshot_commit, max_dist, cmt_list, file_commit):
+def lines_of_interest_features(file_state, snapshot_commit, cmt_list, file_commit):
     """
     Finds the regions of interest for analyzing the file.
     We want to look at localized regions around the commit of
@@ -837,18 +837,14 @@ def lines_of_interest_features(file_state, snapshot_commit, max_dist, cmt_list, 
     mod_filestate: the file state after line not of interest are removed
     """
     #variable declarations
-    filemaxline = int(max(file_state.keys(), key=int))
-    fileminline = int(min(file_state.keys(), key=int))
     snapshot_cmt_date = cmt_list[snapshot_commit].getCdate()
-    linesSet = set()
-    mod_filestate = {}
+    mod_file_state = {}
     snapshot_feature_set = set()
 
     #take a pass over the fileState to identify where the snapShotCommit
     #made contributions to the fileState
     snapshot_cmt_lines = []
     for lineNum in file_state.keys():
-
         cmt_id = file_state[lineNum]
 
         if cmt_id == snapshot_commit:
@@ -873,14 +869,14 @@ def lines_of_interest_features(file_state, snapshot_commit, max_dist, cmt_list, 
             # that are in the same functions as the snapshot commit
 
             if any(com in snapshot_feature_set for com in file_commit.findFeatureList(int(lineNum))):
-                mod_filestate[lineNum] = file_state[lineNum]
+                mod_file_state[lineNum] = file_state[lineNum]
 
                 # else: ignore line since it belongs to some function outside of
                 # the set of functions we are interested in
 
                 #else: forget line because it was in a future commit
 
-    return mod_filestate
+    return mod_file_state
 
 
 def blockDist(blk1, blk2):
@@ -1287,8 +1283,51 @@ def compute_feature_proximity_links(file_commit_list, cmt_list, id_mgr, link_typ
     Collaboration between to contributors is quantified by the number of lines they worked on the same feature.
     TODO!
     '''
-    raise Exception("feature proximity links is not implemented!")
+
+
     # First we calculate how many lines each contributor changed in each feature
+    for file_commit in file_commit_list.values():
+        author = True
+        file_state = file_commit.getFileSnapShot()
+        revCmtIds = file_commit.getrevCmts()
+        revCmts = [cmt_list[revCmtId] for revCmtId in revCmtIds]
+
+
+        for cmt in revCmts:
+            # the fileState will be modified but for each loop we should start with
+            # the original fileState
+            file_state_mod = file_state.copy()
+
+            # check if commit is in the current revision of the file, if it is not
+            # we no longer have a need to process further since the commit is now
+            # irrelevant
+            if not (cmt.id in file_state_mod.values()):
+                continue
+
+            #find code lines of interest, these are the lines that are localized
+            #around the cmt.id hash, modify the fileState to include only the
+            #lines of interest
+            if (not (random)):
+                file_state_mod = lines_of_interest_features(file_state_mod, cmt.id, cmt_list, file_commit)
+
+            #remove commits that occur prior to the specified startDate
+            if start_date != None:
+                file_state_mod = removePriorCommits(file_state_mod, cmt_list, start_date)
+
+            #collaboration is meaningless without more than one line
+            #of code
+            if len(file_state_mod) > 1:
+                # identify code line clustering using feature location information
+                clusters = group_feature_lines(file_commit, file_state_mod, cmt_list)
+                # We now have a 'featureId -> codeblock list' mapping
+                #calculate the collaboration coefficient for each code block
+                [computeCommitCollaboration(cluster, cmt, id_mgr, link_type,
+                                            max_dist, author) for cluster in clusters if cluster]
+
+
+
+
+    raise Exception("feature proximity links is not implemented!")
 
 
 def computeCommitterAuthorLinks(cmtlist, id_mgr):

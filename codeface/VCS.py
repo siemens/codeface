@@ -183,6 +183,8 @@ class VCS:
     def _subsysIsValid(self, subsys):
         """Check if subsystem subsys is valid."""
         return subsys=="__main__" or subsys in self.subsys_description.keys()
+
+
 def parseSepLine (line):
     if not line.startswith("\"sep="):
         raise ParseError(
@@ -315,6 +317,7 @@ def getFeatureLines(parsed_lines, filename):
 
         feature_lines.add_line(line, new_feature_list)
     return feature_lines
+
 
 class gitVCS (VCS):
     def __init__(self):
@@ -1191,7 +1194,6 @@ class gitVCS (VCS):
 
         # save result to the file commit instance
         file_commit.set_feature_infos(feature_lines)
-
 
     def cmtHash2CmtObj(self, cmtHash):
         '''
