@@ -438,6 +438,38 @@ remove.extraneous.commits <- function(training.df, evaluation.df) {
 }
 
 
+get.frequent.item.sets <- function(con, project.id, start.date, end.date) {
+  ## Get commits for time period
+  commit.file.edit.limit <- 30
+  commit.depends.df <- query.dependency(con, project.id, 'Function', commit.file.edit.limit,
+                                      start.date, end.date)
+  ## Compute transactions
+  commit.list <- aggregate.commit.dependencies(commit.depends.df)
+
+  ## Mine frequent change sets
+  trans.list <- as(commit.list, 'transactions')
+  support.norm <- min(1,rule.support/length(trans.list))
+  freq.change.sets <- apriori(trans.list,
+                              parameter=list(sup=support.norm, minlen=2,
+                                             target='frequent'),
+                              control=list(verbose=FALSE))
+  ## Coerce itemsets to list
+  item.sets.list <- as(items(freq.change.sets), 'list')
+
+  return(item.sets.list)
+}
+
+
+compute.item.sets.edgelist <- function(item.sets) {
+  combs.list <- lapply(item.sets, function(item.set) {
+                                        combs <- t(combn(item.set,2))
+                                        data.frame(combs)})
+  edge.list <- do.call('rbind', combs.list)
+
+  return(edge.list)
+}
+
+
 save.results <- function(pr.df, outdir) {
 
   ## Compute x-axis ticks for time series
