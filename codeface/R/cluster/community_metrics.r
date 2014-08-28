@@ -525,22 +525,20 @@ compute.project.graph.trends <- function(con, p.id, cluster.method="Spin Glass C
                           function(x) nrow(x$edgelist) != 0)
   revision.data <- revision.data[keep.revision]
 
-  ## Create igraph object
-  revision.data <- lapply(revision.data,
-                          function(rev) {
-                            rev$graph <- graph.data.frame(rev$edgelist, directed=TRUE,
-                                                       vertices=data.frame(rev$v.local.ids))
-                            V(rev$graph)$name <- rev$v.global.ids
-                            return(rev)})
-
-  ## Compute community metrics
-  ## select communities which are of a minimum size 4
-  revision.data <- lapply(revision.data,
-                          function(rev) {
-                            graph.comm <- minCommGraph(rev$graph, rev$comm, min=3)
-                            rev$graph <- graph.comm$graph
-                            rev$comm <- graph.comm$community
-                            return(rev)})
+  ## Create igraph object and select communities which are of a minimum size 4
+  revision.data <-
+    mclapply(revision.data, mc.cores=4,
+             FUN=function(rev) {
+                   rev$graph <- graph.data.frame(rev$edgelist,
+                                                 directed=TRUE,
+                                                 vertices=data.frame(rev$v.local.ids))
+                   V(rev$graph)$name <- rev$v.global.ids
+                   comm <- community.detection.disconnected(rev$graph,
+                                                            spinglass.community.connected)
+                   graph.comm <- minCommGraph(rev$graph, comm, min=3)
+                   rev$graph <- graph.comm$graph
+                   rev$comm <- graph.comm$community
+                   return(rev)})
 
   ## Remove graphs without communities
   ## for very small graphs maybe no communities exit
