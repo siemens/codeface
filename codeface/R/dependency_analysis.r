@@ -44,7 +44,8 @@ query.dependency.sem <- function(con, project.id, type, limit) {
   return(dat)
 }
 
-query.dependency <- function(con, project.id, type, limit, start.date, end.date) {
+query.dependency <- function(con, project.id, type, limit, start.date, end.date,
+                             impl=FALSE) {
   ## Query for dependencies between entities edited by a common commit
 
   ## Type: Type of dependency of which 'File' or 'Function' are possible.
@@ -52,10 +53,16 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date)
   ##        a single commit. Often one would want to eliminate commits
   ##        that touch a very large number of files because the nature
   ##        of them is unique (e.g., change licence information)
-  query <- str_c("SELECT commit.id, file, entityId, entityType, size ",
-                 "FROM commit, commit_dependency ",
-                 "WHERE commit.id = commit_dependency.commitId ",
-                 "AND commit.projectId=", project.id, " ",
+  select.str <- "SELECT commit.id, file, entityId, entityType, size "
+
+  if (impl == TRUE) {
+    select.str <- paste(select.str, ", impl ", sep="")
+  }
+
+  query <- str_c(select.str,
+                 "FROM commit_dependency INNER JOIN commit ",
+                 "ON commit.id = commit_dependency.commitId ",
+                 "WHERE commit.projectId=", project.id, " ",
                  "AND commit_dependency.entityType=", sq(type), " ",
                  "AND commit.ChangedFiles <= ", limit, " ",
                  "AND commit.commitDate >=", sq(start.date), " ",
@@ -445,6 +452,7 @@ get.frequent.item.sets <- function(con, project.id, start.date, end.date) {
                                       start.date, end.date)
   ## Compute transactions
   commit.list <- aggregate.commit.dependencies(commit.depends.df)
+  commit.list <- remove.large.commits(commit.list, entity.threshold)
 
   ## Mine frequent change sets
   trans.list <- as(commit.list, 'transactions')
@@ -467,6 +475,15 @@ compute.item.sets.edgelist <- function(item.sets) {
   edge.list <- do.call('rbind', combs.list)
 
   return(edge.list)
+}
+
+
+get.co.change.edgelist <- function(con, project.id, start.date, end.date) {
+  freq.items <- get.frequent.item.sets(con, project.id, start.date,
+                                       end.date)
+  freq.items.edgelist <- compute.item.sets.edgelist(freq.items)
+
+  return(freq.items.edgelist)
 }
 
 
@@ -557,7 +574,9 @@ save.results <- function(pr.df, outdir) {
 }
 
 ## Main ##
-res <- run.analysis(3)
-save.results(res, outdir)
-non.na.rows <- !(is.na(res[,'precision']) | is.na(res[,'recall']))
-save(res[non.na.rows,],file='/home/mitchell/workspace/depend/rule_analysis.dat')
+run <- function() {
+  res <- run.analysis(3)
+  save.results(res, outdir)
+  non.na.rows <- !(is.na(res[,'precision']) | is.na(res[,'recall']))
+  save(res[non.na.rows,],file='/home/mitchell/workspace/depend/rule_analysis.dat')
+}
