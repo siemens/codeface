@@ -10,7 +10,7 @@ source("config.r")
 ## Global Constants
 cores <- 4
 rule.support <- 2.5
-entity.threshold <- 50
+entity.threshold <- 20
 
 ## Experiments
 ## Naviation
