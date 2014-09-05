@@ -21,6 +21,8 @@ suppressMessages(library(BiRewire))
 suppressMessages(library(parallel))
 suppressMessages(library(robustbase))
 
+source("../dependency_analysis.r", chdir=TRUE)
+
 edge.weight.to.multi <- function(g) {
   ## Converters an edge weight to multiple edges between the connected nodes
   ## Args:
@@ -485,7 +487,8 @@ compute.all.project.trends <- function(con) {
 }
 
 
-compute.project.graph.trends <- function(con, p.id, cluster.method="Spin Glass Community") {
+compute.project.graph.trends <-
+  function(con, p.id, type, cluster.method="Spin Glass Community") {
   project.data <- list()
   project.data$p.id <- p.id
   project.data$name <- query.project.name(con, p.id)
@@ -511,39 +514,60 @@ compute.project.graph.trends <- function(con, p.id, cluster.method="Spin Glass C
   p.ranges <- p.ranges[range.has.graph,]
 
   ## Get graph and additional data for each revision
-  revision.data <- apply(p.ranges, 1, function(r) {
-                                       r.id <- as.character(r['range.ids'])
-                                       cycle <- paste(r['range.start'], r['range.end'], sep='-')
-                                       graph.data <- get.graph.data.local(con, p.id, r.id,
-                                                                          cluster.method)
-                                       graph.data$range.id <- r.id
-                                       graph.data$cycle <- cycle
-                                       return(graph.data)})
+  revision.data <-
+    apply(p.ranges, 1,
+          function(r) {
+            res <- list()
+            r.id <- as.character(r['range.ids'])
+            start.date <- r['range.start']
+            end.date <- r['range.end']
+            cycle <- paste(start.date, end.date, sep='-')
 
-  ## Check edgelist, if empty then remove revision from analysis
-  keep.revision <- sapply(revision.data,
-                          function(x) nrow(x$edgelist) != 0)
-  revision.data <- revision.data[keep.revision]
+            if (type == "developer") {
+              res <- get.graph.data.local(con, p.id, r.id, cluster.method)
+            }
+            else if (type == "co-change") {
+              edgelist <- get.co.change.edgelist(con, p.id, start.date,
+                                                 end.date)
+              v.id <- unique(unlist(as.list(edgelist)))
+
+              res$edgelist <- edgelist
+              res$v.local.ids <- v.id
+              res$v.global.ids <- v.id
+            }
+            print(cycle)
+            res$range.id <- r.id
+            res$cycle <- cycle
+
+            if(is.null(res$edgelist)) {
+              res <- NULL
+            }
+
+            return(res)})
+
+  revision.data[sapply(revision.data, is.null)] <- NULL
 
   ## Create igraph object and select communities which are of a minimum size 4
   revision.data <-
     mclapply(revision.data, mc.cores=4,
              FUN=function(rev) {
-                   rev$graph <- graph.data.frame(rev$edgelist,
-                                                 directed=TRUE,
-                                                 vertices=data.frame(rev$v.local.ids))
+                  rev$graph <- graph.data.frame(rev$edgelist,
+                                                directed=TRUE,
+                                                vertices=data.frame(rev$v.local.ids))
                    V(rev$graph)$name <- rev$v.global.ids
                    comm <- community.detection.disconnected(rev$graph,
                                                             spinglass.community.connected)
                    graph.comm <- minCommGraph(rev$graph, comm, min=3)
                    rev$graph <- graph.comm$graph
                    rev$comm <- graph.comm$community
+
+                   if(is.null(rev$comm)) {
+                     rev <- NULL
+                   }
+
                    return(rev)})
 
-  ## Remove graphs without communities
-  ## for very small graphs maybe no communities exit
-  keep.rev <- sapply(revision.data, function(rev) !is.null(rev$comm))
-  revision.data <- revision.data[keep.rev]
+  revision.data[sapply(revision.data, is.null)] <- NULL
 
   ## Compute network metrics
   revision.df.list <- mclapply(revision.data, mc.cores=4,
