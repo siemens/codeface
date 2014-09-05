@@ -528,7 +528,9 @@ compute.project.graph.trends <-
               res <- get.graph.data.local(con, p.id, r.id, cluster.method)
             }
             else if (type == "co-change") {
-              edgelist <- get.co.change.edgelist(con, p.id, start.date,
+              window.start <- ymd(start.date) - ddays(180)
+              edgelist <- get.co.change.edgelist(con, p.id,
+                                                 window.start,
                                                  end.date)
               v.id <- unique(unlist(as.list(edgelist)))
 
