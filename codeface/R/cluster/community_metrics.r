@@ -475,11 +475,12 @@ compute.community.metrics <- function(g, comm) {
 }
 
 
-compute.all.project.trends <- function(con) {
+compute.all.project.trends <- function(con, type) {
   project.ids <- query.projects(con)$id
 
-  project.trend.list <- lapply(project.ids,
-                               function(p.id) compute.project.graph.trends(con, p.id))
+  project.trend.list <-
+    lapply(project.ids,
+           function(p.id) compute.project.graph.trends(con, p.id, type))
 
   res <- do.call(rbind, project.trend.list)
 
