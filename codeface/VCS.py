@@ -211,7 +211,7 @@ class gitVCS (VCS):
          cmd_base = 'git --git-dir={0} log --no-merges --format=%ct -1'.format(self.repo).split()
          cmd = cmd_base + [rev]
          date = execute_command(cmd)
-         return(date)
+         return date.strip()
 
     def _prepareCommitLists(self):
         """Gets the hash values (or whatever is used to identify
