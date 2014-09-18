@@ -40,7 +40,7 @@ class FileCommit:
         self.revCmts = []
 
         # dictionary with key = line number, value = function name
-        self.functionIds = {0:"FILE_LEVEL"}
+        self.functionIds = {-1:'File_Level'}
 
         # list of function line numbers in sorted order, this is for
         # optimizing the process of finding a function Id given a line number
@@ -48,6 +48,14 @@ class FileCommit:
 
         # Function Implementation
         self.functionImpl = {}
+
+        # doxygen flag
+        self.doxygen_analysis = False
+
+        # source code element list
+        # stores all source code elements of interest and
+        # meta data
+        self._src_elem_list = []
 
     #Getter/Setters
     def getFileSnapShots(self):
@@ -73,16 +81,25 @@ class FileCommit:
         [self.functionImpl.update({id:[]}) for id in self.functionIds.values()]
         self.functionLineNums.extend(sorted(self.functionIds.iterkeys()))
 
+    def setSrcElems(self, src_elem_list):
+        self._src_elem_list.extend(src_elem_list)
+
     #Methods
     def addFileSnapShot(self, key, dict):
         self.fileSnapShots[key] = dict
 
-    def findFuncId(self, lineNum):
+    def findFuncId(self, line_num):
         # returns the identifier of a function given a line number
-        lineNum = int(lineNum)
-        i = bisect.bisect_right(self.functionLineNums, lineNum)
-        funcLine = self.functionLineNums[i-1]
-        return self.functionIds[funcLine]
+        func_id = 'File_Level'
+        line_num = int(line_num)
+        if self.doxygen_analysis == True:
+            if line_num in self.functionIds:
+                func_id = self.functionIds[line_num]
+        else:
+            i = bisect.bisect_right(self.functionLineNums, line_num)
+            func_line = self.functionLineNums[i-1]
+            func_id = self.functionIds[func_line]
+        return func_id
 
     def getLineCmtId(self, line_num):
         ## Retrieve the first file snap

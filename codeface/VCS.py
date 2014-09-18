@@ -41,6 +41,8 @@ import re
 import os
 import ctags
 import tempfile
+import source_analysis
+import shutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from ctags import CTags, TagEntry
 from logging import getLogger; log = getLogger(__name__)
@@ -923,6 +925,92 @@ class gitVCS (VCS):
 
         blame_cmt_ids.update( cmt_lines.values() )
 
+    def _parseSrcFileDoxygen(self, src_file):
+        curr_dir = os.path.dirname(os.path.abspath(__file__))
+        conf_file = os.path.join(curr_dir, 'doxygen.conf')
+        tmp_outdir = tempfile.mkdtemp()
+        file_analysis = source_analysis.FileAnalysis(src_file,
+                                                     conf_file,
+                                                     tmp_outdir)
+
+        try:
+            file_analysis.run_analysis()
+        except Exception, e:
+            log.critical("doxygen analysis error{0} - defaulting to Ctags".format(e))
+            return {}, []
+
+        # Delete tmp directory storing doxygen files
+        shutil.rmtree(tmp_outdir)
+
+        # Get src element bounds
+        func_lines = {}
+        for elem in file_analysis.src_elem_list:
+            start = elem['bodystart']
+            end = elem['bodyend']
+
+            if (start is not None) & (end is not None):
+              start = int(start) - 1
+              end = int(end) - 1
+            else:
+                # doxygen could not parse correctly
+                log.warning("doxygen analysis not possible - defaulting to Ctags")
+                func_lines.clear()
+                break
+
+            name = elem['name']
+            f_lines = {line_num:name  for line_num in range(start, end+1)}
+            func_lines.update(f_lines)
+
+        return func_lines, file_analysis.src_elem_list
+
+    def _parseSrcFileCtags(self, src_file):
+        # temporary file where we write transient data needed for ctags
+        tag_file = tempfile.NamedTemporaryFile()
+
+        # run ctags analysis on the file to create a tags file
+        cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tag_file.name,
+                                                              src_file).split()
+        output = execute_command(cmd).splitlines()
+
+        # parse ctags
+        try:
+            tags = CTags(tag_file.name)
+        except:
+            log.critical("failure to load ctags file")
+            raise Error("failure to load ctags file")
+
+        # locate line numbers and structure names
+        entry = TagEntry()
+        func_lines = {}
+        # select the language structures we are interested in identifying
+        # f = functions, s = structs, c = classes, n = namespace
+        # p = function prototype, g = enum, d = macro, t= typedef, u = union
+        structures = ["f", "s", "c", "n", "p", "g", "d", "t", "u"]
+        # TODO: investigate other languages and how ctags assigns the
+        #  structures tags, we may need more languages specific assignments
+        #  in addition to java and c# files, use "ctags --list-kinds" to
+        # see all tag meanings per language
+        fileExt = os.path.splitext(src_file)[1].lower()
+        if fileExt in (".java", ".j", ".jav", ".cs", ".js"):
+            structures.append("m") # methods
+            structures.append("i") # interface
+        elif fileExt in (".php"):
+            structures.append("i") # interface
+            structures.append("j") # functions
+        elif fileExt in (".py"):
+            structures.append("m") # class members
+
+        while(tags.next(entry)):
+            if entry['kind'] in structures:
+                ## Ctags indexes starting at 1
+                line_num = int(entry['lineNumber']) - 1
+                func_lines[line_num] = entry['name']
+
+        # clean up temporary files
+        tag_file.close()
+
+        return func_lines
+
     def _getFunctionLines(self, file_layout_src, file_commit):
         '''
         computes the line numbers of each function in the file
@@ -942,64 +1030,41 @@ class gitVCS (VCS):
         '''
 
         # grab the file extension to determine the language of the file
-        fileExt = os.path.splitext(file_commit.filename)[1]
+        fileExt = os.path.splitext(file_commit.filename)[1].lower()
 
-        # temporary file where we write transient data needed for ctags
-        srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
-        tagFile = tempfile.NamedTemporaryFile()
+        # setup temp file
         # generate a source code file from the file_layout_src dictionary
         # and save it to a temporary location
+        srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
         for line in file_layout_src:
             srcFile.write(line)
         srcFile.flush()
 
-        # run ctags analysis on the file to create a tags file
-        cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tagFile.name, srcFile.name).split()
-        output = execute_command(cmd).splitlines()
+        # For certain programming languages we can use doxygen for a more
+        # precise analysis
+        func_lines = {}
+        if (fileExt in ['.java', '.cs', '.d', '.php', '.php4', '.php5',
+                        '.inc', '.phtml', '.m', '.mm', '.py', '.f',
+                        '.for', '.f90', '.idl', '.ddl', '.odl', '.tcl',
+                        '.cpp', '.cxx', '.c', '.cc']):
+            func_lines, src_elems = self._parseSrcFileDoxygen(srcFile.name)
+            file_commit.setSrcElems(src_elems)
+            file_commit.doxygen_analysis = True
 
-        # parse ctags
-        try:
-            tags = CTags(tagFile.name)
-        except:
-            log.critical("failure to load ctags file")
-            raise Error("failure to load ctags file")
+        if not func_lines: # for everything else use Ctags
+            func_lines = self._parseSrcFileCtags(srcFile.name)
+            file_commit.doxygen_analysis = False
 
-        # locate line numbers and structure names
-        entry = TagEntry()
-        funcLines = {}
-        # select the language structures we are interested in identifying
-        # f = functions, s = structs, c = classes, n = namespace
-        # p = function prototype, g = enum, d = macro, t= typedef, u = union 
-        structures = ["f", "s", "c", "n", "p", "g", "d", "t", "u"]
-        # TODO: investigate other languages and how ctags assigns the structure
-        #       tags, we may need more languages specific assignments in
-        #       addition to java and c# files, use "ctags --list-kinds" to
-        #       see all tag meanings per language
-        if fileExt in (".java", ".j", ".jav", ".cs", ".js"):
-            structures.append("m") # methods
-            structures.append("i") # interface
-        elif fileExt in (".php"):
-            structures.append("i") # interface
-            structures.append("j") # functions
-        elif fileExt in (".py"):
-            structures.append("m") # class members
-
-        while(tags.next(entry)):
-            if entry['kind'] in structures:
-                ## Ctags indexes starting at 1
-                lineNum = int(entry['lineNumber']) - 1
-                funcLines[lineNum] = entry['name']
-
-        # clean up temporary files
+        # clean up src temp file
         srcFile.close()
-        tagFile.close()
 
         # save result to the file commit instance
-        file_commit.setFunctionLines(funcLines)
+        file_commit.setFunctionLines(func_lines)
 
-	# save the implementation for each function
+        # save the implementation for each function
         rmv_char = '[.{}();:\[\]]'
-	[file_commit.addFuncImplLine(lineNum, re.sub(rmv_char, ' ',srcLine.strip()))
+        [file_commit.addFuncImplLine(lineNum,
+                                     re.sub(rmv_char, ' ',srcLine.strip()))
          for lineNum, srcLine in enumerate(file_layout_src)]
 
 
@@ -1066,8 +1131,12 @@ class gitVCS (VCS):
 
         #filter results to only get implementation files
         fileExt = (".c", ".cc", ".cpp", ".cxx", ".cs", ".asmx", ".m", ".mm",
-                   ".js", ".java", ".j", ".jav", ".php",".py", ".sh", ".rb")
-        fileNames = [fileName for fileName in output if fileName.endswith(fileExt)]
+                   ".js", ".java", ".j", ".jav", ".php",".py", ".sh", ".rb",
+                   '.d', '.php4', '.php5', '.inc', '.phtml', '.m', '.mm',
+                   '.f', '.for', '.f90', '.idl', '.ddl', '.odl', '.tcl')
+
+        fileNames = [fileName for fileName in output if
+                     fileName.lower().endswith(fileExt)]
 
         self.setFileNames(fileNames)
 
