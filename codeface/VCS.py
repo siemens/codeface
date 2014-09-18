@@ -277,10 +277,11 @@ class gitVCS (VCS):
         if self.range_by_date:
             start_date = self._getRevDate(rev_start)
             end_date = self._getRevDate(rev_end)
-            rev_range = '--since={0} --before={1}'.format(start_date, end_date)
+            rev_range = ['--since=' + start_date,
+                         '--before=' + end_date]
 
         else:
-            rev_range = '{0}..{1}'.format(rev_start, rev_end)
+            rev_range = ['{0}..{1}'.format(rev_start, rev_end)]
 
         # TODO: Check the effect that -M and -C (to detect copies and
         # renames) have on the output. Is there anything we need
@@ -297,7 +298,7 @@ class gitVCS (VCS):
         cmd = 'git --git-dir={0} log -M -C'.format(self.repo).split()
         cmd.append('--no-merges')
         cmd.append(self.prettyFormat)
-        cmd.append(rev_range)
+        cmd.extend(rev_range)
 
         if dir_list is not None:
             cmd.append("--")
