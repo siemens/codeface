@@ -261,6 +261,7 @@ mapCommSig2Color <- function(commSig) {
   ## Returns:
   ## 	sig.color.vec: a vector of values representing the color code for each
   ##						     community
+  commSig <- unlist(commSig)
   color.palette  <- colorRampPalette(c("#4DFF4D","#8FFFA9", "#FFFF6B", "#FFFF2E", "#FFB3B3","#FFB3B3"))
   color.gradient <- color.palette(256)
   commSig.scaled <- round(commSig*255) + 1
