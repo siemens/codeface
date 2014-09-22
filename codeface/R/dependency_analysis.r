@@ -329,6 +329,34 @@ perform.analysis <- function(project.id, start.date, training.span, evaluation.s
 }
 
 
+compute.sliding.window <- function(start.date, end.date, step.size,
+                                   window.size, pre.window.size=0) {
+  ## Calculates the time intervals for a sliding window
+
+  ## start.date: beginning of first window
+  ## end.date: ending of final window
+  ## window.size: width of the sliding window in days
+  ## step.size: step size for each increment of the sliding the window
+  ## pre.window.size: window before main window, useful for when a training
+  ##                  set is used
+  step.size.days = ddays(step.size) #days
+  window.size.days = ddays(window.size) #days
+  pre.window.size = ddays(pre.window.size)
+
+  latest.possible.start.date <- end.date - window.size.days - pre.window.size
+  n.inter <- floor((latest.possible.start.date - start.date) / step.size.days)
+  intervals <- lapply(0:n.inter, function(x) {
+                 next.date <- start.date + (x*step.size.days)
+                 round(next.date, "day")})
+
+  sliding.window <- ldply(intervals, function(start.date) {
+                      data.frame(start.date=start.date,
+                                 end.date=start.date + window.size.days)})
+
+  return(sliding.window)
+}
+
+
 run.analysis <- function(project.id) {
 
   if(!exists('dbcon')) {
