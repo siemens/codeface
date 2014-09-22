@@ -372,8 +372,9 @@ run.analysis <- function(project.id) {
   ## useful rules for the additional commits. Make a formal
   ## analysis of the potential for useful rules using the
   ## overlap principle.
-  training.span <- ddays(365) # Months
-  evaluation.span <- ddays(1) #Days
+  training.span <- 365 # days
+  evaluation.span <- 1 #days
+  window.delta <- 1 #days
 
   ## Query commit date range
   date <- query.commit.date.range(con, project.id)
@@ -383,15 +384,16 @@ run.analysis <- function(project.id) {
   end.date <- round_date(end.date, 'day')
 
   ## Calculate time intervals
-  window_delta = ddays(1) #days
-  latest.possible.start.date <- end.date - training.span - evaluation.span
-  n.inter <- floor((latest.possible.start.date - start.date) / window_delta)
-  intervals <- lapply(0:n.inter, function(x) start.date + (x*window_delta))
+  intervals <- compute.sliding.window(start.date, end.date, window.delta,
+                                      evaluation.span, training.span)$start.date
 
   ## Perform recall and precision computation for all intervals
   res.list <- lapply_pb(intervals, function(start.date) {
-                                  perform.analysis(project.id, start.date,
-                                                   training.span, evaluation.span, con)})
+                perform.analysis(project.id, start.date,
+                                 ddays(training.span),
+                                 ddays(evaluation.span),
+                                 con)})
+
   ## combine list of data.frame
   res.df <- do.call(rbind, res.list)
 
