@@ -53,7 +53,8 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
   ##        a single commit. Often one would want to eliminate commits
   ##        that touch a very large number of files because the nature
   ##        of them is unique (e.g., change licence information)
-  select.str <- "SELECT commit.id, file, entityId, entityType, size "
+  select.str <- "SELECT author, commitDate, commit.id, file, entityId,
+                 entityType, size "
 
   if (impl == TRUE) {
     select.str <- paste(select.str, ", impl ", sep="")
