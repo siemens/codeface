@@ -633,7 +633,7 @@ plot.box <- function(project.df, feature, outdir) {
     file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
     dir.create(file.dir, recursive=T)
     file.name <- paste(file.dir, "/", feature, ".png",sep="")
-    ggsave(file.name, p1, height=8, width=11)
+    ggsave(file.name, p1, height=8, width=20)
 
     ## Adjusted box plots for skewed data
     file.name <- paste(file.dir, "/", feature, "_adjusted.pdf", sep="")
@@ -652,7 +652,7 @@ plot.box <- function(project.df, feature, outdir) {
       p2 <- ggplot(project.df, aes(x=value)) +
             geom_histogram(aes(y=..density..),colour="black", fill="white") +
             geom_density(alpha=.2, fill="#FF6666")
-      ggsave(file.name, p2, height=8, width=11)
+      ggsave(file.name, p2, height=8, width=20)
     }
   }
 }
@@ -677,7 +677,7 @@ plot.series <- function(project.df, feature, outdir) {
   file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
   dir.create(file.dir, recursive=T)
   file.name <- paste(file.dir, "/", feature, ".png",sep="")
-  ggsave(file.name, p, height=8, width=11)
+  ggsave(file.name, p, height=8, width=20)
 }
 
 
@@ -708,7 +708,7 @@ plot.scatter <- function(project.df, feature1, feature2, outdir) {
     file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
     dir.create(file.dir, recursiv=T)
     file.name <- paste(file.dir, "/", feature1, "_vs_", feature2, ".png",sep="")
-    ggsave(file.name, p, height=20, width=20)
+    ggsave(file.name, p, height=40, width=40)
   }
 }
 
