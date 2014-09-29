@@ -505,12 +505,11 @@ get.frequent.item.sets <- function(con, project.id, start.date, end.date) {
 
 
 compute.item.sets.edgelist <- function(item.sets) {
-  combs.list <- lapply(item.sets, function(item.set) {
+  edgelist <- ldply(item.sets, function(item.set) {
                                         combs <- t(combn(item.set,2))
                                         data.frame(combs)})
-  edge.list <- do.call('rbind', combs.list)
 
-  return(edge.list)
+  return(edgelist)
 }
 
 
