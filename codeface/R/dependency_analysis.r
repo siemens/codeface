@@ -75,6 +75,7 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
 
   if(nrow(dat) > 0) {
     dat$entity <- apply(dat[,cols], 1, paste, collapse="/")
+    dat$cycle <- paste(start.date, end.date, sep="-")
   }
 
   dat <- dat[, !names(dat) %in% cols]
