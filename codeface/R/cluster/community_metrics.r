@@ -22,6 +22,7 @@ suppressMessages(library(parallel))
 suppressMessages(library(robustbase))
 
 source("../dependency_analysis.r", chdir=TRUE)
+source("../network_stream.r", chdir=TRUE)
 
 edge.weight.to.multi <- function(g) {
   ## Converters an edge weight to multiple edges between the connected nodes
@@ -489,43 +490,44 @@ compute.all.project.trends <- function(con, type) {
 
 
 compute.project.graph.trends <-
-  function(con, p.id, type, cluster.method="Spin Glass Community") {
+  function(con, p.id, type, window.size=90, step.size=14,
+           cluster.method="Spin Glass Community") {
   project.data <- list()
   project.data$p.id <- p.id
   project.data$name <- query.project.name(con, p.id)
   project.data$analysis.method <- query.project.analysis.method(con, p.id)
   range.data <- get.cycles.con(con, p.id)
+  start.date <- min(range.data$date.start)
+  end.date <- max(range.data$date.end)
+
+  p.ranges <- compute.sliding.window(start.date, end.date,
+                                     step.size, window.size)
+
   metrics.df <- data.frame()
   project.list <- list()
   projects.df.list <- list()
 
   project.name <- project.data$name
   analysis.method <- project.data$analysis.method
-  p.ranges <- data.frame(range.ids=range.data$range.id,
-                         range.start=round_date(range.data$date.start,'day'),
-                         range.end=round_date(range.data$date.end,'day'))
-
-  ## Check if revision has an associate graph
-  range.has.graph <- sapply(p.ranges$range.ids,
-                            function(range.id) {
-                              g.id <- query.global.collab.con(con, p.id, range.id)
-                              return(!is.null(g.id))})
-
-  ## Keep only the revisions that have graphs
-  p.ranges <- p.ranges[range.has.graph,]
 
   ## Get graph and additional data for each revision
+  if(type == "developer") {
+    edgelist.stream <- build.dev.net.stream(con, p.id, "Function", p.ranges)
+  }
+
   revision.data <-
     apply(p.ranges, 1,
           function(r) {
             res <- list()
-            r.id <- as.character(r['range.ids'])
-            start.date <- r['range.start']
-            end.date <- r['range.end']
+            start.date <- r['start.date']
+            end.date <- r['end.date']
             cycle <- paste(start.date, end.date, sep='-')
+            res$cycle <- cycle
 
             if (type == "developer") {
-              res <- get.graph.data.local(con, p.id, r.id, cluster.method)
+                dev.net <- edgelist.stream[[cycle]]
+                res$edgelist <- dev.net$edgelist
+                res$v.global.ids <- dev.net$vertex.data$id
             }
             else if (type == "co-change") {
               window.start <- ymd(start.date) - ddays(180)
@@ -535,14 +537,10 @@ compute.project.graph.trends <-
               v.id <- unique(unlist(as.list(edgelist)))
 
               res$edgelist <- edgelist
-              res$v.local.ids <- v.id
               res$v.global.ids <- v.id
             }
-            print(cycle)
-            res$range.id <- r.id
-            res$cycle <- cycle
 
-            if(is.null(res$edgelist)) {
+            if(nrow(res$edgelist) == 0) {
               res <- NULL
             }
 
@@ -556,7 +554,7 @@ compute.project.graph.trends <-
              FUN=function(rev) {
                   rev$graph <- graph.data.frame(rev$edgelist,
                                                 directed=TRUE,
-                                                vertices=data.frame(rev$v.local.ids))
+                                                vertices=data.frame(rev$v.global.ids))
                    V(rev$graph)$name <- rev$v.global.ids
                    comm <- community.detection.disconnected(rev$graph,
                                                             spinglass.community.connected)
