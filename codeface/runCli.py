@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-'''
-Created on 16.06.2014
-
-@author: drag0on
-'''
+"""
+Simple script to run codeface directly from source
+"""
 from codeface.cli import main; 
 if __name__ == '__main__':
     main()
