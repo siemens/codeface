@@ -246,12 +246,12 @@ def compute_snapshot_collaboration_features(file_commit, cmtList, id_mgr, link_t
         #of code
         if len(fileState_mod) > 1:
             # identify code line clustering using function location information
-            clusters = group_feature_lines(file_commit, fileState_mod, cmtList)
-
-            for cluster in clusters:
-                #calculate the collaboration coefficient for each code block
-                if cluster:
-                    computeCommitCollaboration(cluster, cmt, id_mgr, link_type, maxDist, author)
+            feature_clusters = group_feature_lines(file_commit, fileState_mod, cmtList)
+            for feature in feature_clusters:
+                feature_cluster = feature_clusters[feature]
+                if feature_cluster:
+                    #calculate the collaboration coefficient for each code block
+                    computeCommitCollaboration(feature_cluster, cmt, id_mgr, link_type, maxDist, author)
 
 
 def groupFuncLines(file_commit, file_state, cmtList):
@@ -304,21 +304,28 @@ def group_feature_lines(file_commit, file_state, cmtList):
     """
     cluster code lines that fall under the same feature
     """
-    feature_indx = {}
-    indx = 0
-    feature_blks = []
+    #feature_indx = {}
+    #indx = 0
+    feature_blks = {}
     lines = sorted(map(int, file_state.keys()))
     blk_start = {}
     blk_end = {}
 
     for features in file_commit.feature_info.values():
-        for feature_id in features:
-            if not feature_id in feature_indx:
-                feature_indx[feature_id] = indx
-                blk_start[indx] = lines[0]
-                blk_end[indx] = lines[0]
-                feature_blks.append([])
-                indx += 1
+        for feature in features:
+            #feature_indx[feature] = indx
+            blk_start[feature] = lines[0]
+            blk_end[feature] = lines[0]
+            feature_blks[feature] = []
+
+            #if not indx in feature_blks:
+            #    feature_blks[indx] = []
+            #if not feature in feature_indx:
+            #    feature_indx[feature] = indx
+            #    blk_start[indx] = lines[0]
+            #    blk_end[indx] = lines[0]
+            #    feature_blks[indx] = []
+            #    indx += 1
 
     for i in range(0, len(file_state) - 1):
         curr_line = lines[i]
@@ -328,26 +335,26 @@ def group_feature_lines(file_commit, file_state, cmtList):
         curr_features = file_commit.findFeatureList(curr_line)
         next_features = file_commit.findFeatureList(next_line)
 
-        for feature, feature_id in feature_indx.iteritems():
+        for feature in feature_blks:
             if (curr_cmt_id == next_cmt_id) and (curr_line + 1 == next_line) and \
                     (feature in curr_features) and (feature in next_features):
                 # nothing changed for this feature
-                blk_end[feature_id] += 1
+                blk_end[feature] += 1
             else:
                 # block for this feature finished
-                feature_blks[feature_id]. \
-                    append(codeBlock.codeBlock(blk_start[feature_id], blk_end[feature_id],
+                feature_blks[feature]. \
+                    append(codeBlock.codeBlock(blk_start[feature], blk_end[feature],
                                                cmtList[str(curr_cmt_id)].getAuthorPI().getID(),
                                                cmtList[str(curr_cmt_id)].getCommitterPI().getID(),
                                                curr_cmt_id))
-                blk_start[feature_id] = next_line
-                blk_end[feature_id] = next_line
+                blk_start[feature] = next_line
+                blk_end[feature] = next_line
 
     # boundary case
-    for feature, feature_id in feature_indx.iteritems():
-        feature_blks[feature_id].append(
+    for feature in feature_blks:
+        feature_blks[feature].append(
             codeBlock.codeBlock(
-                blk_start[feature_id], blk_end[feature_id],
+                blk_start[feature], blk_end[feature],
                 cmtList[str(next_cmt_id)].getAuthorPI().getID(),
                 cmtList[str(next_cmt_id)].getCommitterPI().getID(),
                 next_cmt_id))
@@ -1284,14 +1291,14 @@ def compute_feature_proximity_links(file_commit_list, cmt_list, id_mgr, link_typ
     TODO!
     '''
 
-
     # First we calculate how many lines each contributor changed in each feature
+    author_feature_changes = {}
+
     for file_commit in file_commit_list.values():
         author = True
         file_state = file_commit.getFileSnapShot()
         revCmtIds = file_commit.getrevCmts()
         revCmts = [cmt_list[revCmtId] for revCmtId in revCmtIds]
-
 
         for cmt in revCmts:
             # the fileState will be modified but for each loop we should start with
@@ -1307,27 +1314,52 @@ def compute_feature_proximity_links(file_commit_list, cmt_list, id_mgr, link_typ
             #find code lines of interest, these are the lines that are localized
             #around the cmt.id hash, modify the fileState to include only the
             #lines of interest
-            if (not (random)):
+            if not random:
                 file_state_mod = lines_of_interest_features(file_state_mod, cmt.id, cmt_list, file_commit)
 
             #remove commits that occur prior to the specified startDate
-            if start_date != None:
+            if start_date is not None:
                 file_state_mod = removePriorCommits(file_state_mod, cmt_list, start_date)
 
             #collaboration is meaningless without more than one line
             #of code
             if len(file_state_mod) > 1:
                 # identify code line clustering using feature location information
-                clusters = group_feature_lines(file_commit, file_state_mod, cmt_list)
-                # We now have a 'featureId -> codeblock list' mapping
-                #calculate the collaboration coefficient for each code block
-                [computeCommitCollaboration(cluster, cmt, id_mgr, link_type,
-                                            max_dist, author) for cluster in clusters if cluster]
+                feature_clusters = group_feature_lines(file_commit, file_state_mod, cmt_list)
+                # We now have a 'feature -> codeblock list' mapping
+                for feature in feature_clusters:
+                    if feature not in author_feature_changes:
+                        author_feature_changes[feature] = {}
+                    author_changes = author_feature_changes[feature]
 
+                    codeBlks = feature_clusters[feature]
 
+                    #get all blocks contributed by the revision commit we are looking at
+                    revCmtBlks = [blk for blk in codeBlks if blk.cmtHash == cmt.id]
 
+                    #get the person responsible for this revision
+                    if author:
+                        revPerson = id_mgr.getPI( revCmtBlks[0].authorId )
+                    else:
+                        revPerson = id_mgr.getPI( revCmtBlks[0].committerId )
 
-    raise Exception("feature proximity links is not implemented!")
+                    if revPerson not in author_changes:
+                        author_changes[revPerson] = 0
+                    author_changes[revPerson] += computeBlksSize(revCmtBlks, [])
+
+    # Now we calculate the collaboration strength between authors as
+    # (SUM(MIN(line-changes of author1 on feature, line-changes of author2 on feature) FOR feature IN features))
+    for feature in author_feature_changes:
+        author_changes = author_feature_changes[feature]
+        for author1 in author_changes:
+            for author2 in author_changes:
+                if author1 is not author2:
+                    strength = min(author_changes[author1], author_changes[author2])
+                    author1.addSendRelation(link_type, author2.getID(), cmt, strength)
+                    author2.addReceiveRelation(link_type, author1.getID(), strength)
+        #del author_feature_changes[author1]
+
+    #raise Exception("feature proximity links is not implemented!")
 
 
 def computeCommitterAuthorLinks(cmtlist, id_mgr):
@@ -1483,7 +1515,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
         log.devinfo("Creating data base for {0}..{1}".format(revrange[0],
                                                         revrange[1]))
         createDB(dbfilename, git_repo, revrange, subsys_descr, \
-                 link_type, range_by_date, rcranges)
+                 link_type, range_by_date, rcranges, collab_type)
 
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
     revisionIDs = (dbm.getRevisionID(projectID, revrange[0]),
