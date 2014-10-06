@@ -52,7 +52,7 @@ class LinkType:
 
 
 def createDB(filename, git_repo, revrange, subsys_descr, link_type,
-             range_by_date, rcranges=None):
+             range_by_date, rcranges=None, collab_type="function"):
     #------------------
     #configuration
     #------------------
@@ -68,7 +68,7 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type,
     #------------------------
     #data extraction
     #------------------------
-    git.extractCommitData(link_type=link_type)
+    git.extractCommitData(link_type=link_type, collab_type=collab_type)
 
     #------------------------
     #save data
@@ -196,6 +196,64 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
                                         maxDist, author) for cluster in clusters if cluster]
 
 
+def compute_snapshot_collaboration_features(file_commit, cmtList, id_mgr, link_type,
+                                 startDate=None, random=False):
+    """Generates the collaboration data from a file snapshot at a particular
+    point in time"""
+
+    '''
+    Detailed description: the fileSnapShot is a representation of how a file
+    looked at the time of a particular commit. The fileSnapshot is a
+    dictionary with key = a particular commit hash and the value is the how
+    the file looked at the time of that commit.How the file looked is
+    represented by a another dictionary with key = a code line number and the
+    value is a commit hash referencing the commit that contributed that
+    particular line. The commit hashes are then used to reference the people
+    involved.
+    '''
+
+    #------------------------
+    #variable declarations
+    #------------------------
+    maxDist = 25
+    author = True
+    fileState = file_commit.getFileSnapShot()
+    revCmtIds = file_commit.getrevCmts()
+    revCmts = [cmtList[revCmtId] for revCmtId in revCmtIds]
+
+    for cmt in revCmts:
+        # the fileState will be modified but for each loop we should start with
+        # the original fileState
+        fileState_mod = fileState.copy()
+
+        # check if commit is in the current revision of the file, if it is not
+        # we no longer have a need to process further since the commit is now
+        # irrelevant
+        if not (cmt.id in fileState_mod.values()):
+            continue
+
+        #find code lines of interest, these are the lines that are localized
+        #around the cmt.id hash, modify the fileState to include only the
+        #lines of interest
+        if (not (random)):
+            fileState_mod = lines_of_interest_features(fileState_mod, cmt.id, cmtList, file_commit)
+
+        #remove commits that occur prior to the specified startDate
+        if startDate != None:
+            fileState_mod = removePriorCommits(fileState_mod, cmtList, startDate)
+
+        #collaboration is meaningless without more than one line
+        #of code
+        if len(fileState_mod) > 1:
+            # identify code line clustering using function location information
+            feature_clusters = group_feature_lines(file_commit, fileState_mod, cmtList)
+            for feature in feature_clusters:
+                feature_cluster = feature_clusters[feature]
+                if feature_cluster:
+                    #calculate the collaboration coefficient for each code block
+                    computeCommitCollaboration(feature_cluster, cmt, id_mgr, link_type, maxDist, author)
+
+
 def groupFuncLines(file_commit, file_state, cmtList):
     '''
     cluster code lines that fall under the same function
@@ -240,6 +298,69 @@ def groupFuncLines(file_commit, file_state, cmtList):
                             next_cmt_id))
 
     return func_blks
+
+
+def group_feature_lines(file_commit, file_state, cmtList):
+    """
+    cluster code lines that fall under the same feature
+    """
+    #feature_indx = {}
+    #indx = 0
+    feature_blks = {}
+    lines = sorted(map(int, file_state.keys()))
+    blk_start = {}
+    blk_end = {}
+
+    for features in file_commit.feature_info.values():
+        for feature in features:
+            #feature_indx[feature] = indx
+            blk_start[feature] = lines[0]
+            blk_end[feature] = lines[0]
+            feature_blks[feature] = []
+
+            #if not indx in feature_blks:
+            #    feature_blks[indx] = []
+            #if not feature in feature_indx:
+            #    feature_indx[feature] = indx
+            #    blk_start[indx] = lines[0]
+            #    blk_end[indx] = lines[0]
+            #    feature_blks[indx] = []
+            #    indx += 1
+
+    for i in range(0, len(file_state) - 1):
+        curr_line = lines[i]
+        next_line = lines[i + 1]
+        curr_cmt_id = file_state[str(curr_line)]
+        next_cmt_id = file_state[str(next_line)]
+        curr_features = file_commit.findFeatureList(curr_line)
+        next_features = file_commit.findFeatureList(next_line)
+
+        for feature in feature_blks:
+            if (curr_cmt_id == next_cmt_id) and (curr_line + 1 == next_line) and \
+                    (feature in curr_features) and (feature in next_features):
+                # nothing changed for this feature
+                blk_end[feature] += 1
+            else:
+                # block for this feature finished
+                feature_blks[feature]. \
+                    append(codeBlock.codeBlock(blk_start[feature], blk_end[feature],
+                                               cmtList[str(curr_cmt_id)].getAuthorPI().getID(),
+                                               cmtList[str(curr_cmt_id)].getCommitterPI().getID(),
+                                               curr_cmt_id))
+                blk_start[feature] = next_line
+                blk_end[feature] = next_line
+
+    # boundary case
+    for feature in feature_blks:
+        feature_blks[feature].append(
+            codeBlock.codeBlock(
+                blk_start[feature], blk_end[feature],
+                cmtList[str(next_cmt_id)].getAuthorPI().getID(),
+                cmtList[str(next_cmt_id)].getCommitterPI().getID(),
+                next_cmt_id))
+
+    return feature_blks
+
 
 def randomizeCommitCollaboration(codeBlks, fileState):
     '''
@@ -308,7 +429,7 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, link_type, maxDist,
     contributed code in close proximity the commit of interests
     contributions. The method computes all possible combinations
     of code block relationships then averages. This is very similar
-    to the function "computerPersonsCollaboration" except we consider
+    to the function "computePersonsCollaboration" except we consider
     the commit hash to identify the contribution instead of the person
     then later map the commit to a person. The advantages is we can
     differentiate between when an author made a contribution. This way
@@ -707,6 +828,64 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist, file_commit):
     return modFileState
 
 
+def lines_of_interest_features(file_state, snapshot_commit, cmt_list, file_commit):
+    """
+    Finds the regions of interest for analyzing the file.
+    We want to look at localized regions around the commit of
+    interest (snapShotCommit) and ignore code lines that are
+    located some far distance away.
+
+    - Input -
+    fileState:      code line numbers together with commit hashes
+    snapShotCommit: the commit hash that marks when the fileState was acquired
+    maxDist:        indicates how large the area of interest should be
+    file_commit: a fileCommit instance
+    - Output -
+    mod_filestate: the file state after line not of interest are removed
+    """
+    #variable declarations
+    snapshot_cmt_date = cmt_list[snapshot_commit].getCdate()
+    mod_file_state = {}
+    snapshot_feature_set = set()
+
+    #take a pass over the fileState to identify where the snapShotCommit
+    #made contributions to the fileState
+    snapshot_cmt_lines = []
+    for lineNum in file_state.keys():
+        cmt_id = file_state[lineNum]
+
+        if cmt_id == snapshot_commit:
+            snapshot_cmt_lines.append(lineNum)
+            # retrieve the function id that each line falls into
+            snapshot_feature_set.update(file_commit.findFeatureList(int(lineNum)))
+    #end for line
+
+    # remove lines that are from commits that occur after the snapShotCmt
+    for lineNum, cmt_id in file_state.items():
+        if cmt_id in cmt_list:
+            cmt_date = cmt_list[cmt_id].getCdate()
+        else:
+            #must be a old commit that occurred in a prior release
+            continue
+
+        # check to keep lines committed in the past with respect to the current
+        # snapshot commit
+        if cmt_date <= snapshot_cmt_date:
+            # check if the line will fall under one of the functions that the
+            # snapshot commit lines fall under (ie. we only want to keep lines
+            # that are in the same functions as the snapshot commit
+
+            if any(com in snapshot_feature_set for com in file_commit.findFeatureList(int(lineNum))):
+                mod_file_state[lineNum] = file_state[lineNum]
+
+                # else: ignore line since it belongs to some function outside of
+                # the set of functions we are interested in
+
+                #else: forget line because it was in a future commit
+
+    return mod_file_state
+
+
 def blockDist(blk1, blk2):
     '''
     Finds the euclidean distance between two code blocks.
@@ -1077,6 +1256,111 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, link_type, \
                                     for fileSnapShot
                                     in fileCommit.getFileSnapShots().items()]
 
+def compute_feature_proximity_links_perfile(fileCommitList, cmtList, id_mgr, link_type, \
+                          startDate=None, speedUp=True):
+    '''
+    Constructs network based on commit proximity information
+    '''
+
+    '''
+    Two contributors are linked when they make a commit that is in
+    close proximity to each other (ie. same file AND nearby line numbers).
+    Collaboration is quantified by a single metric indicating the
+    strength of collaboration between two individuals.
+    '''
+    for file_commit in fileCommitList.values():
+        if speedUp:
+            compute_snapshot_collaboration_features(file_commit, cmtList, id_mgr, link_type, startDate)
+        else:
+            [compute_snapshot_collaboration_features(
+                fileSnapShot[1], [fileSnapShot[0]], cmtList, id_mgr, link_type, startDate)
+             for fileSnapShot in file_commit.getFileSnapShots().items()]
+
+def compute_feature_proximity_links(file_commit_list, cmt_list, id_mgr, link_type, \
+                                    start_date=None, speed_up=True):
+    """
+    Constructs network based on commit proximity information, same as computeProximityLinks but for features
+    instead of functions.
+    """
+
+    '''
+    Because features (unlike functions) are split across files, we define collaboration differently:
+
+    Two contributors are linked when they make a commit that is within the same feature.
+    Collaboration between to contributors is quantified by the number of lines they worked on the same feature.
+    TODO!
+    '''
+
+    # First we calculate how many lines each contributor changed in each feature
+    author_feature_changes = {}
+
+    for file_commit in file_commit_list.values():
+        author = True
+        file_state = file_commit.getFileSnapShot()
+        revCmtIds = file_commit.getrevCmts()
+        revCmts = [cmt_list[revCmtId] for revCmtId in revCmtIds]
+
+        for cmt in revCmts:
+            # the fileState will be modified but for each loop we should start with
+            # the original fileState
+            file_state_mod = file_state.copy()
+
+            # check if commit is in the current revision of the file, if it is not
+            # we no longer have a need to process further since the commit is now
+            # irrelevant
+            if not (cmt.id in file_state_mod.values()):
+                continue
+
+            #find code lines of interest, these are the lines that are localized
+            #around the cmt.id hash, modify the fileState to include only the
+            #lines of interest
+            if not random:
+                file_state_mod = lines_of_interest_features(file_state_mod, cmt.id, cmt_list, file_commit)
+
+            #remove commits that occur prior to the specified startDate
+            if start_date is not None:
+                file_state_mod = removePriorCommits(file_state_mod, cmt_list, start_date)
+
+            #collaboration is meaningless without more than one line
+            #of code
+            if len(file_state_mod) > 1:
+                # identify code line clustering using feature location information
+                feature_clusters = group_feature_lines(file_commit, file_state_mod, cmt_list)
+                # We now have a 'feature -> codeblock list' mapping
+                for feature in feature_clusters:
+                    if feature not in author_feature_changes:
+                        author_feature_changes[feature] = {}
+                    author_changes = author_feature_changes[feature]
+
+                    codeBlks = feature_clusters[feature]
+
+                    #get all blocks contributed by the revision commit we are looking at
+                    revCmtBlks = [blk for blk in codeBlks if blk.cmtHash == cmt.id]
+
+                    #get the person responsible for this revision
+                    if author:
+                        revPerson = id_mgr.getPI( revCmtBlks[0].authorId )
+                    else:
+                        revPerson = id_mgr.getPI( revCmtBlks[0].committerId )
+
+                    if revPerson not in author_changes:
+                        author_changes[revPerson] = 0
+                    author_changes[revPerson] += computeBlksSize(revCmtBlks, [])
+
+    # Now we calculate the collaboration strength between authors as
+    # (SUM(MIN(line-changes of author1 on feature, line-changes of author2 on feature) FOR feature IN features))
+    for feature in author_feature_changes:
+        author_changes = author_feature_changes[feature]
+        for author1 in author_changes:
+            for author2 in author_changes:
+                if author1 is not author2:
+                    strength = min(author_changes[author1], author_changes[author2])
+                    author1.addSendRelation(link_type, author2.getID(), cmt, strength)
+                    author2.addReceiveRelation(link_type, author1.getID(), strength)
+        #del author_feature_changes[author1]
+
+    #raise Exception("feature proximity links is not implemented!")
+
 
 def computeCommitterAuthorLinks(cmtlist, id_mgr):
     '''
@@ -1224,14 +1508,14 @@ def computeSimilarity(cmtlist):
 ###########################################################################
 def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
                     create_db, outdir, limit_history,
-                    range_by_date, rcranges=None):
+                    range_by_date, rcranges=None, collab_type="function"):
     link_type = conf["tagging"]
 
     if create_db == True:
         log.devinfo("Creating data base for {0}..{1}".format(revrange[0],
                                                         revrange[1]))
         createDB(dbfilename, git_repo, revrange, subsys_descr, \
-                 link_type, range_by_date, rcranges)
+                 link_type, range_by_date, rcranges, collab_type)
 
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
     revisionIDs = (dbm.getRevisionID(projectID, revrange[0]),
@@ -1268,8 +1552,14 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
             startDate = None
 
         fileCommitList = git.getFileCommitDict()
-        computeProximityLinks(fileCommitList, cmtdict, id_mgr, link_type,
-                              startDate)
+        if collab_type == "function":
+            computeProximityLinks(fileCommitList, cmtdict, id_mgr, link_type, startDate)
+        elif collab_type == "feature_file":
+            compute_feature_proximity_links_perfile(fileCommitList, cmtdict, id_mgr, link_type, startDate)
+        elif collab_type == "feature":
+            compute_feature_proximity_links(fileCommitList, cmtdict, id_mgr, link_type, startDate)
+        else:
+            raise Exception("Unsupported collaboration type!")
     #---------------------------------
     #compute statistical information
     #---------------------------------
@@ -1284,7 +1574,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
 
 ##################################################################
 def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
-                      git_repo, create_db, limit_history, range_by_date):
+                      git_repo, create_db, limit_history, range_by_date, collab_type="function"):
     #--------------
     #folder setup
     #--------------
@@ -1308,7 +1598,7 @@ def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
     dbm = DBManager(conf)
     performAnalysis(conf, dbm, filename, git_repo, [from_rev, to_rev],
                     None, create_db, outdir, limit_history, range_by_date,
-                    rc_range)
+                    rc_range, collab_type)
 
 ##################################
 #         TESTING CODE

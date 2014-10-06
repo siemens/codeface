@@ -23,6 +23,61 @@ single file.'''
 import commit
 import bisect
 
+
+class FileDict:
+    """
+    A dictionary saving per-line information. We assume that we have information on any line,
+    and that we only have to save changing lines.
+    """
+    def __init__(self, line_list, line_dict):
+        """
+        :rtype : FileDict
+        """
+        self.line_list = line_list
+        self.line_dict = line_dict
+        self.lastItem = line_list[-1]
+
+    def __init__(self):
+        """
+        :rtype : FileDict
+        """
+        self.line_list = []
+        self.line_dict = {}
+        self.lastItem = -1
+
+    def __iter__(self):
+        return self.line_dict.__iter__()
+
+    def get_line_info_raw(self, line_nr):
+        """
+        Returns the info for the given line (if the line was never set, the info for the last set line is returned)
+        :param line_nr:
+        :return:
+        """
+        i = bisect.bisect_right(self.line_list, line_nr)
+        info_line = self.line_list[i-1]
+        return self.line_dict[info_line]
+
+    def get_line_info(self, line_nr):
+        return set(self.get_line_info_raw(line_nr))
+
+    def add_line(self, line_nr, info):
+        """
+        Add the given information to the current dictionary.
+        Note: while filling the dictionary your line_nr has to be incremented!
+        :param line_nr:
+        :param info:
+        :return:
+        """
+        if line_nr < self.lastItem:
+            raise ValueError("can only incrementally add items")
+        self.line_list.append(line_nr)
+        self.line_dict[line_nr] = info
+
+    def values(self):
+        return self.line_dict.values()
+
+
 class FileCommit:
     def __init__(self):
 
@@ -40,11 +95,14 @@ class FileCommit:
         self.revCmts = []
 
         # dictionary with key = line number, value = function name
-        self.functionIds = {0:"FILE_LEVEL"}
+        self.functionIds = {0: "FILE_LEVEL"}
 
         # list of function line numbers in sorted order, this is for
         # optimizing the process of finding a function Id given a line number
         self.functionLineNums = [0]
+
+        # dictionary with key = line number, value = feature list
+        self.feature_info = FileDict()
 
     #Getter/Setters
     def getFileSnapShots(self):
@@ -63,6 +121,9 @@ class FileCommit:
         self.functionIds.update(functionIds)
         self.functionLineNums.extend(sorted(self.functionIds.iterkeys()))
 
+    def set_feature_infos(self, feature_line_infos):
+        self.feature_info = feature_line_infos
+
     #Methods
     def addFileSnapShot(self, key, dict):
         self.fileSnapShots[key] = dict
@@ -72,3 +133,6 @@ class FileCommit:
         i = bisect.bisect_right(self.functionLineNums, lineNum)
         funcLine = self.functionLineNums[i-1]
         return self.functionIds[funcLine]
+
+    def findFeatureList(self, lineNum):
+        return self.feature_info.get_line_info(lineNum)
