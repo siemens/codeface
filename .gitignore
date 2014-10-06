@@ -29,3 +29,5 @@ res/
 testdat/
 performance/results/
 *.tar.gz
+node_modules/
+_codeface_test_tmpfile
