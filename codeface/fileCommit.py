@@ -23,6 +23,61 @@ single file.'''
 import commit
 import bisect
 
+
+class FileDict:
+    """
+    A dictionary saving per-line information. We assume that we have information on any line,
+    and that we only have to save changing lines.
+    """
+    def __init__(self, line_list, line_dict):
+        """
+        :rtype : FileDict
+        """
+        self.line_list = line_list
+        self.line_dict = line_dict
+        self.lastItem = line_list[-1]
+
+    def __init__(self):
+        """
+        :rtype : FileDict
+        """
+        self.line_list = []
+        self.line_dict = {}
+        self.lastItem = -1
+
+    def __iter__(self):
+        return self.line_dict.__iter__()
+
+    def get_line_info_raw(self, line_nr):
+        """
+        Returns the info for the given line (if the line was never set, the info for the last set line is returned)
+        :param line_nr:
+        :return:
+        """
+        i = bisect.bisect_right(self.line_list, line_nr)
+        info_line = self.line_list[i-1]
+        return self.line_dict[info_line]
+
+    def get_line_info(self, line_nr):
+        return set(self.get_line_info_raw(line_nr))
+
+    def add_line(self, line_nr, info):
+        """
+        Add the given information to the current dictionary.
+        Note: while filling the dictionary your line_nr has to be incremented!
+        :param line_nr:
+        :param info:
+        :return:
+        """
+        if line_nr < self.lastItem:
+            raise ValueError("can only incrementally add items")
+        self.line_list.append(line_nr)
+        self.line_dict[line_nr] = info
+
+    def values(self):
+        return self.line_dict.values()
+
+
 class FileCommit:
     def __init__(self):
 
@@ -58,11 +113,7 @@ class FileCommit:
         self._src_elem_list = []
 
         # dictionary with key = line number, value = feature list
-        self.featureLists = {}
-
-        # list of function line numbers in sorted order, this is for
-        # optimizing the process of finding a feature list given a line number
-        self.featureLineNums = [0]
+        self.feature_info = FileDict()
 
     #Getter/Setters
     def getFileSnapShots(self):
@@ -91,9 +142,9 @@ class FileCommit:
     def setSrcElems(self, src_elem_list):
         self._src_elem_list.extend(src_elem_list)
 
-    def setFeatureLines(self, featureLineNums, featureLists):
-        self.featureLists.update(featureLists)
-        self.featureLineNums = featureLineNums  # .extend(sorted(self.featureLists.iterkeys()))
+    def set_feature_infos(self, feature_line_infos):
+        self.feature_info = feature_line_infos
+
     #Methods
     def addFileSnapShot(self, key, dict):
         self.fileSnapShots[key] = dict
@@ -128,7 +179,4 @@ class FileCommit:
         self.functionImpl[id].append(srcLine)
 
     def findFeatureList(self, lineNum):
-        # returns the identifier of a feature given a line number
-        i = bisect.bisect_right(self.featureLineNums, lineNum)
-        featureLine = self.featureLineNums[i-1]
-        return self.featureLists[featureLine]
+        return self.feature_info.get_line_info(lineNum)
