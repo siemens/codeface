@@ -20,6 +20,7 @@
 suppressMessages(library(BiRewire))
 suppressMessages(library(parallel))
 suppressMessages(library(robustbase))
+suppressMessages(library(ineq))
 
 source("../dependency_analysis.r", chdir=TRUE)
 source("../network_stream.r", chdir=TRUE)
@@ -415,6 +416,13 @@ community.metric <- function(graph, community, test) {
           return(comm.size)
         })
   }
+  else if(test == "density") {
+    metric.vec <- lapply(community.id,
+        function(x) {
+          g.sub <- induced.subgraph(graph, members[[x]])
+          return(graph.density(g.sub, loops=FALSE))
+        })
+  }
 
   return(metric.vec)
 }
@@ -440,6 +448,7 @@ compute.community.metrics <- function(g, comm) {
   res$intra.in.weight  <- community.metric(g, comm, "in.weight")
   res$intra.out.weight <- community.metric(g, comm, "out.weight")
   res$intra.diameter   <- community.metric(g, comm, "diameter")
+  res$com.density <- community.metric(g, comm, "density")
 
   ## Inter-community features
   g.con     <- contract.vertices(g, membership(comm), vertex.attr.comb=toString)
@@ -467,6 +476,17 @@ compute.community.metrics <- function(g, comm) {
   res$v.degree <- igraph::degree(g, mode="all")
   res$num.vertices <- vcount(g)
   res$diameter <- diameter(g, weights=NULL)
+  res$density <- graph.density(g, loops=FALSE)
+  res$ev.cent <- evcent(g, scale=TRUE)$vector
+  res$ev.cent.gini <- ineq(res$ev.cent, type="Gini")
+  res$adhesion <- graph.adhesion(g, checks=T)
+  res$diversity <- graph.diversity(g)
+  res$diversity[!is.finite(res$diversity)] <- NA
+  res$min.cut <- graph.mincut(g)
+
+  ## Power-law fiting
+  p.fit <- power.law.fit(res$v.degree, implementation="plfit")
+  res <- append(res, p.fit[c('alpha', 'xmin', 'KS.p')])
 
   ## Prepare data to be melted, maintain vertex and cluster ids
   ## by converting named vectors to named lists
@@ -726,13 +746,23 @@ run.trends.analysis <- function (con) {
                        'conductance',
                        'page.rank',
                        'community.v.size',
-                       'v.degree')
+                       'v.degree',
+                       'ev.cent',
+                       'diversity')
+
       metrics.series <- c('diameter',
                           'average.path.len',
                           'num.communities',
                           'num.vertices',
                           'inter.diameter',
-                          'modularity')
+                          'modularity',
+                          'density',
+                          'alpha',
+                          'xmin',
+                          'KS.p',
+                          'adhesion',
+                          'min.cut',
+                          'ev.cent.gini')
 
       ## Generate and save box plots for each project
       dlply(trends, .(p.id), function(df) sapply(metrics.box, function(m)
