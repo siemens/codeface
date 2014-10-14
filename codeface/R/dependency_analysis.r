@@ -23,27 +23,6 @@ closure <- 'closure'
 ## Define the list of experiments to perform
 experiments <- c(navigation)#, prevention, closure)
 
-query.dependency.sem <- function(con, project.id, type, limit) {
-  ## Query for dependencies between entities edited by a common commit
-
-  ## Type: Type of dependency of which 'File' or 'Function' are possible.
-  ## Limit: Integer to specify the maximum number of files edited by
-  ##        a single commit. Often one would want to eliminate commits
-  ##        that touch a very large number of files because the nature
-  ##        of them is unique (e.g., change licence information)
-
-  query <- str_c("SELECT commit.id, entityName, entityType, impl ",
-                 "FROM commit, commit_dependency ",
-                 "WHERE commit.id = commit_dependency.commitId ",
-                 "AND commit.projectId=", project.id, " ",
-                 "AND commit_dependency.entityType=", sq(type), " ",
-                 "AND commit.ChangedFiles <= ", limit, " ",
-                 "ORDER BY commit.id ASC")
-  dat <- dbGetQuery(con, query)
-
-  return(dat)
-}
-
 query.dependency <- function(con, project.id, type, limit, start.date, end.date,
                              impl=FALSE) {
   ## Query for dependencies between entities edited by a common commit
