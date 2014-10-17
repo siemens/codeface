@@ -34,22 +34,15 @@ from logging import getLogger; log = getLogger(__name__)
 
 from codeface import kerninfo
 from codeface.commit_analysis import (getSignoffCount, getSignoffEtcCount,
-        getInvolvedPersons, tag_types)
+        getInvolvedPersons)
 from codeface.VCS import gitVCS
 from codeface.dbmanager import DBManager, tstamp_to_sql
 from .PersonInfo import PersonInfo
 from .idManager import idManager
+from codeface.linktype import LinkType
 
 #Global Constants
 SEED = 448
-
-#enum-like class to distinguish between the various
-#methods used to link individuals
-class LinkType:
-    tag              = "tag"
-    proximity        = "proximity"
-    committer2author = "committer2author"
-    file             = "file"
 
 
 def createDB(filename, git_repo, revrange, subsys_descr, link_type,
@@ -349,14 +342,13 @@ def group_feature_lines(file_commit, file_state, cmt_list):
             else:
                 # block for this feature finished
                 if feature in curr_features:
+                    curr_cmt = cmt_list[str(curr_cmt_id)]
                     feature_blks[feature]. \
                         append(
                             codeBlock.codeBlock(
                                 blk_start[feature], blk_end[feature],
-                                cmt_list[str(curr_cmt_id)].getAuthorPI()
-                                .getID(),
-                                cmt_list[str(curr_cmt_id)].getCommitterPI()
-                                .getID(),
+                                curr_cmt.getAuthorPI().getID(),
+                                curr_cmt.getCommitterPI().getID(),
                                 curr_cmt_id))
                 blk_start[feature] = next_line
                 blk_end[feature] = next_line
@@ -1284,9 +1276,9 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
         cmt.setAuthorPI(pi)
         pi.addCommit(cmt)
 
-        if link_type == LinkType.proximity or \
-           link_type == LinkType.committer2author or \
-           link_type == LinkType.file:
+        if link_type in \
+                (LinkType.proximity, LinkType.committer2author,
+                 LinkType.file, LinkType.feature, LinkType.feature_file):
             #create person for committer
             ID = id_mgr.getPersonID(cmt.getCommitterName())
             pi = id_mgr.getPI(ID)
@@ -1593,7 +1585,7 @@ def computeTagLinks(cmtlist, id_mgr):
         pi.addSendRelation("author", ID, cmt)
         tag_pi_list = {}
 
-        for tag in tag_types:
+        for tag in LinkType.get_tag_types():
                 tag_pi_list[tag] = []
                 for name in getInvolvedPersons(cmt, [tag]):
                     relID = id_mgr.getPersonID(name)
@@ -1685,17 +1677,28 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     elif link_type == LinkType.committer2author:
         computeCommitterAuthorLinks(cmtlist, id_mgr)
 
-    elif link_type in (LinkType.proximity, LinkType.file):
+    elif link_type in (LinkType.proximity, LinkType.file, LinkType.feature,
+                       LinkType.feature_file):
         if limit_history:
             startDate = git.getRevStartDate()
         else:
             startDate = None
 
         fileCommitDict = git.getFileCommitDict()
-        computeProximityLinks(fileCommitDict, cmtdict, id_mgr, link_type,
-                              startDate)
-        logical_depends = computeLogicalDepends(fileCommitDict, cmtdict,
-                                                startDate)
+        logical_depends = None
+        if link_type == LinkType.proximity:
+            computeProximityLinks(
+                fileCommitDict, cmtdict, id_mgr, link_type, startDate)
+            logical_depends = \
+                computeLogicalDepends(fileCommitDict, cmtdict, startDate)
+        elif link_type == LinkType.feature_file:
+            compute_feature_proximity_links_per_file(
+                fileCommitDict, cmtdict, id_mgr, link_type, startDate)
+        elif link_type == LinkType.feature:
+            compute_feature_proximity_links(
+                fileCommitDict, cmtdict, id_mgr, link_type, startDate)
+        else:
+            raise Exception("Unsupported collaboration type!")
     #---------------------------------
     #compute statistical information
     #---------------------------------
