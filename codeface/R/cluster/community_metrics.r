@@ -746,6 +746,45 @@ plot.scatter <- function(project.df, feature1, feature2, outdir) {
   }
 }
 
+
+write.plots.trends <- function(trends, outdir) {
+  metrics.box <- c('cluster.coefficient',
+                   'betweenness.centrality',
+                   'conductance',
+                   'page.rank',
+                   'community.v.size',
+                   'v.degree',
+                   'ev.cent',
+                   'diversity')
+
+  metrics.series <- c('diameter',
+                      'average.path.len',
+                      'num.communities',
+                      'num.vertices',
+                      'inter.diameter',
+                      'modularity',
+                      'density',
+                      'alpha',
+                      'xmin',
+                      'KS.p',
+                      'adhesion',
+                      'min.cut',
+                      'ev.cent.gini')
+
+  ## Generate and save box plots for each project
+  dlply(trends, .(p.id), function(df) sapply(metrics.box, function(m)
+        plot.box(df, m, outdir)))
+
+  ## Generate and save series plots
+  dlply(trends, .(p.id), function(df) sapply(metrics.series, function(m)
+        plot.series(df, m, outdir)))
+
+  ## Gernerate scatter plots
+  dlply(trends, .(p.id), function(df) plot.scatter(df, "v.degree",
+        "cluster.coefficient", outdir))
+}
+
+
 run.trends.analysis <- function (con) {
   base.dir <- "/home/mitchell/trends"
   types <- c("developer", "co-change")
@@ -754,41 +793,7 @@ run.trends.analysis <- function (con) {
     function(type) {
       outdir <- paste(base.dir, type, sep="/")
       trends <- compute.all.project.trends(con, type)
-
-      metrics.box <- c('cluster.coefficient',
-                       'betweenness.centrality',
-                       'conductance',
-                       'page.rank',
-                       'community.v.size',
-                       'v.degree',
-                       'ev.cent',
-                       'diversity')
-
-      metrics.series <- c('diameter',
-                          'average.path.len',
-                          'num.communities',
-                          'num.vertices',
-                          'inter.diameter',
-                          'modularity',
-                          'density',
-                          'alpha',
-                          'xmin',
-                          'KS.p',
-                          'adhesion',
-                          'min.cut',
-                          'ev.cent.gini')
-
-      ## Generate and save box plots for each project
-      dlply(trends, .(p.id), function(df) sapply(metrics.box, function(m)
-            plot.box(df, m, outdir)))
-
-      ## Generate and save series plots
-      dlply(trends, .(p.id), function(df) sapply(metrics.series, function(m)
-            plot.series(df, m, outdir)))
-
-      ## Gernerate scatter plots
-      dlply(trends, .(p.id), function(df) plot.scatter(df, "v.degree",
-            "cluster.coefficient", outdir))
+      write.plots.trends(trends, outdir)
     })
 
   return(0)
