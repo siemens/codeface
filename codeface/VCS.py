@@ -49,7 +49,10 @@ import shutil
 from fileCommit import FileDict
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from ctags import CTags, TagEntry
-from logging import getLogger; log = getLogger(__name__)
+from logging import getLogger
+from codeface.linktype import LinkType
+
+log = getLogger(__name__)
 from .util import execute_command
 
 class Error(Exception):
@@ -866,7 +869,8 @@ class gitVCS (VCS):
 
         self._prepareCommitLists()
 
-        if link_type in ("proximity", "file"):
+        if link_type in (LinkType.proximity, LinkType.file,
+                         LinkType.feature, LinkType.feature_file):
             self.addFiles4Analysis()
             self._prepareFileCommitList(self._fileNames, link_type=link_type)
 
@@ -1096,8 +1100,12 @@ class gitVCS (VCS):
         file_commit.addFileSnapShot(rev, cmt_lines)
 
         # locate all function lines in the file
-        if link_type=="proximity": # separate the file commits into code structures
+        if link_type == LinkType.proximity:
+            # separate the file commits into code structures
             self._getFunctionLines(src_lines, file_commit)
+        elif link_type in (LinkType.feature_file, LinkType.feature):
+            self._get_feature_lines(src_lines, file_commit)
+
         # else: do not separate file commits into code structures, 
         #       this will result in all commits to a single file seen as 
         #       related thus the more course grained analysis
