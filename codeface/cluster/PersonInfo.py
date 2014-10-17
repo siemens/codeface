@@ -15,10 +15,20 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-from logging import getLogger; log = getLogger(__name__)
-from codeface.commit_analysis import tag_types, active_tag_types, proximity_relation \
-, file_relation, committer2author_relation, all_link_types
+from logging import getLogger;
+from codeface.linktype import LinkType
 
+log = getLogger(__name__)
+
+active_tag_types = ["Signed-off-by", "Acked-by", "Reviewed-by",
+                    "Tested-by", "Patch"]
+
+all_link_types = \
+    LinkType.get_tag_types() + \
+    [LinkType.proximity, LinkType.file, LinkType.committer2author,
+     LinkType.feature, LinkType.feature_file]
+
+	 
 class PersonInfo:
     """ Information about a commiter, and his relation to other commiters"""
 
@@ -40,7 +50,7 @@ class PersonInfo:
             self.inv_associations[link_type] = {}
 
         # See computeTagStats()
-        for tag in tag_types + ["author"]:
+        for tag in LinkType.get_tag_types() + ["author"]:
             self.tagged_commits[tag] = []
         self.tag_fraction = {}
         self.subsys_fraction = {}
@@ -83,6 +93,14 @@ class PersonInfo:
         #a given ID
         self.proximity_links_recieved_by_id = {}
 
+        # count how many links based on the feature metric were received by
+        # a given ID
+        self.feature_links_recieved_by_id = {}
+
+        # count how many links based on the feature_file metric were
+        # received by a given ID
+        self.feature_file_links_recieved_by_id = {}
+
         #count how many links based on committer -> author were received by
         #a given ID
         self.committer_links_recieved_by_id = {}
@@ -124,11 +142,17 @@ class PersonInfo:
         return self._getLinksReceivedByID(self.active_tags_received_by_id, ID)
 
     def getLinksReceivedByID(self, ID, link_type):
-        if link_type == proximity_relation:
+        if link_type == LinkType.proximity:
             return self._getLinksReceivedByID(self.proximity_links_recieved_by_id, ID)
-        elif link_type == committer2author_relation:
+        elif link_type == LinkType.feature:
+            return self._getLinksReceivedByID(
+                self.feature_links_recieved_by_id, ID)
+        elif link_type == LinkType.feature_file:
+            return self._getLinksReceivedByID(
+                self.feature_file_links_recieved_by_id, ID)
+        elif link_type == LinkType.committer2author:
             return self._getLinksReceivedByID(self.committer_links_recieved_by_id, ID)
-        elif link_type == file_relation:
+        elif link_type == LinkType.file:
             return self._getLinksReceivedByID(self.file_links_recieved_by_id, ID)
     def getAllTagsReceivedByID(self, ID):
         return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)
@@ -164,7 +188,7 @@ class PersonInfo:
 
         self.addRelation(relation_type, ID, self.inv_associations)
 
-        if relation_type in tag_types:
+        if relation_type in LinkType.get_tag_types():
             self.tagged_commits[relation_type].append(cmt.id)
 
         self.linksPerformed +=1
@@ -221,7 +245,7 @@ class PersonInfo:
 
         # Per-author distribution of tags (e..g, 30% Signed-Off, 60%
         # CC, 10% Acked-By)
-        for tag in tag_types + ["author"]:
+        for tag in LinkType.get_tag_types() + ["author"]:
             self.tag_fraction[tag] = \
                 len(self.tagged_commits[tag])/float(self.linksPerformed)
 
@@ -247,7 +271,7 @@ class PersonInfo:
     def computeRelationSums(self):
         # Summarise the links given _to_ (i.e, received by) the developer
         # from a specific ID
-        for tag in tag_types:
+        for tag in LinkType.get_tag_types():
             self._sum_relations(tag, self.all_tags_received_by_id)
 
         # Active tags do not include things like CC, which can
@@ -256,9 +280,16 @@ class PersonInfo:
             self._sum_relations(tag, self.active_tags_received_by_id)
 
         #sum other possible link types
-        self._sum_relations(proximity_relation,        self.proximity_links_recieved_by_id)
-        self._sum_relations(committer2author_relation, self.committer_links_recieved_by_id)
-        self._sum_relations(file_relation,             self.file_links_recieved_by_id)
+        self._sum_relations(
+            LinkType.proximity, self.proximity_links_recieved_by_id)
+        self._sum_relations(
+            LinkType.feature, self.feature_links_recieved_by_id)
+        self._sum_relations(
+            LinkType.feature_file, self.feature_file_links_recieved_by_id)
+        self._sum_relations(
+            LinkType.committer2author, self.committer_links_recieved_by_id)
+        self._sum_relations(
+            LinkType.file, self.file_links_recieved_by_id)
 
     def getTagStats(self):
         return self.tag_fraction
