@@ -22,17 +22,11 @@
 # All Rights Reserved.
 
 from TimeSeries import TimeSeries
-from logging import getLogger; log = getLogger(__name__)
+from logging import getLogger;
+from codeface.linktype import LinkType
 
-tag_types = [ "Signed-off-by", "Acked-by", "CC", "Reviewed-by",
-             "Reported-by", "Tested-by", "Patch"]
-active_tag_types = [ "Signed-off-by", "Acked-by", "Reviewed-by",
-                    "Tested-by", "Patch"]
-proximity_relation = "proximity"
-file_relation = "file"
-committer2author_relation = "committer2author"
-all_link_types = tag_types + [proximity_relation, file_relation, \
-                              committer2author_relation]
+log = getLogger(__name__)
+
 
 def flatten(lst):
     for elem in lst:
@@ -189,7 +183,7 @@ def getSignoffEtcCount(cmt):
     signoffs = 0
 
     tag_names_list = cmt.getTagNames()
-    for key in tag_types:
+    for key in LinkType.get_tag_types():
         if key in tag_names_list.keys():
             signoffs += len(tag_names_list[key])
 
