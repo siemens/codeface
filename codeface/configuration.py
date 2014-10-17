@@ -21,7 +21,10 @@ Encapsulates a configuration as an immutable dict
 
 import yaml
 from collections import Mapping
-from logging import getLogger; log = getLogger(__name__)
+from logging import getLogger;
+from codeface.linktype import LinkType
+
+log = getLogger(__name__)
 from tempfile import NamedTemporaryFile
 
 class ConfigurationError(Exception):
@@ -119,7 +122,7 @@ class Configuration(Mapping):
                         ''.format(key))
                 raise ConfigurationError('Missing configuration key.')
 
-        if not self['tagging'] in ('tag', 'committer2author', 'proximity', 'file'):
+        if not self['tagging'] in LinkType.get_all_link_types():
             log.critical('Unsupported tagging mechanism specified!')
             raise ConfigurationError('Unsupported tagging mechanism.')
 
