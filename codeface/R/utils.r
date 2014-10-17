@@ -100,3 +100,10 @@ select.graphics.dev <- function(filename, size, format="png") {
   return(dev)
 }
 
+
+get.num.cores <- function() {
+  n.cores <- detectCores(logical=TRUE)
+  if (is.na(n.cores)) n.cores <- 2
+
+  return(n.cores)
+}
