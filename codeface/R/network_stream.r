@@ -40,7 +40,7 @@ build.dev.net.stream <- function(con, project.id, type, dates.df) {
   ## similar to build.dev.net except the edge lists for each date range
   ## are generated in parallel
   limit <- 50
-  n.cores <- 4
+  n.cores <- get.num.cores()
   n.groups <- ceiling(nrow(dates.df) / n.cores)
   g.indx <- as.vector(sapply(1:n.groups, function(i) rep(i, n.cores)))
   g.indx <- g.indx[1:nrow(dates.df)]
