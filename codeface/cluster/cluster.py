@@ -53,7 +53,7 @@ class LinkType:
 
 
 def createDB(filename, git_repo, revrange, subsys_descr, link_type,
-             range_by_date, rcranges=None):
+             range_by_date, rcranges=None, collab_type="function"):
     #------------------
     #configuration
     #------------------
@@ -69,7 +69,7 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type,
     #------------------------
     #data extraction
     #------------------------
-    git.extractCommitData(link_type=link_type)
+    git.extractCommitData(link_type=link_type, collab_type=collab_type)
 
     #------------------------
     #save data
@@ -1612,14 +1612,14 @@ def computeSimilarity(cmtlist):
 ###########################################################################
 def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
                     create_db, outdir, limit_history,
-                    range_by_date, rcranges=None):
+                    range_by_date, rcranges=None, collab_type="function"):
     link_type = conf["tagging"]
 
     if create_db == True:
         log.devinfo("Creating data base for {0}..{1}".format(revrange[0],
                                                         revrange[1]))
         createDB(dbfilename, git_repo, revrange, subsys_descr, \
-                 link_type, range_by_date, rcranges)
+                 link_type, range_by_date, rcranges, collab_type)
 
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
     revisionIDs = (dbm.getRevisionID(projectID, revrange[0]),
@@ -1656,10 +1656,16 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
             startDate = None
 
         fileCommitDict = git.getFileCommitDict()
-        computeProximityLinks(fileCommitDict, cmtdict, id_mgr, link_type,
-                              startDate)
-        logical_depends = computeLogicalDepends(fileCommitDict, cmtdict,
-                                                startDate)
+        logical_depends = None
+        if collab_type == "function":
+            computeProximityLinks(fileCommitDict, cmtdict, id_mgr, link_type, startDate)
+            logical_depends = computeLogicalDepends(fileCommitDict, cmtdict, startDate)
+        elif collab_type == "feature_file":
+            compute_feature_proximity_links_perfile(fileCommitDict, cmtdict, id_mgr, link_type, startDate)
+        elif collab_type == "feature":
+            compute_feature_proximity_links(fileCommitDict, cmtdict, id_mgr, link_type, startDate)
+        else:
+            raise Exception("Unsupported collaboration type!")
     #---------------------------------
     #compute statistical information
     #---------------------------------
@@ -1675,7 +1681,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
 
 ##################################################################
 def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
-                      git_repo, create_db, limit_history, range_by_date):
+                      git_repo, create_db, limit_history, range_by_date, collab_type="function"):
     #--------------
     #folder setup
     #--------------
@@ -1699,7 +1705,7 @@ def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
     dbm = DBManager(conf)
     performAnalysis(conf, dbm, filename, git_repo, [from_rev, to_rev],
                     None, create_db, outdir, limit_history, range_by_date,
-                    rc_range)
+                    rc_range, collab_type)
 
 ##################################
 #         TESTING CODE

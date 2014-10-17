@@ -811,7 +811,7 @@ class gitVCS (VCS):
                 for logstring in reversed(clist)]
 
 
-    def extractCommitData(self, subsys="__main__", link_type=None):
+    def extractCommitData(self, subsys="__main__", link_type=None, collab_type="function"):
         if not(self._subsysIsValid(subsys)):
             log.critical("Subsys specification invalid: {0}\n".format(subsys))
             raise Error("Invalid subsystem specification.")
@@ -827,7 +827,7 @@ class gitVCS (VCS):
 
         if link_type in ("proximity", "file"):
             self.addFiles4Analysis()
-            self._prepareFileCommitList(self._fileNames, link_type=link_type)
+            self._prepareFileCommitList(self._fileNames, link_type=link_type, collab_type=collab_type)
 
         # _commit_list_dict as computed by _prepareCommitLists() already
         # provides a decomposition of the commit list into subsystems:
@@ -908,7 +908,7 @@ class gitVCS (VCS):
 
 
     def _prepareFileCommitList(self, fnameList, link_type, singleBlame=True,
-                               ignoreOldCmts=True):
+                               ignoreOldCmts=True, collab_type="function"):
         '''
         uses git blame to determine the file layout of a revision
         '''
@@ -977,13 +977,13 @@ class gitVCS (VCS):
             # retrieve blame data
             if singleBlame: #only one set of blame data per file
                 self._addBlameRev(self.rev_end, file_commit,
-                                  blameMsgCmtIds, link_type)
+                                  blameMsgCmtIds, link_type, collab_type=collab_type)
             else: # get one set of blame data for every commit made
                 # this option is computationally intensive thus the alternative
                 # singleBlame option is possible when speed is a higher
                 # priority than precision
                 [self._addBlameRev(cmt.id, file_commit,
-                                      blameMsgCmtIds, link_type) for cmt in cmtList]
+                                      blameMsgCmtIds, link_type, collab_type=collab_type) for cmt in cmtList]
 
             #store fileCommit object to dictionary
             self._fileCommit_dict[fname] = file_commit
@@ -1029,7 +1029,7 @@ class gitVCS (VCS):
 
                 pbar.finish()
 
-    def _addBlameRev(self, rev, file_commit, blame_cmt_ids, link_type):
+    def _addBlameRev(self, rev, file_commit, blame_cmt_ids, link_type, collab_type="function"):
         '''
         saves the git blame output of a revision for a particular file
         '''
@@ -1056,7 +1056,13 @@ class gitVCS (VCS):
 
         # locate all function lines in the file
         if link_type=="proximity": # separate the file commits into code structures
-            self._getFunctionLines(src_lines, file_commit)
+            if collab_type == "function":
+                self._getFunctionLines(src_lines, file_commit)
+            elif collab_type == "feature_file" or collab_type == "feature":
+                self._getFeatureLines(src_lines, file_commit)
+            else:
+                raise Exception("unknown collaboration type!")
+
         # else: do not separate file commits into code structures, 
         #       this will result in all commits to a single file seen as 
         #       related thus the more course grained analysis
