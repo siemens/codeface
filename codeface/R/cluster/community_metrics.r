@@ -530,51 +530,61 @@ compute.project.graph.trends <-
   project.name <- project.data$name
   analysis.method <- project.data$analysis.method
 
-  ## Get graph and additional data for each revision
-  if(type == "developer") {
-    edgelist.stream <- build.dev.net.stream(con, p.id, "Function", p.ranges)
-  }
+  ## Split up ranges into blocks to be processed in parallel
+  n.cores <- get.num.cores()
+  chunk.size <- n.cores
+  row.ids <- row.names(p.ranges)
+  chunks <- split(row.ids, ceiling(seq_along(row.ids) / chunk.size))
 
-  revision.data <-
-    apply(p.ranges, 1,
-          function(r) {
-            res <- list()
-            start.date <- r['start.date']
-            end.date <- r['end.date']
-            cycle <- paste(start.date, end.date, sep='-')
-            res$cycle <- cycle
+  metrics.df <- ldply(chunks,
+    function(chunk) {
+      ## Select on the ranges for this particular chunk
+      p.ranges.chunk <- p.ranges[chunk,]
+      ## Get graph and additional data for each revision
+      if(type == "developer") {
+        edgelist.stream <- build.dev.net.stream(con, p.id, "Function", p.ranges.chunk)
+      }
 
-            if (type == "developer") {
-                dev.net <- edgelist.stream[[cycle]]
-                res$edgelist <- dev.net$edgelist
-                res$v.global.ids <- dev.net$vertex.data$id
-            }
-            else if (type == "co-change") {
-              window.start <- ymd(start.date) - ddays(180)
-              edgelist <- get.co.change.edgelist(con, p.id,
-                                                 window.start,
-                                                 end.date)
-              v.id <- unique(unlist(as.list(edgelist)))
+      revision.data <-
+        apply(p.ranges.chunk, 1,
+              function(r) {
+                res <- list()
+                start.date <- r['start.date']
+                end.date <- r['end.date']
+                cycle <- paste(start.date, end.date, sep='-')
+                res$cycle <- cycle
 
-              res$edgelist <- edgelist
-              res$v.global.ids <- v.id
-            }
+                if (type == "developer") {
+                    dev.net <- edgelist.stream[[cycle]]
+                    res$edgelist <- dev.net$edgelist
+                    res$v.global.ids <- dev.net$vertex.data$id
+                }
+                else if (type == "co-change") {
+                  window.start <- ymd(start.date) - ddays(180)
+                  edgelist <- get.co.change.edgelist(con, p.id,
+                                                     window.start,
+                                                     end.date)
+                  v.id <- unique(unlist(as.list(edgelist)))
 
-            if(nrow(res$edgelist) == 0) {
-              res <- NULL
-            }
+                  res$edgelist <- edgelist
+                  res$v.global.ids <- v.id
+                }
 
-            return(res)})
+                if(nrow(res$edgelist) == 0) {
+                  res <- NULL
+                }
 
-  revision.data[sapply(revision.data, is.null)] <- NULL
+                return(res)})
 
-  ## Create igraph object and select communities which are of a minimum size 4
-  revision.data <-
-    mclapply(revision.data, mc.cores=4,
-             FUN=function(rev) {
-                  rev$graph <- graph.data.frame(rev$edgelist,
-                                                directed=TRUE,
-                                                vertices=data.frame(rev$v.global.ids))
+      revision.data[sapply(revision.data, is.null)] <- NULL
+
+      ## Create igraph object and select communities which are of a minimum size 4
+      revision.data <-
+        mclapply(revision.data, mc.cores=n.cores,
+                 function(rev) {
+                   rev$graph <- graph.data.frame(rev$edgelist,
+                                                 directed=TRUE,
+                                                 vertices=data.frame(rev$v.global.ids))
                    V(rev$graph)$name <- rev$v.global.ids
                    comm <- community.detection.disconnected(rev$graph,
                                                             spinglass.community.connected)
@@ -588,20 +598,24 @@ compute.project.graph.trends <-
 
                    return(rev)})
 
-  revision.data[sapply(revision.data, is.null)] <- NULL
+      revision.data[sapply(revision.data, is.null)] <- NULL
 
-  ## Compute network metrics
-  revision.df.list <- mclapply(revision.data, mc.cores=4,
-                               FUN=function(rev) {
-                                     df <- melt(compute.community.metrics(rev$graph, rev$comm))
-                                     df[,names(project.data)] <- project.data
-                                     df$cycle <- rev$cycle
-                                     return(df)})
+      ## Compute network metrics
+      revision.df.list <-
+        mclapply(revision.data, mc.cores=n.cores,
+                 function(rev) {
+                   df <- melt(compute.community.metrics(rev$graph, rev$comm))
+                   df[,names(project.data)] <- project.data
+                   df$cycle <- rev$cycle
 
-  res <- do.call("rbind", revision.df.list)
-  res <- rename(res, c("L1"="metric", "L2"="g.id"))
+                   return(df)})
 
-  return(res)
+      res <- do.call("rbind", revision.df.list)
+      res <- rename(res, c("L1"="metric", "L2"="g.id"))
+
+      return(res)})
+
+  return(metrics.df)
 }
 
 
