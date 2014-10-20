@@ -1263,7 +1263,8 @@ def emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir, releaseRangeID
 
     writeAdjMatrix2File(id_mgr, outdir, conf)
 
-    writeDependsToDB(logical_depends, fileCommitDict, cmtlist, releaseRangeID, dbm, conf)
+    if logical_depends is not None:
+        writeDependsToDB(logical_depends, fileCommitDict, cmtlist, releaseRangeID, dbm, conf)
 
     return None
 
@@ -1668,6 +1669,8 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     if subsys_descr != None:
         id_mgr.setSubsysNames(subsys_descr.keys())
 
+    logical_depends = None
+    fileCommitDict = git.getFileCommitDict()
     #---------------------------------
     #compute network connections
     #---------------------------------
@@ -1684,8 +1687,6 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
         else:
             startDate = None
 
-        fileCommitDict = git.getFileCommitDict()
-        logical_depends = None
         if link_type == LinkType.proximity:
             computeProximityLinks(
                 fileCommitDict, cmtdict, id_mgr, link_type, startDate)
