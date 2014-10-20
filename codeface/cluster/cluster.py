@@ -1151,9 +1151,9 @@ def computeLogicalDepends(fileCommit_list, cmt_dict, start_date):
       # Compute the number of lines of code changed for each dependency.
       # We captured the function dependency on a line by line basis above
       # now we aggregate the lines that change one function
-      [func_depends_count[cmt_id].extend([(func_id, len(list(group))) \
-       for func_id, group in itertools.groupby(sorted(depend_list))]) \
-       for cmt_id, depend_list in func_depends.iteritems()]
+      for cmt_id, depend_list in func_depends.iteritems():
+          for func_id, group in itertools.groupby(sorted(depend_list)):
+              func_depends_count[cmt_id].extend([(func_id, len(list(group)))])
 
     return func_depends_count
 
