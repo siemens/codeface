@@ -1063,10 +1063,9 @@ class gitVCS (VCS):
 
         # save the implementation for each function
         rmv_char = '[.{}();:\[\]]'
-        [file_commit.addFuncImplLine(lineNum,
-                                     re.sub(rmv_char, ' ',srcLine.strip()))
-         for lineNum, srcLine in enumerate(file_layout_src)]
-
+        for line_num, src_line in enumerate(file_layout_src):
+            src_line_rmv = re.sub(rmv_char, ' ', src_line.strip())
+            file_commit.addFuncImplLine(line_num, src_line_rmv)
 
     def cmtHash2CmtObj(self, cmtHash):
         '''
