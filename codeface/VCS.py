@@ -82,8 +82,8 @@ class VCS:
     def __init__(self):
         # "None" represents HEAD for end and the inital
         # commit for start
-        self._rev_start_date = None;
-        self._rev_end_date = None;
+        self.rev_start_date = None;
+        self.rev_end_date = None;
         self.rev_start     = None;
         self.rev_end       = None;
         self.repo          = None
@@ -123,10 +123,10 @@ class VCS:
         return self._commit_dict
 
     def getRevStartDate(self):
-        return self._rev_start_date
+        return self.rev_start_date
 
     def getRevEndDate(self):
-        return self._rev_end_date
+        return self.rev_end_date
 
     def getCommitDate(self, rev):
         return self._getRevDate(rev)
@@ -688,7 +688,7 @@ class gitVCS (VCS):
         self._prepareCommitLists()
 
         if link_type in ("proximity", "file"):
-            self.addFiles4Analysis()
+            self.addFiles4Analysis(self._commit_dict.keys())
             self._prepareFileCommitList(self._fileNames, link_type=link_type)
 
         # _commit_list_dict as computed by _prepareCommitLists() already
@@ -838,7 +838,7 @@ class gitVCS (VCS):
 
             # retrieve blame data
             if singleBlame: #only one set of blame data per file
-                self._addBlameRev(self.rev_end, file_commit,
+                self._addBlameRev(file_commit,
                                   blameMsgCmtIds, link_type)
             else: # get one set of blame data for every commit made
                 # this option is computationally intensive thus the alternative
@@ -891,7 +891,7 @@ class gitVCS (VCS):
 
                 pbar.finish()
 
-    def _addBlameRev(self, rev, file_commit, blame_cmt_ids, link_type):
+    def _addBlameRev(self, file_commit, blame_cmt_ids, link_type):
         '''
         saves the git blame output of a revision for a particular file
         '''
@@ -902,6 +902,24 @@ class gitVCS (VCS):
         file_commit: a fileCommit object to store the resulting blame data
         blame_cmt_ids: a list to keep track of all commit ids seen in the blame
         '''
+
+        #Determine the revision that git blame will be called on
+        if self.range_by_date:
+            #Find the revision where the last change was applied up until the
+            #the end of the analysis time window specified by a date
+            cmd = 'git --git-dir={0} log'.format(self.repo).split()
+            cmd.append("--until={0}".format(self.rev_end_date))
+            cmd.append("--format=%H")
+            cmd.append("--follow")
+            cmd.append("--diff-filter=ACMRTB")
+            cmd.append("-1")
+            cmd.append("--")
+            cmd.append(file_commit.filename)
+            rev = execute_command(cmd).strip()
+        else:
+            #Use revision that represents the final commit for the specified
+            #revision range
+            rev = self.rev_end
 
         #query git reppository for blame message
         blameMsg = self._getBlameMsg(file_commit.filename, rev)
@@ -1099,7 +1117,7 @@ class gitVCS (VCS):
 
         return cmtList
 
-    def addFiles4Analysis(self, directories=None):
+    def addFiles4Analysis(self, cmt_id_list):
         '''
         use this to configue what files should be included in the
         file based analysis (ie. non-tag based method). This will
@@ -1107,26 +1125,18 @@ class gitVCS (VCS):
         -- Input --
         directories - a list of paths to limit the search for filenames
         '''
+        cmd_base = 'git --git-dir={0} diff-tree'.format(self.repo).split()
+        cmd_base.append("--diff-filter=ACMRTB")
+        cmd_base.append("--no-commit-id")
+        cmd_base.append("--name-only")
+        cmd_base.append("-r")
 
-
-        #build git query
-        revrange = ""
-        rev_start = self.rev_start
-        rev_end = self.rev_end
-        if rev_start == None and rev_end != None:
-            revrange += reg_end
-        else:
-            if rev_start:
-                revrange += "{0}..".format(rev_start)
-
-            if rev_end:
-                revrange += rev_end
-
-        cmd = 'git --git-dir={0} diff --name-only --diff-filter=ACMRTUXB'.format(self.repo).split()
-        cmd.append(revrange)
-
-        #query git
-        output = execute_command(cmd).splitlines()
+        #get all files touched by all commits
+        all_files = set()
+        for cmt_id in cmt_id_list:
+            cmd = cmd_base + [cmt_id]
+            cmt_files = execute_command(cmd).splitlines()
+            all_files.update(cmt_files)
 
         #filter results to only get implementation files
         fileExt = (".c", ".cc", ".cpp", ".cxx", ".cs", ".asmx", ".m", ".mm",
@@ -1134,7 +1144,7 @@ class gitVCS (VCS):
                    '.d', '.php4', '.php5', '.inc', '.phtml', '.m', '.mm',
                    '.f', '.for', '.f90', '.idl', '.ddl', '.odl', '.tcl')
 
-        fileNames = [fileName for fileName in output if
+        fileNames = [fileName for fileName in all_files if
                      fileName.lower().endswith(fileExt)]
 
         self.setFileNames(fileNames)
