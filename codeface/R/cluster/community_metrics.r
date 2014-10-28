@@ -498,14 +498,18 @@ compute.community.metrics <- function(g, comm) {
 
 compute.all.project.trends <- function(con, type) {
   project.ids <- query.projects(con)$id
+  #project.ids <- project.ids[!project.ids %in% c(14)]
 
-  project.trend.list <-
-    lapply(project.ids,
-           function(p.id) compute.project.graph.trends(con, p.id, type))
+  lapply(project.ids,
+         function(p.id) {
+           trends <- compute.project.graph.trends(con, p.id, type)
+           print(nrow(trends))
+           if(!empty(trends)) {
+             write.plots.trends(trends, "/home/joblin/trends")
+           }
+           else print("project data frame empty")})
 
-  res <- do.call(rbind, project.trend.list)
-
-  return(res)
+  return(0)
 }
 
 
@@ -536,7 +540,7 @@ compute.project.graph.trends <-
   row.ids <- row.names(p.ranges)
   chunks <- split(row.ids, ceiling(seq_along(row.ids) / chunk.size))
 
-  metrics.df <- ldply(chunks,
+  metrics.df <- ldply(chunks, .progress='text',
     function(chunk) {
       ## Select on the ranges for this particular chunk
       p.ranges.chunk <- p.ranges[chunk,]
@@ -556,7 +560,14 @@ compute.project.graph.trends <-
 
                 if (type == "developer") {
                     dev.net <- edgelist.stream[[cycle]]
-                    res$edgelist <- dev.net$edgelist
+                    edgelist <- dev.net$edgelist
+
+                    if (!empty(edgelist)) {
+                      ## Remove loops
+                      edgelist <- edgelist[!(edgelist$to == edgelist$from),]
+                    }
+
+                    res$edgelist <- edgelist
                     res$v.global.ids <- dev.net$vertex.data$id
                 }
                 else if (type == "co-change") {
@@ -570,7 +581,8 @@ compute.project.graph.trends <-
                   res$v.global.ids <- v.id
                 }
 
-                if(nrow(res$edgelist) == 0) {
+                if(empty(edgelist)) {
+                  sprintf("removing empty cycle %s", cycle)
                   res <- NULL
                 }
 
@@ -582,13 +594,14 @@ compute.project.graph.trends <-
       revision.data <-
         mclapply(revision.data, mc.cores=n.cores,
                  function(rev) {
-                   rev$graph <- graph.data.frame(rev$edgelist,
-                                                 directed=TRUE,
-                                                 vertices=data.frame(rev$v.global.ids))
-                   V(rev$graph)$name <- rev$v.global.ids
-                   comm <- community.detection.disconnected(rev$graph,
+                   graph <- graph.data.frame(rev$edgelist,
+                                             directed=TRUE,
+                                             vertices=data.frame(rev$v.global.ids))
+                   V(graph)$name <- rev$v.global.ids
+                   E(graph)$weight <- log(1 + E(graph)$weight)
+                   comm <- community.detection.disconnected(graph,
                                                             spinglass.community.connected)
-                   graph.comm <- minCommGraph(rev$graph, comm, min=3)
+                   graph.comm <- minCommGraph(graph, comm, min=1)
                    rev$graph <- graph.comm$graph
                    rev$comm <- graph.comm$community
 
@@ -693,25 +706,36 @@ plot.box <- function(project.df, feature, outdir) {
 
 plot.series <- function(project.df, feature, outdir) {
   ## Select all rows for the feature
-  keep.row <- project.df$metric == feature
+  keep.row <- project.df$metric %in% feature
   project.df <- project.df[keep.row,]
+  x.labels <- unique(project.df$cycle)
+  n.cycles <- length(x.labels)
+  project.df$cycle <- as.factor(project.df$cycle)
 
   if(nrow(project.df) != 0) {
     project.name <- unique(project.df$name)
     analysis.method <- unique(project.df$analysis.method)
 
-    p <- ggplot(project.df, aes(x=cycle, y=value)) + geom_point(color= I('black')) + ylab(feature) +
-                xlab("Revision") + labs(title=project.name) + expand_limits(y=0) +
+    p <- ggplot(project.df, aes(x=cycle, y=value)) +
+                geom_point(color= I('black')) +
+                geom_line(aes(group=name)) +
+                facet_wrap(~ metric, ncol=1, scales="free_y") +
+                ylab("Value") +
+                xlab("Revision") +
+                scale_x_discrete(breaks=x.labels[seq(from=1, to=n.cycles, by=25)]) +
+                labs(title=project.name) + expand_limits(y=0) +
                 theme(axis.text.x = element_text(family="Arial Narrow",
-                                                 colour="black",size=12,angle=60,
-                                                 hjust=.6,vjust=.7,face="plain"))
-
+                                                 colour="black",size=12,
+                                                 face="plain", angle=45,
+                                                 hjust=0.5),
+                      strip.text.x = element_text(size=15))
   }
 
   file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
   dir.create(file.dir, recursive=T)
-  file.name <- paste(file.dir, "/", feature, ".png",sep="")
-  ggsave(file.name, p, height=8, width=20)
+  file.name <- paste(file.dir, "/time_series_metrics.png",sep="")
+  ggsave(file.name, p, height=41, width=20)
+  save(project.df, file=paste(file.dir, "/project_data.dat",sep=""))
 }
 
 
@@ -740,7 +764,7 @@ plot.scatter <- function(project.df, feature1, feature2, outdir) {
         geom_smooth(method="lm")
 
     file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
-    dir.create(file.dir, recursiv=T)
+    dir.create(file.dir, recursive=T)
     file.name <- paste(file.dir, "/", feature1, "_vs_", feature2, ".png",sep="")
     ggsave(file.name, p, height=40, width=40)
   }
@@ -776,8 +800,7 @@ write.plots.trends <- function(trends, outdir) {
         plot.box(df, m, outdir)))
 
   ## Generate and save series plots
-  dlply(trends, .(p.id), function(df) sapply(metrics.series, function(m)
-        plot.series(df, m, outdir)))
+  dlply(trends, .(p.id), function(df) plot.series(df, metrics.series, outdir))
 
   ## Gernerate scatter plots
   dlply(trends, .(p.id), function(df) plot.scatter(df, "v.degree",
@@ -793,7 +816,11 @@ run.trends.analysis <- function (con) {
     function(type) {
       outdir <- paste(base.dir, type, sep="/")
       trends <- compute.all.project.trends(con, type)
-      write.plots.trends(trends, outdir)
+      print(nrow(trends))
+      if(!empty(trends)) {
+        write.plots.trends(trends, outdir)
+      }
+      else print("empty project data frame")
     })
 
   return(0)
