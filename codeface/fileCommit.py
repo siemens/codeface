@@ -138,7 +138,10 @@ class FileCommit:
         return self.revCmts
 
     def getFuncImpl(self,id):
-        return self.functionImpl[id]
+        if id in self.functionImpl:
+            return self.functionImpl[id]
+        else:
+            return []
 
     def setFunctionLines(self, functionIds):
         self.functionIds.update(functionIds)
@@ -164,8 +167,10 @@ class FileCommit:
                 func_id = self.functionIds[line_num]
         else:
             i = bisect.bisect_right(self.functionLineNums, line_num)
-            func_line = self.functionLineNums[i-1]
-            func_id = self.functionIds[func_line]
+            if i in self.functionLineNums:
+                func_line = self.functionLineNums[i-1]
+                if func_line in self.functionIds: # on 'file' tagging we have no entries
+                    func_id = self.functionIds[func_line]
         return func_id
 
     def getLineCmtId(self, line_num):
