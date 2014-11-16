@@ -28,7 +28,64 @@ all_link_types = \
     [LinkType.proximity, LinkType.file, LinkType.committer2author,
      LinkType.feature, LinkType.feature_file]
 
-	 
+
+# Readonly class
+class RelationWeight:
+    def __init__(self, weight, group_name, commit_ids1, commit_ids2):
+        self.weight = weight
+        self.groupName = group_name
+        self.commitIds1 = commit_ids1
+        self.commitIds2 = commit_ids2
+
+    def get_weight(self):
+        return self.weight
+
+    def get_commit_ids1(self):
+        return self.commitIds1
+
+    def get_commit_ids2(self):
+        return self.commitIds2
+
+    def get_group_name(self):
+        return self.groupName
+
+
+class RelationWeights:
+    def __init__(self, init_weight=None):
+        if init_weight is not None:
+            self.weightSum = init_weight.get_weight()
+            self.weights = [init_weight]
+            self.maxWeight = init_weight
+        else:
+            self.weightSum = 0
+            self.weights = []
+            self.maxWeight = None
+
+    def get_weight(self):
+        return self.weightSum
+
+    def get_max_weight(self):
+        return self.maxWeight
+
+    def add_weight(self, new_weight):
+        weight = new_weight.get_weight()
+        if (self.maxWeight is None) or (weight > self.maxWeight.get_weight()):
+            self.maxWeight = new_weight
+        self.weightSum += weight
+        self.weights.append(new_weight)
+
+    def add_weights(self, weights):
+        for weight in weights:
+            self.add_weight(weight)
+
+    def copy(self):
+        new = RelationWeights()
+        new.weightSum = self.weightSum
+        new.weights = list(self.weights)
+        new.maxWeight = self.maxWeight
+        return new
+
+
 class PersonInfo:
     """ Information about a commiter, and his relation to other commiters"""
 
@@ -136,7 +193,7 @@ class PersonInfo:
         if ID in link_hash.keys():
             return link_hash[ID]
         else:
-            return 0
+            return RelationWeights()
 
     def getActiveTagsReceivedByID(self, ID):
         return self._getLinksReceivedByID(self.active_tags_received_by_id, ID)
@@ -157,18 +214,18 @@ class PersonInfo:
     def getAllTagsReceivedByID(self, ID):
         return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)
 
-    def addRelation(self, relation_type, ID, assoc, weight=1):
+    def addRelation(self, relation_type, ID, assoc, weight):
         """State that the person has received or given a tag from/to ID.
 
         The distinction between taking and giving is made in other
         functions."""
 
         if (ID in assoc[relation_type]):
-            assoc[relation_type][ID] += weight
+            assoc[relation_type][ID].add_weight(weight)
         else:
-            assoc[relation_type][ID] = weight
+            assoc[relation_type][ID] = RelationWeights(weight)
 
-    def addReceiveRelation(self, relation_type, ID, weight=1):
+    def addReceiveRelation(self, relation_type, ID, weight):
         '''
         add a one directional relation from the person identified by
         ID and this person instance (ie. self)
@@ -178,7 +235,7 @@ class PersonInfo:
 
         self.addRelation(relation_type, ID, self.associations, weight)
 
-    def addSendRelation(self, relation_type, ID, cmt, weight=1):
+    def addSendRelation(self, relation_type, ID, cmt, weight):
         '''
         add a one directional relation from the person instance
         (ie. self) and the person identified by ID
@@ -186,7 +243,7 @@ class PersonInfo:
         the weight parameter specified the edge strength
         '''
 
-        self.addRelation(relation_type, ID, self.inv_associations)
+        self.addRelation(relation_type, ID, self.inv_associations, weight)
 
         if relation_type in LinkType.get_tag_types():
             self.tagged_commits[relation_type].append(cmt.id)
@@ -211,10 +268,11 @@ class PersonInfo:
     # Helper for computeTagStats, see below
     def _sum_relations(self, relation_type, rcv_by_id_hash):
         for ID in self.associations[relation_type]:
+            weights = self.associations[relation_type][ID]
             if ID in rcv_by_id_hash:
-                rcv_by_id_hash[ID] += self.associations[relation_type][ID]
+                rcv_by_id_hash[ID].add_weights(weights)
             else:
-                rcv_by_id_hash[ID] = self.associations[relation_type][ID]
+                rcv_by_id_hash[ID] = weights.copy()
 
     def computeStats(self, link_type):
 
