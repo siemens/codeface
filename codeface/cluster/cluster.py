@@ -35,6 +35,7 @@ from logging import getLogger; log = getLogger(__name__)
 from codeface import kerninfo
 from codeface.commit_analysis import (getSignoffCount, getSignoffEtcCount,
         getInvolvedPersons)
+from codeface.cluster.PersonInfo import RelationWeight
 from codeface.VCS import gitVCS
 from codeface.dbmanager import DBManager, tstamp_to_sql
 from .PersonInfo import PersonInfo
@@ -296,7 +297,7 @@ def groupFuncLines(file_commit, file_state, cmtList):
             append(codeBlock.codeBlock(blk_start, blk_end,
                    cmtList[str(curr_cmt_id)].getAuthorPI().getID(),
                    cmtList[str(curr_cmt_id)].getCommitterPI().getID(),
-                   curr_cmt_id))
+                   curr_cmt_id, curr_func_id))
             blk_start = next_line
             blk_end   = blk_start
 
@@ -304,7 +305,7 @@ def groupFuncLines(file_commit, file_state, cmtList):
     func_blks[next_func_indx].append(codeBlock.codeBlock(blk_start, blk_end,
                             cmtList[str(next_cmt_id)].getAuthorPI().getID(),
                             cmtList[str(next_cmt_id)].getCommitterPI().getID(),
-                            next_cmt_id))
+                            next_cmt_id, curr_func_id))
 
     return func_blks
 
@@ -349,7 +350,7 @@ def group_feature_lines(file_commit, file_state, cmt_list):
                                 blk_start[feature], blk_end[feature],
                                 curr_cmt.getAuthorPI().getID(),
                                 curr_cmt.getCommitterPI().getID(),
-                                curr_cmt_id))
+                                curr_cmt_id, feature))
                 blk_start[feature] = next_line
                 blk_end[feature] = next_line
 
@@ -361,7 +362,7 @@ def group_feature_lines(file_commit, file_state, cmt_list):
                     blk_start[feature], blk_end[feature],
                     cmt_list[str(next_cmt_id)].getAuthorPI().getID(),
                     cmt_list[str(next_cmt_id)].getCommitterPI().getID(),
-                    next_cmt_id))
+                    next_cmt_id, feature))
 
     return feature_blks
 
@@ -485,7 +486,7 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, link_type, maxDist,
 
         # collaboration strength is seen as the sum of the newly contributed
         # lines of code and previously committed code by the other person
-        collaboration_strength = computeBlksSize(revCmtBlks, oldRevBlks)
+        collaboration_strength = compute_block_weight(revCmtBlks, oldRevBlks)
 
         #store result
         if author:
@@ -560,6 +561,13 @@ def computeBlksSize(blks1, blks2):
     for blk in blks_total:
         size_total += blk.end - blk.start + 1
     return size_total
+
+
+def compute_block_weight(blocks1, blocks2):
+    commit_ids1 = [blk.cmtHash for blk in blocks1]
+    commit_ids2 = [blk.cmtHash for blk in blocks2]
+    size = computeBlksSize(blocks1, blocks2)
+    return RelationWeight(size, blocks1[0].get_group_name(), commit_ids1, commit_ids2)
 
 
 def computeEdgeStrength(blk1, blk2, maxDist):
@@ -1228,16 +1236,69 @@ def writeAdjMatrix2File(id_mgr, outdir, conf):
     if link_type == LinkType.tag:
         for id_receiver in idlist:
             out.write("\t".join(
-                [str(id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(id_sender))
+                [str(id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(id_sender).get_weight())
                    for id_sender in idlist]) + "\n")
 
     else:
         for id_receiver in idlist:
             out.write("\t".join(
-                [str(id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, link_type))
+                [str(id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, link_type).get_weight())
                    for id_sender in idlist]) + "\n")
 
 
+
+    out.close()
+
+
+def writeAdjMatrixMaxWeight2File(id_mgr, outdir, conf):
+    '''
+    Connections between the developers are written to the outdir location
+    in adjacency matrix format
+    '''
+
+    # Store the adjacency matrix for developer network, i.e., create
+    # a NxN matrix in which the entry a_{i,j} denotes how strongly
+    # developer j was associated with developer i
+    # NOTE: This produces a sparse matrix, but since the number
+    # of developers is only a few thousand, it will likely not pay
+    # off to utilise this fact for more efficient storage.
+
+    link_type = conf["tagging"]
+    out = open(os.path.join(outdir, "adjacencyMatrix_max_weight.txt"), 'wb')
+    idlist = sorted(id_mgr.getPersons().keys())
+    # Header
+    out.write("" +
+              "\t".join([str(elem) for elem in idlist]) +
+              "\n")
+
+    # Matrix. The sum of all elements in row N describes how many
+    # tags id N has received. The sum of column N states how many
+    # tags were given by id N to other developers.
+    def get_tags_received_by_id_max_group_name(id_receiver, id_sender):
+        max_weight = id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(id_sender).get_max_weight()
+        if max_weight is None:
+            return "None"
+        else:
+            return str(max_weight.get_group_name())
+
+    def get_links_received_by_id_max_group_name(id_receiver, id_sender):
+        max_weight = id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, link_type).get_max_weight()
+        if max_weight is None:
+            return "None"
+        else:
+            return str(max_weight.get_group_name())
+
+    if link_type == LinkType.tag:
+        for id_receiver in idlist:
+            out.write("\t".join(
+                [get_tags_received_by_id_max_group_name(id_receiver, id_sender)
+                   for id_sender in idlist]) + "\n")
+
+    else:
+        for id_receiver in idlist:
+            out.write("\t".join(
+                [get_links_received_by_id_max_group_name(id_receiver, id_sender)
+                   for id_sender in idlist]) + "\n")
 
     out.close()
 
@@ -1262,6 +1323,8 @@ def emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir, releaseRangeID
     writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf)
 
     writeAdjMatrix2File(id_mgr, outdir, conf)
+
+    writeAdjMatrixMaxWeight2File(id_mgr, outdir, conf)
 
     if logical_depends is not None:
         writeDependsToDB(logical_depends, fileCommitDict, cmtlist, releaseRangeID, dbm, conf)
@@ -1473,9 +1536,9 @@ def compute_feature_proximity_links(
                                 id_mgr.getPI(rev_cmt_blks[0].committerId)
 
                         if rev_person not in author_changes:
-                            author_changes[rev_person] = 0
-                        author_changes[rev_person] += \
-                            computeBlksSize(rev_cmt_blks, [])
+                            author_changes[rev_person] = list(rev_cmt_blks)
+                        else:
+                            author_changes[rev_person].extend(rev_cmt_blks)
 
     # Now we calculate the collaboration strength between authors as
     # (SUM(
@@ -1487,12 +1550,14 @@ def compute_feature_proximity_links(
         for author1 in author_changes:
             for author2 in author_changes:
                 if author1 is not author2:
-                    strength = min(
-                        author_changes[author1], author_changes[author2])
-                    author1.addSendRelation(
-                        link_type, author2.getID(), cmt, strength)
-                    author2.addReceiveRelation(
-                        link_type, author1.getID(), strength)
+                    weight = compute_block_weight(author_changes[author1], author_changes[author2])
+                    size1 = computeBlksSize(author_changes[author1], [])
+                    size2 = computeBlksSize(author_changes[author2], [])
+                    weight = RelationWeight(
+                        min(size1, size2), feature, weight.get_commit_ids1(), weight.get_commit_ids2())
+                    author1.addSendRelation(link_type, author2.getID(), cmt, weight)
+                    author2.addReceiveRelation(link_type, author1.getID(), weight)
+
 
 
 def computeCommitterAuthorLinks(cmtlist, id_mgr):
@@ -1560,7 +1625,7 @@ def computeTagLinks(cmtlist, id_mgr):
     # With every person, we can associate statistical information into
     # which subsystems he/she typically commits, with whom he collaborates,
     # and so on. From this, we can infer further information for each
-    # commit, for instance how many people working on different subststems
+    # commit, for instance how many people working on different subsystems
     # have signed off the commit, of how important the people who sign off
     # the commit are.
 
