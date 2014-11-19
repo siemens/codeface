@@ -171,7 +171,7 @@ generate.person.edgelist <- function(entity.group) {
         edge.df <- data.frame()
 
         if (any(edge)) {
-          edge.df <- data.frame(from=r['author'], to=g$author[edge],
+          edge.df <- data.frame(from=as.numeric(r['author']), to=g$author[edge],
                                 weight=g$size[edge], row.names=NULL)
         }
 
