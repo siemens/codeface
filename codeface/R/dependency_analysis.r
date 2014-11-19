@@ -458,10 +458,18 @@ remove.extraneous.commits <- function(training.df, evaluation.df) {
 
 get.frequent.item.sets <- function(con, project.id, start.date, end.date) {
   ## Get commits for time period
-  item.sets.list <- list()
   commit.file.edit.limit <- 30
   commit.depends.df <- query.dependency(con, project.id, 'Function', commit.file.edit.limit,
-                                      start.date, end.date)
+                                        start.date, end.date)
+
+  item.sets.list <- compute.frequent.items(commit.depends.df)
+
+  return(item.sets.list)
+}
+
+
+compute.frequent.items <- function(commit.depends.df) {
+  item.sets.list <- list()
   ## Compute transactions
   commit.list <- aggregate.commit.dependencies(commit.depends.df)
   commit.list <- remove.large.commits(commit.list, entity.threshold)
@@ -472,7 +480,7 @@ get.frequent.item.sets <- function(con, project.id, start.date, end.date) {
     support.norm <- min(1,rule.support/length(trans.list))
     freq.change.sets <- apriori(trans.list,
                                 parameter=list(sup=support.norm, minlen=2,
-                                               target='frequent'),
+                                target='frequent'),
                                 control=list(verbose=FALSE))
 
     ## Coerce itemsets to list
