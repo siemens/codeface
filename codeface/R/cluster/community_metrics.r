@@ -743,7 +743,6 @@ plot.series <- function(project.df, feature, outdir) {
   dir.create(file.dir, recursive=T)
   file.name <- paste(file.dir, "/time_series_metrics.png",sep="")
   ggsave(file.name, p, height=41, width=20)
-  save(project.df, file=paste(file.dir, "/project_data.dat",sep=""))
 }
 
 
@@ -793,15 +792,16 @@ write.plots.trends <- function(trends, outdir) {
                       'average.path.len',
                       'num.communities',
                       'num.vertices',
-                      'inter.diameter',
+                      'percent.power.law',
                       'modularity',
                       'density',
                       'alpha',
                       'xmin',
                       'KS.p',
-                      'adhesion',
-                      'min.cut',
-                      'ev.cent.gini')
+                      'core.count',
+                      'degree.gini',
+                      'num.power.law')
+
 
   ## Generate and save box plots for each project
   dlply(trends, .(p.id), function(df) sapply(metrics.box, function(m)
@@ -813,6 +813,12 @@ write.plots.trends <- function(trends, outdir) {
   ## Gernerate scatter plots
   dlply(trends, .(p.id), function(df) plot.scatter(df, "v.degree",
         "cluster.coefficient", outdir))
+
+  project.name <- unique(trends$name)
+  analysis.method <- unique(trends$analysis.method)
+
+  file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
+  save(trends, file=paste(file.dir, "/project_data.dat",sep=""))
 }
 
 
