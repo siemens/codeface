@@ -34,22 +34,16 @@ from logging import getLogger; log = getLogger(__name__)
 
 from codeface import kerninfo
 from codeface.commit_analysis import (getSignoffCount, getSignoffEtcCount,
-        getInvolvedPersons, tag_types)
+        getInvolvedPersons)
+from codeface.cluster.PersonInfo import RelationWeight
 from codeface.VCS import gitVCS
 from codeface.dbmanager import DBManager, tstamp_to_sql
 from .PersonInfo import PersonInfo
 from .idManager import idManager
+from codeface.linktype import LinkType
 
 #Global Constants
 SEED = 448
-
-#enum-like class to distinguish between the various
-#methods used to link individuals
-class LinkType:
-    tag              = "tag"
-    proximity        = "proximity"
-    committer2author = "committer2author"
-    file             = "file"
 
 
 def createDB(filename, git_repo, revrange, subsys_descr, link_type,
@@ -197,6 +191,79 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
                                         maxDist, author) for cluster in clusters if cluster]
 
 
+def compute_snapshot_collaboration_features(
+        file_commit, cmt_list, id_mgr, link_type, start_date=None,
+        random=False):
+    """
+    Generates the collaboration data from a file snapshot at a particular
+    point in time
+    """
+
+    '''
+    Detailed description: this function is quite similar to
+    computeSnapshotCollaboration.
+    But to identify interesting lines and groups we use a different logic
+    to be able to do the same for features instead of functions.
+    '''
+
+    #------------------------
+    #variable declarations
+    #------------------------
+    max_dist = 25
+    author = True
+    file_state = file_commit.getFileSnapShot()
+    rev_cmt_ids = file_commit.getrevCmts()
+    rev_cmts = [cmt_list[revCmtId] for revCmtId in rev_cmt_ids]
+
+    for cmt in rev_cmts:
+        # the file_state will be modified but for each loop we should start
+        # with the original file_state
+        file_state_mod = file_state.copy()
+
+        # check if commit is in the current revision of the file, if it is
+        # not we no longer have a need to process further since the commit
+        # is now irrelevant
+        if not (cmt.id in file_state_mod.values()):
+            continue
+
+        # find code lines of interest, these are the lines that are
+        # localized around the cmt.id hash, modify the file_state to
+        # include only the lines of interest
+        if not random:
+            file_state_mod = \
+                lines_of_interest_features(
+                    file_state_mod, cmt.id, cmt_list, file_commit)
+
+        #remove commits that occur prior to the specified startDate
+        if start_date is not None:
+            file_state_mod = \
+                removePriorCommits(file_state_mod, cmt_list, start_date)
+
+        # collaboration is meaningless without more than one line
+        # of code, because we need another line as reference
+        if len(file_state_mod) > 1:
+            # identify code line clustering using function location
+            # information
+            feature_clusters = \
+                group_feature_lines(file_commit, file_state_mod, cmt_list)
+            for feature in feature_clusters:
+                feature_cluster = feature_clusters[feature]
+
+                def exists(f, l):
+                    for i in l:
+                        if f(i):
+                            return True
+                    return False
+                if feature_cluster and \
+                        exists(lambda blk: blk.cmtHash == cmt.id,
+                               feature_cluster):
+                    # calculate the collaboration coefficient for each
+                    # code block
+                    computeCommitCollaboration(
+                        feature_cluster, cmt, id_mgr, link_type, max_dist,
+                        author)
+
+
 def groupFuncLines(file_commit, file_state, cmtList):
     '''
     cluster code lines that fall under the same function
@@ -230,7 +297,7 @@ def groupFuncLines(file_commit, file_state, cmtList):
             append(codeBlock.codeBlock(blk_start, blk_end,
                    cmtList[str(curr_cmt_id)].getAuthorPI().getID(),
                    cmtList[str(curr_cmt_id)].getCommitterPI().getID(),
-                   curr_cmt_id))
+                   curr_cmt_id, curr_func_id))
             blk_start = next_line
             blk_end   = blk_start
 
@@ -238,9 +305,67 @@ def groupFuncLines(file_commit, file_state, cmtList):
     func_blks[next_func_indx].append(codeBlock.codeBlock(blk_start, blk_end,
                             cmtList[str(next_cmt_id)].getAuthorPI().getID(),
                             cmtList[str(next_cmt_id)].getCommitterPI().getID(),
-                            next_cmt_id))
+                            next_cmt_id, curr_func_id))
 
     return func_blks
+
+
+def group_feature_lines(file_commit, file_state, cmt_list):
+    """
+    cluster code lines that fall under the same feature
+    """
+    feature_blks = {}
+    lines = sorted(map(int, file_state.keys()))
+    blk_start = {}
+    blk_end = {}
+
+    for features in file_commit.feature_info.values():
+        for feature in features:
+            blk_start[feature] = lines[0]
+            blk_end[feature] = lines[0]
+            feature_blks[feature] = []
+
+    for i in range(0, len(file_state) - 1):
+        curr_line = lines[i]
+        next_line = lines[i + 1]
+        curr_cmt_id = file_state[str(curr_line)]
+        next_cmt_id = file_state[str(next_line)]
+        curr_features = file_commit.findFeatureList(curr_line)
+        next_features = file_commit.findFeatureList(next_line)
+
+        for feature in feature_blks:
+            if (curr_cmt_id == next_cmt_id) and \
+                    (curr_line + 1 == next_line) and \
+                    (feature in curr_features) and \
+                    (feature in next_features):
+                # nothing changed for this feature
+                blk_end[feature] += 1
+            else:
+                # block for this feature finished
+                if feature in curr_features:
+                    curr_cmt = cmt_list[str(curr_cmt_id)]
+                    feature_blks[feature]. \
+                        append(
+                            codeBlock.codeBlock(
+                                blk_start[feature], blk_end[feature],
+                                curr_cmt.getAuthorPI().getID(),
+                                curr_cmt.getCommitterPI().getID(),
+                                curr_cmt_id, feature))
+                blk_start[feature] = next_line
+                blk_end[feature] = next_line
+
+    # boundary case for open code-blocks.
+    for feature in feature_blks:
+        if feature in curr_features:
+            feature_blks[feature].append(
+                codeBlock.codeBlock(
+                    blk_start[feature], blk_end[feature],
+                    cmt_list[str(next_cmt_id)].getAuthorPI().getID(),
+                    cmt_list[str(next_cmt_id)].getCommitterPI().getID(),
+                    next_cmt_id, feature))
+
+    return feature_blks
+
 
 def randomizeCommitCollaboration(codeBlks, fileState):
     '''
@@ -309,7 +434,7 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, link_type, maxDist,
     contributed code in close proximity the commit of interests
     contributions. The method computes all possible combinations
     of code block relationships then averages. This is very similar
-    to the function "computerPersonsCollaboration" except we consider
+    to the function "computePersonsCollaboration" except we consider
     the commit hash to identify the contribution instead of the person
     then later map the commit to a person. The advantages is we can
     differentiate between when an author made a contribution. This way
@@ -361,7 +486,7 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, link_type, maxDist,
 
         # collaboration strength is seen as the sum of the newly contributed
         # lines of code and previously committed code by the other person
-        collaboration_strength = computeBlksSize(revCmtBlks, oldRevBlks)
+        collaboration_strength = compute_block_weight(revCmtBlks, oldRevBlks)
 
         #store result
         if author:
@@ -436,6 +561,13 @@ def computeBlksSize(blks1, blks2):
     for blk in blks_total:
         size_total += blk.end - blk.start + 1
     return size_total
+
+
+def compute_block_weight(blocks1, blocks2):
+    commit_ids1 = [blk.cmtHash for blk in blocks1]
+    commit_ids2 = [blk.cmtHash for blk in blocks2]
+    size = computeBlksSize(blocks1, blocks2)
+    return RelationWeight(size, blocks1[0].get_group_name(), commit_ids1, commit_ids2)
 
 
 def computeEdgeStrength(blk1, blk2, maxDist):
@@ -706,6 +838,68 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist, file_commit):
         #else: forget line because it was in a future commit
 
     return modFileState
+
+
+def lines_of_interest_features(file_state, snapshot_commit, cmt_list,
+                               file_commit):
+    """
+    Finds the regions of interest for analyzing the file.
+    We want to look at localized regions around the commit of
+    interest (snapShotCommit) and ignore code lines that are
+    located some far distance away.
+
+    - Input -
+    fileState:      code line numbers together with commit hashes
+    snapShotCommit: the commit hash that marks when the fileState was acquired
+    maxDist:        indicates how large the area of interest should be
+    file_commit: a fileCommit instance
+    - Output -
+    mod_filestate: the file state after line not of interest are removed
+    """
+    #variable declarations
+    snapshot_cmt_date = cmt_list[snapshot_commit].getCdate()
+    mod_file_state = {}
+    snapshot_feature_set = set()
+
+    #take a pass over the fileState to identify where the snapShotCommit
+    #made contributions to the fileState
+    snapshot_cmt_lines = []
+    for lineNum in file_state.keys():
+        cmt_id = file_state[lineNum]
+
+        if cmt_id == snapshot_commit:
+            snapshot_cmt_lines.append(lineNum)
+            # retrieve the function id that each line falls into
+            snapshot_feature_set.update(
+                file_commit.findFeatureList(int(lineNum)))
+    #end for line
+
+    # remove lines that are from commits that occur after the snapShotCmt
+    for lineNum, cmt_id in file_state.items():
+        if cmt_id in cmt_list:
+            cmt_date = cmt_list[cmt_id].getCdate()
+        else:
+            #must be a old commit that occurred in a prior release
+            continue
+
+        # check to keep lines committed in the past with respect to the
+        # current snapshot commit
+        if cmt_date <= snapshot_cmt_date:
+            # check if the line will fall under one of the features that
+            # the snapshot commit lines fall under (ie. we only want to
+            # keep lines that are in the same feature as the snapshot
+            # commit)
+
+            if any(com in snapshot_feature_set
+                   for com in file_commit.findFeatureList(int(lineNum))):
+                mod_file_state[lineNum] = file_state[lineNum]
+
+                # else: ignore line since it belongs to some feature
+                # outside of the set of features we are interested in
+
+                #else: forget line because it was in a future commit
+
+    return mod_file_state
 
 
 def blockDist(blk1, blk2):
@@ -982,7 +1176,9 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
                      author_cmt_stats_rows)
 
 
-def writeDependsToDB(logical_depends, fileCommitDict, cmtlist, releaseRangeID, dbm, conf)  :
+def writeDependsToDB(
+        logical_depends, cmtlist, dbm, conf, entity_type="Function",
+        get_entity_source_code=None):
     '''
     Write logical dependency data to database
     '''
@@ -993,6 +1189,10 @@ def writeDependsToDB(logical_depends, fileCommitDict, cmtlist, releaseRangeID, d
                  co-changed subroutines (i.e., functions)
     '''
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
+    if get_entity_source_code is None:
+        def get_source(file, id):
+            return ""
+        get_entity_source_code = get_source
 
     # List of tuples to store rows of DB table
     cmt_depend_rows = []
@@ -1002,11 +1202,11 @@ def writeDependsToDB(logical_depends, fileCommitDict, cmtlist, releaseRangeID, d
             key = dbm.getCommitId(projectID, cmt.id)
             depends_list = logical_depends[cmt.id]
             function_loc = [depend for depend, count in depends_list]
-            depend_impl_list = [' '.join(fileCommitDict[file].getFuncImpl(funcId)) for file, funcId in function_loc]
+            depend_impl_list = [' '.join(get_entity_source_code(file, funcId)) for file, funcId in function_loc]
             depends_list = [depends_list[indx][0] + (depends_list[indx][1], impl) for indx, impl in enumerate(depend_impl_list)]
 
             # Write Function level dependencies
-            rows = [(key, file, entityId, "Function", count, impl) for file, entityId, count, impl in depends_list]
+            rows = [(key, file, entityId, entity_type, count, impl) for file, entityId, count, impl in depends_list]
             cmt_depend_rows.extend(rows)
     # For cmt.id
 
@@ -1042,13 +1242,13 @@ def writeAdjMatrix2File(id_mgr, outdir, conf):
     if link_type == LinkType.tag:
         for id_receiver in idlist:
             out.write("\t".join(
-                [str(id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(id_sender))
+                [str(id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(id_sender).get_weight())
                    for id_sender in idlist]) + "\n")
 
     else:
         for id_receiver in idlist:
             out.write("\t".join(
-                [str(id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, link_type))
+                [str(id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, link_type).get_weight())
                    for id_sender in idlist]) + "\n")
 
 
@@ -1056,8 +1256,61 @@ def writeAdjMatrix2File(id_mgr, outdir, conf):
     out.close()
 
 
+def writeAdjMatrixMaxWeight2File(id_mgr, outdir, conf):
+    '''
+    Connections between the developers are written to the outdir location
+    in adjacency matrix format
+    '''
+
+    # Store the adjacency matrix for developer network, i.e., create
+    # a NxN matrix in which the entry a_{i,j} denotes how strongly
+    # developer j was associated with developer i
+    # NOTE: This produces a sparse matrix, but since the number
+    # of developers is only a few thousand, it will likely not pay
+    # off to utilise this fact for more efficient storage.
+
+    link_type = conf["tagging"]
+    out = open(os.path.join(outdir, "adjacencyMatrix_max_weight.txt"), 'wb')
+    idlist = sorted(id_mgr.getPersons().keys())
+    # Header
+    out.write("" +
+              "\t".join([str(elem) for elem in idlist]) +
+              "\n")
+
+    # Matrix. The sum of all elements in row N describes how many
+    # tags id N has received. The sum of column N states how many
+    # tags were given by id N to other developers.
+    def get_tags_received_by_id_max_group_name(id_receiver, id_sender):
+        max_weight = id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(id_sender).get_max_weight()
+        if max_weight is None:
+            return "None"
+        else:
+            return str(max_weight.get_group_name())
+
+    def get_links_received_by_id_max_group_name(id_receiver, id_sender):
+        max_weight = id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, link_type).get_max_weight()
+        if max_weight is None:
+            return "None"
+        else:
+            return str(max_weight.get_group_name())
+
+    if link_type == LinkType.tag:
+        for id_receiver in idlist:
+            out.write("\t".join(
+                [get_tags_received_by_id_max_group_name(id_receiver, id_sender)
+                   for id_sender in idlist]) + "\n")
+
+    else:
+        for id_receiver in idlist:
+            out.write("\t".join(
+                [get_links_received_by_id_max_group_name(id_receiver, id_sender)
+                   for id_sender in idlist]) + "\n")
+
+    out.close()
+
+
 def emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir, releaseRangeID, dbm, conf, 
-                        fileCommitDict):
+                        fileCommitDict, entity_type="Function", get_entity_source_code=None):
     """Save the available information for a release interval for further statistical processing.
 
     Several files are created in outdir respectively the database:
@@ -1077,7 +1330,11 @@ def emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir, releaseRangeID
 
     writeAdjMatrix2File(id_mgr, outdir, conf)
 
-    writeDependsToDB(logical_depends, fileCommitDict, cmtlist, releaseRangeID, dbm, conf)
+    writeAdjMatrixMaxWeight2File(id_mgr, outdir, conf)
+
+    if logical_depends is not None:
+        writeDependsToDB(logical_depends, cmtlist, dbm, conf, entity_type,
+                         get_entity_source_code)
 
     return None
 
@@ -1090,9 +1347,9 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
         cmt.setAuthorPI(pi)
         pi.addCommit(cmt)
 
-        if link_type == LinkType.proximity or \
-           link_type == LinkType.committer2author or \
-           link_type == LinkType.file:
+        if link_type in \
+                (LinkType.proximity, LinkType.committer2author,
+                 LinkType.file, LinkType.feature, LinkType.feature_file):
             #create person for committer
             ID = id_mgr.getPersonID(cmt.getCommitterName())
             pi = id_mgr.getPI(ID)
@@ -1158,6 +1415,60 @@ def computeLogicalDepends(fileCommit_list, cmt_dict, start_date):
     return func_depends_count
 
 
+def compute_logical_depends_features(file_commit_list, cmt_dict, start_date):
+    """
+    Compute logical dependencies at feature level
+    """
+
+    '''
+    Input:
+    file_commit_list - A list of fileCommit objects, the object
+                     contains the source code structural information
+                     and a commit reference for every line of a file
+    Output:
+    feature_depends - dictionary where key=commit hash (unique id) and
+                  value=the list of features changed with that commit
+
+    Description:
+    We use the source code structural information we acquired from the
+    cppstats analysis to identify which lines of code fall under a particular
+    feature space. We save the subroutine name together with the filename that the
+    subroutine belongs.
+    '''
+
+    feature_depends_count = {}
+    for file in file_commit_list.values():
+        feature_depends = {}
+        filename = file.getFilename()
+        idx = file.getIndx()
+        for line_num in idx:
+            cmt_id = file.getLineCmtId(line_num)
+
+            if cmt_id not in feature_depends_count:
+                feature_depends_count[cmt_id] = []
+
+            if cmt_id in cmt_dict:
+                # If line is older than start date then ignore
+                if cmt_dict[cmt_id].getCdate() >= start_date:
+                    feature_list = file.findFeatureList(line_num)
+
+                    feature_loc = [(filename, feature) for feature in feature_list]
+                    if cmt_id in feature_depends:
+                        feature_depends[cmt_id].extend(feature_loc)
+                    else:
+                        feature_depends[cmt_id] = feature_loc
+
+        # Compute the number of lines of code changed for each dependency.
+        # We captured the function dependency on a line by line basis above
+        # now we aggregate the lines that change one function
+        for cmt_id, depend_list in feature_depends.iteritems():
+            feature_depends_count[cmt_id].extend(
+                [(feature_id, len(list(group)))
+                    for feature_id, group in itertools.groupby(sorted(depend_list))])
+
+    return feature_depends_count
+
+
 def computeProximityLinks(fileCommitList, cmtList, id_mgr, link_type, \
                           startDate=None, speedUp=True):
     '''
@@ -1180,6 +1491,134 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, link_type, \
                                     cmtList, id_mgr, link_type, startDate)
                                     for fileSnapShot
                                     in fileCommit.getFileSnapShots().items()]
+
+
+def compute_feature_proximity_links_per_file(
+        file_commit_list, cmt_list, id_mgr, link_type, start_date=None,
+        speed_up=True):
+    """
+    Constructs network based on commit proximity information
+    """
+
+    '''
+    Two contributors are linked when they make a commit that is in
+    close proximity to each other (ie. same file AND nearby line numbers).
+    Collaboration is quantified by a single metric indicating the
+    strength of collaboration between two individuals.
+    '''
+    for file_commit in file_commit_list.values():
+        if speed_up:
+            compute_snapshot_collaboration_features(
+                file_commit, cmt_list, id_mgr, link_type, start_date)
+        else:
+            for fileSnapShot in file_commit.getFileSnapShots().items():
+                compute_snapshot_collaboration_features(
+                    fileSnapShot[1], [fileSnapShot[0]], cmt_list, id_mgr,
+                    link_type, start_date)
+
+
+def compute_feature_proximity_links(
+        file_commit_list, cmt_list, id_mgr, link_type, start_date=None,
+        random=False):
+    """
+    Constructs network based on commit proximity information, same as
+    computeProximityLinks but for features instead of functions.
+    """
+
+    '''
+    Because features (unlike functions) are split across files, we define
+    collaboration differently:
+
+    Two contributors are linked when they make a commit that is within the
+    same feature.
+    Collaboration between to contributors is quantified by the number of
+    lines they worked on the same feature.
+    '''
+
+    # First we calculate how many lines each contributor changed in each
+    # feature
+    author_feature_changes = {}
+
+    for file_commit in file_commit_list.values():
+        author = True
+        file_state = file_commit.getFileSnapShot()
+        rev_cmt_ids = file_commit.getrevCmts()
+        rev_cmts = [cmt_list[revCmtId] for revCmtId in rev_cmt_ids]
+
+        for cmt in rev_cmts:
+            # the fileState will be modified but for each loop we should
+            # start with the original fileState
+            file_state_mod = file_state.copy()
+
+            # check if commit is in the current revision of the file, if
+            # it is not we no longer have a need to process further since
+            # the commit is now irrelevant
+            if not (cmt.id in file_state_mod.values()):
+                continue
+
+            # find code lines of interest, these are the lines that are
+            # localized around the cmt.id hash, modify the fileState to
+            # include only the lines of interest
+            if not random:
+                file_state_mod = lines_of_interest_features(
+                    file_state_mod, cmt.id, cmt_list, file_commit)
+
+            # remove commits that occur prior to the specified startDate
+            if start_date is not None:
+                file_state_mod = removePriorCommits(
+                    file_state_mod, cmt_list, start_date)
+
+            #collaboration is meaningless without more than one line
+            #of code
+            if len(file_state_mod) > 1:
+                # identify code line clustering using feature location
+                # information
+                feature_groups = group_feature_lines(
+                    file_commit, file_state_mod, cmt_list)
+                # We now have a 'feature -> codeblock list' mapping
+                for feature in feature_groups:
+                    if feature not in author_feature_changes:
+                        author_feature_changes[feature] = {}
+                    author_changes = author_feature_changes[feature]
+
+                    feature_group = feature_groups[feature]
+
+                    # get all blocks contributed by the revision commit we
+                    # are looking at
+                    rev_cmt_blks = [blk for blk in feature_group
+                                    if blk.cmtHash == cmt.id]
+                    if rev_cmt_blks:
+                        # get the person responsible for this revision
+                        if author:
+                            rev_person = \
+                                id_mgr.getPI(rev_cmt_blks[0].authorId)
+                        else:
+                            rev_person = \
+                                id_mgr.getPI(rev_cmt_blks[0].committerId)
+
+                        if rev_person not in author_changes:
+                            author_changes[rev_person] = list(rev_cmt_blks)
+                        else:
+                            author_changes[rev_person].extend(rev_cmt_blks)
+
+    # Now we calculate the collaboration strength between authors as
+    # (SUM(
+    #   MIN(line-changes of author1 on feature,
+    #       line-changes of author2 on feature)
+    #  FOR feature IN features))
+    for feature in author_feature_changes:
+        author_changes = author_feature_changes[feature]
+        for author1 in author_changes:
+            for author2 in author_changes:
+                if author1 is not author2:
+                    weight = compute_block_weight(author_changes[author1], author_changes[author2])
+                    size1 = computeBlksSize(author_changes[author1], [])
+                    size2 = computeBlksSize(author_changes[author2], [])
+                    weight = RelationWeight(
+                        min(size1, size2), feature, weight.get_commit_ids1(), weight.get_commit_ids2())
+                    author1.addSendRelation(link_type, author2.getID(), cmt, weight)
+                    author2.addReceiveRelation(link_type, author1.getID(), weight)
+
 
 
 def computeCommitterAuthorLinks(cmtlist, id_mgr):
@@ -1247,7 +1686,7 @@ def computeTagLinks(cmtlist, id_mgr):
     # With every person, we can associate statistical information into
     # which subsystems he/she typically commits, with whom he collaborates,
     # and so on. From this, we can infer further information for each
-    # commit, for instance how many people working on different subststems
+    # commit, for instance how many people working on different subsystems
     # have signed off the commit, of how important the people who sign off
     # the commit are.
 
@@ -1273,7 +1712,7 @@ def computeTagLinks(cmtlist, id_mgr):
         pi.addSendRelation("author", ID, cmt)
         tag_pi_list = {}
 
-        for tag in tag_types:
+        for tag in LinkType.get_tag_types():
                 tag_pi_list[tag] = []
                 for name in getInvolvedPersons(cmt, [tag]):
                     relID = id_mgr.getPersonID(name)
@@ -1356,6 +1795,10 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     if subsys_descr != None:
         id_mgr.setSubsysNames(subsys_descr.keys())
 
+    logical_depends = None
+    entity_type = "Function"
+    get_entity_source_code = None
+    fileCommitDict = git.getFileCommitDict()
     #---------------------------------
     #compute network connections
     #---------------------------------
@@ -1365,17 +1808,43 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     elif link_type == LinkType.committer2author:
         computeCommitterAuthorLinks(cmtlist, id_mgr)
 
-    elif link_type in (LinkType.proximity, LinkType.file):
+    elif link_type in (LinkType.proximity, LinkType.file, LinkType.feature,
+                       LinkType.feature_file):
         if limit_history:
             startDate = git.getRevStartDate()
         else:
             startDate = None
+        if link_type in (LinkType.proximity, LinkType.file):
+            computeProximityLinks(
+                fileCommitDict, cmtdict, id_mgr, link_type, startDate)
+            logical_depends = computeLogicalDepends(
+                fileCommitDict, cmtdict, startDate)
 
-        fileCommitDict = git.getFileCommitDict()
-        computeProximityLinks(fileCommitDict, cmtdict, id_mgr, link_type,
-                              startDate)
-        logical_depends = computeLogicalDepends(fileCommitDict, cmtdict,
-                                                startDate)
+            def get_source(file, func_id):
+                return fileCommitDict[file].getFuncImpl(func_id)
+            get_entity_source_code = get_source
+            entity_type = "Function"
+        elif link_type == LinkType.feature_file:
+            compute_feature_proximity_links_per_file(
+                fileCommitDict, cmtdict, id_mgr, link_type, startDate)
+            logical_depends = compute_logical_depends_features(
+                fileCommitDict, cmtdict, startDate)
+
+            def get_source(file, feature_id):
+                return ""
+            get_entity_source_code = get_source
+            entity_type = "Feature"
+        elif link_type == LinkType.feature:
+            compute_feature_proximity_links(
+                fileCommitDict, cmtdict, id_mgr, link_type, startDate)
+            logical_depends = compute_logical_depends_features(
+                fileCommitDict, cmtdict, startDate)
+
+            def get_source(file, feature_id):
+                return ""
+            get_entity_source_code = get_source
+            entity_type = "Feature"
+
     #---------------------------------
     #compute statistical information
     #---------------------------------
@@ -1386,7 +1855,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     #statistical software, that is, GNU R
     #---------------------------------
     emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir, releaseRangeID,\
-                        dbm, conf, fileCommitDict)
+                        dbm, conf, fileCommitDict, entity_type, get_entity_source_code)
 
 
 ##################################################################

@@ -26,10 +26,10 @@ from pkg_resources import resource_filename
 
 from glob import glob
 
-from .logger import set_log_level, start_logfile, log
-from .configuration import Configuration
-from .util import execute_command
-from .project import project_analyse, mailinglist_analyse
+from codeface.logger import set_log_level, start_logfile, log
+from codeface.configuration import Configuration
+from codeface.util import execute_command
+from codeface.project import project_analyse, mailinglist_analyse
 
 def get_parser():
     parser = argparse.ArgumentParser(prog='codeface',
@@ -56,6 +56,12 @@ def get_parser():
     run_parser.set_defaults(func=cmd_run)
     run_parser.add_argument('-c', '--config', help="Prosoda configuration file",
                 default='codeface.conf')
+    run_parser.add_argument(
+        '--tagging',
+        help="Overrides the tagging configuration within the CLI. "
+             "When used this parameter overrides the configured tagging, "
+             "default is fallback to configuration value",
+        default='default')
     run_parser.add_argument('-p', '--project', help="Project configuration file",
                 required=True)
     run_parser.add_argument('resdir',
@@ -103,7 +109,7 @@ def cmd_run(args):
         logfile = os.path.abspath(logfile)
     project_analyse(resdir, gitdir, codeface_conf, project_conf,
                     args.no_report, args.loglevel, logfile, args.recreate,
-                    args.profile_r, args.jobs)
+                    args.profile_r, args.jobs, args.tagging)
     return 0
 
 def cmd_ml(args):

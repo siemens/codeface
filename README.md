@@ -59,6 +59,31 @@ in the step "Database Setup", and modify codeface.conf accordingly.
          # Devel packages required for python packages
          sudo apt-get install libyaml-dev
 
+* When using the feature or feature_file analysis you need to have a working 
+  "cppstats" in your path.
+  One way to get it is:
+
+        cd ~
+        git clone https://github.com/clhunsen/cppstats.git
+
+  Now create a file like ~/scripts/cppstats and add ~/scripts to your PATH. 
+  It should have something along the lines of:
+  
+        #!/bin/bash
+
+        cd ~/cppstats
+        PYTHONPATH="~/cppstats/lib" ~/cppstats/cppstats.py "$@"
+        
+  Note that the script has to be executable:
+
+        chmod +x ~/scripts/cppstats
+        
+  and then add ~/scripts to your PATH. 
+  (maybe you have to replace ~ with the full path (/home/$user) if it doesn't work).
+
+  You can test this script by running "~/scripts/cppstats --help" and 
+  validate that you get an help message 
+
 ## Preparing the R installation
 
 * Run `sudo R CMD javareconf`; make sure that the tool reports success in
@@ -155,7 +180,7 @@ See `bugextractor/INSTALL` for all java-related details.
 
 * The ID service requires a few node.js packages. Install them by running
 
-        npm install addressparser express js-yaml mysql
+        npm install addressparser express js-yaml mysql body-parser
 
   in the `id_service` directory.
 

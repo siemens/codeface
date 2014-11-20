@@ -381,6 +381,35 @@ def check4ctags():
         log.error("Ctags version '{0}' not found".format(prog_version))
         raise Exception("Incompatible ctags-exuberant version")
 
+
+def check4cppstats():
+    """
+    check if the appropriate cppstats is installed on the system.
+    """
+    # We can not check the version directly as there is no version switch
+    # on cppstats We just check if the first two lines of --help are OK.
+    line_1 = "usage: cppstats.py [-h] [--kind <K> | -a] [--list [LIST] |" \
+             " --file IN OUT]"
+    line_2 = "                   [--nobak] [--stf] [-l] [-v] " \
+             "[--check CHECK] [--dall]"
+    cmd = "/usr/bin/env cppstats --help".split()
+    res = execute_command(cmd).splitlines()
+    if not (res[0].startswith(line_1)):
+        error_message = "expected '{0}' in the first line but got '{1}'"\
+            .format(line_1, res[0])
+        log.error("program cppstats does not exist, or it is not working "
+                  "as expected ({0}"
+                  .format(error_message))
+        raise Exception("cppstats not found ({0})".format(error_message))
+
+    if not (res[1].startswith(line_2)):
+        error_message = "expected '{0}' in the second line but got '{1}'"\
+            .format(line_2, res[1])
+        log.error("program cppstats does not exist, or it is not working "
+                  "as expected ({0}".format(error_message))
+        raise Exception("cppstats not found ({0})".format(error_message))
+
+
 def generate_analysis_windows(repo, window_size_months):
 	'''
 	Generates a list of revisions (commit hash) in increments of the window_size

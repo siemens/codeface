@@ -79,7 +79,8 @@ load.config <- function(global.file, project.file=NULL) {
   }
 
   if (conf$tagging != "tag" && conf$tagging != "committer2author" &&
-      conf$tagging != "proximity" && conf$tagging != "file") {
+      conf$tagging != "proximity" && conf$tagging != "file" &&
+      conf$tagging != "feature" && conf$tagging != "feature_file") {
     stop("Malformed configuration: Invalid tagging mode specified!")
   }
 
