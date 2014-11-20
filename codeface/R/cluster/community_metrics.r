@@ -473,7 +473,9 @@ compute.community.metrics <- function(g, comm) {
   res$betweenness.centrality <- betweenness(g, directed=FALSE, normalize=TRUE)
   res$page.rank <- page.rank(g, directed=FALSE)$vector
   res$average.path.len <- average.path.length(g, directed=FALSE)
-  res$v.degree <- igraph::degree(g, mode="all")
+  res$v.degree <- sort(igraph::degree(g, mode="all"), decreasing=T)
+  res$degree.gini <- ineq(res$v.degree, type="Gini")
+  res$core.count <- length(res$v.degree[cumsum(res$v.degree) / sum(res$v.degree) <= 0.8])
   res$num.vertices <- vcount(g)
   res$diameter <- diameter(g, weights=NULL)
   res$density <- graph.density(g, loops=FALSE)
