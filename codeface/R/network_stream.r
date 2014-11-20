@@ -164,6 +164,12 @@ add.co.change.aggregation <- function(commit.df, entity.group) {
 
 generate.person.edgelist <- function(entity.group) {
   edgelist <- data.frame()
+
+  ## Remove entity groups of size 1 since there could not
+  ## possibly be collaboration on these entities
+  keep.element <- sapply(entity.group, function(g) length(unique(g$author)) > 1)
+  entity.group <- entity.group[unlist(keep.element)]
+
   edgelist <-
     ldply(entity.group, function(g) {
       edgelist.group <- apply(g, 1, function(r) {
