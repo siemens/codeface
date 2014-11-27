@@ -57,14 +57,17 @@ processTermDocMat <- function(corp) {
 }
 
 
-computeDistMat <- function(tdm) {
+computeDocSimilarity <- function(tdm) {
   td.mat <- as.matrix(tdm)
+
   ## Perform local and global document weighting
   td.mat.w <- lw_bintf(td.mat) * gw_idf(td.mat)
   latent.space <- lsa(td.mat.w)
-  dist.mat <- dist(t(as.textmatrix(latent.space)))
 
-  return(dist.mat)
+  ## Compute document simlarity using cosine similarity
+  similarity.mat <- cosine(diag(latent.space$sk) %*% t(latent.space$dk))
+
+  return(similarity.mat)
 }
 
 
