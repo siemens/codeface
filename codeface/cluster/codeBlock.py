@@ -27,20 +27,27 @@ class codeBlock:
     # Constructors
     #===========================
 
-    def __init__(self, start=None, end=None, authorId=None, committerId=None, cmtHash=None):
+    def __init__(self, start=None, end=None, authorId=None, committerId=None, cmtHash=None, groupName=None):
 
         self.start       = start #start of the code block
         self.end         = end   #end of the code block
         self.authorId    = authorId
         self.committerId = committerId
         self.cmtHash     = cmtHash
+        # specified the name of this block,
+        # this is saved so we can trace where collaborations come from
+        # ie which function/feature/file is responsible for a specific
+        # collaboration.
+        self.groupName     = groupName
     #===========================
     # Accessors and Modifiers
     #===========================
 
+    def get_group_name(self):
+        return self.groupName
+
     def get_codeLines(self):
         return self.codeLines
-
 
     def add_codeLine(self, lineNum, cmtHash, authorId, committerId):
         self.codeLines.append( codeLine.codeLine(lineNum, cmtHash, authorId, committerId) )

@@ -19,11 +19,11 @@ from pkg_resources import resource_filename
 from os.path import join as pathjoin, split as pathsplit, abspath
 
 from .dbmanager import DBManager
-from .configuration import Configuration
-from .cluster.cluster import doProjectAnalysis
+from .configuration import Configuration, ConfigurationError
+from .cluster.cluster import doProjectAnalysis, LinkType
 from .ts import dispatch_ts_analysis
 from .util import (execute_command, generate_reports, layout_graph,
-        check4ctags, BatchJobPool, generate_analysis_windows)
+                   check4ctags, check4cppstats, BatchJobPool, generate_analysis_windows)
 
 def loginfo(msg):
     ''' Pickleable function for multiprocessing '''
@@ -51,10 +51,25 @@ def project_setup(conf, recreate):
     return project_id, dbm, all_range_ids
 
 def project_analyse(resdir, gitdir, codeface_conf, project_conf,
-                    no_report, loglevel, logfile, recreate, profile_r, n_jobs):
+                    no_report, loglevel, logfile, recreate, profile_r,
+                    n_jobs, tagging_type):
     pool = BatchJobPool(int(n_jobs))
     conf = Configuration.load(codeface_conf, project_conf)
-    project, tagging = conf["project"], conf["tagging"]
+    tagging = conf["tagging"]
+    if tagging_type is not "default":
+
+        if not tagging_type in LinkType.get_all_link_types():
+            log.critical('Unsupported tagging mechanism specified!')
+            raise ConfigurationError('Unsupported tagging mechanism.')
+        # we override the configuration value
+        if tagging is not tagging_type:
+            log.warn(
+                "tagging value is overwritten to {0} because of --tagging"
+                .format(tagging_type))
+            tagging = tagging_type
+            conf["tagging"] = tagging
+
+    project = conf["project"]
     repo = pathjoin(gitdir, conf["repo"], ".git")
     project_resdir = pathjoin(resdir, project, tagging)
     range_by_date = False
@@ -67,8 +82,10 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         range_by_date = True
 
     # TODO: Sanity checks (ensure that git repo dir exists)
-    if 'proximity' == conf["tagging"]:
+    if tagging == LinkType.proximity:
         check4ctags()
+    elif tagging in (LinkType.feature, LinkType.feature_file):
+        check4cppstats()
 
     project_id, dbm, all_range_ids = project_setup(conf, recreate)
 
