@@ -24,7 +24,7 @@ closure <- 'closure'
 experiments <- c(navigation)#, prevention, closure)
 
 query.dependency <- function(con, project.id, type, limit, start.date, end.date,
-                             impl=FALSE) {
+                             impl=FALSE, rmv.dups=FALSE) {
   ## Query for dependencies between entities edited by a common commit
 
   ## Type: Type of dependency of which 'File' or 'Function' are possible.
@@ -35,8 +35,17 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
   select.str <- "SELECT author, commitDate, commit.id, file, entityId,
                  entityType, size "
 
-  if (impl == TRUE) {
+  ## Add entity implementation column
+  if(impl) {
     select.str <- paste(select.str, ", impl ", sep="")
+  }
+
+  ## Remove duplicates in file and entity id columns
+  if(rmv.dups) {
+    group.str <- "GROUP BY file, entityId"
+  }
+  else {
+    group.str <- ""
   }
 
   query <- str_c(select.str,
@@ -47,6 +56,7 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
                  "AND commit.ChangedFiles <= ", limit, " ",
                  "AND commit.commitDate >=", sq(start.date), " ",
                  "AND commit.commitDate <", sq(end.date), " ",
+                 group.str, " ",
                  "ORDER BY commit.id ASC")
 
   dat <- dbGetQuery(con, query)
