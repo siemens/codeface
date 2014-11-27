@@ -1,10 +1,8 @@
 library(tm)
 library(lsa)
 
-genArtifactCorpus <- function(con, project.id, start.date, end.date, entity.type) {
-  depend.df <- query.dependency(con, project.id, entity.type, 30, start.date,
-                                end.date, impl=TRUE, rmv.dups=TRUE)
 
+genArtifactCorpus <- function(depend.df) {
   myReader <- readTabular(mapping=list(content="impl", heading="entity"))
   corp <- VCorpus(DataframeSource(depend.df), readerControl=list(reader=myReader))
 
@@ -79,17 +77,47 @@ plotMSA <- function(dist.mat){
   return(points)
 }
 
+## High level functions to identify semantic relationships between two source code
+## artifacts, the artifact can be a various grainularities (e.g., file, function, feature)
+computeSemanticCouplingCon <- function(con, project.id, start.date, end.date,
+                                       entity.type="Function") {
+  ## Retrieve entities and the implementation from the database
+  depend.df <- query.dependency(con, project.id, entity.type, 30, start.date,
+                                end.date, impl=TRUE, rmv.dups=TRUE)
 
-testAnalysis <- function() {
-  con <- connect.db("../../../codeface.conf")$con
-  p.id <- 2
-  start.date <- "2012-12-10"
-  end.date <- "2013-12-12"
+  ## Compute semantic coupling between entities
+  res <- computeSemanticCoupling(depend.df)
 
-  corp <- genDependencyCorpus(con, p.id, start.date, end.date)
+  return(res)
+}
+
+
+computeSemanticCoupling <- function(depend.df, threshold=0.7) {
+  ## Remove entity duplicates
+  depend.df <- depend.df[!duplicated(depend.df[c("entity")]), ]
+
+  ## Generate corpus of artifacts
+  corp <- genArtifactCorpus(depend.df)
+
+  ## Process corpus using stop word removal, stemming, and some software related
+  ## conventions like splitting of camelcase terms
   corp <- processCorpus(corp)
   tdm <- processTermDocMat(corp)
-  dist.mat <- computeDistMat(tdm)
-  points <- plotMSA(dist.mat)
-  browser()
+
+  ## Compute document similarity using latent semantic analysis
+  similarity.mat <- computeDocSimilarity(tdm)
+
+  ## Remove documents that have low similarity
+  high.similarity.relations <- which(similarity.mat >= threshold, arr.ind=TRUE,
+                                     useNames=FALSE)
+  edgelist.df <- data.frame(high.similarity.relations)
+
+  ## Mapping of document ids to document names
+  vertex.data <- data.frame(name=unlist(meta(corp, tag="id")),
+                            id=unlist(meta(corp, tag="heading")),
+                            stringsAsFactors=FALSE)
+
+  res <- list(edgelist=edgelist.df, vertex.data=vertex.data)
+
+  return(res)
 }
