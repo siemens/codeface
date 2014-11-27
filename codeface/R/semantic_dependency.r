@@ -1,11 +1,12 @@
 library(tm)
 library(lsa)
 
-genDependencyCorpus <- function(con, project.id, start.date, end.date) {
-  depend.df <- query.dependency(con, project.id, "Function", 30, start.date,
-                                end.date, impl=TRUE)
+genArtifactCorpus <- function(con, project.id, start.date, end.date, entity.type) {
+  depend.df <- query.dependency(con, project.id, entity.type, 30, start.date,
+                                end.date, impl=TRUE, rmv.dups=TRUE)
 
-  corp <- Corpus(VectorSource(depend.df[,'impl']))
+  myReader <- readTabular(mapping=list(content="impl", heading="entity"))
+  corp <- VCorpus(DataframeSource(depend.df), readerControl=list(reader=myReader))
 
   return(corp)
 }
