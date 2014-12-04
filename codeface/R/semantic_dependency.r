@@ -96,6 +96,10 @@ computeSemanticCoupling <- function(depend.df, threshold=0.7) {
   ## Remove entity duplicates
   depend.df <- depend.df[!duplicated(depend.df[c("entity")]), ]
 
+  if(nrow(depend.df) < 2) {
+    return(list(edgelist=data.frame(), vertex.data=data.frame()))
+  }
+
   ## Generate corpus of artifacts
   corp <- genArtifactCorpus(depend.df)
 

@@ -1,4 +1,5 @@
 source("dependency_analysis.r")
+source("semantic_dependency.r")
 
 build.dev.net <- function(con, project.id, type, start.date, end.date) {
   ## Generate a graph from common contribution to a given entity type
@@ -33,7 +34,8 @@ entity.group.to.edgelist <- function(entity.groups, cycle) {
 
 
 build.dev.net.stream <- function(con, project.id, type, dates.df,
-                                 add.co.change.rel=FALSE) {
+                                 add.co.change.rel=FALSE,
+                                 add.semantic.rel=FALSE) {
   ## Build a graph stream from a data frame of start and end dates,
   ## similar to build.dev.net except the edge lists for each date range
   ## are generated in parallel
@@ -52,7 +54,7 @@ build.dev.net.stream <- function(con, project.id, type, dates.df,
         start.date <- r['start.date']
         end.date <- r['end.date']
         commit.df <- query.dependency(con, project.id, type, limit,
-                                      start.date, end.date)
+                                      start.date, end.date, impl=add.semantic.rel)
 
         ## Co-change relationship needs a longer history of commits
         commit.df.hist <- list()
@@ -80,7 +82,8 @@ build.dev.net.stream <- function(con, project.id, type, dates.df,
       edgelist <-
         mclapply(commit.lists,
                  function(commit.list) construct.edgelist(commit.list,
-                                                          add.co.change.rel),
+                                                          add.co.change.rel,
+                                                          add.semantic.rel),
                  mc.cores=n.cores)
       })
 
@@ -91,7 +94,7 @@ build.dev.net.stream <- function(con, project.id, type, dates.df,
 }
 
 
-construct.edgelist <- function(commit.list, add.co.change.rel) {
+construct.edgelist <- function(commit.list, add.co.change.rel, add.semantic.rel) {
   ## Compute relation for developer contribution to common entity
   entity.groups <- aggregate.on.common.entity(commit.list$commit.df)
 
@@ -99,9 +102,18 @@ construct.edgelist <- function(commit.list, add.co.change.rel) {
   ## entities
   if(add.co.change.rel) {
     ## Add the co-change relation to the entity grouping
-    entity.groups <- add.co.change.aggregation(commit.list$commit.df.hist,
-                                               entity.groups)
+    entity.groups <- add.entity.relation(commit.list$commit.df.hist,
+                                         entity.groups,
+                                         type="co.change")
   }
+
+  ## Compute relation for developers contribution to semantically coupled
+  ## entites
+  if(add.semantic.rel) {
+    entity.groups <- add.entity.relation(commit.list$commit.df, entity.groups,
+                                         type="semantic")
+  }
+
   ## Convert grouped entites into developer network, edges are
   ## placed between developers who have made a contribution to
   ## common entity group
@@ -120,43 +132,65 @@ aggregate.on.common.entity <- function(commit.df) {
 }
 
 
-add.co.change.aggregation <- function(commit.df, entity.group) {
+add.entity.relation <- function(commit.df, entity.group, type) {
   ## Get list of currently changed entities, then we can use this information
   ## to eliminate the historical relationships that are not relavent to the current
   ## development
   relavent.entity.list <- unique(do.call(rbind, entity.group)$entity)
   names(relavent.entity.list) <- relavent.entity.list
 
-  ## Remove non-relavent entities from the historical commits which fall outside
-  ## of the current development window
-  commit.df <- commit.df[commit.df$entity %in% relavent.entity.list, ]
+  ## If the commit data frame is empty then there is no possibility to
+  ## add to the entity group so just return the original
+  if(nrow(commit.df) == 0) return(entity.group)
 
-  ## Compute co-change relationship using frequent item set mining
-  freq.item.sets <- compute.frequent.items(commit.df)
-  ## Compute an edgelist from the frequent item sets
-  co.change.edgelist <- compute.item.sets.edgelist(freq.item.sets)
+  if(type=="co.change") {
+    ## Remove non-relavent entities from the historical commits which fall outside
+    ## of the current development window
+    commit.df <- commit.df[commit.df$entity %in% relavent.entity.list, ]
 
-  ## If co-change relationships are identified then add them
-  ## Create a mapping of entities to their co-changed entities
-  co.change.map <-
+    ## Compute co-change relationship using frequent item set mining
+    freq.item.sets <- compute.frequent.items(commit.df)
+    ## Compute an edgelist from the frequent item sets
+    edgelist <- compute.item.sets.edgelist(freq.item.sets)
+  }
+  else if(type=="semantic") {
+    ## Compute the semantic coupling between entities in the commit.df
+    semantic.rel <- computeSemanticCoupling(commit.df, threshold=0.7)
+
+    ## Verify that the vertex index is congruent with the row index
+    vertex.data <- semantic.rel$vertex.data
+    if(!all(1:length(vertex.data$name) == vertex.data$name)) {
+      error.str <- "Row index mismatch, terminating execution"
+      logerror(error.str, logger="network_stream")
+      stop(error.str)
+    }
+
+    ## Map vertex id to an entity name
+    X1 <- vertex.data[semantic.rel$edgelist$X1, "id"]
+    X2 <- vertex.data[semantic.rel$edgelist$X2, "id"]
+    edgelist <- data.frame(X1=X1, X2=X2, stringsAsFactors=F)
+  }
+  else logerror("Incorrect parameter passed", logger="network_stream")
+
+  entity.rel.map <-
     lapply(relavent.entity.list,
            function(entity) {
              ## Find co-change relationships for this entity
-             col.1.entity.match <- co.change.edgelist$X1 == entity
-             col.2.entity.match <- co.change.edgelist$X2 == entity
-             co.change.entities <- union(co.change.edgelist[col.1.entity.match, "X2"],
-                                         co.change.edgelist[col.2.entity.match, "X1"])
-             return(co.change.entities)})
+             col.1.entity.match <- edgelist$X1 == entity
+             col.2.entity.match <- edgelist$X2 == entity
+             related.entities <- union(edgelist[col.1.entity.match, "X2"],
+                                       edgelist[col.2.entity.match, "X1"])
+             return(related.entities)})
 
   ## Group entity groups that have a co-change relationship
   entity.group <-
     lapply(names(entity.group),
            function(entity.name) {
-             entity.co.change.group <- co.change.map[[entity.name]]
-             df.list <- entity.group[entity.co.change.group]
+             entity.rel.group <- entity.rel.map[[entity.name]]
+             df.list <- entity.group[entity.rel.group]
              ## Combine data frames
-             df.co.change <- do.call(rbind, df.list)
-             res <- rbind(df.co.change, entity.group[[entity.name]])})
+             df.relations <- do.call(rbind, df.list)
+             res <- rbind(df.relations, entity.group[[entity.name]])})
 
   return(entity.group)
 }
