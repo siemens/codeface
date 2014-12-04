@@ -1655,7 +1655,7 @@ def computeCommitterAuthorLinks(cmtlist, id_mgr):
         ID_committer = id_mgr.getPersonID(cmt.getCommitterName())
         pi_author    = id_mgr.getPI(ID_author)
         pi_committer = id_mgr.getPI(ID_committer)
-        edge_weight  = 1
+        edge_weight  = RelationWeight(1, cmt.id, [cmt.id], [cmt.id])
 
         #add link from committer -> author
         pi_committer.addSendRelation   (LinkType.committer2author, pi_author.getID(), cmt, edge_weight)
@@ -1709,7 +1709,8 @@ def computeTagLinks(cmtlist, id_mgr):
         pi = id_mgr.getPI(ID)
 
         # Remember which subsystems the person touched in the role as an author
-        pi.addSendRelation("author", ID, cmt)
+        weight = RelationWeight(1, cmt.id, [cmt.id], [cmt.id])
+        pi.addSendRelation("author", ID, cmt, weight)
         tag_pi_list = {}
 
         for tag in LinkType.get_tag_types():
@@ -1722,10 +1723,11 @@ def computeTagLinks(cmtlist, id_mgr):
                     # so don't count this as a relation.
                     if (relID != ID):
                         # Author received a sign-off etc. by relID
-                        pi.addReceiveRelation(tag, relID)
+                        pi.addReceiveRelation(tag, relID, weight)
 
                         # relID did a sign-off etc. to author
-                        id_mgr.getPI(relID).addSendRelation(tag, ID, cmt)
+                        id_mgr.getPI(relID)\
+                            .addSendRelation(tag, ID, cmt, weight)
 
         cmt.setTagPIs(tag_pi_list)
     pbar.finish()
