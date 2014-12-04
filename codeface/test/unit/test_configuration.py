@@ -95,7 +95,7 @@ tagging: tag
     def testDict(self):
         '''Quick test if a Configuration object behaves like a dict'''
         c = Configuration()
-        expected_keys = set(("idServicePort", "nodejsHostname"))
+        expected_keys = set(("idServicePort", "idServiceHostname"))
         self.assertEqual(set(c.keys()), expected_keys)
         print(str(c))
         for k in c:
