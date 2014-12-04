@@ -628,11 +628,10 @@ compute.project.graph.trends <-
                    df <- melt(compute.community.metrics(rev$graph, rev$comm))
                    df[,names(project.data)] <- project.data
                    df$cycle <- rev$cycle
-
+                   df <- rename(df, c("L1"="metric", "L2"="g.id"))
                    return(df)})
 
       res <- do.call("rbind", revision.df.list)
-      res <- rename(res, c("L1"="metric", "L2"="g.id"))
 
       return(res)})
 
