@@ -488,13 +488,28 @@ compute.community.metrics <- function(g, comm) {
 
   ## Power-law fiting
   p.fit <- power.law.fit(res$v.degree, implementation="plfit")
-  res <- append(res, p.fit[c('alpha', 'xmin', 'KS.p')])
+  param.names <- c("alpha", "xmin", "KS.p")
+  res[param.names] <- p.fit[param.names]
   ## Check percent of vertices under power-law
   res$num.power.law <- length(which(res$v.degree >= res$xmin))
   res$percent.power.law <- 100 * (res$num.power.law / length(res$v.degree))
 
+  ## If less than N developers are in the power law, set x_min manually
+  ## to include a minimum of number of developers and recompute the powerlaw fit
+  min.devs <- 30
+  if(res$num.power.law < min.devs & res$num.vertices >= min.devs) {
+    ## vertex degree is sorted above
+    x.min <- res$v.degree[[min.devs]]
+    p.fit <- power.law.fit(res$v.degree, implementation="plfit", xmin=x.min)
+    res[param.names] <- p.fit[param.names]
+
+    ## Check percent of vertices under power-law
+    res$num.power.law <- length(which(res$v.degree >= res$xmin))
+    res$percent.power.law <- 100 * (res$num.power.law / length(res$v.degree))
+  }
+
   ## Remove non conclusive sample sizes
-  if(res$num.power.law < 30) res$KS.p <- NA
+  if(res$num.power.law < min.devs) res$KS.p <- NA
 
   ## Prepare data to be melted, maintain vertex and cluster ids
   ## by converting named vectors to named lists
