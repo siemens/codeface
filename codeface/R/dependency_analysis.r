@@ -490,7 +490,7 @@ compute.frequent.items <- function(commit.depends.df) {
     support.norm <- min(1,rule.support/length(trans.list))
     freq.change.sets <- apriori(trans.list,
                                 parameter=list(sup=support.norm, minlen=2,
-                                target='frequent'),
+                                target="frequent itemsets", maxlen=2),
                                 control=list(verbose=FALSE))
 
     ## Coerce itemsets to list
