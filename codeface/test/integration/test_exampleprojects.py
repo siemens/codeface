@@ -92,6 +92,9 @@ class EndToEndTestSetup(unittest.TestCase):
         self.mldir = pathjoin(path, ".git")
         self.project_conf = self.p.codeface_conf
         self.no_report = False
+        self.result_tables = pid_tables + other_tables + ignore_tables
+        self.ignore_tables = ignore_tables
+        self.add_ignored_tables(self.add_ignore_tables)
         self.loglevel = "devinfo"
         self.logfile = pathjoin(path, ".git", "log")
         self.recreate = False
@@ -99,11 +102,14 @@ class EndToEndTestSetup(unittest.TestCase):
         if hasattr(self, 'config_file'):
             self.codeface_conf = self.config_file
         else:
-            self.codeface_conf = 'codeface_testing.conf'
+            self.codeface_conf = 'codeface.conf'
         conf = Configuration.load(self.codeface_conf, self.project_conf)
         dbm = DBManager(conf)
         for table in pid_tables + other_tables:
             dbm.doExecCommit("DELETE FROM {}".format(table))
+
+    def add_ignored_tables(self, tables):
+        self.ignore_tables = self.ignore_tables + tables
 
     def analyseEndToEnd(self):
         save_argv = sys.argv
@@ -122,20 +128,33 @@ class EndToEndTestSetup(unittest.TestCase):
         conf = Configuration.load(self.codeface_conf, self.project_conf)
         dbm = DBManager(conf)
         project_id = dbm.getProjectID(conf["project"], self.tagging)
-        cluster_id = dbm.get_cluster_id(project_id)
-        edgelist = dbm.get_edgelist(cluster_id)
         persons  = dbm.get_project_persons(project_id)
         # Create map from id to name
         person_map = {person[0] : person[1] for person in persons}
-        # Create edge list with developer names
-        test_edges = [[person_map[edge[0]], person_map[edge[1]], edge[2]] for edge in edgelist]
-        ## Check number of matches with known correct edges
-        match_count = 0
-        for test_edge in test_edges:
-            if test_edge in self.correct_edges:
-                match_count += 1
-        res = (match_count == len(self.correct_edges))
-        self.assertTrue(res, msg="Project edgelist is incorrect!")
+        given_correct_edges = self.correct_edges
+        if given_correct_edges[0][0] is str:
+            # simply check the first range
+            given_correct_edges = [self.correct_edges]
+        release_ranges = dbm.get_release_ranges(project_id)
+        i = -1
+        for correct_edges in given_correct_edges:
+            i += 1
+            release_range = release_ranges[i]
+            cluster_id = dbm.get_cluster_id(project_id, release_range)
+            edgelist = dbm.get_edgelist(cluster_id)
+            # Create edge list with developer names
+            test_edges = [[person_map[edge[0]], person_map[edge[1]], edge[2]] for edge in edgelist]
+            ## Check number of matches with known correct edges
+            match_count = 0
+            for test_edge in test_edges:
+                if test_edge in correct_edges:
+                    match_count += 1
+            res = (match_count == len(correct_edges))
+            self.assertTrue(
+                res,
+                msg="Project edgelist is incorrect for the v{}_release "
+                    "to v{}_release analysis!"
+                .format(i, i+1))
     
     def mlEndToEnd(self):
         save_argv = sys.argv
@@ -153,7 +172,7 @@ class EndToEndTestSetup(unittest.TestCase):
         project_id = dbm.getProjectID(conf["project"], self.tagging)
         self.assertGreaterEqual(project_id, 0)
         results = {}
-        for table in pid_tables + other_tables + ignore_tables:
+        for table in self.result_tables:
             dbm.doExec("SELECT * FROM {table}".format(table=table))
             results[table] = dbm.doFetchAll()
         return results
@@ -161,7 +180,7 @@ class EndToEndTestSetup(unittest.TestCase):
     def checkResult(self):
         results = self.getResults()
         for table, res in results.iteritems():
-            if table in ignore_tables + self.add_ignore_tables:
+            if table in self.ignore_tables:
                 if len(res) == 0:
                     print ("Table not filled (expected): ", table)
             else:
