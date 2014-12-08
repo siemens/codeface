@@ -71,12 +71,17 @@ class BatchJobPool(object):
 
         # Initialize workers and their work and done queues
         self.work_queue, self.done_queues, self.workers = Queue(), [], []
-        for i in range(n_cores):
-            dq = Queue()
-            w = Process(target=batchjob_worker_function, args=(self.work_queue, dq))
-            self.done_queues.append(dq)
-            self.workers.append(w)
-            w.start()
+        if n_cores > 1:
+            # When n_cores is 1 we doen't use the process anyway.
+            # However the pycharm debugger goes crasy when we start the
+            # process, so as a workaround don't start anything when
+            # n_core is 1.
+            for i in range(n_cores):
+                dq = Queue()
+                w = Process(target=batchjob_worker_function, args=(self.work_queue, dq))
+                self.done_queues.append(dq)
+                self.workers.append(w)
+                w.start()
 
     def _is_ready(self, job):
         '''Returns true if the job is ready for submission'''
