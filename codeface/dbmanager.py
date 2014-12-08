@@ -128,9 +128,22 @@ class DBManager:
             raise Exception("Cluster id {} not found!".format(cid))
         return self.doFetchAll()
 
-    def get_cluster_id(self, pid):
-        self.doExec("SELECT id FROM cluster WHERE clusterNumber=-1 \
-                    AND projectId={}".format(pid))
+    def get_release_ranges(self, project_id):
+        self.doExec("SELECT id FROM release_range \
+                    WHERE projectId={}".format(project_id))
+        if self.cur.rowcount == 0:
+            raise Exception("No release ranges found for project {}!"
+                            .format(project_id))
+        return [range_entry[0] for range_entry in self.doFetchAll()]
+
+    def get_cluster_id(self, pid, release_range_id=None):
+        if release_range_id:
+            self.doExec("SELECT id FROM cluster WHERE clusterNumber=-1 \
+                        AND projectId={} AND releaseRangeId={}"
+                        .format(pid, release_range_id))
+        else:
+            self.doExec("SELECT id FROM cluster WHERE clusterNumber=-1 \
+                        AND projectId={}".format(pid))
         if self.cur.rowcount == 0:
             raise Exception("Cluster from project {} not found!".format(pid))
         return self.doFetchAll()[0][0]
