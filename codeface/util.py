@@ -394,8 +394,8 @@ def check4cppstats():
     """
     # We can not check the version directly as there is no version switch
     # on cppstats We just check if the first line is OK.
-    line = "usage: cppstats.py [-h]"
-    cmd = "/usr/bin/env cppstats --help".split()
+    line = "cppstats v0.8.4"
+    cmd = "/usr/bin/env cppstats --version".split()
     res = execute_command(cmd)
     if not (res.startswith(line)):
         error_message = "expected the first line to start with '{0}' but "\
