@@ -271,10 +271,11 @@ def execute_command(cmd, ignore_errors=False, direct_io=False, cwd=None):
                 log.info("Command '{}' stderr:".format(jcmd))
                 for line in stderr.splitlines():
                     log.info(line)
-            log.error("Command '{}' failed with exit code {}.".
-                    format(jcmd, pipe.returncode))
-            raise Exception("Command '{}' failed with exit code {}.".
-                    format(jcmd, pipe.returncode))
+            msg = "Command '{}' failed with exit code {}. \n" \
+                  "(stdout: {}\nstderr: {})"\
+                  .format(jcmd, pipe.returncode, stdout, stderr)
+            log.error(msg)
+            raise Exception(msg)
     return stdout
 
 def _convert_dot_file(dotfile):
