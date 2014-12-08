@@ -325,6 +325,16 @@ def group_feature_lines(file_commit, file_state, cmt_list):
             blk_end[feature] = lines[0]
             feature_blks[feature] = []
 
+    curr_features = []
+    if lines:
+        # init variables in the case of a single line file_state
+        # in that case the for loop will not run and only the boundary case
+        # code will handle that situation
+        curr_line = lines[0]
+        next_line = lines[0]
+        next_cmt_id = file_state[str(next_line)]
+        curr_features = file_commit.findFeatureList(curr_line)
+
     for i in range(0, len(file_state) - 1):
         curr_line = lines[i]
         next_line = lines[i + 1]
@@ -354,9 +364,9 @@ def group_feature_lines(file_commit, file_state, cmt_list):
                 blk_start[feature] = next_line
                 blk_end[feature] = next_line
 
-    # boundary case for open code-blocks.
+    # boundary case for open code-blocks or a single line file_state.
     for feature in feature_blks:
-        if feature in curr_features:
+        if feature in curr_features:  # Close all open feature blocks
             feature_blks[feature].append(
                 codeBlock.codeBlock(
                     blk_start[feature], blk_end[feature],
@@ -857,7 +867,10 @@ def lines_of_interest_features(file_state, snapshot_commit, cmt_list,
     mod_filestate: the file state after line not of interest are removed
     """
     #variable declarations
-    snapshot_cmt_date = cmt_list[snapshot_commit].getCdate()
+    if snapshot_commit is None:
+        snapshot_cmt_date = None
+    else:
+        snapshot_cmt_date = cmt_list[snapshot_commit].getCdate()
     mod_file_state = {}
     snapshot_feature_set = set()
 
@@ -867,9 +880,9 @@ def lines_of_interest_features(file_state, snapshot_commit, cmt_list,
     for lineNum in file_state.keys():
         cmt_id = file_state[lineNum]
 
-        if cmt_id == snapshot_commit:
+        if snapshot_commit is None or cmt_id == snapshot_commit:
             snapshot_cmt_lines.append(lineNum)
-            # retrieve the function id that each line falls into
+            # retrieve the features that each line falls into
             snapshot_feature_set.update(
                 file_commit.findFeatureList(int(lineNum)))
     #end for line
@@ -884,7 +897,7 @@ def lines_of_interest_features(file_state, snapshot_commit, cmt_list,
 
         # check to keep lines committed in the past with respect to the
         # current snapshot commit
-        if cmt_date <= snapshot_cmt_date:
+        if snapshot_cmt_date is None or cmt_date <= snapshot_cmt_date:
             # check if the line will fall under one of the features that
             # the snapshot commit lines fall under (ie. we only want to
             # keep lines that are in the same feature as the snapshot
@@ -1545,10 +1558,28 @@ def compute_feature_proximity_links(
         rev_cmt_ids = file_commit.getrevCmts()
         rev_cmts = [cmt_list[revCmtId] for revCmtId in rev_cmt_ids]
 
+        # the fileState will be modified but for each loop we should
+        # start with the original fileState
+        file_state_mod = file_state.copy()
+
+        # find code lines of interest, these are the lines that are
+        # localized around the cmt.id hash, modify the fileState to
+        # include only the lines of interest
+        if not random:
+            file_state_mod = lines_of_interest_features(
+                file_state_mod, None, cmt_list, file_commit)
+
+        # remove commits that occur prior to the specified startDate
+        if start_date is not None:
+            file_state_mod = removePriorCommits(
+                file_state_mod, cmt_list, start_date)
+
+        # identify code line clustering using feature location
+        # information
+        feature_groups = group_feature_lines(
+            file_commit, file_state_mod, cmt_list)
+
         for cmt in rev_cmts:
-            # the fileState will be modified but for each loop we should
-            # start with the original fileState
-            file_state_mod = file_state.copy()
 
             # check if commit is in the current revision of the file, if
             # it is not we no longer have a need to process further since
@@ -1556,50 +1587,31 @@ def compute_feature_proximity_links(
             if not (cmt.id in file_state_mod.values()):
                 continue
 
-            # find code lines of interest, these are the lines that are
-            # localized around the cmt.id hash, modify the fileState to
-            # include only the lines of interest
-            if not random:
-                file_state_mod = lines_of_interest_features(
-                    file_state_mod, cmt.id, cmt_list, file_commit)
+            # We now have a 'feature -> codeblock list' mapping
+            for feature in feature_groups:
+                if feature not in author_feature_changes:
+                    author_feature_changes[feature] = {}
+                author_changes = author_feature_changes[feature]
 
-            # remove commits that occur prior to the specified startDate
-            if start_date is not None:
-                file_state_mod = removePriorCommits(
-                    file_state_mod, cmt_list, start_date)
+                feature_group = feature_groups[feature]
 
-            #collaboration is meaningless without more than one line
-            #of code
-            if len(file_state_mod) > 1:
-                # identify code line clustering using feature location
-                # information
-                feature_groups = group_feature_lines(
-                    file_commit, file_state_mod, cmt_list)
-                # We now have a 'feature -> codeblock list' mapping
-                for feature in feature_groups:
-                    if feature not in author_feature_changes:
-                        author_feature_changes[feature] = {}
-                    author_changes = author_feature_changes[feature]
+                # get all blocks contributed by the revision commit we
+                # are looking at
+                rev_cmt_blks = [blk for blk in feature_group
+                                if blk.cmtHash == cmt.id]
+                if rev_cmt_blks:
+                    # get the person responsible for this revision
+                    if author:
+                        rev_person = \
+                            id_mgr.getPI(rev_cmt_blks[0].authorId)
+                    else:
+                        rev_person = \
+                            id_mgr.getPI(rev_cmt_blks[0].committerId)
 
-                    feature_group = feature_groups[feature]
-
-                    # get all blocks contributed by the revision commit we
-                    # are looking at
-                    rev_cmt_blks = [blk for blk in feature_group
-                                    if blk.cmtHash == cmt.id]
-                    if rev_cmt_blks:
-                        # get the person responsible for this revision
-                        if author:
-                            rev_person = \
-                                id_mgr.getPI(rev_cmt_blks[0].authorId)
-                        else:
-                            rev_person = \
-                                id_mgr.getPI(rev_cmt_blks[0].committerId)
-
-                        if rev_person not in author_changes:
-                            author_changes[rev_person] = list(rev_cmt_blks)
-                        else:
-                            author_changes[rev_person].extend(rev_cmt_blks)
+                    if rev_person not in author_changes:
+                        author_changes[rev_person] = list(rev_cmt_blks)
+                    else:
+                        author_changes[rev_person].extend(rev_cmt_blks)
 
     # Now we calculate the collaboration strength between authors as
     # (SUM(
