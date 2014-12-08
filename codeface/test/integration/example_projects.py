@@ -360,3 +360,257 @@ def get_example_project_2(tagging="tag"):
     return project
 
 example_project_func[2] = get_example_project_2
+
+
+def get_example_feature_project_3(tagging="tag"):
+    '''
+    This project is an example for the feature analysis,
+    We include comments like ' // Adam' to prevent git from recognizing
+    duplicated code (so the analysis result is more "expected" for these
+    simple examples).
+    '''
+    project = GitProject(tagging)
+    Adam = project.add_author("Adam Awkward", "adam@awkward.net")
+    Bill = project.add_author("Bill Bully", "bill@bullies.org")
+    Clara = project.add_author("Clara Confident", "clara@foo.org")
+    Max = project.add_author("Max Maintainer", "max@theboss.com")
+    Peter = project.add_author("Peter Popular", "peter@gmail.com")
+    Louie = project.add_author("Louie Loner", "louie@gmail.com")
+    Geoff = project.add_author("Geoff Genius", "geoff@gmail.com")
+
+    project.commit(Adam, Adam, "2013-01-07T16:00:00",
+            {"src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+ int b; // Adam
+ int c; // Adam
+ return -1; // Adam
+}; // Adam'''
+            }, signoff=[Adam])
+    project.tag_rc(Adam, "2013-01-07T16:30:00")
+
+    ## Release 0
+    project.tag_release(Adam, "2013-01-07T16:60:00")
+    project.commit(Adam, Adam, "2013-01-08T15:00:00",
+            {"src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A)) // Adam
+ int b = 0; // Adam
+#endif // Adam
+ int c; // Adam
+ return -1; // Adam
+}; // Adam'''
+            },
+            signoff=[Adam])
+    project.tag_rc(Adam, "2013-01-08T15:30:00")
+    project.commit(Peter, Peter, "2013-01-09T15:30:00",
+            {"src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A)) // Adam
+ int b = -1; // Peter
+#endif // Adam
+ int c; // Adam
+ return -1; // Adam
+}; // Adam'''
+            },
+            signoff=[Peter])
+    project.commit(Louie, Louie, "2013-01-01T15:30:00",
+            {"src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A)) // Adam
+ int b = -1; // Peter
+#endif // Adam
+ int c = 0; // Louie
+ return -1; // Adam
+}; // Adam'''
+            },
+            signoff=[Louie, Peter])
+    project.commit(Louie, Louie, "2013-01-09T15:30:00",
+            {"src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A)) // Adam
+ int b = -1; // Peter
+#endif // Adam
+ int c = 0; // Louie
+ return 1; // Louie
+}; // Adam'''
+            },
+            signoff=[Louie])
+    project.commit(Peter, Peter, "2013-01-10T15:30:00",
+            {"src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A) || defined(B)) // Peter
+ int b = -1; // Peter
+#endif // Adam
+ int c = 0; // Louie
+ return 1; // Louie
+}; // Adam'''
+            },
+            signoff=[Louie])
+    project.commit(Bill, Bill, "2013-01-09T15:31:00",
+            {"src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A) || defined(B)) // Peter
+ int b = 0; // Bill
+#endif // Adam
+ int c = 0; // Louie
+ return 1; // Louie
+}; // Adam'''
+            },
+            signoff=[Bill, Clara])
+
+    ## Release 1
+    project.tag_release(Adam, "2013-01-15T18:40:00")
+    project.commit(Adam, Adam, "2013-01-16T12:30:42",
+            {"src/code.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(C)) // Adam
+ int b = 0; // Adam
+#endif // Adam
+#if (defined(A)) // Adam
+ int c = 1; // Adam
+#elif (defined(B)) // Adam
+ int c = 2; // Adam
+#else // Adam
+ int c = 3; // Adam
+#endif // Adam
+ int d = 0; // Adam
+ return 1; // Adam
+}; // Adam''',
+            "src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A) || defined(B)) // Peter
+ int b = 0; // Bill
+#endif // Adam
+ int c = 0; // Louie
+ return 1; // Louie
+}; // Adam'''
+            },
+            signoff=[Adam, Max])
+    project.commit(Max, Max, "2013-01-17T12:50:42",
+            {"src/code.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(C)) // Adam
+ int b = 1; // Max
+#endif // Adam
+#if (defined(A)) // Adam
+ int c = 1; // Adam
+#elif (defined(B)) // Adam
+ int c = 2; // Adam
+#else // Adam
+ int c = 3; // Adam
+#endif // Adam
+ int d = 0; // Adam
+ return 1; // Adam
+}; // Adam''',
+            "src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A) || defined(B)) // Peter
+ int b = 0; // Bill
+#endif // Adam
+ int c = 0; // Louie
+ return 1; // Louie
+}; // Adam'''
+            },
+            signoff=[Adam, Max])
+    project.commit(Clara, Clara, "2013-01-18T12:42:42",
+            {"src/code.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(C)) // Adam
+ int b = 1; // Max
+#endif // Adam
+#if (defined(A)) // Adam
+ int c = 2; // Clara
+#elif (defined(B)) // Adam
+ int c = 3; // Clara
+#else // Adam
+ int c = 4; // Clara
+#endif // Adam
+ int d = 0; // Adam
+ return 1; // Adam
+}; // Adam''',
+            "src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A) || defined(B)) // Peter
+ int b = 0; // Bill
+#endif // Adam
+ int c = 0; // Louie
+ return 1; // Louie
+}; // Adam'''
+            },
+            signoff=[Adam, Max, Clara])
+    project.tag_rc(Max, "2013-01-18T13:42:42")
+    project.commit(Geoff, Geoff, "2013-01-21T12:50:42",
+            {"src/code.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(C)) // Adam
+ int b = 1; // Max
+#endif // Adam
+#if (defined(A)) // Adam
+ int c = 2; // Clara
+#elif (defined(B)) // Adam
+ int c = 3; // Clara
+#else // Adam
+ int c = 4; // Clara
+#endif // Adam
+ int d = 0; // Adam
+ return 1; // Adam
+}; // Adam''',
+            "src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A) || defined(B)) // Peter
+ int b = 6; // Geoff
+#endif // Adam
+ int c = 0; // Louie
+ return 1; // Louie
+}; // Adam'''
+            },
+            signoff=[Adam, Max, Geoff])
+
+    project.commit(Geoff, Geoff, "2013-01-21T12:50:42",
+            {"src/code.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(C)) // Adam
+ int b = 1; // Max
+#endif // Adam
+#if (defined(A)) // Adam
+ int c = 2; // Clara
+#elif (defined(B)) // Adam
+ int c = 3; // Clara
+#else // Adam
+ int c = 4; // Clara
+#endif // Adam
+ int d = 0; // Adam
+ return 1; // Adam
+}; // Adam''',
+            "src/carp.c":'''\
+int main() { // Adam
+ int a; // Adam
+#if (defined(A) || defined(B)) // Peter
+ int b = 6; // Geoff
+#endif // Adam
+ int c = 1; // Geoff
+ return 1; // Louie
+}; // Adam'''
+            },
+            signoff=[Adam, Max, Geoff])
+    ## Release 2
+    project.tag_release(Max, "2013-01-23T13:42:42")
+    return project
+
+example_project_func[3] = get_example_feature_project_3
