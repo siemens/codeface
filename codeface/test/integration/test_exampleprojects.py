@@ -32,16 +32,16 @@ pid_tables = [
     "cluster",
     "commit",
     "freq_subjects",
-    "issue",
+    #"issue",
     "mail_thread",
     "mailing_list",
-    "per_cluster_statistics",
+    #"per_cluster_statistics",
     "person",
     "plots",
     "release_range",
     "release_timeline",
-    "thread_density",
-    "url_info",
+    #"thread_density",
+    #"url_info",
 ]
 
 # TODO: Check if these should be filled
@@ -52,6 +52,7 @@ ignore_tables = [
     "url_info",
     "cc_list",
     "commit_communication",
+    "commit_dependency",
     "issue_comment",
     "issue_dependencies",
     "issue_duplicates",
@@ -84,6 +85,13 @@ other_tables = [
 class EndToEndTestSetup(unittest.TestCase):
     '''End to end test of a codeface analysis'''
     add_ignore_tables = []
+    commit_dependency = None
+
+    def clear_tables(self):
+        conf = Configuration.load(self.codeface_conf, self.project_conf)
+        dbm = DBManager(conf)
+        for table in self.result_tables:
+            dbm.doExecCommit("DELETE FROM {}".format(table))
 
     def setup_with_p(self, p):
         path = self.p.directory
@@ -103,10 +111,6 @@ class EndToEndTestSetup(unittest.TestCase):
             self.codeface_conf = self.config_file
         else:
             self.codeface_conf = 'codeface.conf'
-        conf = Configuration.load(self.codeface_conf, self.project_conf)
-        dbm = DBManager(conf)
-        for table in pid_tables + other_tables:
-            dbm.doExecCommit("DELETE FROM {}".format(table))
 
     def add_ignored_tables(self, tables):
         self.ignore_tables = self.ignore_tables + tables
@@ -177,6 +181,43 @@ class EndToEndTestSetup(unittest.TestCase):
             results[table] = dbm.doFetchAll()
         return results
 
+    def check_commit_dependency(self, commit_dependency_data):
+        '''
+        Checks if the commit_dependency table contains the expected data
+        given by self.commit_dependency in the unit test.
+        :param commit_dependency_data:
+        The data of the actual table:
+        | id  | commitId | file | entityId | entityType | size | impl |
+        :return:
+        '''
+        if self.commit_dependency is None:
+            return
+
+        conf = Configuration.load(self.codeface_conf, self.project_conf)
+        dbm = DBManager(conf)
+        project_id = dbm.getProjectID(conf["project"], self.tagging)
+
+        def get_commit_id(commit_hash):
+            return dbm.getCommitId(project_id, commit_hash)
+
+        # remove the "id" column
+        # so we have (commit_id, file, entityId, type, size, impl) tuples
+        data = [(res[1], res[2], res[3], res[4], res[5], res[6])
+                for res in commit_dependency_data]
+        data_no_impl = [res[0:5] for res in data]
+
+        expected_data = [(get_commit_id(res[0]), res[1], res[2], res[3],
+                          res[4], res[5])
+                         for res in self.commit_dependency]
+        for expected in expected_data:
+            if expected[5] is None:
+                # don't check the impl
+                self.assertIn(expected[0:5], data_no_impl)
+            else:
+                self.assertIn(expected, data)
+
+        self.assertEqual(len(data), len(expected_data))
+
     def checkResult(self):
         results = self.getResults()
         for table, res in results.iteritems():
@@ -186,6 +227,9 @@ class EndToEndTestSetup(unittest.TestCase):
             else:
                 self.assertGreaterEqual(len(res), 1, msg="Table '{}' not filled!".
                                                     format(table))
+
+        self.check_commit_dependency(
+            [res for res in results["commit_dependency"]])
 
     def checkClean(self):
         conf = Configuration.load(self.codeface_conf, self.project_conf)
@@ -207,6 +251,7 @@ class TestEndToEnd(object):
     #   self.p = example_project_func[self.example_project](self.tagging)
     #    with self.p:
     #        self.setup_with_p(self.p)
+    #        self.clear_tables()
     #        self.analyseEndToEnd()
     #        self.mlEndToEnd()
     #        if (self.correct_edges):
@@ -261,6 +306,7 @@ class TestEndToEndCaseInsensitivity(EndToEndTestSetup):
     #                randomise_email_case=False)
     #    with self.p:
     #        self.setup_with_p(self.p)
+    #        self.clear_tables()
     #        self.analyseEndToEnd()
     #        self.mlEndToEnd()
     #        self.checkResult()
@@ -270,6 +316,7 @@ class TestEndToEndCaseInsensitivity(EndToEndTestSetup):
     #                randomise_email_case=True)
     #    with self.p:
     #        self.setup_with_p(self.p)
+    #        self.clear_tables()
     #        self.analyseEndToEnd()
     #        self.mlEndToEnd()
     #        self.checkResult()
