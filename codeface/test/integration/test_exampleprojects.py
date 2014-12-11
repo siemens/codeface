@@ -201,9 +201,11 @@ class TestEndToEndExample1C2A(EndToEndTestSetup, TestEndToEnd):
     correct_edges = None
 
 class TestEndToEndExample1Proximity(EndToEndTestSetup, TestEndToEnd):
+    ## Example project 1 does not create any opportunity for edges to connect
+    ## developers using the proximity tagging approach
     example_project = 1
     tagging = "proximity"
-    add_ignore_tables = ["edgelist"]
+    add_ignore_tables = ["edgelist", "cluster"]
     correct_edges = None
 
 class TestEndToEndExample2Proximity(EndToEndTestSetup, TestEndToEnd):
@@ -212,13 +214,13 @@ class TestEndToEndExample2Proximity(EndToEndTestSetup, TestEndToEnd):
     add_ignore_tables = ["edgelist"]
     devs = ["Louie Loner", "Geoff Genius", "Bill Bully", "Max Maintainer",
             "Adam Awkward", "Peter Popular", "Clara Confident"]
-    correct_edges = [[devs[0], devs[5], 4.0],
-                     [devs[1], devs[6], 5.0],
-                     [devs[2], devs[4], 4.0],
-                     [devs[3], devs[2], 9.0],
-                     [devs[3], devs[4], 24.0],
-                     [devs[4], devs[2], 2.0],
-                     [devs[5], devs[0], 12.0]]
+    correct_edges = [[[devs[0], devs[5], 1.0],
+                      [devs[1], devs[6], 1.0],
+                      [devs[2], devs[4], 1.0],
+                      [devs[3], devs[2], 1.0],
+                      [devs[3], devs[4], 1.0],
+                      [devs[4], devs[2], 1.0],
+                      [devs[5], devs[0], 1.0]]]
 
 class TestEndToEndExample2Tag(EndToEndTestSetup, TestEndToEnd):
     example_project = 2
