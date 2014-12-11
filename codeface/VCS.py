@@ -836,20 +836,45 @@ class gitVCS (VCS):
             self._commit_dict.update({cmt.id:cmt for cmt in cmtList
              if cmt.id not in self._commit_dict})
 
-            # retrieve blame data
-            if singleBlame: #only one set of blame data per file
-                self._addBlameRev(file_commit,
-                                  blameMsgCmtIds, link_type)
-            else: # get one set of blame data for every commit made
-                # this option is computationally intensive thus the alternative
-                # singleBlame option is possible when speed is a higher
-                # priority than precision
-                [self._addBlameRev(cmt.id, file_commit,
-                                      blameMsgCmtIds, link_type) for cmt in cmtList]
+            #Determine the revision that git blame will be called on
+            if self.range_by_date:
+                #Find the revision where the last change was applied up until the
+                #the end of the analysis time window specified by a date
+                cmd = 'git --git-dir={0} log'.format(self.repo).split()
+                cmd.append("--until={0}".format(self.rev_end_date))
+                cmd.append("--format=%H")
+                cmd.append("--follow")
+                cmd.append("--diff-filter=ACMRTB")
+                cmd.append("-1")
+                cmd.append("--")
+                cmd.append(file_commit.filename)
+                rev = execute_command(cmd).strip()
+            else:
+                #Use revision that represents the final commit for the specified
+                #revision range
+                rev = self.rev_end
 
-            #store fileCommit object to dictionary
-            self._fileCommit_dict[fname] = file_commit
+            # Check if file has been deleted
+            cmd = "git --git-dir={0} ls-tree".format(self.repo).split()
+            cmd.append("--name-only")
+            cmd.append("--full-tree")
+            cmd.append("-r")
+            cmd.append(rev)
+            existing_files = execute_command(cmd).split()
+            if file_commit.filename in existing_files:
+                # retrieve blame data
+                if singleBlame: #only one set of blame data per file
+                    self._addBlameRev(rev, file_commit,
+                                      blameMsgCmtIds, link_type)
+                else: # get one set of blame data for every commit made
+                    # this option is computationally intensive thus the alternative
+                    # singleBlame option is possible when speed is a higher
+                    # priority than precision
+                    [self._addBlameRev(cmt.id, file_commit,
+                                       blameMsgCmtIds, link_type) for cmt in cmtList]
 
+                #store fileCommit object to dictionary
+                self._fileCommit_dict[fname] = file_commit
 
         #end for fnameList
         pbar.finish()
@@ -891,7 +916,7 @@ class gitVCS (VCS):
 
                 pbar.finish()
 
-    def _addBlameRev(self, file_commit, blame_cmt_ids, link_type):
+    def _addBlameRev(self, rev, file_commit, blame_cmt_ids, link_type):
         '''
         saves the git blame output of a revision for a particular file
         '''
@@ -902,24 +927,6 @@ class gitVCS (VCS):
         file_commit: a fileCommit object to store the resulting blame data
         blame_cmt_ids: a list to keep track of all commit ids seen in the blame
         '''
-
-        #Determine the revision that git blame will be called on
-        if self.range_by_date:
-            #Find the revision where the last change was applied up until the
-            #the end of the analysis time window specified by a date
-            cmd = 'git --git-dir={0} log'.format(self.repo).split()
-            cmd.append("--until={0}".format(self.rev_end_date))
-            cmd.append("--format=%H")
-            cmd.append("--follow")
-            cmd.append("--diff-filter=ACMRTB")
-            cmd.append("-1")
-            cmd.append("--")
-            cmd.append(file_commit.filename)
-            rev = execute_command(cmd).strip()
-        else:
-            #Use revision that represents the final commit for the specified
-            #revision range
-            rev = self.rev_end
 
         #query git reppository for blame message
         blameMsg = self._getBlameMsg(file_commit.filename, rev)
