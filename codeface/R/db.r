@@ -296,6 +296,11 @@ init.db.global <- function(conf) {
                    port=conf$dbport)
   conf$con <- con
   dbGetQuery(con, "SET NAMES utf8")
+
+  ## Set Session wait_timeout variable to 24 hours, default is 8
+  query <- str_c("SET SESSION wait_timeout=", 24*60*60)
+  dbGetQuery(con, query)
+
   return(conf)
 }
 
