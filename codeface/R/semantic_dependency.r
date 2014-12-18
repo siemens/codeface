@@ -56,10 +56,11 @@ processTermDocMat <- function(corp) {
 
 
 computeDocSimilarity <- function(tdm) {
-  td.mat <- as.matrix(tdm)
-
   ## Perform local and global document weighting
-  td.mat.w <- lw_bintf(td.mat) * gw_idf(td.mat)
+  ## Use local binary weighting and global inverse document frequency
+  td.mat.w <- as.matrix(weightSMART(tdm, spec="btn"))
+
+  ## Compute low rank approximation to term document matrix
   latent.space <- lsa(td.mat.w)
 
   ## Compute document simlarity using cosine similarity
