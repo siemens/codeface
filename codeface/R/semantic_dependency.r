@@ -93,7 +93,7 @@ computeSemanticCouplingCon <- function(con, project.id, start.date, end.date,
 }
 
 
-computeSemanticCoupling <- function(depend.df, threshold=0.7) {
+computeSemanticCoupling <- function(depend.df, threshold=0.5) {
   ## Remove entity duplicates
   depend.df <- depend.df[!duplicated(depend.df[c("entity")]), ]
 
