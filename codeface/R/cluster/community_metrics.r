@@ -526,7 +526,6 @@ compute.all.project.trends <- function(con, type) {
   lapply(project.ids,
          function(p.id) {
            trends <- compute.project.graph.trends(con, p.id, type)
-           print(nrow(trends))
            if(!empty(trends)) {
              write.plots.trends(trends, "/home/joblin/trends")
            }
@@ -844,7 +843,6 @@ run.trends.analysis <- function (con) {
     function(type) {
       outdir <- paste(base.dir, type, sep="/")
       trends <- compute.all.project.trends(con, type)
-      print(nrow(trends))
       if(!empty(trends)) {
         write.plots.trends(trends, outdir)
       }
