@@ -43,9 +43,9 @@ processTermDocMat <- function(corp) {
   ## create term document matrix
   tdm <- TermDocumentMatrix(corp)
 
-  if(length(corp) > 0) {
-    n_docs <- length(corp)
-    max_sparsity <- 1 - (1 / n_docs)
+  if(length(corp) > 1) {
+    n_docs <- tdm$ncol
+    max_sparsity <- min(0.95 ,1 - (1 / n_docs))
 
     ## remove terms occuring very infrequently
     tdm <- removeSparseTerms(tdm, max_sparsity)
