@@ -319,14 +319,13 @@ def group_feature_lines(file_commit, file_state, cmt_list):
     blk_start = {}
     blk_end = {}
 
-    for features in file_commit.feature_info.values():
-        for feature in features:
-            blk_start[feature] = lines[0]
-            blk_end[feature] = lines[0]
-            feature_blks[feature] = []
-
     curr_features = []
     if lines:
+        for features in file_commit.feature_info.values():
+            for feature in features:
+                blk_start[feature] = lines[0]
+                blk_end[feature] = lines[0]
+                feature_blks[feature] = []
         # init variables in the case of a single line file_state
         # in that case the for loop will not run and only the boundary case
         # code will handle that situation
