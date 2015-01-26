@@ -21,6 +21,7 @@ var mysql = require('mysql');
 var yaml = require("js-yaml");
 var logger = require('./logger');
 var addressparser = require("addressparser");
+var bodyparser = require("body-parser");
 
 // get property file name
 var fileName = process.argv[2];
@@ -63,10 +64,9 @@ var db_config = {
 };
 var pool = mysql.createPool(db_config)
 
-app.configure(function() {
-    // used to parse JSON object given in the body request
-    app.use(express.bodyParser());
-});
+// used to parse JSON object given in the body request
+app.use(bodyparser.urlencoded({ extended: false }));
+app.use(bodyparser.json());
 
 /**
  * Obtain a connection from the pool, check if it works, and then execute
