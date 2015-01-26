@@ -41,7 +41,7 @@ in the step "Database Setup", and modify codeface.conf accordingly.
   list is for sufficient for a pristine default installation of
   Ubuntu 12.04 Desktop):
 
-         # Generic packages
+         # Generic packages (Required nodejs express version >= 4.0)
          sudo apt-get install python-mysqldb sinntp texlive default-jdk \
                               mysql-common mysql-client mysql-server python-dev \
                               exuberant-ctags nodejs npm git subversion \
@@ -155,7 +155,7 @@ See `bugextractor/INSTALL` for all java-related details.
 
 * The ID service requires a few node.js packages. Install them by running
 
-        npm install addressparser express js-yaml mysql
+        npm install addressparser express js-yaml mysql body-parser
 
   in the `id_service` directory.
 
