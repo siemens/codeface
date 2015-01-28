@@ -404,7 +404,7 @@ int main() { // Adam
             },
             signoff=[Adam])
     project.tag_rc(Adam, "2013-01-08T15:30:00")
-    project.commit(Peter, Peter, "2013-01-09T15:30:00",
+    project.commit(Peter, Peter, "2013-01-09T15:30:00+01:00",
             {"src/carp.c":'''\
 int main() { // Adam
  int a; // Adam
