@@ -24,6 +24,7 @@ from os.path import split as pathsplit, join as pathjoin, isdir, exists, basenam
 from datetime import datetime
 from time import strptime
 from random import Random
+import re
 
 _Author = namedtuple("_Author", ["name", "email"])
 class Author(_Author):
@@ -31,6 +32,9 @@ class Author(_Author):
         return "{a.name} <{a.email}>".format(a=self)
 Commit = namedtuple("Commit", ["author", "committer", "datetime", "filetree", "signoff", "tags"])
 Tag = namedtuple("Tag", ["author", "datetime", "type"])
+iso8601 = re.compile(r'^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}'
+                     r'([+-]\d{2}:\d{2})?$')
+iso8601_simple = re.compile(r'^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$')
 
 class GitProject(object):
     '''
@@ -60,14 +64,17 @@ class GitProject(object):
         cwd = getcwd()
         try:
             chdir(self.directory)
-            def git(cmds, committer=None, commitdate=None):
-                if committer or commitdate:
+            def git(cmds, committer=None, commitdate=None, authordate=None):
+                if committer or commitdate or authordate:
                     env = dict(environ)
                     if committer:
                         env["GIT_COMMITTER_NAME"] = committer.name
                         env["GIT_COMMITTER_EMAIL"] = committer.email
                     if commitdate:
                         env["GIT_COMMITTER_DATE"] = commitdate
+                    if authordate:
+                        # There is no way to set this via command line.
+                        env["GIT_AUTHOR_DATE"] = authordate
                     check_call(["git"] + cmds, env=env)
                 else:
                     check_call(["git"] + cmds)
@@ -97,11 +104,21 @@ class GitProject(object):
                 commitmsg = "Commit {}\n\nCommit message\n\n".format(i)
                 for signer in c.signoff:
                     commitmsg += "Signed-off-by: {}\n".format(str(signer))
+
+                if not iso8601.match(c.datetime):
+                    raise "expected iso8601 date (timezone is optional" \
+                          "and set to +01:00 if not available)"
+                if iso8601_simple.match(c.datetime):
+                    timezoned_date = c.datetime + "+01:00"
+                else:
+                    timezoned_date = c.datetime
+
                 git(["commit",
                      "--author", str(c.author),
-                     "--date", c.datetime,
+                     "--date", timezoned_date,
                      "-m", commitmsg],
-                    committer=c.committer, commitdate=c.datetime)
+                    committer=c.committer, commitdate=timezoned_date,
+                    authordate=timezoned_date)
                 # Tag the commit
                 for tag in c.tags:
                     name = "v{}_{}".format(next_release, tag.type)
