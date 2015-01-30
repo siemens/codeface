@@ -67,7 +67,7 @@ in the step "Database Setup", and modify codeface.conf accordingly.
 * Install RGraphviz from bioconductor. In an R shell, execute
 
         source("http://bioconductor.org/biocLite.R")
-        biocLite("Rgraphviz")
+        biocLite(c("graph", "Rgraphviz"))
 
 * Install the required R packages in an R shell with
 
