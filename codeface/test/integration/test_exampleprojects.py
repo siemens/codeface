@@ -31,10 +31,10 @@ from codeface.dbmanager import DBManager
 pid_tables = [
     "cluster",
     "commit",
-    "freq_subjects",
+    #"freq_subjects",
     #"issue",
-    "mail_thread",
-    "mailing_list",
+#    "mail_thread",
+    #"mailing_list",
     #"per_cluster_statistics",
     "person",
     "plots",
@@ -66,7 +66,7 @@ other_tables = [
     "cluster_user_mapping",
     "commit_communication",
     "edgelist",
-    "initiate_response",
+    #"initiate_response",
     "issue_comment",
     "issue_dependencies",
     "issue_duplicates",
@@ -75,10 +75,10 @@ other_tables = [
     "pagerank_matrix",
     "plot_bin",
     "project",
-    "thread_responses",
+    #"thread_responses",
     "timeseries",
-    "twomode_edgelist",
-    "twomode_vertices",
+    #"twomode_edgelist",
+    #"twomode_vertices",
 ]
 
 
@@ -246,18 +246,17 @@ class EndToEndTestSetup(unittest.TestCase):
             self.assertEqual(res, 0,  msg="Table '{}' still dirty!".format(table))
 
 class TestEndToEnd(object):
-    pass
-    #def testEndToEnd(self):
-    #   self.p = example_project_func[self.example_project](self.tagging)
-    #    with self.p:
-    #        self.setup_with_p(self.p)
-    #        self.clear_tables()
-    #        self.analyseEndToEnd()
-    #        self.mlEndToEnd()
-    #        if (self.correct_edges):
-    #          self.checkEdges()
-    #        self.checkResult()
-    #        self.checkClean()
+    def testEndToEnd(self):
+       self.p = example_project_func[self.example_project](self.tagging)
+       with self.p:
+            self.setup_with_p(self.p)
+            self.clear_tables()
+            self.analyseEndToEnd()
+            #self.mlEndToEnd()
+            if (self.correct_edges):
+              self.checkEdges()
+            self.checkResult()
+            self.checkClean()
 
 class TestEndToEndExample1Tag(EndToEndTestSetup, TestEndToEnd):
     example_project = 1
@@ -269,13 +268,13 @@ class TestEndToEndExample1C2A(EndToEndTestSetup, TestEndToEnd):
     tagging = "committer2author"
     correct_edges = None
 
-class TestEndToEndExample1Proximity(EndToEndTestSetup, TestEndToEnd):
-    ## Example project 1 does not create any opportunity for edges to connect
-    ## developers using the proximity tagging approach
-    example_project = 1
-    tagging = "proximity"
-    add_ignore_tables = ["edgelist", "cluster"]
-    correct_edges = None
+# class TestEndToEndExample1Proximity(EndToEndTestSetup, TestEndToEnd):
+#     ## Example project 1 does not create any opportunity for edges to connect
+#     ## developers using the proximity tagging approach
+#     example_project = 1
+#     tagging = "proximity"
+#     add_ignore_tables = ["edgelist", "cluster", "cluster_user_mapping", "pagerank_matrix", "pagerank"]
+#     correct_edges = None
 
 class TestEndToEndExample2Proximity(EndToEndTestSetup, TestEndToEnd):
     example_project = 2
