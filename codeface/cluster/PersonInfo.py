@@ -61,6 +61,9 @@ class RelationWeights:
             self.weights = []
             self.maxWeight = None
 
+    def __iter__(self):
+        return self.weights.__iter__()
+
     def get_weight(self):
         return self.weightSum
 
@@ -84,7 +87,6 @@ class RelationWeights:
         new.weights = list(self.weights)
         new.maxWeight = self.maxWeight
         return new
-
 
 class PersonInfo:
     """ Information about a commiter, and his relation to other commiters"""
