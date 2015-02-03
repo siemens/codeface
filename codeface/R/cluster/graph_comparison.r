@@ -163,15 +163,15 @@ run.graph.comparison <- function(con, pid.1, range.id.1, pid.2, range.id.2) {
   global.ids.1 <- graph.data.1$v.global.ids
   node.label.1 <- sapply(global.ids.1, function(id)
         query.person.name(con, id))
-  vertex.df.1 <- data.frame(name=graph.data.1$v.local.ids, Id=node.label.1)
   global.ids.2 <- graph.data.2$v.global.ids
   node.label.2 <- sapply(global.ids.2, function(id)
         query.person.name(con, id))
-  vertex.df.2 <- data.frame(name=graph.data.2$v.local.ids, Id=node.label.2)
 
-  ## Create igraph objects
-  g.1 <- graph.data.frame(edgelist.1, vertices=vertex.df.1, directed=TRUE)
-  g.2 <- graph.data.frame(edgelist.2, vertices=vertex.df.2, directed=TRUE)
+  ## create adjacency matrix
+  g.1 <- graph.data.frame(edgelist.1, directed=TRUE)
+  g.2 <- graph.data.frame(edgelist.2, directed=TRUE)
+  V(g.1)$Id <- node.label.1
+  V(g.2)$Id <- node.label.2
 
   res <- graph.comparison(g.1, g.2)
   return(res)
