@@ -329,7 +329,7 @@ get.graph.data.local <- function(con, p.id, range.id, cluster.method=NULL) {
 
   res <- list(edgelist=edgelist, v.global.ids=v.global.ids,
               v.local.ids=v.local.ids, id.map=id.map, comm=local.comm$comm,
-              rank=local.comm$rank)
+              rank=local.comm$rank, edgelist.db=edgelist.db)
 
   return(res)
 }

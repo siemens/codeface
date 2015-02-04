@@ -147,7 +147,23 @@ graph.comparison <- function(g.1, g.2) {
   return(graph.diff)
 }
 
+get.index.map1 <- function(ids) {
+  N        <- nrow(ids)
+  map      <- new.env(size=N)
+  for(i in 1:N) {
+    map[[as.character(ids$id1[i])]] <- ids$id[i]
+  }
+  return(map)
+}
 
+get.index.map2 <- function(ids) {
+  N        <- nrow(ids)
+  map      <- new.env(size=N)
+  for(i in 1:N) {
+    map[[as.character(ids$id2[i])]] <- ids$id[i]
+  }
+  return(map)
+}
 ################################################################################
 ## High Level Functions
 ################################################################################
@@ -158,8 +174,11 @@ run.graph.comparison <- function(con, pid.1, range.id.1, pid.2, range.id.2) {
   cluster.method="Spin Glass Community"
   graph.data.1 <- get.graph.data.local(con, pid.1, range.id.1, cluster.method)
   graph.data.2 <- get.graph.data.local(con, pid.2, range.id.2, cluster.method)
-  edgelist.1   <- graph.data.1$edgelist
-  edgelist.2   <- graph.data.2$edgelist
+  # get the raw edgelists with the ids from the database
+  edgelist.1   <- graph.data.1$edgelist.db
+  edgelist.2   <- graph.data.2$edgelist.db
+
+  # Get the database ids and resolve them to names
   global.ids.1 <- graph.data.1$v.global.ids
   node.label.1 <- sapply(global.ids.1, function(id)
         query.person.name(con, id))
@@ -167,11 +186,35 @@ run.graph.comparison <- function(con, pid.1, range.id.1, pid.2, range.id.2) {
   node.label.2 <- sapply(global.ids.2, function(id)
         query.person.name(con, id))
 
-  ## create adjacency matrix
-  g.1 <- graph.data.frame(edgelist.1, directed=TRUE)
-  g.2 <- graph.data.frame(edgelist.2, directed=TRUE)
-  V(g.1)$Id <- node.label.1
-  V(g.2)$Id <- node.label.2
+  # Create two dataframes to be merged by developer name
+  temp.vertex.df.1 <- data.frame(id1=global.ids.1, name=node.label.1)
+  temp.vertex.df.2 <- data.frame(id2=global.ids.2, name=node.label.2)
+
+  # Merge the graphs by developers and create a mapping to local ids
+  temp.merged <- merge (temp.vertex.df.1, temp.vertex.df.2, all=T, by="name")
+  merged.vertex <- data.frame(id=1:nrow(temp.merged), name=temp.merged$name, id1=temp.merged$id1, id2=temp.merged$id2)
+  map1 <- get.index.map1(merged.vertex)
+  map2 <- get.index.map2(merged.vertex)
+
+  # Use the mappings to create a local edge and vertex list for graph1.
+  local.ids.1 <- map.ids(global.ids.1, map1)
+  edgelist.local.1 <- data.frame(from=map.ids(edgelist.1$fromId, map1),
+                         to=map.ids(edgelist.1$toId, map1),
+                         weight=edgelist.1$weight)
+  vertex.df.1 <- data.frame(id1=local.ids.1, name=node.label.1)
+
+  # Use the mappings to create a local edge and vertex list for graph2.
+  local.ids.2 <- map.ids(global.ids.2, map2)
+  edgelist.local.2 <- data.frame(from=map.ids(edgelist.2$fromId, map2),
+                                 to=map.ids(edgelist.2$toId, map2),
+                                 weight=edgelist.2$weight)
+  vertex.df.2 <- data.frame(id2=local.ids.2, name=node.label.2)
+
+  ## create graph instances and run the graph comparison.
+  g.1 <- graph.data.frame(edgelist.local.1, vertices=vertex.df.1, directed=TRUE)
+  g.2 <- graph.data.frame(edgelist.local.2, vertices=vertex.df.2, directed=TRUE)
+  V(g.1)$Id <- vertex.df.1$name
+  V(g.2)$Id <- vertex.df.2$name
 
   res <- graph.comparison(g.1, g.2)
   return(res)
