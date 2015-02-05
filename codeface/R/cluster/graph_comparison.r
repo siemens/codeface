@@ -161,9 +161,12 @@ graph.comparison <- function(g.1, g.2, weighted=FALSE, symmetric=FALSE) {
   E(g.1)$weight <- ceiling( scale.data(E(g.1)$weight, 0, 1) )
   E(g.2)$weight <- ceiling( scale.data(E(g.2)$weight, 0, 1) )
 
-  intersectNames <- intersect(V(g.1)$Id, V(g.2)$Id)
-  idx.1 <- match(intersectNames, V(g.1)$Id)
-  idx.2 <- match(intersectNames, V(g.2)$Id)
+  #graph.intersection(g.1, g.2, keep.all.vertices = F)
+  intersectIds <- intersect(V(g.1)$name, V(g.2)$name)
+
+  idx.1 <- match(intersectIds, V(g.1)$name)
+  vertex.names <- V(g.1)$name[idx.1]
+  idx.2 <- match(intersectIds, V(g.2)$name)
 
   ## Build adjacency matrix of interesecting ids
   adj.matrix.1.intersect <- g.1[idx.1, idx.1]
@@ -175,7 +178,7 @@ graph.comparison <- function(g.1, g.2, weighted=FALSE, symmetric=FALSE) {
 
   graph.diff <- graph.difference(g.1.intersect, g.2.intersect, weighted = weighted, symmetric = symmetric)
 
-  return(graph.diff)
+  return (data.frame(vertex.names=vertex.names, graph.diff=graph.diff))
 }
 
 get.index.map1 <- function(ids) {
@@ -246,21 +249,22 @@ run.graph.comparison <- function(con, range.id.1, range.id.2, weighted=FALSE, sy
   directed <- T
   ## create graph instances and run the graph comparison.
 
-  # A graph with nno weights and only the local vertices
-  unmerged.unweighted.g.1 <- graph.data.frame(
+  # A graph with no weights and only the local vertices
+  unmerged.g.1 <- graph.data.frame(
     data.frame(from=edgelist.local.1$from, to=edgelist.local.1$to),
     vertices=vertex.df.1, directed=directed)
-  unmerged.unweighted.g.2 <- graph.data.frame(
+  unmerged.g.2 <- graph.data.frame(
     data.frame(from=edgelist.local.2$from, to=edgelist.local.2$to),
     vertices=vertex.df.2, directed=directed)
-  V(unmerged.unweighted.g.1)$Id <- vertex.df.1$name
-  V(unmerged.unweighted.g.2)$Id <- vertex.df.2$name
+
+  # vertex.diff describes how different the edges are, we now calculate how different the graphs are
+  unmerged.vertex.diff <-
+    graph.comparison(unmerged.g.1, unmerged.g.2,
+                     weighted = weighted, symmetric = symmetric)
 
   # A graph with weights and all vertices
   g.1 <- graph.data.frame(edgelist.local.1, vertices=merged.vertex, directed=directed)
   g.2 <- graph.data.frame(edgelist.local.2, vertices=merged.vertex, directed=directed)
-  V(g.1)$Id <- merged.vertex$name
-  V(g.2)$Id <- merged.vertex$name
 
   # vertex.diff describes how different the edges are, we now calculate how different the graphs are
   vertex.diff <- graph.comparison(g.1, g.2, weighted = weighted, symmetric = symmetric)
@@ -268,39 +272,60 @@ run.graph.comparison <- function(con, range.id.1, range.id.2, weighted=FALSE, sy
   intersectIds <- intersect(local.ids.1, local.ids.2)
   nodes.diff <- 1 - (length(intersectIds) / nrow(merged.vertex))
 
-  # Only works when we use the merged.vertex graphs
-  vertexList <- V(g.1)
+  # collect all vertex diffs
   total.weight <- 0
   total.weighted.diff <- 0
-  for (v in vertexList) {
-    if (v %in% intersectIds) {
-      weight <- sum(c(edgelist.local.1$weight[v], edgelist.local.2$weight[v]), na.rm=T)
-      total.weighted.diff <- total.weighted.diff + (vertex.diff[v] * weight)
-      total.weight <- total.weight + weight
-    }
-  }
-
-  vertex.weighted.diff <- total.weighted.diff / total.weight
-
   total <- 0
   total.diff <- 0
-  for (v in vertexList) {
-    if (v %in% intersectIds) {
-      total.diff <- total.diff + vertex.diff[v]
-      total <- total + 1
-    }
+  for (v in 1:nrow(vertex.diff)) {
+    current.name <- as.character(vertex.diff$vertex.names[v])
+    weight.g.1 <- sum(E(g.1)[incident(g.1, V(g.1)[current.name])]$weight)
+    weight.g.2 <- sum(E(g.2)[incident(g.2, V(g.2)[current.name])]$weight)
+    weight <- weight.g.1 + weight.g.2
+    total.weighted.diff <- total.weighted.diff + (vertex.diff$graph.diff[v] * weight)
+    total.weight <- total.weight + weight
+
+    total.diff <- total.diff + vertex.diff$graph.diff[v]
+    total <- total + 1
   }
+  vertex.weighted.diff <- total.weighted.diff / total.weight
   vertex.total.diff <- total.diff / total
 
-  return (list(vertex.diff=vertex.diff, nodes.diff=nodes.diff,
+  # The same for the unmerged graph
+  unmerged.total.weight <- 0
+  unmerged.total.weighted.diff <- 0
+  unmerged.total <- 0
+  unmerged.total.diff <- 0
+  for (v in 1:nrow(unmerged.vertex.diff)) {
+    current.name <- as.character(unmerged.vertex.diff$vertex.names[v])
+    # only g.1 and g.2 has weights, but the edges are the same so this is OK
+    weight.g.1 <- sum(E(g.1)[incident(g.1, V(g.1)[current.name])]$weight)
+    weight.g.2 <- sum(E(g.2)[incident(g.2, V(g.2)[current.name])]$weight)
+    # it is possible that one graph has no edges.
+    weight <- sum(c(weight.g.1, weight.g.2), na.rm=T)
+    unmerged.total.weighted.diff <- unmerged.total.weighted.diff + (unmerged.vertex.diff$graph.diff[v] * weight)
+    unmerged.total.weight <- unmerged.total.weight + weight
+
+    unmerged.total.diff <- unmerged.total.diff + unmerged.vertex.diff$graph.diff[v]
+    unmerged.total <- unmerged.total + 1
+  }
+  unmerged.vertex.weighted.diff <- unmerged.total.weighted.diff / unmerged.total.weight
+  unmerged.vertex.total.diff <- unmerged.total.diff / unmerged.total
+
+  # merge the collected data
+  temp.merge.1 = merge(merged.vertex, vertex.diff, by.x="name", by.y="vertex.names", all=T)
+  temp.merge.2 = merge(temp.merge.1, unmerged.vertex.diff, by.x="name", by.y="vertex.names", all=T, suffixes =c("",".unmerged"))
+
+  graph.data = data.frame(
+    cohesion = c(graph.cohesion(unmerged.g.1), graph.cohesion(unmerged.g.2)),
+    diameter = c(diameter(unmerged.g.1), diameter(unmerged.g.2)),
+    density = c(graph.density(unmerged.g.1), graph.density(unmerged.g.2)),
+    transitivity = c(transitivity(unmerged.g.1), transitivity(unmerged.g.2)))
+  return (list(vertex.diff=temp.merge.2,
+               nodes.diff=nodes.diff,
                vertex.weighted.diff=vertex.weighted.diff,
                vertex.total.diff=vertex.total.diff,
-               cohesion.1 = graph.cohesion(unmerged.unweighted.g.1),
-               cohesion.2 = graph.cohesion(unmerged.unweighted.g.2),
-               diameter.1 = diameter(unmerged.unweighted.g.1),
-               diameter.2 = diameter(unmerged.unweighted.g.2),
-               density.1 = graph.density(unmerged.unweighted.g.1),
-               density.2 = graph.density(unmerged.unweighted.g.2),
-               transitivity.1 = transitivity(unmerged.unweighted.g.1),
-               transitivity.2 = transitivity(unmerged.unweighted.g.2)))
+               unmerged.vertex.weighted.diff=unmerged.vertex.weighted.diff,
+               unmerged.vertex.total.diff=unmerged.vertex.total.diff,
+               graph.data = graph.data))
 }
