@@ -396,6 +396,55 @@ def get_feature_lines(parsed_lines, filename):
         feature_lines.add_line(line, new_feature_list)
     return feature_lines
 
+def get_feature_lines_from_file(file_layout_src, filename):
+    """
+    similar to _getFunctionLines but computes the line numbers of each
+    feature in the file.
+    """
+    '''
+    - Input -
+    file_layout_src:
+        dictionary with 'key=line number' and 'value=line of code'
+    file_commit: fileCommit instance where the results will be stored
+
+    - Description -
+    The file_layout is used to construct a source code file that can be
+    parsed by cppstats to generate a cppstats csv file.
+    The cppstats csv file is then accessed to extract the feature sets
+    and line numbers to be saved in the fileCommit object
+    '''
+
+    # grab the file extension to determine the language of the file
+    fileExt = os.path.splitext(filename)[1]
+
+    # temporary file where we write transient data needed for ctags
+    srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
+    featurefile = tempfile.NamedTemporaryFile(suffix=".csv")
+    # generate a source code file from the file_layout_src dictionary
+    # and save it to a temporary location
+    for line in file_layout_src:
+        srcFile.write(line)
+    srcFile.flush()
+
+    # run cppstats analysis on the file to get the feature locations
+    cmd = "/usr/bin/env cppstats --kind featurelocations --file {0} {1}"\
+        .format(srcFile.name, featurefile.name).split()
+    execute_command(cmd, direct_io=True)
+
+    results_file = open(featurefile.name, 'r')
+    sep = parse_sep_line(next(results_file))
+    headlines = parse_line(sep, next(results_file))
+    feature_lines = \
+        get_feature_lines(
+            [parse_feature_line(sep, line) for line in results_file],
+            filename)
+
+    # clean up temporary files
+    srcFile.close()
+    featurefile.close()
+
+    # save result to the file commit instance
+    return feature_lines
 
 class gitVCS (VCS):
     def __init__(self):
@@ -1162,7 +1211,8 @@ class gitVCS (VCS):
             # separate the file commits into code structures
             self._getFunctionLines(src_lines, file_commit)
         elif link_type in (LinkType.feature_file, LinkType.feature):
-            self._get_feature_lines(src_lines, file_commit)
+            file_commit.set_feature_infos(
+                get_feature_lines_from_file(src_lines, file_commit.filename))
 
         # else: do not separate file commits into code structures, 
         #       this will result in all commits to a single file seen as 
@@ -1309,56 +1359,6 @@ class gitVCS (VCS):
             src_line_rmv = re.sub(rmv_char, ' ', src_line.strip())
             file_commit.addFuncImplLine(line_num, src_line_rmv)
 
-    @staticmethod
-    def _get_feature_lines(file_layout_src, file_commit):
-        """
-        similar to _getFunctionLines but computes the line numbers of each
-        feature in the file.
-        """
-        '''
-        - Input -
-        file_layout_src:
-            dictionary with 'key=line number' and 'value=line of code'
-        file_commit: fileCommit instance where the results will be stored
-
-        - Description -
-        The file_layout is used to construct a source code file that can be
-        parsed by cppstats to generate a cppstats csv file.
-        The cppstats csv file is then accessed to extract the feature sets
-        and line numbers to be saved in the fileCommit object
-        '''
-
-        # grab the file extension to determine the language of the file
-        fileExt = os.path.splitext(file_commit.filename)[1]
-
-        # temporary file where we write transient data needed for ctags
-        srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
-        featurefile = tempfile.NamedTemporaryFile(suffix=".csv")
-        # generate a source code file from the file_layout_src dictionary
-        # and save it to a temporary location
-        for line in file_layout_src:
-            srcFile.write(line)
-        srcFile.flush()
-
-        # run cppstats analysis on the file to get the feature locations
-        cmd = "/usr/bin/env cppstats --kind featurelocations --file {0} {1}"\
-            .format(srcFile.name, featurefile.name).split()
-        output = execute_command(cmd).splitlines()
-
-        results_file = open(featurefile.name, 'r')
-        sep = parse_sep_line(next(results_file))
-        headlines = parse_line(sep, next(results_file))
-        feature_lines = \
-            get_feature_lines(
-                [parse_feature_line(sep, line) for line in results_file],
-                file_commit.filename)
-
-        # clean up temporary files
-        srcFile.close()
-        featurefile.close()
-
-        # save result to the file commit instance
-        file_commit.set_feature_infos(feature_lines)
 
     def cmtHash2CmtObj(self, cmtHash):
         '''
