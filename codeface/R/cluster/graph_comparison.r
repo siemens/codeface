@@ -198,29 +198,31 @@ get.index.map2 <- function(ids) {
   }
   return(map)
 }
-################################################################################
-## High Level Functions
-################################################################################
-run.graph.comparison <- function(con, range.id.1, range.id.2, weighted=FALSE, symmetric=FALSE) {
+
+# Get the raw graph data from the database (by range id)
+get.graph.data.from.range <- function(con, range.id) {
   ## TODO: cluster method should not actually be required, we only need the main
   ##       graph, unfortunatley the database scheme currently marries the graph
   ##       to a clustering method
   cluster.method="Spin Glass Community"
-  pid.1 <- get.project.id.from.release.range.id(con, range.id.1)
-  pid.2 <- get.project.id.from.release.range.id(con, range.id.2)
-  graph.data.1 <- get.graph.data.local(con, pid.1, range.id.1, cluster.method)
-  graph.data.2 <- get.graph.data.local(con, pid.2, range.id.2, cluster.method)
+  pid <- get.project.id.from.release.range.id(con, range.id)
+  graph.data <- get.graph.data.local(con, pid, range.id, cluster.method)
+  global.ids <- graph.data$v.global.ids
+  node.labels <- sapply(global.ids, function(id)
+      query.person.name(con, id))
+  graph.data$node.labels <- node.labels
+  return (graph.data)
+}
+
+# merges the given graph datas by developers and returns the igraph instances.
+get.merged.igraphs <- function(graph.data.1, graph.data.2) {
   # get the raw edgelists with the ids from the database
   edgelist.1   <- graph.data.1$edgelist.db
   edgelist.2   <- graph.data.2$edgelist.db
-
-  # Get the database ids and resolve them to names
+  node.label.1   <- graph.data.1$node.labels
+  node.label.2   <- graph.data.2$node.labels
   global.ids.1 <- graph.data.1$v.global.ids
-  node.label.1 <- sapply(global.ids.1, function(id)
-        query.person.name(con, id))
   global.ids.2 <- graph.data.2$v.global.ids
-  node.label.2 <- sapply(global.ids.2, function(id)
-        query.person.name(con, id))
 
   # Create two dataframes to be merged by developer name
   temp.vertex.df.1 <- data.frame(id1=global.ids.1, name=node.label.1)
@@ -235,8 +237,8 @@ run.graph.comparison <- function(con, range.id.1, range.id.2, weighted=FALSE, sy
   # Use the mappings to create a local edge and vertex list for graph1.
   local.ids.1 <- map.ids(global.ids.1, map1)
   edgelist.local.1 <- data.frame(from=map.ids(edgelist.1$fromId, map1),
-                         to=map.ids(edgelist.1$toId, map1),
-                         weight=edgelist.1$weight)
+                                 to=map.ids(edgelist.1$toId, map1),
+                                 weight=edgelist.1$weight)
   vertex.df.1 <- data.frame(id1=local.ids.1, name=node.label.1)
 
   # Use the mappings to create a local edge and vertex list for graph2.
@@ -257,20 +259,39 @@ run.graph.comparison <- function(con, range.id.1, range.id.2, weighted=FALSE, sy
     data.frame(from=edgelist.local.2$from, to=edgelist.local.2$to),
     vertices=vertex.df.2, directed=directed)
 
+  # A graph with weights and all vertices
+  g.1 <- graph.data.frame(edgelist.local.1, vertices=merged.vertex, directed=directed)
+  g.2 <- graph.data.frame(edgelist.local.2, vertices=merged.vertex, directed=directed)
+
+  return (list(g.1=g.1,g.2=g.2,unmerged.g.1=unmerged.g.1,unmerged.g.2=unmerged.g.2))
+}
+
+# Calculate some graph metrices
+get.graph.metrices <- function(g) {
+  return (list(
+    cohesion = graph.cohesion(g),
+    diameter = diameter(g),
+    density = graph.density(g),
+    transitivity = transitivity(g)))
+}
+
+################################################################################
+## High Level Functions
+################################################################################
+run.graph.comparison <- function(igraphs, weighted=FALSE, symmetric=FALSE) {
+  g.1 <- igraphs$g.1
+  g.2 <- igraphs$g.2
+  unmerged.g.1 <- igraphs$unmerged.g.1
+  unmerged.g.2 <- igraphs$unmerged.g.2
   # vertex.diff describes how different the edges are, we now calculate how different the graphs are
   unmerged.vertex.diff <-
     graph.comparison(unmerged.g.1, unmerged.g.2,
                      weighted = weighted, symmetric = symmetric)
 
-  # A graph with weights and all vertices
-  g.1 <- graph.data.frame(edgelist.local.1, vertices=merged.vertex, directed=directed)
-  g.2 <- graph.data.frame(edgelist.local.2, vertices=merged.vertex, directed=directed)
-
   # vertex.diff describes how different the edges are, we now calculate how different the graphs are
   vertex.diff <- graph.comparison(g.1, g.2, weighted = weighted, symmetric = symmetric)
 
-  intersectIds <- intersect(local.ids.1, local.ids.2)
-  nodes.diff <- 1 - (length(intersectIds) / nrow(merged.vertex))
+  nodes.diff <- 1 - (length(intersect(V(unmerged.g.1), V(unmerged.g.2))) / length(V(g.1)))
 
   # collect all vertex diffs
   total.weight <- 0
@@ -316,16 +337,83 @@ run.graph.comparison <- function(con, range.id.1, range.id.2, weighted=FALSE, sy
   temp.merge.1 = merge(merged.vertex, vertex.diff, by.x="name", by.y="vertex.names", all=T)
   temp.merge.2 = merge(temp.merge.1, unmerged.vertex.diff, by.x="name", by.y="vertex.names", all=T, suffixes =c("",".unmerged"))
 
-  graph.data = data.frame(
-    cohesion = c(graph.cohesion(unmerged.g.1), graph.cohesion(unmerged.g.2)),
-    diameter = c(diameter(unmerged.g.1), diameter(unmerged.g.2)),
-    density = c(graph.density(unmerged.g.1), graph.density(unmerged.g.2)),
-    transitivity = c(transitivity(unmerged.g.1), transitivity(unmerged.g.2)))
   return (list(vertex.diff=temp.merge.2,
                nodes.diff=nodes.diff,
                vertex.weighted.diff=vertex.weighted.diff,
                vertex.total.diff=vertex.total.diff,
                unmerged.vertex.weighted.diff=unmerged.vertex.weighted.diff,
-               unmerged.vertex.total.diff=unmerged.vertex.total.diff,
-               graph.data = graph.data))
+               unmerged.vertex.total.diff=unmerged.vertex.total.diff))
+}
+
+# Run a bunch of graph comparisons, with the given parameter
+# compare.ranges is a data frame with the columns (original, compare)
+# - original should be the base range-id to compare with
+# - compare is the range-id to compare the data with
+#
+# returned will be a list(overview, vertexdata)
+# where overview will be a data frame with the following columns:
+# (original, compare, original.project.name, compare.project.name, original.type, compare.type,
+#  original.range.string, compare.range.string,
+#  original.cohesion, original.diameter, original.density, original.transitivity,
+#  compare.cohesion, compare.diameter, compare.density, compare.transitivity,
+#  nodes.diff,
+#  vertex.weighted.diff, vertex.total.diff,
+#  unmerged.vertex.weighted.diff, unmerged.vertex.total.diff
+#  )
+# and vertexdata will be a list of vertex comparison (one entry for each comparison)
+# The data will be read from the database when needed.
+run.batch.comparison <- function(con, compare.ranges) {
+  len <- nrow(compare.ranges)
+  vertexdata <- list()
+  overview <- data.frame(id=integer(),
+                         original.project.name=character(),
+                         original.type=character(),
+                         original.range.string=character(),
+                         compare.project.name=character(),
+                         compare.type=character(),
+                         compare.range.string=character(),
+                         original.cohesion=numeric(),
+                         original.diameter=numeric(),
+                         original.density=numeric(),
+                         original.transitivity=numeric(),
+                         compare.cohesion=numeric(),
+                         compare.diameter=numeric(),
+                         compare.density=numeric(),
+                         compare.transitivity=numeric(),
+                         nodes.diff=numeric(),
+                         vertex.weighted.diff=numeric(),
+                         vertex.total.diff=numeric(),
+                         unmerged.vertex.weighted.diff=numeric(),
+                         unmerged.vertex.total.diff=numeric(),
+                         stringsAsFactors=FALSE)
+  get.project.data <- function(con, range) {
+    project.id <- get.project.id.from.release.range.id(con, range)
+    cycle <- get.cycle.from.release.range.id(con, range)
+    project <- get.project.from.project.id(con, project.id)
+    return (list(project.name=project$name, type=project$analysisMethod, range.string=cycle))
+  }
+
+  for (i in 1:len) {
+    r.1 <- compare.ranges$original[i]
+    r.2 <- compare.ranges$compare[i]
+    meta.data.1 <- get.project.data(con, r.1)
+    meta.data.2 <- get.project.data(con, r.2)
+    print (str_c("Calculating comparison of ", meta.data.1$project.name, "/", meta.data.1$type, "(", meta.data.1$range.string ,") with ",
+                 meta.data.2$project.name, "/", meta.data.2$type, "(", meta.data.2$range.string ,")..."))
+    data.1 <- get.graph.data.from.range(con, r.1)
+    data.2 <- get.graph.data.from.range(con, r.2)
+    igraphs <- get.merged.igraphs(data.1,data.2)
+    diff.sym <- run.graph.comparison(igraphs, symmetric=F)
+    overview[nrow(overview)+1,] <- c(i,
+                                     meta.data.1, meta.data.2,
+                                     get.graph.metrices(igraphs$unmerged.g.1), get.graph.metrices(igraphs$unmerged.g.2),
+                                     diff.sym$nodes.diff, diff.sym$vertex.weighted.diff, diff.sym$vertex.total.diff,
+                                     diff.sym$unmerged.vertex.weighted.diff, diff.sym$unmerged.vertex.total.diff)
+
+    #vertexdata[[as.character(str_c(meta.data.2$type, "_", meta.data.2$range.string))]] <- diff.sym$vertex.diff
+    vertexdata[[as.character(str_c(as.character(r.1), "/", as.character(r.2)))]] <- diff.sym$vertex.diff
+  }
+  compare.ranges$id <- 1:len
+  merged <- merge(compare.ranges, comp.data, by="id", all=T)
+  return (list(overview=overview, vertexdata=vertexdata))
 }

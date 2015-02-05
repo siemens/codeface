@@ -39,6 +39,16 @@ get.project.id.from.release.range.id <- function(con, range.id) {
   return(res$projectId)
 }
 
+get.cycle.from.release.range.id <- function(con, range.id) {
+  res <- dbGetQuery(con, str_c("SELECT cycle FROM revisions_view WHERE releaseRangeID=", range.id))
+  return(res$cycle)
+}
+
+get.project.from.project.id <- function(con, project.id) {
+  res <- dbGetQuery(con, str_c("SELECT * FROM project WHERE id=", project.id))
+  return(res)
+}
+
 ## Determine the ID of a given plot for a given project. Since
 ## plots are not created in parallel, we need no locking.
 ## Also, clear the plot for new data. This function is supposed to be
