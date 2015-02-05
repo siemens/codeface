@@ -91,8 +91,35 @@ vertex.neighborhood.difference <- function(g1, v1, g2, v2) {
   return(difference)
 }
 
+vertex.neighborhood.difference.sym <- function(g1, v1, g2, v2) {
+  ## Calculates the percent similarity using the Jaccard index concept from
+  ## set theory. This considers the neighbour hoods of matching
+  ## verteces from two different graphs and does not consider the edge weights
+  ## rather only the existence of edges.
+  ## -- Output --
+  ## similarity: a percentage of how SIMILAR the neightboods are
 
-graph.difference <- function(g1,g2, weighted=FALSE) {
+  in.v1  <- neighbors(g1, v1, mode="in")
+  out.v1 <- neighbors(g1, v1, mode="out")
+  in.v2  <- neighbors(g2, v2, mode="in")
+  out.v2 <- neighbors(g2, v2, mode="out")
+
+  inout.v1 = union(in.v1,out.v1)
+  inout.v2 = union(in.v2,out.v2)
+
+  totalEdges = length(union(inout.v1,inout.v2))
+  matchEdges = length(intersect(inout.v1,inout.v2))
+
+  if (totalEdges != 0) {
+    difference = 1 - (matchEdges / totalEdges)
+  } else {
+    difference = 0
+  }
+
+  return(difference)
+}
+
+graph.difference <- function(g1,g2, weighted=FALSE, symmetric=FALSE) {
   ## two graphs on the same vertex set can be compared by considering
   ## the percent at which the two graphs agree on an edge
   
@@ -117,7 +144,11 @@ graph.difference <- function(g1,g2, weighted=FALSE) {
     if (weighted){
       vert.diff[v] <- vertex.edge.weight.difference(g1, v, g2, v)
     } else {
-      vert.diff[v] <- vertex.neighborhood.difference(g1, v, g2, v)
+      if (symmetric) {
+        vert.diff[v] <- vertex.neighborhood.difference.sym(g1, v, g2, v)
+      } else {
+        vert.diff[v] <- vertex.neighborhood.difference(g1, v, g2, v)
+      }
     }
   }
   return(vert.diff)
@@ -125,7 +156,7 @@ graph.difference <- function(g1,g2, weighted=FALSE) {
 
 
 ## Compare the results of the tag and non tag based graphs
-graph.comparison <- function(g.1, g.2) {
+graph.comparison <- function(g.1, g.2, weighted=FALSE, symmetric=FALSE) {
   ## Normalize graphs to have binary edge weight
   E(g.1)$weight <- ceiling( scale.data(E(g.1)$weight, 0, 1) )
   E(g.2)$weight <- ceiling( scale.data(E(g.2)$weight, 0, 1) )
@@ -142,7 +173,7 @@ graph.comparison <- function(g.1, g.2) {
   g.1.intersect <- graph.adjacency(adj.matrix.1.intersect, mode = "directed")
   g.2.intersect <- graph.adjacency(adj.matrix.2.intersect, mode = "directed")
 
-  graph.diff <- graph.difference(g.1.intersect, g.2.intersect)
+  graph.diff <- graph.difference(g.1.intersect, g.2.intersect, weighted = weighted, symmetric = symmetric)
 
   return(graph.diff)
 }
@@ -167,11 +198,13 @@ get.index.map2 <- function(ids) {
 ################################################################################
 ## High Level Functions
 ################################################################################
-run.graph.comparison <- function(con, pid.1, range.id.1, pid.2, range.id.2) {
+run.graph.comparison <- function(con, range.id.1, range.id.2, weighted=FALSE, symmetric=FALSE) {
   ## TODO: cluster method should not actually be required, we only need the main
   ##       graph, unfortunatley the database scheme currently marries the graph
   ##       to a clustering method
   cluster.method="Spin Glass Community"
+  pid.1 <- get.project.id.from.release.range.id(con, range.id.1)
+  pid.2 <- get.project.id.from.release.range.id(con, range.id.2)
   graph.data.1 <- get.graph.data.local(con, pid.1, range.id.1, cluster.method)
   graph.data.2 <- get.graph.data.local(con, pid.2, range.id.2, cluster.method)
   # get the raw edgelists with the ids from the database
@@ -210,12 +243,64 @@ run.graph.comparison <- function(con, pid.1, range.id.1, pid.2, range.id.2) {
                                  weight=edgelist.2$weight)
   vertex.df.2 <- data.frame(id2=local.ids.2, name=node.label.2)
 
+  directed <- T
   ## create graph instances and run the graph comparison.
-  g.1 <- graph.data.frame(edgelist.local.1, vertices=vertex.df.1, directed=TRUE)
-  g.2 <- graph.data.frame(edgelist.local.2, vertices=vertex.df.2, directed=TRUE)
-  V(g.1)$Id <- vertex.df.1$name
-  V(g.2)$Id <- vertex.df.2$name
 
-  res <- graph.comparison(g.1, g.2)
-  return(res)
+  # A graph with nno weights and only the local vertices
+  unmerged.unweighted.g.1 <- graph.data.frame(
+    data.frame(from=edgelist.local.1$from, to=edgelist.local.1$to),
+    vertices=vertex.df.1, directed=directed)
+  unmerged.unweighted.g.2 <- graph.data.frame(
+    data.frame(from=edgelist.local.2$from, to=edgelist.local.2$to),
+    vertices=vertex.df.2, directed=directed)
+  V(unmerged.unweighted.g.1)$Id <- vertex.df.1$name
+  V(unmerged.unweighted.g.2)$Id <- vertex.df.2$name
+
+  # A graph with weights and all vertices
+  g.1 <- graph.data.frame(edgelist.local.1, vertices=merged.vertex, directed=directed)
+  g.2 <- graph.data.frame(edgelist.local.2, vertices=merged.vertex, directed=directed)
+  V(g.1)$Id <- merged.vertex$name
+  V(g.2)$Id <- merged.vertex$name
+
+  # vertex.diff describes how different the edges are, we now calculate how different the graphs are
+  vertex.diff <- graph.comparison(g.1, g.2, weighted = weighted, symmetric = symmetric)
+
+  intersectIds <- intersect(local.ids.1, local.ids.2)
+  nodes.diff <- 1 - (length(intersectIds) / nrow(merged.vertex))
+
+  # Only works when we use the merged.vertex graphs
+  vertexList <- V(g.1)
+  total.weight <- 0
+  total.weighted.diff <- 0
+  for (v in vertexList) {
+    if (v %in% intersectIds) {
+      weight <- sum(c(edgelist.local.1$weight[v], edgelist.local.2$weight[v]), na.rm=T)
+      total.weighted.diff <- total.weighted.diff + (vertex.diff[v] * weight)
+      total.weight <- total.weight + weight
+    }
+  }
+
+  vertex.weighted.diff <- total.weighted.diff / total.weight
+
+  total <- 0
+  total.diff <- 0
+  for (v in vertexList) {
+    if (v %in% intersectIds) {
+      total.diff <- total.diff + vertex.diff[v]
+      total <- total + 1
+    }
+  }
+  vertex.total.diff <- total.diff / total
+
+  return (list(vertex.diff=vertex.diff, nodes.diff=nodes.diff,
+               vertex.weighted.diff=vertex.weighted.diff,
+               vertex.total.diff=vertex.total.diff,
+               cohesion.1 = graph.cohesion(unmerged.unweighted.g.1),
+               cohesion.2 = graph.cohesion(unmerged.unweighted.g.2),
+               diameter.1 = diameter(unmerged.unweighted.g.1),
+               diameter.2 = diameter(unmerged.unweighted.g.2),
+               density.1 = graph.density(unmerged.unweighted.g.1),
+               density.2 = graph.density(unmerged.unweighted.g.2),
+               transitivity.1 = transitivity(unmerged.unweighted.g.1),
+               transitivity.2 = transitivity(unmerged.unweighted.g.2)))
 }
