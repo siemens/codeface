@@ -44,7 +44,7 @@ import os
 import bisect
 import ctags
 import tempfile
-import source_analysis
+import sourceAnalysis
 import shutil
 from fileCommit import FileDict
 from progressbar import ProgressBar, Percentage, Bar, ETA
@@ -1171,12 +1171,13 @@ class gitVCS (VCS):
         blame_cmt_ids.update( cmt_lines.values() )
 
     def _parseSrcFileDoxygen(self, src_file):
+        log.debug("Running Doxygen analysis")
         curr_dir = os.path.dirname(os.path.abspath(__file__))
         conf_file = os.path.join(curr_dir, 'doxygen.conf')
         tmp_outdir = tempfile.mkdtemp()
-        file_analysis = source_analysis.FileAnalysis(src_file,
-                                                     conf_file,
-                                                     tmp_outdir)
+        file_analysis = sourceAnalysis.FileAnalysis(src_file,
+                                                    conf_file,
+                                                    tmp_outdir)
 
         try:
             file_analysis.run_analysis()
@@ -1190,18 +1191,9 @@ class gitVCS (VCS):
         # Get src element bounds
         func_lines = {}
         for elem in file_analysis.src_elem_list:
-            start = elem['bodystart']
-            end = elem['bodyend']
-
-            if (start is not None) & (end is not None):
-              start = int(start) - 1
-              end = int(end) - 1
-            else:
-                # doxygen could not parse correctly
-                log.warning("doxygen analysis not possible - defaulting to Ctags")
-                func_lines.clear()
-                break
-
+            # Doxygen analysis index starts at 1
+            start = int(elem['bodystart']) - 1
+            end = int(elem['bodyend']) - 1
             name = elem['name']
             f_lines = {line_num:name  for line_num in range(start, end+1)}
             func_lines.update(f_lines)

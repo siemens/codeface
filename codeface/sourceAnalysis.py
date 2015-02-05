@@ -66,12 +66,15 @@ class FileAnalysis:
                     start = loc.get('bodystart')
                     end = loc.get('bodyend')
                     name = child.find('name').text
-                    self.src_elem_list.append({'bodystart':start,
-                                               'bodyend':end,
-                                               'name':name,
-                                               'mem_kind': kind,
-                                               'comp_kind': comp_elem['kind'],
-                                               'comp_name': comp_elem['name']})
+                    # Some elements of function type are not assigned
+                    # start and end (e.g., definitions)
+                    if (start is not None) & (end is not None):
+                        self.src_elem_list.append({'bodystart':start,
+                                                   'bodyend':end,
+                                                   'name':name,
+                                                   'mem_kind': kind,
+                                                   'comp_kind': comp_elem['kind'],
+                                                   'comp_name': comp_elem['name']})
 
     def _prepare_clean_xml(self, filename):
         # Read file
