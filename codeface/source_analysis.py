@@ -28,7 +28,7 @@ class FileAnalysis:
 
         cmd = 'doxygen -'
         cmd_2 = cmd.split()
-        p2 = Popen(cmd_2, stdin=PIPE, stdout=PIPE)
+        p2 = Popen(cmd_2, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         p2.stdin.write(doxy_conf)
         p2.communicate()
 
