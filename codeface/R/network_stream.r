@@ -1,3 +1,4 @@
+library(data.table)
 source("dependency_analysis.r")
 source("semantic_dependency.r")
 
@@ -197,34 +198,43 @@ add.entity.relation <- function(commit.df, entity.group, type) {
 
 
 generate.person.edgelist <- function(entity.group) {
-  edgelist <- data.frame()
-
+  loginfo("Computing person edgelist", logger="")
   ## Remove entity groups of size 1 since there could not
   ## possibly be collaboration on these entities
   keep.element <- sapply(entity.group, function(g) length(unique(g$author)) > 1)
   entity.group <- entity.group[unlist(keep.element)]
 
-  edgelist <-
-    ldply(entity.group, function(g) {
-      edgelist.group <- apply(g, 1, function(r) {
-        edge <- r['commitDate'] > g$commitDate
-        edge.df <- data.frame()
+  edgelist.total <-
+    mclapply(entity.group, mc.cores = get.num.cores(),
+      function(g) {
+        ## Sort for optimization
+        g <- g[order(g$commitDate, decreasing=T),]
+        num.rows <- nrow(g)
+        edgelist.part <- vector(mode="list", length=num.rows)
 
-        if (any(edge)) {
-          edge.df <- data.frame(from=as.numeric(r['author']), to=g$author[edge],
-                                weight=g$size[edge], row.names=NULL)
+        ## Loop over data frame rows containing code contributions
+        ## to connect developers making commits to related artifacts
+        for (i in seq(from=1,to=num.rows)) {
+          cmt.1 <- g[i,]
+          row.idx <- seq(from=i, to=num.rows)
+          cmt.1.size <- cmt.1$size
+          to <- g[row.idx, 'author']
+          from <- rep(cmt.1$author, length(to))
+          weight <- g[row.idx, 'size'] + cmt.1.size
+          edgelist.part[[i]] <- cbind(from, to, weight)
         }
+        res <- do.call(rbind, edgelist.part)
+        return(res)})
 
-        return(edge.df)})
+  edgelist <- data.frame()
+  if (length(edgelist.total) != 0) {
+    edgelist <- do.call(rbind, edgelist.total)
 
-      res <- do.call(rbind,edgelist.group)
-      return(res)})
+    ## Aggregate edge multiplicity into a single edge
+    edgelist <- data.table(edgelist)
+    edgelist <- edgelist[, list(weight=sum(weight)), by=.(from, to)]
+    edgelist <- as.data.frame(edgelist)
+  }
 
-  edgelist$.id <- NULL
-
-  ## Aggregate edge multiplicity into a single edge
-  edgelist.simplified <- ddply(edgelist, .(from, to),
-                              function(r) data.frame(weight=sum(r['weight'])))
-
-  return(edgelist.simplified)
+  return(edgelist)
 }
