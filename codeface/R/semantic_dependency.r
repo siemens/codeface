@@ -101,6 +101,9 @@ computeSemanticCoupling <- function(depend.df, threshold=0.5) {
     return(list(edgelist=data.frame(), vertex.data=data.frame()))
   }
 
+  loginfo(sprintf("Computing semantic simlarity for %i entities",
+                   nrow(depend.df)), logger="")
+
   ## Generate corpus of artifacts
   corp <- genArtifactCorpus(depend.df)
 
