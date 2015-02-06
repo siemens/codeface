@@ -176,14 +176,15 @@ add.entity.relation <- function(commit.df, entity.group, type) {
   entity.rel.map <-
     lapply(relavent.entity.list,
            function(entity) {
-             ## Find co-change relationships for this entity
+             ## Find related entities by creating a mapping
+             ## between one entity and all related entities
              col.1.entity.match <- edgelist$X1 == entity
              col.2.entity.match <- edgelist$X2 == entity
              related.entities <- union(edgelist[col.1.entity.match, "X2"],
                                        edgelist[col.2.entity.match, "X1"])
              return(related.entities)})
 
-  ## Group entity groups that have a co-change relationship
+  ## Group entities that share a relation according to entity.rel.map
   entity.group <-
     lapply(names(entity.group),
            function(entity.name) {
