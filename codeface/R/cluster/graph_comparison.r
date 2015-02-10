@@ -181,24 +181,6 @@ graph.comparison <- function(g.1, g.2, weighted=FALSE, symmetric=FALSE) {
   return (data.frame(vertex.names=vertex.names, graph.diff=graph.diff))
 }
 
-get.index.map1 <- function(ids) {
-  N        <- nrow(ids)
-  map      <- new.env(size=N)
-  for(i in 1:N) {
-    map[[as.character(ids$id1[i])]] <- ids$id[i]
-  }
-  return(map)
-}
-
-get.index.map2 <- function(ids) {
-  N        <- nrow(ids)
-  map      <- new.env(size=N)
-  for(i in 1:N) {
-    map[[as.character(ids$id2[i])]] <- ids$id[i]
-  }
-  return(map)
-}
-
 # Get the raw graph data from the database (by range id)
 get.graph.data.from.range <- function(con, range.id) {
   ## TODO: cluster method should not actually be required, we only need the main
@@ -231,8 +213,17 @@ get.merged.igraphs <- function(graph.data.1, graph.data.2) {
   # Merge the graphs by developers and create a mapping to local ids
   temp.merged <- merge (temp.vertex.df.1, temp.vertex.df.2, all=T, by="name")
   merged.vertex <- data.frame(id=1:nrow(temp.merged), name=temp.merged$name, id1=temp.merged$id1, id2=temp.merged$id2)
-  map1 <- get.index.map1(merged.vertex)
-  map2 <- get.index.map2(merged.vertex)
+
+  get.index.map <- function(ids, col.1, col.2) {
+    N        <- nrow(ids)
+    map      <- new.env(size=N)
+    for(i in 1:N) {
+      map[[as.character(ids[[col.1]][i])]] <- ids[[col.2]][i]
+    }
+    return(map)
+  }
+  map1 <- get.index.map(merged.vertex, "id1", "id")
+  map2 <- get.index.map(merged.vertex, "id2", "id")
 
   # Use the mappings to create a local edge and vertex list for graph1.
   local.ids.1 <- map.ids(global.ids.1, map1)
