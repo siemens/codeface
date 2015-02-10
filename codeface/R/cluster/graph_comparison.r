@@ -66,7 +66,7 @@ vertex.edge.weight.difference <- function(g1, v1, g2, v2) {
 }
 
 
-vertex.neighborhood.difference <- function(g1, v1, g2, v2) {
+vertex.neighborhood.difference <- function(g1, v1, g2, v2, symmetric=FALSE) {
   ## Calculates the percent similarity using the Jaccard index concept from
   ## set theory. This considers the neighbour hoods of matching
   ## verteces from two different graphs and does not consider the edge weights
@@ -78,38 +78,17 @@ vertex.neighborhood.difference <- function(g1, v1, g2, v2) {
   out.v1 <- neighbors(g1, v1, mode="out")
   in.v2  <- neighbors(g2, v2, mode="in")
   out.v2 <- neighbors(g2, v2, mode="out")
-  
-  totalEdges = length(union(in.v1,in.v2)) + length(union(out.v1,out.v2))
-  matchEdges = length(intersect(in.v1,in.v2)) + length(intersect(out.v1,out.v2))
-  
-  if (totalEdges != 0) {
-    difference = 1 - (matchEdges / totalEdges)
+  if (symmetric) {
+    inout.v1 = union(in.v1,out.v1)
+    inout.v2 = union(in.v2,out.v2)
+
+    totalEdges = length(union(inout.v1,inout.v2))
+    matchEdges = length(intersect(inout.v1,inout.v2))
   } else {
-    difference = 0
+    totalEdges = length(union(in.v1,in.v2)) + length(union(out.v1,out.v2))
+    matchEdges = length(intersect(in.v1,in.v2)) + length(intersect(out.v1,out.v2))
   }
   
-  return(difference)
-}
-
-vertex.neighborhood.difference.sym <- function(g1, v1, g2, v2) {
-  ## Calculates the percent similarity using the Jaccard index concept from
-  ## set theory. This considers the neighbour hoods of matching
-  ## verteces from two different graphs and does not consider the edge weights
-  ## rather only the existence of edges.
-  ## -- Output --
-  ## similarity: a percentage of how SIMILAR the neightboods are
-
-  in.v1  <- neighbors(g1, v1, mode="in")
-  out.v1 <- neighbors(g1, v1, mode="out")
-  in.v2  <- neighbors(g2, v2, mode="in")
-  out.v2 <- neighbors(g2, v2, mode="out")
-
-  inout.v1 = union(in.v1,out.v1)
-  inout.v2 = union(in.v2,out.v2)
-
-  totalEdges = length(union(inout.v1,inout.v2))
-  matchEdges = length(intersect(inout.v1,inout.v2))
-
   if (totalEdges != 0) {
     difference = 1 - (matchEdges / totalEdges)
   } else {
@@ -144,11 +123,7 @@ graph.difference <- function(g1,g2, weighted=FALSE, symmetric=FALSE) {
     if (weighted){
       vert.diff[v] <- vertex.edge.weight.difference(g1, v, g2, v)
     } else {
-      if (symmetric) {
-        vert.diff[v] <- vertex.neighborhood.difference.sym(g1, v, g2, v)
-      } else {
-        vert.diff[v] <- vertex.neighborhood.difference(g1, v, g2, v)
-      }
+      vert.diff[v] <- vertex.neighborhood.difference(g1, v, g2, v, symmetric=symmetric)
     }
   }
   return(vert.diff)
