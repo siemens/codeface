@@ -266,15 +266,6 @@ get.merged.igraphs <- function(graph.data.1, graph.data.2) {
   return (list(g.1=g.1,g.2=g.2,unmerged.g.1=unmerged.g.1,unmerged.g.2=unmerged.g.2))
 }
 
-# Calculate some graph metrices
-get.graph.metrices <- function(g) {
-  return (list(
-    cohesion = graph.cohesion(g),
-    diameter = diameter(g),
-    density = graph.density(g),
-    transitivity = transitivity(g)))
-}
-
 ################################################################################
 ## High Level Functions
 ################################################################################
@@ -313,28 +304,33 @@ run.graph.comparison <- function(igraphs, weighted=FALSE, symmetric=FALSE) {
   vertex.total.diff <- total.diff / total
 
   # The same for the unmerged graph
-  unmerged.total.weight <- 0
-  unmerged.total.weighted.diff <- 0
-  unmerged.total <- 0
-  unmerged.total.diff <- 0
-  for (v in 1:nrow(unmerged.vertex.diff)) {
-    current.name <- as.character(unmerged.vertex.diff$vertex.names[v])
-    # only g.1 and g.2 has weights, but the edges are the same so this is OK
-    weight.g.1 <- sum(E(g.1)[incident(g.1, V(g.1)[current.name])]$weight)
-    weight.g.2 <- sum(E(g.2)[incident(g.2, V(g.2)[current.name])]$weight)
-    # it is possible that one graph has no edges.
-    weight <- sum(c(weight.g.1, weight.g.2), na.rm=T)
-    unmerged.total.weighted.diff <- unmerged.total.weighted.diff + (unmerged.vertex.diff$graph.diff[v] * weight)
-    unmerged.total.weight <- unmerged.total.weight + weight
+  if (nrow(unmerged.vertex.diff) > 0) {
+    unmerged.total.weight <- 0
+    unmerged.total.weighted.diff <- 0
+    unmerged.total <- 0
+    unmerged.total.diff <- 0
+    for (v in 1:nrow(unmerged.vertex.diff)) {
+      current.name <- as.character(unmerged.vertex.diff$vertex.names[v])
+      # only g.1 and g.2 has weights, but the edges are the same so this is OK
+      weight.g.1 <- sum(E(g.1)[incident(g.1, V(g.1)[current.name])]$weight)
+      weight.g.2 <- sum(E(g.2)[incident(g.2, V(g.2)[current.name])]$weight)
+      # it is possible that one graph has no edges.
+      weight <- sum(c(weight.g.1, weight.g.2), na.rm=T)
+      unmerged.total.weighted.diff <- unmerged.total.weighted.diff + (unmerged.vertex.diff$graph.diff[v] * weight)
+      unmerged.total.weight <- unmerged.total.weight + weight
 
-    unmerged.total.diff <- unmerged.total.diff + unmerged.vertex.diff$graph.diff[v]
-    unmerged.total <- unmerged.total + 1
+      unmerged.total.diff <- unmerged.total.diff + unmerged.vertex.diff$graph.diff[v]
+      unmerged.total <- unmerged.total + 1
+    }
+    unmerged.vertex.weighted.diff <- unmerged.total.weighted.diff / unmerged.total.weight
+    unmerged.vertex.total.diff <- unmerged.total.diff / unmerged.total
+  } else {
+    unmerged.vertex.weighted.diff <- 1
+    unmerged.vertex.total.diff <- 1
   }
-  unmerged.vertex.weighted.diff <- unmerged.total.weighted.diff / unmerged.total.weight
-  unmerged.vertex.total.diff <- unmerged.total.diff / unmerged.total
 
   # merge the collected data
-  temp.merge.1 = merge(merged.vertex, vertex.diff, by.x="name", by.y="vertex.names", all=T)
+  temp.merge.1 = merge(get.data.frame(g.1, what="vertices"), vertex.diff, by.x="name", by.y="vertex.names", all=T)
   temp.merge.2 = merge(temp.merge.1, unmerged.vertex.diff, by.x="name", by.y="vertex.names", all=T, suffixes =c("",".unmerged"))
 
   return (list(vertex.diff=temp.merge.2,
@@ -364,6 +360,7 @@ run.graph.comparison <- function(igraphs, weighted=FALSE, symmetric=FALSE) {
 # The data will be read from the database when needed.
 run.batch.comparison <- function(con, compare.ranges) {
   len <- nrow(compare.ranges)
+  graphdata <- list()
   vertexdata <- list()
   overview <- data.frame(id=integer(),
                          original.project.name=character(),
@@ -372,10 +369,14 @@ run.batch.comparison <- function(con, compare.ranges) {
                          compare.project.name=character(),
                          compare.type=character(),
                          compare.range.string=character(),
+                         original.edge.count=numeric(),
+                         original.vertex.count=numeric(),
                          original.cohesion=numeric(),
                          original.diameter=numeric(),
                          original.density=numeric(),
                          original.transitivity=numeric(),
+                         compare.edge.count=numeric(),
+                         compare.vertex.count=numeric(),
                          compare.cohesion=numeric(),
                          compare.diameter=numeric(),
                          compare.density=numeric(),
@@ -388,9 +389,20 @@ run.batch.comparison <- function(con, compare.ranges) {
                          stringsAsFactors=FALSE)
   get.project.data <- function(con, range) {
     project.id <- get.project.id.from.release.range.id(con, range)
+    if (is.null(project.id)) stop(str_c("Range id ", range, " is unknown!"))
     cycle <- get.cycle.from.release.range.id(con, range)
     project <- get.project.from.project.id(con, project.id)
     return (list(project.name=project$name, type=project$analysisMethod, range.string=cycle))
+  }
+  # Calculate some graph metrices
+  get.graph.metrices <- function(g) {
+    return (list(
+      edge.count = length(E(g)),
+      vertex.count = length(V(g)),
+      cohesion = graph.cohesion(g),
+      diameter = diameter(g),
+      density = graph.density(g),
+      transitivity = transitivity(g)))
   }
 
   for (i in 1:len) {
@@ -412,8 +424,9 @@ run.batch.comparison <- function(con, compare.ranges) {
 
     #vertexdata[[as.character(str_c(meta.data.2$type, "_", meta.data.2$range.string))]] <- diff.sym$vertex.diff
     vertexdata[[as.character(str_c(as.character(r.1), "/", as.character(r.2)))]] <- diff.sym$vertex.diff
+    graphdata[[as.character(str_c(as.character(r.1), "/", as.character(r.2)))]] <- igraphs
   }
   compare.ranges$id <- 1:len
-  merged <- merge(compare.ranges, comp.data, by="id", all=T)
-  return (list(overview=overview, vertexdata=vertexdata))
+  merged <- merge(compare.ranges, overview, by="id", all=T)
+  return (list(overview=merged, vertexdata=vertexdata, graphs=graphdata))
 }

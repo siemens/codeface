@@ -318,6 +318,7 @@ connect.db <- function(conf.file) {
 ## computes a local graph representation
 get.graph.data.local <- function(con, p.id, range.id, cluster.method=NULL) {
   g.id <- query.global.collab.con(con, p.id, range.id, cluster.method)
+  if (is.null(g.id)) stop(str_c("no graph was found for project ", p.id, " and range ", range.id, "."))
   edgelist.db <- query.cluster.edges(con, g.id)
   v.global.ids <- query.cluster.members(con, g.id)
 
