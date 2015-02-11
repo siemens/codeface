@@ -74,6 +74,11 @@ def get_parser():
                         help="Force a delete of the project in the database")
     run_parser.add_argument('--profile-r', action="store_true",
                         help="Compute an execution time profile for R code")
+    run_parser.add_argument(
+        '--reuse-vcs-analysis', action='store_true', dest="reuse_db",
+        help="Re-use an already existing vcs-analysis.db file. "
+             "This flag is useful to continue a previously failed analysis"
+             " or for debugging purposes.")
 
     ml_parser = sub_parser.add_parser('ml', help='Run mailing list analysis')
     ml_parser.set_defaults(func=cmd_ml)
@@ -109,7 +114,7 @@ def cmd_run(args):
         logfile = os.path.abspath(logfile)
     project_analyse(resdir, gitdir, codeface_conf, project_conf,
                     args.no_report, args.loglevel, logfile, args.recreate,
-                    args.profile_r, args.jobs, args.tagging)
+                    args.profile_r, args.jobs, args.tagging, args.reuse_db)
     return 0
 
 def cmd_ml(args):
