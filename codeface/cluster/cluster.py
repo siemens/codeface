@@ -1779,16 +1779,19 @@ def computeSimilarity(cmtlist):
 # Main part
 ###########################################################################
 def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
-                    create_db, outdir, limit_history,
+                    reuse_db, outdir, limit_history,
                     range_by_date, rcranges=None):
     link_type = conf["tagging"]
 
-    if create_db == True:
+    if not reuse_db or not os.path.isfile(dbfilename):
         log.devinfo("Creating data base for {0}..{1}".format(revrange[0],
                                                         revrange[1]))
         createDB(dbfilename, git_repo, revrange, subsys_descr, \
                  link_type, range_by_date, rcranges)
-
+    else:
+        log.warning("REUSING data base for {0}..{1} "
+                    "(make sure it is up to date)"
+                    .format(revrange[0], revrange[1]))
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
     revisionIDs = (dbm.getRevisionID(projectID, revrange[0]),
                    dbm.getRevisionID(projectID, revrange[1]))
@@ -1873,7 +1876,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
 
 ##################################################################
 def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
-                      git_repo, create_db, limit_history, range_by_date):
+                      git_repo, reuse_db, limit_history, range_by_date):
     #--------------
     #folder setup
     #--------------
@@ -1896,7 +1899,7 @@ def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
     filename = os.path.join(outdir, "vcs_analysis.db")
     dbm = DBManager(conf)
     performAnalysis(conf, dbm, filename, git_repo, [from_rev, to_rev],
-                    None, create_db, outdir, limit_history, range_by_date,
+                    None, reuse_db, outdir, limit_history, range_by_date,
                     rc_range)
 
 ##################################

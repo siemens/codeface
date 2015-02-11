@@ -52,7 +52,7 @@ def project_setup(conf, recreate):
 
 def project_analyse(resdir, gitdir, codeface_conf, project_conf,
                     no_report, loglevel, logfile, recreate, profile_r,
-                    n_jobs, tagging_type):
+                    n_jobs, tagging_type, reuse_db):
     pool = BatchJobPool(int(n_jobs))
     conf = Configuration.load(codeface_conf, project_conf)
     tagging = conf["tagging"]
@@ -105,7 +105,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         s1 = pool.add(
                 doProjectAnalysis,
                 (conf, start_rev, end_rev, rc_rev, range_resdir, repo,
-                    True, True, range_by_date),
+                    reuse_db, True, range_by_date),
                 startmsg=prefix + "Analysing commits...",
                 endmsg=prefix + "Commit analysis done."
             )
