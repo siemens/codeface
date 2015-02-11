@@ -35,6 +35,7 @@ from tempfile import NamedTemporaryFile, mkdtemp
 from time import sleep
 from threading import enumerate as threading_enumerate
 from Queue import Empty
+from datetime import timedelta, datetime
 
 # Represents a job submitted to the batch pool.
 BatchJobTuple = namedtuple('BatchJobTuple', ['id', 'func', 'args', 'kwargs',
@@ -407,41 +408,74 @@ def check4cppstats():
                         .format(error_message))
 
 
+def parse_iso_git_date(date_string):
+    # from http://stackoverflow.com/questions/526406/python-time-to-age-part-2-timezones
+    try:
+        offset = int(date_string[-5:])
+    except:
+        log.error("could not extract timezone info from \"{0}\""
+                  .format(date_string))
+        raise
+    minutes = (offset if offset > 0 else -offset) % 100
+    delta = timedelta(hours=offset / 100,
+                      minutes=minutes if offset > 0 else -minutes)
+    # In future python versions we can use "%Y-%m-%d %H:%M:%S %z"
+    # this way we don't need the above workaround, currently %z isn't
+    # working as documented
+    fmt = "%Y-%m-%d %H:%M:%S"
+    parsed_date = datetime.strptime(date_string[:-6], fmt)
+    parsed_date -= delta
+    return parsed_date
+
+
 def generate_analysis_windows(repo, window_size_months):
-	'''
-	Generates a list of revisions (commit hash) in increments of the window_size
-	parameter. The window_size parameter specifies the number of months between
-	revisions. This function is useful when the git repository has no tags
-	referencing releases.
-	'''
-	revs = []
-	start = window_size_months # Window size time ago
-	end = 0 # Present time
-	cmd_base = 'git --git-dir={0} log --no-merges --format=%H'.format(repo).split()
-	cmd_base_max1 = cmd_base + ['--max-count=1']
-	cmd = cmd_base_max1 + ['--before=' + str(end) + '.months.ago']
-	rev_end = execute_command(cmd).splitlines()
-	revs.extend(rev_end)
+    """
+    Generates a list of revisions (commit hash) in increments of the window_size
+    parameter. The window_size parameter specifies the number of months between
+    revisions. This function is useful when the git repository has no tags
+    referencing releases.
+    """
+    cmd_date = 'git --git-dir={0} show --format=%ad  --date=iso8601'\
+        .format(repo).split()
+    latest_date_result = execute_command(cmd_date).splitlines()[0]
+    latest_commit = parse_iso_git_date(latest_date_result)
 
-	while start != end:
-		cmd = cmd_base_max1 + ['--before=' + str(start) + '.months.ago']
-		rev_start = execute_command(cmd).splitlines()
+    print_fmt = "%Y-%m-%dT%H:%M:%S+0000"
+    month = timedelta(days=30)
 
-		if len(rev_start) == 0:
-			start = end
-			cmd = cmd_base + ['--reverse']
-			rev_start = [execute_command(cmd).splitlines()[0]]
-		else:
-			end = start
-			start = end + window_size_months
+    def get_before_arg(num_months):
+        date = latest_commit - num_months * month
+        return '--before=' + date.strftime(print_fmt)
 
-		# Check if any commits occured since the last analysis window
-                if rev_start[0] != revs[0]:
-                  revs = rev_start + revs
-                # else: no commit happened since last window, don't add duplicate
-                #       revisions
-	# End while
+    revs = []
+    start = window_size_months  # Window size time ago
+    end = 0  # Present time
+    cmd_base = 'git --git-dir={0} log --no-merges --format=%H'\
+        .format(repo).split()
+    cmd_base_max1 = cmd_base + ['--max-count=1']
+    cmd = cmd_base_max1 + [get_before_arg(end)]
+    rev_end = execute_command(cmd).splitlines()
+    revs.extend(rev_end)
 
-	rcs = [None for x in range(len(revs))]
+    while start != end:
+        cmd = cmd_base_max1 + [get_before_arg(start)]
+        rev_start = execute_command(cmd).splitlines()
 
-	return revs, rcs
+        if len(rev_start) == 0:
+            start = end
+            cmd = cmd_base + ['--reverse']
+            rev_start = [execute_command(cmd).splitlines()[0]]
+        else:
+            end = start
+            start = end + window_size_months
+
+        # Check if any commits occurred since the last analysis window
+        if rev_start[0] != revs[0]:
+            revs = rev_start + revs
+        # else: no commit happened since last window, don't add duplicate
+        #       revisions
+    # End while
+
+    rcs = [None for x in range(len(revs))]
+
+    return revs, rcs
