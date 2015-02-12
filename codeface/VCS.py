@@ -417,8 +417,8 @@ def get_feature_lines_from_file(file_layout_src, filename):
     # grab the file extension to determine the language of the file
     fileExt = os.path.splitext(filename)[1]
 
-    # temporary file where we write transient data needed for ctags
-    srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
+    # temporary file where we write transient data needed for cppstats
+    srcFile = tempfile.NamedTemporaryFile(suffix=fileExt, delete=False)
     featurefile = tempfile.NamedTemporaryFile(suffix=".csv")
     # generate a source code file from the file_layout_src dictionary
     # and save it to a temporary location
@@ -429,20 +429,38 @@ def get_feature_lines_from_file(file_layout_src, filename):
     # run cppstats analysis on the file to get the feature locations
     cmd = "/usr/bin/env cppstats --kind featurelocations --file {0} {1}"\
         .format(srcFile.name, featurefile.name).split()
-    execute_command(cmd, direct_io=True)
+    try:
+        # direct_io is a bit noisy, but there are "silent" errors in
+        # cppstats which are only shown in its output
+        # and not in the return code. Enable the following line if
+        # you think you run into such an error (IE unit tests fail).
+        #execute_command(cmd, direct_io=True)
+        execute_command(cmd)
 
-    results_file = open(featurefile.name, 'r')
-    sep = parse_sep_line(next(results_file))
-    headlines = parse_line(sep, next(results_file))
-    feature_lines = \
-        get_feature_lines(
-            [parse_feature_line(sep, line) for line in results_file],
-            filename)
+        results_file = open(featurefile.name, 'r')
+        sep = parse_sep_line(next(results_file))
+        headlines = parse_line(sep, next(results_file))
+        feature_lines = \
+            get_feature_lines(
+                [parse_feature_line(sep, line) for line in results_file],
+                filename)
 
-    # clean up temporary files
-    srcFile.close()
-    featurefile.close()
-
+        # clean up temporary files
+        srcFile.close()
+        featurefile.close()
+        os.remove(srcFile.name)
+    except (Exception, IOError):
+        import sys
+        error_type, error_value, traceback = sys.exc_info()
+        log.warning("IGNORING cppstats failure ({0}, {1}), "
+                    "project file \"{2}\" is left as temp file ({3}) "
+                    "for inspection!"
+                    .format(error_type, error_value,
+                            filename, srcFile.name))
+        log.debug("Trace of previous error: {0}".format(traceback))
+        empty = FileDict()
+        empty.add_line(0, [])
+        feature_lines = empty
     # save result to the file commit instance
     return feature_lines
 
