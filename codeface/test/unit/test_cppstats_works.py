@@ -51,6 +51,14 @@ class TestCppStatsWorks(unittest.TestCase):
         self.assertEqual(file, file_new)
 
     def test_simple_analysis(self):
+        """
+        This test checks if cppstats is working as expected.
+        When this test fails it is possible that cppstats doesn't have
+        a working srcML binary. You can find the binaries on
+        http://sdml.info/lmcrs/ . Just copy the right binary to
+        cppstats/lib/srcml/{win|linux|darwin} and replace the
+        existing ones, then run this test again.
+        """
         file="""
 #if Test
 // example
