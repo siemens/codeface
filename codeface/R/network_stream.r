@@ -225,6 +225,8 @@ generate.person.edgelist <- function(entity.group) {
           edgelist.part[[i]] <- cbind(from, to, weight)
         }
         res <- do.call(rbind, edgelist.part)
+        res <- data.table(res)[, list(weight=sum(weight)), by=.(from, to)]
+
         return(res)})
 
   edgelist <- data.frame()
@@ -232,7 +234,6 @@ generate.person.edgelist <- function(entity.group) {
     edgelist <- do.call(rbind, edgelist.total)
 
     ## Aggregate edge multiplicity into a single edge
-    edgelist <- data.table(edgelist)
     edgelist <- edgelist[, list(weight=sum(weight)), by=.(from, to)]
     edgelist <- as.data.frame(edgelist)
   }
