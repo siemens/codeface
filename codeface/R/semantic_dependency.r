@@ -1,6 +1,6 @@
 library(tm)
 library(lsa)
-
+library(compiler)
 
 genArtifactCorpus <- function(depend.df) {
   myReader <- readTabular(mapping=list(content="impl", heading="entity"))
@@ -64,9 +64,15 @@ computeDocSimilarity <- function(tdm) {
   latent.space <- lsa(td.mat.w)
 
   ## Compute document simlarity using cosine similarity
-  similarity.mat <- cosine(diag(latent.space$sk) %*% t(latent.space$dk))
+  cmpCosine <- cmpfun(cosineVectorized)
+  similarity.mat <- cmpCosine(diag(latent.space$sk) %*% t(latent.space$dk))
 
   return(similarity.mat)
+}
+
+
+cosineVectorized <- function(x){
+  crossprod(x) / sqrt(tcrossprod(apply(x, 2, crossprod)))
 }
 
 
@@ -93,6 +99,44 @@ computeSemanticCouplingCon <- function(con, project.id, start.date, end.date,
 }
 
 
+getSimilarDocIds <- function(dist.mat, threshold) {
+  dist.mat[is.nan(dist.mat)] <- 0
+  edgelist <- matrix(ncol=2,nrow=0)
+
+  if (nrow(dist.mat) < 2) return(data.frame())
+
+  for (i in 2:ncol(dist.mat)) {
+    for (j in 1:(i-1)) {
+      if (dist.mat[i,j] >= threshold) {
+        edgelist <- rbind(edgelist, c(i,j))
+       }
+    }
+  }
+
+  return(data.frame(edgelist))
+}
+
+
+getSimDocIds <- function(dist.mat, threshold) {
+  ## Matrix is symetric so we don't need to make all comparisons
+  edgelist <- which(dist.mat >= threshold, arr.ind=TRUE,
+                    useNames=FALSE)
+
+  ## Remove the upper diagonal including diagonal indices
+  edgelist <- edgelist[edgelist[ ,1] > edgelist[ ,2],]
+
+  return(data.frame(edgelist))
+}
+
+
+remapIndx <- function (m, z, diag = FALSE) {
+    m.dim <- ncol(m)
+    index1 <- ((z-1) %/% m.dim) + 1
+    index2 <- ((z-1) %% m.dim) + 1
+
+    return(c(index1, index2))
+}
+
 computeSemanticCoupling <- function(depend.df, threshold=0.5) {
   ## Remove entity duplicates
   depend.df <- depend.df[!duplicated(depend.df[c("entity")]), ]
@@ -113,19 +157,17 @@ computeSemanticCoupling <- function(depend.df, threshold=0.5) {
   tdm <- processTermDocMat(corp)
 
   ## Compute document similarity using latent semantic analysis
-  similarity.mat <- computeDocSimilarity(tdm)
+  dist.mat <- computeDocSimilarity(tdm)
 
   ## Remove documents that have low similarity
-  high.similarity.relations <- which(similarity.mat >= threshold, arr.ind=TRUE,
-                                     useNames=FALSE)
-  edgelist.df <- data.frame(high.similarity.relations)
+  edgelist <- cmpfun(getSimDocIds)(dist.mat, threshold)
 
   ## Mapping of document ids to document names
   vertex.data <- data.frame(name=unlist(meta(corp, tag="id")),
                             id=unlist(meta(corp, tag="heading")),
                             stringsAsFactors=FALSE)
 
-  res <- list(edgelist=edgelist.df, vertex.data=vertex.data)
+  res <- list(edgelist=edgelist, vertex.data=vertex.data)
 
   return(res)
 }
