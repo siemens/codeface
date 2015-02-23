@@ -43,15 +43,20 @@ class DBManager:
         try:
             self.con = None
             self.con = mdb.Connection(host=conf["dbhost"],
+                                      port=conf["dbport"],
                                       user=conf["dbuser"],
                                       passwd=conf["dbpwd"],
                                       db=conf["dbname"])
-            log.debug("Establishing MySQL connection to {c[dbuser]}@{c[dbhost]}"
-                    ", DB '{c[dbname]}'".format(c=conf))
+            log.debug(
+                "Establishing MySQL connection to "
+                "{c[dbuser]}@{c[dbhost]}:{c[dbport]}, DB '{c[dbname]}'"
+                .format(c=conf))
         except mdb.Error as e:
-            log.critical("Failed to establish MySQL connection to "
-                    "{c[dbuser]}@{c[dbhost]}, DB '{c[dbname]}': {e[1]} ({e[0]})"
-                    "".format(c=conf, e=e.args))
+            log.critical(
+                "Failed to establish MySQL connection to "
+                "{c[dbuser]}@{c[dbhost]}:{c[dbport]}, DB '{c[dbname]}'"
+                ": {e[1]} ({e[0]})"
+                "".format(c=conf, e=e.args))
             raise
         self.cur = self.con.cursor()
 

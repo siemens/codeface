@@ -38,12 +38,14 @@ class Configuration(Mapping):
 
     GLOBAL_KEYS = ('dbname', 'dbhost', 'dbuser', 'dbpwd',
             'idServiceHostname', 'idServicePort')
+    GLOBAL_OPTIONAL_KEYS = ('dbport',)
     PROJECT_KEYS = ('project', 'repo', 'tagging', 'revisions', 'rcs')
     OPTIONAL_KEYS = ('description', 'ml', 'mailinglists', 'sleepTime',
                      'proxyHost', 'proxyPort', 'bugsProjectName',
                      'productAsProject', 'issueTrackerType',
                      'issueTrackerURL', 'understand', 'sloccount')
-    ALL_KEYS = set(GLOBAL_KEYS + PROJECT_KEYS + OPTIONAL_KEYS)
+    ALL_KEYS = set(GLOBAL_KEYS + GLOBAL_OPTIONAL_KEYS + PROJECT_KEYS +
+                   OPTIONAL_KEYS)
 
     def __init__(self):
         '''
@@ -102,6 +104,11 @@ class Configuration(Mapping):
         for ml in self._conf["mailinglists"]:
             ml.setdefault("type", "dev")
             ml.setdefault("source", "gmane")
+
+        if "dbport" not in self:
+            self._conf["dbport"] = 3306
+        else:
+            self._conf["dbport"] = int(self._conf["dbport"])
 
     def _check_sanity(self):
         '''

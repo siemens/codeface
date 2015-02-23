@@ -54,6 +54,12 @@ load.config <- function(global.file, project.file=NULL) {
     conf$idServicePort <- as.integer(conf$idServicePort)
   }
 
+  if (is.null(conf$dbport)) {
+    conf$dbport <- 3306
+  } else {
+    conf$dbport <- as.integer(conf$dbport)
+  }
+
   if(is.null(conf$understand)) {
     conf$understand <- FALSE
   }
