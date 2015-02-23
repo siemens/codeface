@@ -262,7 +262,8 @@ augment.conf <- function(conf) {
 init.db <- function(conf) {
   drv <- dbDriver("MySQL")
   con <- dbConnect(drv, host=conf$dbhost, user=conf$dbuser,
-                   password=conf$dbpwd, dbname=conf$dbname)
+                   password=conf$dbpwd, dbname=conf$dbname,
+                   port=conf$dbport)
   conf$pid <- get.project.id(con, conf$project)
   conf$con <- con
   dbGetQuery(con, "SET NAMES utf8")
@@ -287,7 +288,8 @@ init.db <- function(conf) {
 init.db.global <- function(conf) {
   drv <- dbDriver("MySQL")
   con <- dbConnect(drv, host=conf$dbhost, user=conf$dbuser,
-                   password=conf$dbpwd, dbname=conf$dbname)
+                   password=conf$dbpwd, dbname=conf$dbname,
+                   port=conf$dbport)
   conf$con <- con
   dbGetQuery(con, "SET NAMES utf8")
   return(conf)
