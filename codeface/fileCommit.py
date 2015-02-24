@@ -105,7 +105,7 @@ class FileCommit:
 
         # list of function line numbers in sorted order, this is for
         # optimizing the process of finding a function Id given a line number
-        self.functionLineNums = [0]
+        self.functionLineNums = [-1]
 
         # Function Implementation
         self.functionImpl = {}
@@ -146,7 +146,7 @@ class FileCommit:
     def setFunctionLines(self, functionIds):
         self.functionIds.update(functionIds)
         [self.functionImpl.update({id:[]}) for id in self.functionIds.values()]
-        self.functionLineNums.extend(sorted(self.functionIds.iterkeys()))
+        self.functionLineNums.extend(sorted(functionIds.iterkeys()))
 
     def setSrcElems(self, src_elem_list):
         self._src_elem_list.extend(src_elem_list)
@@ -167,7 +167,7 @@ class FileCommit:
                 func_id = self.functionIds[line_num]
         else:
             i = bisect.bisect_right(self.functionLineNums, line_num)
-            if i in self.functionLineNums:
+            if i > 0:
                 func_line = self.functionLineNums[i-1]
                 if func_line in self.functionIds: # on 'file' tagging we have no entries
                     func_id = self.functionIds[func_line]
