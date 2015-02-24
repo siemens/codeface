@@ -169,10 +169,8 @@ class FileCommit:
                 func_id = self.functionIds[line_num]
         else:
             i = bisect.bisect_right(self.functionLineNums, line_num)
-            if i in self.functionLineNums:
-                func_line = self.functionLineNums[i-1]
-                if func_line in self.functionIds: # on 'file' tagging we have no entries
-                    func_id = self.functionIds[func_line]
+            func_line = self.functionLineNums[i-1]
+            func_id = self.functionIds[func_line]
         return func_id
 
     def getLineCmtId(self, line_num):
