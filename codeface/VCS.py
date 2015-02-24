@@ -1241,6 +1241,11 @@ class gitVCS (VCS):
             if entry['kind'] in structures:
                 ## Ctags indexes starting at 1
                 line_num = int(entry['lineNumber']) - 1
+
+                ## Ctags sometimes assigns line numbers 0 in .js files
+                if line_num < 0:
+                    line_num = 0
+
                 func_lines[line_num] = entry['name']
 
         # clean up temporary files
