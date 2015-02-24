@@ -122,18 +122,18 @@ class TestEndToEndOnlyTaggingExample3Feature(
             # see that peter, bill and adam worked on the features A and B.
             # So they have a collaboration with each other
             [
-                [devs[2], devs[5], 1.0],  # bill and peter
-                [devs[5], devs[2], 1.0],  # peter and billy
-                [devs[2], devs[4], 1.0],  # bill and adam
-                [devs[4], devs[2], 1.0],  # adam and bill
-                [devs[5], devs[4], 1.0],  # peter and adam
-                [devs[4], devs[5], 1.0]],  # adam and peter
+                [devs[2], devs[5], 2.0],  # bill and peter
+                [devs[5], devs[2], 2.0],  # peter and billy
+                [devs[2], devs[4], 2.0],  # bill and adam
+                [devs[4], devs[2], 2.0],  # adam and bill
+                [devs[5], devs[4], 2.0],  # peter and adam
+                [devs[4], devs[5], 2.0]],  # adam and peter
             # Release 1 - Release 2
             # Here is a list of the changes grouped by features:
             # Feature 'A':
             # Adam:  4
             # Clara:  3
-            # Geoff: 1
+            # Geoff: 2
             #
             # Feature 'B':
             # Clara: 2
@@ -144,12 +144,12 @@ class TestEndToEndOnlyTaggingExample3Feature(
             # Max: 1
             # The numbers represent the number of changed lines.
             [   # Feature A
-                [devs[4], devs[6], 1.0],  # adam and clara
-                [devs[6], devs[4], 1.0],
-                [devs[4], devs[1], 1.0],  # adam and geoff
-                [devs[1], devs[4], 1.0],
-                [devs[6], devs[1], 1.0],  # clara and geoff
-                [devs[1], devs[6], 1.0],
+                [devs[4], devs[6], 5.0],  # adam and clara
+                [devs[6], devs[4], 5.0],
+                [devs[4], devs[1], 2.0],  # adam and geoff
+                [devs[1], devs[4], 2.0],
+                [devs[6], devs[1], 2.0],  # clara and geoff
+                [devs[1], devs[6], 2.0],
                 # Feature B
                 # clara and adam (already in Feature A)
                 # Feature C
@@ -257,12 +257,12 @@ class TestEndToEndOnlyTaggingExample3Feature_File(
             # The commits are analysed by taking their order into account:
             # (see also 'feature' analysis)
             [   # peter and adam (peter committed after adam)
-                [devs[5], devs[4], 1.0],
+                [devs[5], devs[4], 4.0],
                 # peter and bill
                 # (peter committed after bill, see commit date)
-                [devs[5], devs[2], 1.0],
+                [devs[5], devs[2], 4.0],
                 # bill and adam
-                [devs[2], devs[4], 1.0]],
+                [devs[2], devs[4], 4.0]],
             # Release 1 - Release 2
             # From the "src/carp.c" file we get no collaboration as there
             # was only one commit within this file
@@ -271,9 +271,9 @@ class TestEndToEndOnlyTaggingExample3Feature_File(
             # Clara collaborated with Adam on Feature A and Feature B
             # and Max with Adam on Feature C
             [   # clara and adam (clara after adam)
-                [devs[6], devs[4], 1.0],
+                [devs[6], devs[4], 12.0],
                 # max and adam (max after adam)
-                [devs[3], devs[4], 1.0]]]
+                [devs[3], devs[4], 3.0]]]
 
     # This actually produces the same data as the "feature" analysis
     # (see above for details)

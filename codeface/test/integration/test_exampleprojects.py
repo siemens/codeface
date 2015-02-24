@@ -157,8 +157,10 @@ class EndToEndTestSetup(unittest.TestCase):
             self.assertTrue(
                 res,
                 msg="Project edgelist is incorrect for the v{}_release "
-                    "to v{}_release analysis!"
-                .format(i, i+1))
+                    "to v{}_release analysis!\n\n"
+                    "Expected edges: {}\n"
+                    "Actual edges: {}"
+                .format(i, i+1, correct_edges, test_edges))
     
     def mlEndToEnd(self):
         save_argv = sys.argv
@@ -282,13 +284,13 @@ class TestEndToEndExample2Proximity(EndToEndTestSetup, TestEndToEnd):
     add_ignore_tables = ["edgelist"]
     devs = ["Louie Loner", "Geoff Genius", "Bill Bully", "Max Maintainer",
             "Adam Awkward", "Peter Popular", "Clara Confident"]
-    correct_edges = [[[devs[0], devs[5], 1.0],
-                      [devs[1], devs[6], 1.0],
-                      [devs[2], devs[4], 1.0],
-                      [devs[3], devs[2], 1.0],
-                      [devs[3], devs[4], 1.0],
-                      [devs[4], devs[2], 1.0],
-                      [devs[5], devs[0], 1.0]]]
+    correct_edges = [[[devs[0], devs[5], 4.0],
+                      [devs[1], devs[6], 5.0],
+                      [devs[2], devs[4], 4.0],
+                      [devs[3], devs[2], 9.0],
+                      [devs[3], devs[4], 24.0],
+                      [devs[4], devs[2], 2.0],
+                      [devs[5], devs[0], 6.0]]]
 
 class TestEndToEndExample2Tag(EndToEndTestSetup, TestEndToEnd):
     example_project = 2
