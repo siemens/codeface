@@ -101,11 +101,12 @@ class FileCommit:
         self.revCmts = []
 
         # dictionary with key = line number, value = function name
-        self.functionIds = {-1:'File_Level'}
+        file_level = -1
+        self.functionIds = {file_level:'File_Level'}
 
         # list of function line numbers in sorted order, this is for
         # optimizing the process of finding a function Id given a line number
-        self.functionLineNums = [0]
+        self.functionLineNums = [file_level]
 
         # Function Implementation
         self.functionImpl = {}
