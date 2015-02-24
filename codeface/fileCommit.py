@@ -146,7 +146,8 @@ class FileCommit:
 
     def setFunctionLines(self, functionIds):
         self.functionIds.update(functionIds)
-        [self.functionImpl.update({id:[]}) for id in self.functionIds.values()]
+        for id in self.functionIds.values():
+            self.functionImpl.update({id:[]})
         self.functionLineNums.extend(sorted(self.functionIds.iterkeys()))
 
     def setSrcElems(self, src_elem_list):
