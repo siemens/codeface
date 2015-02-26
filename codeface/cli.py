@@ -158,7 +158,6 @@ def cmd_test(args):
         pattern='test_{}.py'.format(pattern), top_level_dir=test_path)
     unit_result = unittest.TextTestRunner(verbosity=1).run(tests)
     unit_success = not (unit_result.failures or unit_result.errors)
-    #unit_success = True
     if unit_only:
         if unit_success:
             print('\n===== unit tests succeeded :) =====')
