@@ -78,7 +78,10 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     # generate the analysis window automatically
     if len(conf["revisions"]) < 2:
         window_size_months = 3 # Window size in months
-        conf["revisions"], conf["rcs"] = generate_analysis_windows(repo, window_size_months)
+        num_window = -1  # Number of ranges to analyse
+        revs, rcs = generate_analysis_windows(repo, window_size_months)
+        conf["revisions"] = revs[-num_window-1:]
+        conf["rcs"] = rcs[-num_window-1:]
         range_by_date = True
 
     # TODO: Sanity checks (ensure that git repo dir exists)
