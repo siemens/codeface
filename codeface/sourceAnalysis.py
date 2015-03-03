@@ -68,7 +68,7 @@ class FileAnalysis:
                     name = child.find('name').text
                     # Some elements of function type are not assigned
                     # start and end (e.g., definitions)
-                    if (start is not None) & (end is not None):
+                    if None not in [start, end, name]:
                         self.src_elem_list.append({'bodystart':start,
                                                    'bodyend':end,
                                                    'name':name,
