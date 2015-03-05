@@ -59,10 +59,10 @@ get.clear.plot.id.con <- function(con, pid, plot.name, range.id=NULL,
 
   res <- dbGetQuery(con, str_c("SELECT id", query))
 
-  if (length(res) != 1) {
+  if (nrow(res) != 1) {
     stop("Internal error: Plot ", plot.name, " appears multiple times in DB",
          "for project ID ", pid)
-  }
+}
 
   return(res$id)
 }
@@ -81,7 +81,7 @@ get.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
     query <- str_c(query, " AND releaseRangeId=", range.id)
   }
   res <- dbGetQuery(con, str_c("SELECT id", query))
-  if (length(res) < 1) {
+  if (nrow(res) < 1) {
     stop("Internal error: Plot ", plot.name, " not found in DB",
          " for project ID ", pid)
   }
@@ -104,7 +104,7 @@ get.or.create.plot.id.con <- function(con, pid, plot.name, range.id=NULL) {
   }
   res <- dbGetQuery(con, str_c(query, ";"))
 
-  if (length(res) < 1) {
+  if (nrow(res) < 1) {
     ## Plot ID is not assigned yet, create one
     res <- get.clear.plot.id.con(con, pid, plot.name, range.id)
   } else {
@@ -125,7 +125,7 @@ get.revision.id <- function(conf, tag) {
                     str_c("SELECT id FROM release_timeline WHERE projectId=",
                           conf$pid, " AND tag=", sq(tag), " AND type='release'"))
 
-  if (length(res) > 1) {
+  if (nrow(res) > 1) {
     stop("Internal error: Revision if for tag ", tag, " (project ", conf$project,
          ") appears multiple times in DB!")
   }
