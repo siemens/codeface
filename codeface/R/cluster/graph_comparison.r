@@ -238,6 +238,7 @@ get.merged.igraphs <- function(graph.data.1, graph.data.2) {
 run.graph.comparison <- function(igraphs, weighted=FALSE, symmetric=FALSE) {
   g.1 <- igraphs$g.1
   g.2 <- igraphs$g.2
+  
   unmerged.g.1 <- igraphs$unmerged.g.1
   unmerged.g.2 <- igraphs$unmerged.g.2
   # vertex.diff describes how different the edges are, we now calculate how different the graphs are
@@ -303,8 +304,10 @@ run.graph.comparison <- function(igraphs, weighted=FALSE, symmetric=FALSE) {
                nodes.diff=nodes.diff,
                vertex.weighted.diff=vertex.weighted.diff,
                vertex.total.diff=vertex.total.diff,
+               vertex.min.diff=min(vertex.diff$graph.diff),
                unmerged.vertex.weighted.diff=unmerged.vertex.weighted.diff,
-               unmerged.vertex.total.diff=unmerged.vertex.total.diff))
+               unmerged.vertex.total.diff=unmerged.vertex.total.diff,
+               unmerged.vertex.min.diff=min(unmerged.vertex.diff$graph.diff)))
 }
 
 # Run a bunch of graph comparisons, with the given parameter
@@ -320,7 +323,9 @@ run.graph.comparison <- function(igraphs, weighted=FALSE, symmetric=FALSE) {
 #  compare.cohesion, compare.diameter, compare.density, compare.transitivity,
 #  nodes.diff,
 #  vertex.weighted.diff, vertex.total.diff,
-#  unmerged.vertex.weighted.diff, unmerged.vertex.total.diff
+#  unmerged.vertex.weighted.diff, unmerged.vertex.total.diff,
+#  rewired.vertex.weighted.diff, rewired.vertex.total.diff,
+#  rewired.unmerged.vertex.weighted.diff, rewired.unmerged.vertex.total.diff
 #  )
 # and vertexdata will be a list of vertex comparison (one entry for each comparison)
 # The data will be read from the database when needed.
@@ -350,8 +355,16 @@ run.batch.comparison <- function(con, compare.ranges) {
                          nodes.diff=numeric(),
                          vertex.weighted.diff=numeric(),
                          vertex.total.diff=numeric(),
+                         vertex.min.diff=numeric(),
                          unmerged.vertex.weighted.diff=numeric(),
                          unmerged.vertex.total.diff=numeric(),
+                         unmerged.vertex.min.diff=numeric(),
+                         rewired.vertex.weighted.diff=numeric(),
+                         rewired.vertex.total.diff=numeric(),
+                         rewired.vertex.min.diff=numeric(),
+                         rewired.unmerged.vertex.weighted.diff=numeric(),
+                         rewired.unmerged.vertex.total.diff=numeric(),
+                         rewired.unmerged.vertex.min.diff=numeric(),
                          stringsAsFactors=FALSE)
   get.project.data <- function(con, range) {
     project.id <- get.project.id.from.release.range.id(con, range)
@@ -370,7 +383,32 @@ run.batch.comparison <- function(con, compare.ranges) {
       density = graph.density(g),
       transitivity = transitivity(g)))
   }
-
+  
+  myrewire <- function(g) {
+    
+    #graph.multi <- edge.weight.to.multi(g)
+    #graph.multi <- remove.vertex.attribute(graph.multi, 'name')
+    
+    #rewired <- birewire.rewire(graph.multi, exact=T, verbose=F)
+    #E(rewired)$weight <- 1
+    #rewired <- simplify(rewired, remove.loops=FALSE)
+    #return (graph.adjacency(rewired))
+    
+    #m<-as.matrix(get.adjacency(graph=g,sparse=TRUE))
+    #m2=birewire.rewire(m, max.iter=1)
+    #return (graph.adjacency(m2,mode="undirected"))
+    
+    
+    #graph.multi <- edge.weight.to.multi(g)
+    if (length(V(g)) > 4) {
+      rewired <- rewire(g, mode="simple", niter = (length(E(g))))
+      E(rewired)$weight <- rep(1, length(E(rewired)))
+      return (rewired)
+    } else {
+      return (g)
+    }
+  }
+  
   for (i in 1:len) {
     r.1 <- compare.ranges$original[i]
     r.2 <- compare.ranges$compare[i]
@@ -382,11 +420,19 @@ run.batch.comparison <- function(con, compare.ranges) {
     data.2 <- get.graph.data.from.range(con, r.2)
     igraphs <- get.merged.igraphs(data.1,data.2)
     diff.sym <- run.graph.comparison(igraphs, symmetric=F)
+    diff.rewire <- run.graph.comparison(list(g.1=myrewire(igraphs$g.1),
+                                             g.2=myrewire(igraphs$g.2),
+                                             unmerged.g.1=myrewire(igraphs$unmerged.g.1),
+                                             unmerged.g.2=myrewire(igraphs$unmerged.g.2)))
+    
     overview[nrow(overview)+1,] <- c(i,
                                      meta.data.1, meta.data.2,
                                      get.graph.metrices(igraphs$unmerged.g.1), get.graph.metrices(igraphs$unmerged.g.2),
-                                     diff.sym$nodes.diff, diff.sym$vertex.weighted.diff, diff.sym$vertex.total.diff,
-                                     diff.sym$unmerged.vertex.weighted.diff, diff.sym$unmerged.vertex.total.diff)
+                                     diff.sym$nodes.diff, 
+                                     diff.sym$vertex.weighted.diff, diff.sym$vertex.total.diff,diff.sym$vertex.min.diff,
+                                     diff.sym$unmerged.vertex.weighted.diff, diff.sym$unmerged.vertex.total.diff, diff.sym$unmerged.vertex.min.diff, 
+                                     diff.rewire$vertex.weighted.diff, diff.rewire$vertex.total.diff, diff.rewire$vertex.min.diff,
+                                     diff.rewire$unmerged.vertex.weighted.diff, diff.rewire$unmerged.vertex.total.diff, diff.rewire$unmerged.vertex.min.diff)
 
     #vertexdata[[as.character(str_c(meta.data.2$type, "_", meta.data.2$range.string))]] <- diff.sym$vertex.diff
     vertexdata[[as.character(str_c(as.character(r.1), "/", as.character(r.2)))]] <- diff.sym$vertex.diff
