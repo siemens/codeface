@@ -112,7 +112,7 @@ figure.of.merit.collaboration <- function(pid) {
 figure.of.merit.communication <- function(pid) {
   n.mail.threads <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM mail_thread WHERE projectId=", pid))[[1]]
   ml.plots <-  dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", pid, " AND releaseRangeId IS NULL AND name LIKE '%activity'"))
-  if (length(n.mail.threads) == 0 || length(ml.plots) == 0) {
+  if (nrow(n.mail.threads) == 0 || nrow(ml.plots) == 0) {
     return(list(status=status.error, why="No mailing list to analyse."))
   }
 
@@ -160,10 +160,11 @@ figure.of.merit.communication <- function(pid) {
 
 figure.of.merit.construction <- function(pid) {
   plot.ids <- dbGetQuery(conf$con, str_c("SELECT id FROM plots WHERE name LIKE 'Release TS distance' AND projectId=", pid))
-  if (length(plot.ids) == 0) {
+  if (nrow(plot.ids) == 0) {
     return(list(status=status.error, why="Release information not available. This usually means that the analysis has not yet completed."))
   }
   plot.id <- plot.ids$id[[1]]
+
   release.distance <- query.timeseries(conf$con, plot.id)
   l <- length(release.distance$time)
   if (l == 0) {
@@ -196,7 +197,7 @@ figure.of.merit.complexity <- function(pid) {
                                        "name NOT LIKE 'understand_raw' AND ",
                                        "projectId=", pid))
 
-  if (length(understand.plots) == 0) {
+  if (nrow(understand.plots) == 0) {
     return(list(status=status.error, why="No complexity analysis plots were found.")) # Cannot return figure of merit if no complexity analysis was done
   }
 
