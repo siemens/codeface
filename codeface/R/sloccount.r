@@ -30,6 +30,7 @@ gather.sloccount.results <- function(dir, cost.per.py) {
 add.sloccount.ts <- function(conf, plot.id, commit.date, values) {
   if (nrow(values$metrics) > 0) {
     dat <- cbind(plotId=plot.id, time=commit.date, values$metrics)
+    colnames(dat) <- gsub("\\.", "_", colnames(dat))
     res <- dbWriteTable(conf$con, "sloccount_ts", dat, append=TRUE, row.names=FALSE)
 
     if (!res) {

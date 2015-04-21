@@ -22,7 +22,7 @@ install:
   # R
   - sudo apt-get install r-base r-base-dev
   # Generic packages
-  - sudo apt-get install sinntp texlive default-jdk mysql-common mysql-client mysql-server python-dev exuberant-ctags nodejs npm git subversion libgles2-mesa python-pip sloccount graphviz
+  - sudo apt-get install sinntp texlive default-jdk mysql-common mysql-client mysql-server python-dev exuberant-ctags nodejs npm git subversion libgles2-mesa python-pip sloccount graphviz doxygen
   # develop packages 
   - sudo apt-get install libxml2-dev libcurl4-openssl-dev xorg-dev libx11-dev libgles2-mesa-dev libglu1-mesa-dev libmysqlclient-dev libcairo2-dev libxt-dev libcairo2-dev libmysqlclient-dev
   # Devel packages required for Ubuntu 14.04
