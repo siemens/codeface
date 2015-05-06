@@ -2,7 +2,6 @@ SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
 
-DROP SCHEMA IF EXISTS `codeface` ;
 CREATE SCHEMA IF NOT EXISTS `codeface` DEFAULT CHARACTER SET utf8 ;
 USE `codeface` ;
 
@@ -16,10 +15,9 @@ CREATE TABLE IF NOT EXISTS `codeface`.`project` (
   `name` VARCHAR(255) NOT NULL,
   `analysisMethod` VARCHAR(45) NOT NULL,
   `analysisTime` DATETIME NULL DEFAULT NULL,
-  PRIMARY KEY (`id`))
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `name_UNIQUE` (`name` ASC))
 ENGINE = InnoDB;
-
-CREATE UNIQUE INDEX `name_UNIQUE` ON `codeface`.`project` (`name` ASC);
 
 
 -- -----------------------------------------------------
@@ -37,16 +35,14 @@ CREATE TABLE IF NOT EXISTS `codeface`.`person` (
   `email4` VARCHAR(255) NULL DEFAULT NULL,
   `email5` VARCHAR(255) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  INDEX `person_projectId_idx` (`projectId` ASC),
+  UNIQUE INDEX `person_email_project_idx` (`projectId` ASC, `email1` ASC),
   CONSTRAINT `person_projectId`
     FOREIGN KEY (`projectId`)
     REFERENCES `codeface`.`project` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `person_projectId_idx` ON `codeface`.`person` (`projectId` ASC);
-
-CREATE UNIQUE INDEX `person_email_project_idx` ON `codeface`.`person` (`projectId` ASC, `email1` ASC);
 
 
 -- -----------------------------------------------------
@@ -72,6 +68,10 @@ CREATE TABLE IF NOT EXISTS `codeface`.`issue` (
   `subSubComponent` VARCHAR(45) NULL DEFAULT NULL,
   `version` VARCHAR(45) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  INDEX `issue_createdBy_idx` (`createdBy` ASC),
+  INDEX `issue_assignedTo_idx` (`assignedTo` ASC),
+  INDEX `issue_projectId_idx` (`projectId` ASC),
+  UNIQUE INDEX `bugId_UNIQUE` (`bugId` ASC),
   CONSTRAINT `issue_createdBy`
     FOREIGN KEY (`createdBy`)
     REFERENCES `codeface`.`person` (`id`)
@@ -89,14 +89,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`issue` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `issue_createdBy_idx` ON `codeface`.`issue` (`createdBy` ASC);
-
-CREATE INDEX `issue_assignedTo_idx` ON `codeface`.`issue` (`assignedTo` ASC);
-
-CREATE INDEX `issue_projectId_idx` ON `codeface`.`issue` (`projectId` ASC);
-
-CREATE UNIQUE INDEX `bugId_UNIQUE` ON `codeface`.`issue` (`bugId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`issue_comment`
@@ -109,6 +101,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`issue_comment` (
   `fk_issueId` BIGINT NOT NULL,
   `commentDate` DATETIME NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  INDEX `fk_issueId_idx` (`fk_issueId` ASC),
+  INDEX `issue_comment_who_idx` (`who` ASC),
   CONSTRAINT `fk_issueId`
     FOREIGN KEY (`fk_issueId`)
     REFERENCES `codeface`.`issue` (`id`)
@@ -120,10 +114,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`issue_comment` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `fk_issueId_idx` ON `codeface`.`issue_comment` (`fk_issueId` ASC);
-
-CREATE INDEX `issue_comment_who_idx` ON `codeface`.`issue_comment` (`who` ASC);
 
 
 -- -----------------------------------------------------
@@ -138,14 +128,13 @@ CREATE TABLE IF NOT EXISTS `codeface`.`release_timeline` (
   `date` DATETIME NULL DEFAULT NULL,
   `projectId` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `release_project_ref_idx` (`projectId` ASC),
   CONSTRAINT `release_project_ref`
     FOREIGN KEY (`projectId`)
     REFERENCES `codeface`.`project` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `release_project_ref_idx` ON `codeface`.`release_timeline` (`projectId` ASC);
 
 
 -- -----------------------------------------------------
@@ -160,6 +149,10 @@ CREATE TABLE IF NOT EXISTS `codeface`.`release_range` (
   `projectId` BIGINT NOT NULL,
   `releaseRCStartId` BIGINT NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  INDEX `releaseRange_releaseStartId_idx` (`releaseStartId` ASC),
+  INDEX `releaseRange_releaseEndId_idx` (`releaseEndId` ASC),
+  INDEX `releaseRange_projectId_idx` (`projectId` ASC),
+  INDEX `releaseRange_RCStartId_idx` (`releaseRCStartId` ASC),
   CONSTRAINT `releaseRange_releaseStartId`
     FOREIGN KEY (`releaseStartId`)
     REFERENCES `codeface`.`release_timeline` (`id`)
@@ -182,14 +175,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`release_range` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `releaseRange_releaseStartId_idx` ON `codeface`.`release_range` (`releaseStartId` ASC);
-
-CREATE INDEX `releaseRange_releaseEndId_idx` ON `codeface`.`release_range` (`releaseEndId` ASC);
-
-CREATE INDEX `releaseRange_projectId_idx` ON `codeface`.`release_range` (`projectId` ASC);
-
-CREATE INDEX `releaseRange_RCStartId_idx` ON `codeface`.`release_range` (`releaseRCStartId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`mailing_list`
@@ -202,14 +187,13 @@ CREATE TABLE IF NOT EXISTS `codeface`.`mailing_list` (
   `name` VARCHAR(128) NOT NULL,
   `description` VARCHAR(255) NULL,
   PRIMARY KEY (`id`),
+  INDEX `mailing_lists_projectid_idx` (`projectId` ASC),
   CONSTRAINT `mailing_lists_projectid`
     FOREIGN KEY (`projectId`)
     REFERENCES `codeface`.`project` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `mailing_lists_projectid_idx` ON `codeface`.`mailing_list` (`projectId` ASC);
 
 
 -- -----------------------------------------------------
@@ -229,6 +213,10 @@ CREATE TABLE IF NOT EXISTS `codeface`.`mail_thread` (
   `numberOfAuthors` INT NOT NULL,
   `numberOfMessages` INT NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `mail_createdBy_idx` (`createdBy` ASC),
+  INDEX `mail_projectId_idx` (`projectId` ASC),
+  INDEX `mail_release_range_key_idx` (`releaseRangeId` ASC),
+  INDEX `mail_mlId_idx` (`mlId` ASC),
   CONSTRAINT `mail_createdBy`
     FOREIGN KEY (`createdBy`)
     REFERENCES `codeface`.`person` (`id`)
@@ -251,14 +239,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`mail_thread` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `mail_createdBy_idx` ON `codeface`.`mail_thread` (`createdBy` ASC);
-
-CREATE INDEX `mail_projectId_idx` ON `codeface`.`mail_thread` (`projectId` ASC);
-
-CREATE INDEX `mail_release_range_key_idx` ON `codeface`.`mail_thread` (`releaseRangeId` ASC);
-
-CREATE INDEX `mail_mlId_idx` ON `codeface`.`mail_thread` (`mlId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`thread_responses`
@@ -269,6 +249,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`thread_responses` (
   `who` BIGINT NOT NULL,
   `mailThreadId` BIGINT NOT NULL,
   `mailDate` DATETIME NULL DEFAULT NULL,
+  INDEX `thread_responses_who_idx` (`who` ASC),
+  INDEX `mailThreadId_idx` (`mailThreadId` ASC),
   CONSTRAINT `thread_responses_who`
     FOREIGN KEY (`who`)
     REFERENCES `codeface`.`person` (`id`)
@@ -281,10 +263,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`thread_responses` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `thread_responses_who_idx` ON `codeface`.`thread_responses` (`who` ASC);
-
-CREATE INDEX `mailThreadId_idx` ON `codeface`.`thread_responses` (`mailThreadId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`cc_list`
@@ -294,6 +272,8 @@ DROP TABLE IF EXISTS `codeface`.`cc_list` ;
 CREATE TABLE IF NOT EXISTS `codeface`.`cc_list` (
   `issueId` BIGINT NOT NULL,
   `who` BIGINT NOT NULL,
+  INDEX `cclist_issueId_idx` (`issueId` ASC),
+  INDEX `cclist_who_idx` (`who` ASC),
   CONSTRAINT `cclist_issueId`
     FOREIGN KEY (`issueId`)
     REFERENCES `codeface`.`issue` (`id`)
@@ -305,10 +285,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`cc_list` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `cclist_issueId_idx` ON `codeface`.`cc_list` (`issueId` ASC);
-
-CREATE INDEX `cclist_who_idx` ON `codeface`.`cc_list` (`who` ASC);
 
 
 -- -----------------------------------------------------
@@ -341,7 +317,12 @@ CREATE TABLE IF NOT EXISTS `codeface`.`commit` (
   `AuthorTaggersSimilarity` FLOAT NULL DEFAULT NULL,
   `TaggersSubsysSimilarity` FLOAT NULL DEFAULT NULL,
   `releaseRangeId` BIGINT NULL DEFAULT NULL,
+  `description` TEXT NULL,
+  `corrective` TINYINT(1) NULL,
   PRIMARY KEY (`id`),
+  INDEX `commit_person_idx` (`author` ASC),
+  INDEX `commit_project_idx` (`projectId` ASC),
+  INDEX `commit_release_end_idx` (`releaseRangeId` ASC),
   CONSTRAINT `commit_person`
     FOREIGN KEY (`author`)
     REFERENCES `codeface`.`person` (`id`)
@@ -359,12 +340,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`commit` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `commit_person_idx` ON `codeface`.`commit` (`author` ASC);
-
-CREATE INDEX `commit_project_idx` ON `codeface`.`commit` (`projectId` ASC);
-
-CREATE INDEX `commit_release_end_idx` ON `codeface`.`commit` (`releaseRangeId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`commit_communication`
@@ -377,6 +352,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`commit_communication` (
   `who` BIGINT NOT NULL,
   `communicationType` INT NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `commtcom_commit_idx` (`commitId` ASC),
+  INDEX `commitcom_person_idx` (`who` ASC),
   CONSTRAINT `commitcom_commit`
     FOREIGN KEY (`commitId`)
     REFERENCES `codeface`.`commit` (`id`)
@@ -389,10 +366,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`commit_communication` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `commtcom_commit_idx` ON `codeface`.`commit_communication` (`commitId` ASC);
-
-CREATE INDEX `commitcom_person_idx` ON `codeface`.`commit_communication` (`who` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`issue_duplicates`
@@ -404,6 +377,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`issue_duplicates` (
   `originalBugId` BIGINT NOT NULL,
   `duplicateBugId` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `original_issue_duplicate_idx` (`originalBugId` ASC),
+  INDEX `duplicate_issue_duplicate_idx` (`duplicateBugId` ASC),
   CONSTRAINT `original_issue_duplicate`
     FOREIGN KEY (`originalBugId`)
     REFERENCES `codeface`.`issue` (`id`)
@@ -416,10 +391,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`issue_duplicates` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `original_issue_duplicate_idx` ON `codeface`.`issue_duplicates` (`originalBugId` ASC);
-
-CREATE INDEX `duplicate_issue_duplicate_idx` ON `codeface`.`issue_duplicates` (`duplicateBugId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`issue_dependencies`
@@ -431,6 +402,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`issue_dependencies` (
   `originalIssueId` BIGINT NOT NULL,
   `dependentIssueId` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `dependent_original_issue_idx` (`originalIssueId` ASC),
+  INDEX `dependent_dependent_issue_idx` (`dependentIssueId` ASC),
   CONSTRAINT `dependent_original_issue`
     FOREIGN KEY (`originalIssueId`)
     REFERENCES `codeface`.`issue` (`id`)
@@ -442,10 +415,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`issue_dependencies` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `dependent_original_issue_idx` ON `codeface`.`issue_dependencies` (`originalIssueId` ASC);
-
-CREATE INDEX `dependent_dependent_issue_idx` ON `codeface`.`issue_dependencies` (`dependentIssueId` ASC);
 
 
 -- -----------------------------------------------------
@@ -462,6 +431,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`author_commit_stats` (
   `total` INT NULL DEFAULT NULL,
   `numcommits` INT NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  INDEX `author_person_key_idx` (`authorId` ASC),
+  INDEX `releaseRangeId_key_idx` (`releaseRangeId` ASC),
   CONSTRAINT `author_person_key`
     FOREIGN KEY (`authorId`)
     REFERENCES `codeface`.`person` (`id`)
@@ -473,10 +444,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`author_commit_stats` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `author_person_key_idx` ON `codeface`.`author_commit_stats` (`authorId` ASC);
-
-CREATE INDEX `releaseRangeId_key_idx` ON `codeface`.`author_commit_stats` (`releaseRangeId` ASC);
 
 
 -- -----------------------------------------------------
@@ -492,6 +459,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`plots` (
   `labelx` VARCHAR(45) NULL DEFAULT NULL,
   `labely` VARCHAR(45) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  INDEX `plot_project_ref_idx` (`projectId` ASC),
+  INDEX `plot_releaseRangeId_ref_idx` (`releaseRangeId` ASC),
   CONSTRAINT `plot_project_ref`
     FOREIGN KEY (`projectId`)
     REFERENCES `codeface`.`project` (`id`)
@@ -504,10 +473,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`plots` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `plot_project_ref_idx` ON `codeface`.`plots` (`projectId` ASC);
-
-CREATE INDEX `plot_releaseRangeId_ref_idx` ON `codeface`.`plots` (`releaseRangeId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`plot_bin`
@@ -518,14 +483,13 @@ CREATE TABLE IF NOT EXISTS `codeface`.`plot_bin` (
   `plotID` BIGINT NOT NULL,
   `type` VARCHAR(45) NOT NULL,
   `data` LONGBLOB NOT NULL,
+  INDEX `plot_bin_plot_ref_idx` (`plotID` ASC),
   CONSTRAINT `plot_bin_plot_ref`
     FOREIGN KEY (`plotID`)
     REFERENCES `codeface`.`plots` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `plot_bin_plot_ref_idx` ON `codeface`.`plot_bin` (`plotID` ASC);
 
 
 -- -----------------------------------------------------
@@ -542,6 +506,10 @@ CREATE TABLE IF NOT EXISTS `codeface`.`cluster` (
   `dot` BIGINT NULL DEFAULT NULL,
   `svg` BIGINT NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  INDEX `project_cluster_ref_idx` (`projectId` ASC),
+  INDEX `dot_plot_bin_data_idx` (`dot` ASC),
+  INDEX `svg_plot_bin_data_ref_idx` (`svg` ASC),
+  INDEX `cluster_releaseRange_idx` (`releaseRangeId` ASC),
   CONSTRAINT `project_cluster_ref`
     FOREIGN KEY (`projectId`)
     REFERENCES `codeface`.`project` (`id`)
@@ -564,14 +532,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`cluster` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `project_cluster_ref_idx` ON `codeface`.`cluster` (`projectId` ASC);
-
-CREATE INDEX `dot_plot_bin_data_idx` ON `codeface`.`cluster` (`dot` ASC);
-
-CREATE INDEX `svg_plot_bin_data_ref_idx` ON `codeface`.`cluster` (`svg` ASC);
-
-CREATE INDEX `cluster_releaseRange_idx` ON `codeface`.`cluster` (`releaseRangeId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`cluster_user_mapping`
@@ -583,6 +543,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`cluster_user_mapping` (
   `personId` BIGINT NOT NULL,
   `clusterId` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `cluster_cluster_user_ref_idx` (`clusterId` ASC),
+  INDEX `person_cluster_user_ref_idx` (`personId` ASC),
   CONSTRAINT `cluster_cluster_user_ref`
     FOREIGN KEY (`clusterId`)
     REFERENCES `codeface`.`cluster` (`id`)
@@ -594,10 +556,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`cluster_user_mapping` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `cluster_cluster_user_ref_idx` ON `codeface`.`cluster_user_mapping` (`clusterId` ASC);
-
-CREATE INDEX `person_cluster_user_ref_idx` ON `codeface`.`cluster_user_mapping` (`personId` ASC);
 
 
 -- -----------------------------------------------------
@@ -614,6 +572,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`issue_history` (
   `who` BIGINT NOT NULL,
   `issueId` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `issue_history_issue_map_idx` (`issueId` ASC),
+  INDEX `issue_history_person_map_idx` (`who` ASC),
   CONSTRAINT `issue_history_issue_map`
     FOREIGN KEY (`issueId`)
     REFERENCES `codeface`.`issue` (`id`)
@@ -625,10 +585,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`issue_history` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `issue_history_issue_map_idx` ON `codeface`.`issue_history` (`issueId` ASC);
-
-CREATE INDEX `issue_history_person_map_idx` ON `codeface`.`issue_history` (`who` ASC);
 
 
 -- -----------------------------------------------------
@@ -642,14 +598,13 @@ CREATE TABLE IF NOT EXISTS `codeface`.`url_info` (
   `type` VARCHAR(45) NOT NULL,
   `url` TEXT NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `url_info_project_idx` (`projectId` ASC),
   CONSTRAINT `url_info_project`
     FOREIGN KEY (`projectId`)
     REFERENCES `codeface`.`project` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `url_info_project_idx` ON `codeface`.`url_info` (`projectId` ASC);
 
 
 -- -----------------------------------------------------
@@ -662,14 +617,13 @@ CREATE TABLE IF NOT EXISTS `codeface`.`timeseries` (
   `time` DATETIME NOT NULL,
   `value` DOUBLE NOT NULL,
   `value_scaled` DOUBLE NULL DEFAULT NULL,
+  INDEX `plot_time_double_plot_ref_idx` (`plotId` ASC),
   CONSTRAINT `plot_time_double_plot_ref`
     FOREIGN KEY (`plotId`)
     REFERENCES `codeface`.`plots` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `plot_time_double_plot_ref_idx` ON `codeface`.`timeseries` (`plotId` ASC);
 
 
 -- -----------------------------------------------------
@@ -685,6 +639,9 @@ CREATE TABLE IF NOT EXISTS `codeface`.`freq_subjects` (
   `subject` TEXT NOT NULL,
   `count` INT NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `freq_subects_project_ref_idx` (`projectId` ASC),
+  INDEX `freq_subjects_release_range_ref_idx` (`releaseRangeId` ASC),
+  INDEX `freq_subjects_mlId_ref_idx` (`mlId` ASC),
   CONSTRAINT `freq_subects_project_ref`
     FOREIGN KEY (`projectId`)
     REFERENCES `codeface`.`project` (`id`)
@@ -702,12 +659,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`freq_subjects` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `freq_subects_project_ref_idx` ON `codeface`.`freq_subjects` (`projectId` ASC);
-
-CREATE INDEX `freq_subjects_release_range_ref_idx` ON `codeface`.`freq_subjects` (`releaseRangeId` ASC);
-
-CREATE INDEX `freq_subjects_mlId_ref_idx` ON `codeface`.`freq_subjects` (`mlId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`thread_density`
@@ -721,14 +672,13 @@ CREATE TABLE IF NOT EXISTS `codeface`.`thread_density` (
   `type` VARCHAR(45) NOT NULL,
   `projectId` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `project_thread_density_ref_idx` (`projectId` ASC),
   CONSTRAINT `project_thread_density_ref`
     FOREIGN KEY (`projectId`)
     REFERENCES `codeface`.`project` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `project_thread_density_ref_idx` ON `codeface`.`thread_density` (`projectId` ASC);
 
 
 -- -----------------------------------------------------
@@ -742,14 +692,13 @@ CREATE TABLE IF NOT EXISTS `codeface`.`pagerank` (
   `technique` TINYINT NOT NULL,
   `name` VARCHAR(45) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
+  INDEX `pagerank_releaserange_idx` (`releaseRangeId` ASC),
   CONSTRAINT `pagerank_releaserange`
     FOREIGN KEY (`releaseRangeId`)
     REFERENCES `codeface`.`release_range` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `pagerank_releaserange_idx` ON `codeface`.`pagerank` (`releaseRangeId` ASC);
 
 
 -- -----------------------------------------------------
@@ -762,6 +711,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`pagerank_matrix` (
   `personId` BIGINT NOT NULL,
   `rankValue` DOUBLE NOT NULL,
   PRIMARY KEY (`pageRankId`, `personId`),
+  INDEX `pagerankMatrix_pagerank_idx` (`pageRankId` ASC),
+  INDEX `pagerankMatrix_person_idx` (`personId` ASC),
   CONSTRAINT `pagerankMatrix_pagerank`
     FOREIGN KEY (`pageRankId`)
     REFERENCES `codeface`.`pagerank` (`id`)
@@ -774,10 +725,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`pagerank_matrix` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `pagerankMatrix_pagerank_idx` ON `codeface`.`pagerank_matrix` (`pageRankId` ASC);
-
-CREATE INDEX `pagerankMatrix_person_idx` ON `codeface`.`pagerank_matrix` (`personId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`edgelist`
@@ -789,6 +736,9 @@ CREATE TABLE IF NOT EXISTS `codeface`.`edgelist` (
   `fromId` BIGINT NOT NULL,
   `toId` BIGINT NOT NULL,
   `weight` DOUBLE NOT NULL,
+  INDEX `edgelist_person_from_idx` (`fromId` ASC),
+  INDEX `edgelist_person_to_idx` (`toId` ASC),
+  INDEX `edgeList_cluster_idx` (`clusterId` ASC),
   CONSTRAINT `edgelist_person_from`
     FOREIGN KEY (`fromId`)
     REFERENCES `codeface`.`person` (`id`)
@@ -806,12 +756,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`edgelist` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `edgelist_person_from_idx` ON `codeface`.`edgelist` (`fromId` ASC);
-
-CREATE INDEX `edgelist_person_to_idx` ON `codeface`.`edgelist` (`toId` ASC);
-
-CREATE INDEX `edgeList_cluster_idx` ON `codeface`.`edgelist` (`clusterId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`twomode_edgelist`
@@ -825,6 +769,9 @@ CREATE TABLE IF NOT EXISTS `codeface`.`twomode_edgelist` (
   `fromVert` BIGINT NOT NULL,
   `toVert` VARCHAR(255) NOT NULL,
   `weight` DOUBLE NOT NULL,
+  INDEX `twomode_edgelist_releaseRange_idx` (`releaseRangeId` ASC),
+  INDEX `twomode_edgelist_person_idx` (`fromVert` ASC),
+  INDEX `twomode_edgelist_mlId_idx` (`mlId` ASC),
   CONSTRAINT `twomode_edgelist_releaseRange`
     FOREIGN KEY (`releaseRangeId`)
     REFERENCES `codeface`.`release_range` (`id`)
@@ -842,12 +789,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`twomode_edgelist` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-CREATE INDEX `twomode_edgelist_releaseRange_idx` ON `codeface`.`twomode_edgelist` (`releaseRangeId` ASC);
-
-CREATE INDEX `twomode_edgelist_person_idx` ON `codeface`.`twomode_edgelist` (`fromVert` ASC);
-
-CREATE INDEX `twomode_edgelist_mlId_idx` ON `codeface`.`twomode_edgelist` (`mlId` ASC);
-
 
 -- -----------------------------------------------------
 -- Table `codeface`.`twomode_vertices`
@@ -861,6 +802,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`twomode_vertices` (
   `name` VARCHAR(255) NOT NULL,
   `degree` DOUBLE NOT NULL,
   `type` SMALLINT NOT NULL,
+  INDEX `twomode_vertices_releaseRange_idx` (`releaseRangeId` ASC),
+  INDEX `twomode_vertices_mlId_idx` (`mlId` ASC),
   CONSTRAINT `twomode_vertices_releaseRange`
     FOREIGN KEY (`releaseRangeId`)
     REFERENCES `codeface`.`release_range` (`id`)
@@ -872,10 +815,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`twomode_vertices` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `twomode_vertices_releaseRange_idx` ON `codeface`.`twomode_vertices` (`releaseRangeId` ASC);
-
-CREATE INDEX `twomode_vertices_mlId_idx` ON `codeface`.`twomode_vertices` (`mlId` ASC);
 
 
 -- -----------------------------------------------------
@@ -892,6 +831,9 @@ CREATE TABLE IF NOT EXISTS `codeface`.`initiate_response` (
   `initiations` INT NULL DEFAULT NULL,
   `responses_received` INT NULL DEFAULT NULL,
   `deg` DOUBLE NULL DEFAULT NULL,
+  INDEX `initiate_response_releaseRange_idx` (`releaseRangeId` ASC),
+  INDEX `initiate_response_person_idx` (`personId` ASC),
+  INDEX `initiate_response_mlId_idx` (`mlId` ASC),
   CONSTRAINT `initiate_response_releaseRange`
     FOREIGN KEY (`releaseRangeId`)
     REFERENCES `codeface`.`release_range` (`id`)
@@ -908,12 +850,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`initiate_response` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `initiate_response_releaseRange_idx` ON `codeface`.`initiate_response` (`releaseRangeId` ASC);
-
-CREATE INDEX `initiate_response_person_idx` ON `codeface`.`initiate_response` (`personId` ASC);
-
-CREATE INDEX `initiate_response_mlId_idx` ON `codeface`.`initiate_response` (`mlId` ASC);
 
 
 -- -----------------------------------------------------
@@ -932,6 +868,8 @@ CREATE TABLE IF NOT EXISTS `codeface`.`per_cluster_statistics` (
   `total` INT(11) NOT NULL,
   `numcommits` INT(11) NOT NULL,
   `prank_avg` DOUBLE NOT NULL,
+  INDEX `fk_per_cluster_statistics_1_idx` (`projectId` ASC),
+  INDEX `fk_per_cluster_statistics_1_idx1` (`releaseRangeId` ASC),
   CONSTRAINT `per_cluster_statistics_projectId_ref`
     FOREIGN KEY (`projectId`)
     REFERENCES `codeface`.`project` (`id`)
@@ -943,10 +881,6 @@ CREATE TABLE IF NOT EXISTS `codeface`.`per_cluster_statistics` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `fk_per_cluster_statistics_1_idx` ON `codeface`.`per_cluster_statistics` (`projectId` ASC);
-
-CREATE INDEX `fk_per_cluster_statistics_1_idx1` ON `codeface`.`per_cluster_statistics` (`releaseRangeId` ASC);
 
 
 -- -----------------------------------------------------
@@ -961,14 +895,13 @@ CREATE TABLE IF NOT EXISTS `codeface`.`sloccount_ts` (
   `total_cost` DOUBLE NOT NULL,
   `schedule_months` DOUBLE NOT NULL,
   `avg_devel` DOUBLE NOT NULL,
+  UNIQUE INDEX `time_UNIQUE` (`time` ASC),
   CONSTRAINT `sloccount_ts_plotid_ref`
     FOREIGN KEY (`plotId`)
     REFERENCES `codeface`.`plots` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE UNIQUE INDEX `time_UNIQUE` ON `codeface`.`sloccount_ts` (`time` ASC);
 
 
 -- -----------------------------------------------------
@@ -983,16 +916,14 @@ CREATE TABLE IF NOT EXISTS `codeface`.`understand_raw` (
   `name` VARCHAR(45) NULL,
   `variable` VARCHAR(45) NOT NULL,
   `value` DOUBLE NOT NULL,
+  INDEX `understand_raw_kind_idx` (`kind` ASC),
+  INDEX `understand_raw_plotId_idx` (`plotId` ASC),
   CONSTRAINT `understand_raw_id_ref`
     FOREIGN KEY (`plotId`)
     REFERENCES `codeface`.`plots` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `understand_raw_kind_idx` ON `codeface`.`understand_raw` (`kind` ASC);
-
-CREATE INDEX `understand_raw_plotId_idx` ON `codeface`.`understand_raw` (`plotId` ASC);
 
 
 -- -----------------------------------------------------
@@ -1009,14 +940,13 @@ CREATE TABLE IF NOT EXISTS `codeface`.`commit_dependency` (
   `size` INT NULL,
   `impl` TEXT NULL,
   PRIMARY KEY (`id`),
+  INDEX `fk_1_idx` (`commitId` ASC),
   CONSTRAINT `fk_commit_dependency`
     FOREIGN KEY (`commitId`)
     REFERENCES `codeface`.`commit` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
-
-CREATE INDEX `fk_1_idx` ON `codeface`.`commit_dependency` (`commitId` ASC);
 
 USE `codeface` ;
 

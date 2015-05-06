@@ -1111,6 +1111,8 @@ def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf,
                   "AuthorTaggersSimilarity" : float(cmt.getAuthorTaggersSimilarity()),
                   "TaggersSubsysSimilarity" : float(cmt.getTaggersSubsysSimilarity()),
                   "releaseRangeId" : int(releaseRangeID),
+                  "description" : cmt.description,
+                  "corrective" : cmt.is_corrective
             }
         value_names = sorted(values.keys())
         cmt_row = tuple(values[k] for k in value_names)

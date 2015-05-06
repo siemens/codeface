@@ -862,6 +862,13 @@ class gitVCS (VCS):
                 cmt.committer = match.group(1)
 
         descr = parts[descr_index].split("\n")
+
+        # Check if commit is corrective using key word search of description
+        cmt.checkIfCorrective(descr)
+
+        # Add commit description to commit object
+        cmt.setDescription(descr)
+
         # Ensure that there are actually sign off tags in the commit message
         found = False
         i = 0

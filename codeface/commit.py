@@ -19,6 +19,11 @@
 # All Rights Reserved.
 
 class Commit:
+    # Keywords to identify corrective commits
+    # Ref: A. Mockus and L. G. Votta, Identifying Reasons for Software
+    #      Changes Using Historic Databases
+    CORRECTIVE_KEYWORDS = ['bug', 'fix', 'error', 'fail']
+
     def __init__(self):
         # Base characteristics: uniqiue id (typically a hash value) and
         # time stamp (commiter time) of the commit
@@ -30,6 +35,8 @@ class Commit:
         self.author_pi  = None   # PersonInfo instance for author
         self.committer = None    # Committer name
         self.committer_pi = None # PersonInfo instance for committer
+        self.is_corrective = False # Boolean for whether commit is corrective
+        self.description = None
 
         # Contains a tuple (added, deleted, changed)
         # for each diff type.
@@ -143,3 +150,20 @@ class Commit:
 
     def getTaggersSubsysSimilarity(self):
         return self.taggers_subsys_similarity
+
+    def setDescription(self, descr):
+        self.description = ' '.join(descr)
+
+    def checkIfCorrective(self, descr):
+        # Check if commit description contains keywords that indicate a
+        # corrective commit
+        for line in descr:
+            contains_keyword = [keyword in line.lower()
+                                for keyword in Commit.CORRECTIVE_KEYWORDS]
+            is_corrective = any(contains_keyword)
+
+            if is_corrective:
+               break
+        # End for line
+
+        self.is_corrective = is_corrective
