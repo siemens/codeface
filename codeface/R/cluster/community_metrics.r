@@ -546,6 +546,11 @@ compute.project.graph.trends <-
   start.date <- min(range.data$date.start)
   end.date <- max(range.data$date.end)
 
+  if (any(is.na(range.data))) {
+    logerror("Database contains insufficient data: %s", range.data)
+    stop()
+  }
+
   p.ranges <- compute.sliding.window(start.date, end.date,
                                      step.size, window.size)
 
