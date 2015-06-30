@@ -329,9 +329,16 @@ graph.turnover <- function(graph.t, graph.t.1, g.ids.t, g.ids.t.1) {
   res <- data.frame(g.id=union(g.ids.t, g.ids.t.1))
   res <- merge(res, graph.t.degree, by="g.id", all.x=TRUE)
   res <- merge(res, graph.t.1.degree, by="g.id", all.x=TRUE)
+
+  ## Column to indicate which time the vertex was present
   res <- merge(res, data.frame(g.id=g.ids.t, time.t=TRUE), all.x=TRUE)
   res <- merge(res, data.frame(g.id=g.ids.t.1, time.t.1=TRUE), all.x=TRUE)
+
+  ## NAs are produced because of ragged merges but should be interpreted as false
   res[is.na(res)] <- FALSE
+
+  ## The igraph objects don't contain nodes with zero degree but are represented
+  ## in the global ids so we can add them back
   res[res$time.t==TRUE & is.na(res$degree.t), "degree.t"] <- 0
   res[res$time.t.1==TRUE & is.na(res$degree.t.1), "degree.t.1"] <- 0
 
