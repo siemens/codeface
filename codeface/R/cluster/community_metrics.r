@@ -307,6 +307,38 @@ rewired.graph.samples <- function(graph, cluster.algo, metric, niter) {
 }
 
 
+###############################################################################
+## Compute graph evolution at time t to t+1
+## Given two graphs computers for time t and time t+1 we compute
+## a data frame encompasing the turn-over data
+## - Input
+## igraph_t - graph at time t
+## igraph_t_1 - graph at time t+1
+## g_ids_t - list of global ids for graph_t
+## g_ids_t_1 - list of global ids for graph_t_1
+##
+## - Output
+## a dataframe containing the turn-over data
+###############################################################################
+graph.turnover <- function(graph.t, graph.t.1, g.ids.t, g.ids.t.1) {
+  g.id.intersect <- intersect(g.ids.t, g.ids.t.1)
+  degree.t <- igraph::degree(graph.t)
+  graph.t.degree <- data.frame(g.id=names(degree.t), degree.t=degree.t)
+  degree.t.1 <- igraph::degree(graph.t.1)
+  graph.t.1.degree <- data.frame(g.id=names(degree.t.1), degree.t.1=degree.t.1)
+  res <- data.frame(g.id=union(g.ids.t, g.ids.t.1))
+  res <- merge(res, graph.t.degree, by="g.id", all.x=TRUE)
+  res <- merge(res, graph.t.1.degree, by="g.id", all.x=TRUE)
+  res <- merge(res, data.frame(g.id=g.ids.t, time.t=TRUE), all.x=TRUE)
+  res <- merge(res, data.frame(g.id=g.ids.t.1, time.t.1=TRUE), all.x=TRUE)
+  res[is.na(res)] <- FALSE
+  res[res$time.t==TRUE & is.na(res$degree.t), "degree.t"] <- 0
+  res[res$time.t.1==TRUE & is.na(res$degree.t.1), "degree.t.1"] <- 0
+
+  return(res)
+}
+
+
 ########################################################################
 ##Input:
 ##   - graph, igraph object
@@ -651,6 +683,18 @@ compute.project.graph.trends <-
                    return(df)})
 
       res <- do.call("rbind", revision.df.list)
+
+	  ## Compute network metrics for G_t -> G_t+1
+	  if(length(revision.data) > 1) {
+	    rev.indx <- 1:(length(revision.data)-1)
+		turnover <-
+		  lapply(rev.indx,
+				 function(i) graph.turnover(revision.data[[i]]$graph, revision.data[[i+1]]$graph,
+							                revision.data[[i]]$v.global.ids, revision.data[[i+1]]$v.global.ids))
+	  }
+	  else {
+	    loginfo("Less than 2 revisions, unable to perform turn-over analysis")
+	  }
 
       return(res)})
 
