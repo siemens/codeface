@@ -318,7 +318,9 @@ rewired.graph.samples <- function(graph, cluster.algo, metric, niter) {
 ## g_ids_t_1 - list of global ids for graph_t_1
 ##
 ## - Output
-## a dataframe containing the turn-over data
+## a dataframe containing the degree of each node in each of the graphs
+## with -1 indicating the node was not present which is distinct from 0
+## which means the node was present but just with a zero degree
 ###############################################################################
 graph.turnover <- function(graph.t, graph.t.1, g.ids.t, g.ids.t.1) {
   g.id.intersect <- intersect(g.ids.t, g.ids.t.1)
@@ -326,21 +328,18 @@ graph.turnover <- function(graph.t, graph.t.1, g.ids.t, g.ids.t.1) {
   graph.t.degree <- data.frame(g.id=names(degree.t), degree.t=degree.t)
   degree.t.1 <- igraph::degree(graph.t.1)
   graph.t.1.degree <- data.frame(g.id=names(degree.t.1), degree.t.1=degree.t.1)
+
+  ## Initialize data frame so that all nodes that were or were not present is known
   res <- data.frame(g.id=union(g.ids.t, g.ids.t.1))
+  res <- merge(res, data.frame(g.id=g.ids.t, time.t=0), all.x=TRUE)
+  res <- merge(res, data.frame(g.id=g.ids.t.1, time.t.1=0), all.x=TRUE)
+  ## All columns with NA will be nodes that did not appear in both graphs and
+  ## we reassign that to the -1 state to indicate not present
+  res[is.na(res)] <- -1
+
+  ## Add degree for each node in each graph
   res <- merge(res, graph.t.degree, by="g.id", all.x=TRUE)
   res <- merge(res, graph.t.1.degree, by="g.id", all.x=TRUE)
-
-  ## Column to indicate which time the vertex was present
-  res <- merge(res, data.frame(g.id=g.ids.t, time.t=TRUE), all.x=TRUE)
-  res <- merge(res, data.frame(g.id=g.ids.t.1, time.t.1=TRUE), all.x=TRUE)
-
-  ## NAs are produced because of ragged merges but should be interpreted as false
-  res[is.na(res)] <- FALSE
-
-  ## The igraph objects don't contain nodes with zero degree but are represented
-  ## in the global ids so we can add them back
-  res[res$time.t==TRUE & is.na(res$degree.t), "degree.t"] <- 0
-  res[res$time.t.1==TRUE & is.na(res$degree.t.1), "degree.t.1"] <- 0
 
   return(res)
 }
