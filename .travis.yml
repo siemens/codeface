@@ -57,7 +57,7 @@ install:
   - sudo apt-get install r-cran-reshape r-cran-wordnet r-cran-stringr r-cran-yaml r-cran-plyr
   - sudo apt-get install r-cran-scales r-cran-gridExtra r-cran-scales r-cran-RMySQL
   - sudo apt-get install r-cran-RCurl r-cran-mgcv r-cran-shiny r-cran-dtw r-cran-httpuv r-cran-devtools
-  - sudo apt-get install r-cran-png r-cran-rjson r-cran-lsa r-cran-testthat
+  - sudo apt-get install r-cran-png r-cran-rjson r-cran-lsa r-cran-testthat r-cran-arules r-cran-data.table r-cran-ineq
   - sudo Rscript packages.minimal.R
   #- sudo Rscript packages.R
   # Install node dependencies
