@@ -624,7 +624,8 @@ compute.project.graph.trends <-
   metrics.df <- data.frame()
   project.list <- list()
   projects.df.list <- list()
-
+  e <- new.env()
+  e$graphs.all <- list()
   project.name <- project.data$name
   analysis.method <- project.data$analysis.method
 
@@ -705,6 +706,12 @@ compute.project.graph.trends <-
 
                    return(rev)})
 
+      ## Copy all graphs to environment for turnover analysis
+      chunk.graphs <- lapply(revision.data,
+			            function(i) list(graph=i$graph, v.global.ids=i$v.global.ids))
+      e$graphs.all <- c(e$graphs.all, chunk.graphs)
+
+      ## Remove revisions that don't have graphs
       revision.data[sapply(revision.data, is.null)] <- NULL
 
       ## Compute network metrics
