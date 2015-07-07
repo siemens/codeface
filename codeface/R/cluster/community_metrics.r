@@ -355,7 +355,25 @@ graph.turnover <- function(graph.t, graph.t.1, g.ids.t, g.ids.t.1, index) {
   return(res[, c("g.id", state.t, state.t.1)])
 }
 
+categorize.nodes <- function(node.degree) {
+  ## Group nodes into categores based on there degree
+  ## Absent = node not present
+  ## Core = upper 20% in terms of degree
+  ## Peripheral = lower 80% in terms of degree
+  quant.80 <- quantile(node.degree, prob=.8)
+  core <- node.degree > quant.80
+  peripheral <- node.degree <= quant.80 & node.degree > 0
+  inactive <- node.degree == 0
+  absent <- node.degree < 0
 
+  res <- vector(length=length(node.degree))
+  res[core] <- "core"
+  res[peripheral] <- "peripheral"
+  res[inactive] <- "inactive"
+  res[absent] <- "absent"
+
+  return(res)
+}
 ########################################################################
 ##Input:
 ##   - graph, igraph object
