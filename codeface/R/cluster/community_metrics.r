@@ -593,8 +593,8 @@ compute.all.project.trends <- function(con, type) {
   lapply(project.ids,
          function(p.id) {
            trends <- compute.project.graph.trends(con, p.id, type)
-           if(!empty(trends)) {
-             write.plots.trends(trends, "/home/joblin/trends")
+           if(length(trends) > 0) {
+             write.plots.trends(trends$metrics, trends$markov.chain, "/home/au/trends")
            }
            else print("project data frame empty")})
 
@@ -893,7 +893,7 @@ plot.scatter <- function(project.df, feature1, feature2, outdir) {
 }
 
 
-write.plots.trends <- function(trends, outdir) {
+write.plots.trends <- function(trends, markov.chain, outdir) {
   metrics.box <- c('cluster.coefficient',
                    'betweenness.centrality',
                    'conductance',
@@ -934,6 +934,11 @@ write.plots.trends <- function(trends, outdir) {
 
   file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
   save(trends, file=paste(file.dir, "/project_data.dat",sep=""))
+
+  ## Save markov chain plot
+  pdf(file=paste(file.dir, "/markov_chain.pdf", sep=""))
+  plot(markov.chain, margin=0.25)
+  dev.off()
 }
 
 
