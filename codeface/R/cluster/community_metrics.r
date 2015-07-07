@@ -322,7 +322,7 @@ rewired.graph.samples <- function(graph, cluster.algo, metric, niter) {
 ## with -1 indicating the node was not present which is distinct from 0
 ## which means the node was present but just with a zero degree
 ###############################################################################
-graph.turnover <- function(graph.t, graph.t.1, g.ids.t, g.ids.t.1) {
+graph.turnover <- function(graph.t, graph.t.1, g.ids.t, g.ids.t.1, index) {
   g.id.intersect <- intersect(g.ids.t, g.ids.t.1)
   degree.t <- igraph::degree(graph.t)
   graph.t.degree <- data.frame(g.id=names(degree.t), degree.t=degree.t)
@@ -340,8 +340,19 @@ graph.turnover <- function(graph.t, graph.t.1, g.ids.t, g.ids.t.1) {
   ## Add degree for each node in each graph
   res <- merge(res, graph.t.degree, by="g.id", all.x=TRUE)
   res <- merge(res, graph.t.1.degree, by="g.id", all.x=TRUE)
+  res[is.na(res)] <- 0
 
-  return(res)
+  ## Sum columns
+  res$time.t <- res$time.t + res$degree.t
+  res$time.t.1 <- res$time.t.1 + res$degree.t.1
+
+  ## Categorize node into states
+  state.t <- paste("state.t.", as.character(index), sep="")
+  state.t.1 <- paste("state.t.", as.character(index+1), sep="")
+  res[, state.t] <- categorize.nodes(res$time.t)
+  res[, state.t.1] <- categorize.nodes(res$time.t.1)
+
+  return(res[, c("g.id", state.t, state.t.1)])
 }
 
 
