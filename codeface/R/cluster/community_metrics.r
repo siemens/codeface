@@ -726,21 +726,32 @@ compute.project.graph.trends <-
 
       res <- do.call("rbind", revision.df.list)
 
-	  ## Compute network metrics for G_t -> G_t+1
-	  if(length(revision.data) > 1) {
-	    rev.indx <- 1:(length(revision.data)-1)
-		turnover <-
-		  lapply(rev.indx,
-				 function(i) graph.turnover(revision.data[[i]]$graph, revision.data[[i+1]]$graph,
-							                revision.data[[i]]$v.global.ids, revision.data[[i+1]]$v.global.ids))
-	  }
-	  else {
-	    loginfo("Less than 2 revisions, unable to perform turn-over analysis")
-	  }
-
       return(res)})
 
-  return(metrics.df)
+
+  revision.data <- e$graphs.all
+  ## Compute network metrics for G_t -> G_t+1
+  if(length(revision.data) > 1) {
+    rev.indx <- 1:(length(revision.data)-1)
+    turnover <-
+      lapply(rev.indx,
+             function(i) graph.turnover(revision.data[[i]]$graph, revision.data[[i+1]]$graph,
+                                        revision.data[[i]]$v.global.ids, revision.data[[i+1]]$v.global.ids,
+                                        i))
+
+    turnover.all <- join_all(turnover, by="g.id", type="full")
+    turnover.all[is.na(turnover.all)] <- "absent"
+
+    ## Estimate markov chain
+    markov.chain <- markovchainFit(data=turnover.all[, -1], method="mle")$estimate
+  }
+  else {
+    loginfo("Less than 2 revisions, unable to perform turn-over analysis")
+  }
+
+  res <- list(metrics=metrics.df, markov.chain=markov.chain)
+
+  return(res)
 }
 
 
