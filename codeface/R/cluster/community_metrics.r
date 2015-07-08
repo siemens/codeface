@@ -360,16 +360,17 @@ categorize.nodes <- function(node.degree) {
   ## Absent = node not present
   ## Core = upper 20% in terms of degree
   ## Peripheral = lower 80% in terms of degree
+  ## Isolated = present but with zero degree
   quant.80 <- quantile(node.degree, prob=.8)
   core <- node.degree > quant.80
   peripheral <- node.degree <= quant.80 & node.degree > 0
-  inactive <- node.degree == 0
+  isolated <- node.degree == 0
   absent <- node.degree < 0
 
   res <- vector(length=length(node.degree))
   res[core] <- "core"
   res[peripheral] <- "peripheral"
-  res[inactive] <- "inactive"
+  res[isolated] <- "isolated"
   res[absent] <- "absent"
 
   return(res)
