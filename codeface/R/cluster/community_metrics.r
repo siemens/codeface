@@ -586,7 +586,7 @@ compute.community.metrics <- function(g, comm) {
 }
 
 
-compute.all.project.trends <- function(con, type) {
+compute.all.project.trends <- function(con, type, outdir) {
   project.ids <- query.projects(con)$id
   #project.ids <- project.ids[!project.ids %in% c(14)]
 
@@ -594,7 +594,7 @@ compute.all.project.trends <- function(con, type) {
          function(p.id) {
            trends <- compute.project.graph.trends(con, p.id, type)
            if(length(trends) > 0) {
-             write.plots.trends(trends$metrics, trends$markov.chain, "/home/au/trends")
+             write.plots.trends(trends$metrics, trends$markov.chain, outdir)
            }
            else print("project data frame empty")})
 
@@ -949,11 +949,7 @@ run.trends.analysis <- function (con) {
   sapply(types,
     function(type) {
       outdir <- paste(base.dir, type, sep="/")
-      trends <- compute.all.project.trends(con, type)
-      if(!empty(trends)) {
-        write.plots.trends(trends, outdir)
-      }
-      else print("empty project data frame")
+      compute.all.project.trends(con, type, outdir)
     })
 
   return(0)
