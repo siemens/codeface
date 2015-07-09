@@ -1,7 +1,7 @@
 library(testthat)
 library(igraph)
 source("network_stream.r")
-
+source("utils.r")
 
 ## Test that the edgelist construction functions correctly using both the mutual
 ## entity edit, co-change, and semantic similarity concepts
