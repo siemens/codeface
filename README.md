@@ -101,7 +101,8 @@ in the step "Database Setup", and modify codeface.conf accordingly.
                            "reshape", "wordnet", "stringr", "yaml", "plyr",
                            "scales", "gridExtra", "scales", "RMySQL",
                            "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
-                           "corrgram", "logging", "png", "rjson", "lsa"), dependencies=T)
+                           "corrgram", "logging", "png", "rjson", "lsa", "ineq",
+                           "arules", "data.table"), dependencies=T)
 
   If necessary, make sure _before_ the installation that
   `/usr/local/lib/R/site-library/` is writeable by the current user
