@@ -16,7 +16,9 @@
 # Copyright 2013 by Siemens AG, Mitchell Joblin <mitchell.joblin.ext@siemens.com>
 
 library(testthat)
+library(igraph)
 source("graph_comparison.r")
+source("../utils.r")
 
 ##---------------------------
 ## Test Function Definitions
