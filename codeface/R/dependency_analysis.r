@@ -479,7 +479,7 @@ get.frequent.item.sets <- function(con, project.id, start.date, end.date) {
 
 
 compute.frequent.items <- function(commit.depends.df) {
-  item.sets.list <- list()
+  res <- list()
   ## Compute transactions
   commit.list <- aggregate.commit.dependencies(commit.depends.df)
   commit.list <- remove.large.commits(commit.list, entity.threshold)
@@ -495,16 +495,26 @@ compute.frequent.items <- function(commit.depends.df) {
 
     ## Coerce itemsets to list
     item.sets.list <- as(items(freq.change.sets), 'list')
+
+    ## Extract rule support
+    item.support <- support(freq.change.sets, trans.list)*length(trans.list)
+
+    ## Add support to rules
+    indx <- 1:length(item.sets.list)
+    res <- lapply(indx,
+             function(i) list(items=item.sets.list[[i]], support=item.support[i]))
   }
 
-  return(item.sets.list)
+  return(res)
 }
 
 
 compute.item.sets.edgelist <- function(item.sets) {
   edgelist <- ldply(item.sets, function(item.set) {
-                                        combs <- t(combn(item.set,2))
-                                        data.frame(combs)})
+                                        items <- item.set$items
+                                        weight <- item.set$support
+                                        combs <- t(combn(items,2))
+                                        data.frame(combs, weight)})
 
   return(edgelist)
 }
