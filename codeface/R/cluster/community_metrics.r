@@ -751,6 +751,7 @@ compute.project.graph.trends <-
   }
   else {
     loginfo("Less than 2 revisions, unable to perform turn-over analysis")
+    markov.chain <- NULL
   }
 
   res <- list(metrics=metrics.df, markov.chain=markov.chain)
@@ -940,9 +941,12 @@ write.plots.trends <- function(trends, markov.chain, outdir) {
   save(trends, file=paste(file.dir, "/project_data.dat",sep=""))
 
   ## Save markov chain plot
-  pdf(file=paste(file.dir, "/markov_chain.pdf", sep=""))
-  plot(markov.chain, margin=0.25)
-  dev.off()
+  if(!is.null(markov.chain)) {
+    pdf(file=paste(file.dir, "/markov_chain.pdf", sep=""))
+    plot(markov.chain, margin=0.25)
+    dev.off()
+  }
+
 }
 
 
