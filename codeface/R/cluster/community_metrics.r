@@ -631,6 +631,8 @@ compute.project.graph.trends <-
   project.name <- project.data$name
   analysis.method <- project.data$analysis.method
 
+  loginfo("Processing network evolution for %s", project.data$name)
+
   ## Split up ranges into blocks to be processed in parallel
   n.cores <- get.num.cores()
   chunk.size <- n.cores
