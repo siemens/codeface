@@ -1194,6 +1194,9 @@ class gitVCS (VCS):
                 cmd.append("--")
                 cmd.append(file_commit.filename)
                 rev = execute_command(cmd).strip()
+
+                if rev=="":
+                  rev = self.rev_end
             else:
                 #Use revision that represents the final commit for the specified
                 #revision range
