@@ -674,10 +674,12 @@ compute.project.graph.trends <-
                   edgelist <- get.co.change.edgelist(con, p.id,
                                                      window.start,
                                                      end.date)
+                  if (!empty(edgelist)) {
+                    v.id <- unique(unlist(as.list(edgelist[, c("X1", "X2")])))
+                    res$v.global.ids <- v.id
+                  }
 
-                  v.id <- unique(unlist(as.list(edgelist[, c("X1", "X2")])))
                   res$edgelist <- edgelist
-                  res$v.global.ids <- v.id
                 }
 				else if (type == "semantic") {
 				  semantic.coupling <- computeSemanticCouplingCon(con, p.id, start.date, end.date)

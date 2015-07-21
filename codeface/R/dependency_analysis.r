@@ -499,10 +499,12 @@ compute.frequent.items <- function(commit.depends.df) {
     ## Extract rule support
     item.support <- support(freq.change.sets, trans.list)*length(trans.list)
 
-    ## Add support to rules
-    indx <- 1:length(item.sets.list)
-    res <- lapply(indx,
-             function(i) list(items=item.sets.list[[i]], support=item.support[i]))
+    if (length(item.sets.list) > 0) {
+      ## Add support to rules
+      indx <- 1:length(item.sets.list)
+      res <- lapply(indx,
+               function(i) list(items=item.sets.list[[i]], support=item.support[i]))
+    }
   }
 
   return(res)
