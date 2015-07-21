@@ -450,7 +450,7 @@ def generate_analysis_windows(repo, window_size_months):
     revs = []
     start = window_size_months  # Window size time ago
     end = 0  # Present time
-    cmd_base = 'git --git-dir={0} log --no-merges --format=%H'\
+    cmd_base = 'git --git-dir={0} log --no-merges --format=%H,%ct'\
         .format(repo).split()
     cmd_base_max1 = cmd_base + ['--max-count=1']
     cmd = cmd_base_max1 + [get_before_arg(end)]
@@ -475,6 +475,16 @@ def generate_analysis_windows(repo, window_size_months):
         # else: no commit happened since last window, don't add duplicate
         #       revisions
     # End while
+
+    # Check that commit dates are monotonic, in some cases the earliest
+    # first commit does not carry the earliest commit date
+    revs = [rev.split(",") for rev in revs]
+    rev_len = len(revs)
+    if int(revs[0][1]) > int(revs[1][1]):
+      del revs[0]
+
+    # Extract hash
+    revs = [rev[0] for rev in revs]
 
     rcs = [None for x in range(len(revs))]
 
