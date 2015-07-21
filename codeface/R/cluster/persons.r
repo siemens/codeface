@@ -335,8 +335,14 @@ compute.num.spins <- function(g) {
   AVG.SIZE <- 5
 
   num.spins <- as.integer(vcount(g)/AVG.SIZE)
-  if (num.spins < 25)
+
+  if (num.spins < 25) {
     num.spins <- 25
+  }
+
+  if (num.spins > 500) {
+    num.spins <- 500
+  }
 
   return(num.spins)
 }
