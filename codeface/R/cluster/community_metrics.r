@@ -544,7 +544,7 @@ compute.community.metrics <- function(g, comm) {
   res$average.path.len <- average.path.length(g, directed=FALSE)
   res$v.degree <- sort(igraph::degree(g, mode="all"), decreasing=T)
   res$degree.gini <- ineq(res$v.degree, type="Gini")
-  res$core.count <- length(res$v.degree[cumsum(res$v.degree) / sum(res$v.degree) <= 0.8])
+  res$core.count <- length(res$v.degree[cumsum(res$v.degree) / sum(res$v.degree) <= 0.8]) / length(res$v.degree)
   res$num.vertices <- vcount(g)
   res$diameter <- diameter(g, weights=NULL)
   res$density <- graph.density(g, loops=FALSE)
