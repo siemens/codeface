@@ -391,7 +391,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
     stop("Internal error: Iteration sequence and data prefix length must match!")
 
   timestamps <- do.call(c, lapply(seq_along(corp.base$corp),
-                                  function(i) DateTimeStamp(corp.base$corp[[i]])))
+                                  function(i) meta(corp.base$corp[[i]], tag="datetimestamp")))
   
   loginfo(paste(length(corp.base$corp), "messages in corpus"), logger="ml.analysis")
   loginfo(paste("Date range is", as.character(int_start(iter[[1]])), "to",
@@ -498,7 +498,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
 
 
   ## Compute base data for time series analysis
-  msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(DateTimeStamp(x)) })
+  msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(meta(x, tag="datetimestamp")) })
   msgs <- do.call(c, msgs)
 
   series <- xts(rep(1,length(msgs)), order.by=msgs)
@@ -549,7 +549,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
     as.numeric(forest[forest[,"threadID"]==threadID, "emailID"][-1])
   }
   get.timestamp <- function(mailID) {
-    DateTimeStamp(forest.corp$corp[[mailID]])
+    meta(forest.corp$corp[[mailID]], tag="datetimestamp")
   }
 
   ## Determine authors and messages _per thread_, plus the thread id
