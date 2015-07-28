@@ -305,7 +305,7 @@ dispatch.all <- function(conf, repo.path, resdir) {
   dates <- do.call(c,
                    mclapply(seq_along(corp.base$corp),
                           function(i) {
-                            return(as.POSIXct(DateTimeStamp(corp.base$corp[[i]])))
+                            return(as.POSIXct(meta(corp.base$corp[[i]], tag="datetimestamp")))
                           }
                    ))
   ## Sort the dates to enable faster algorithms. This also removes NAs
