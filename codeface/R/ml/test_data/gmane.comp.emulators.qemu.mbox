@@ -1,0 +1,297 @@
+From MAILER-DAEMON Mon Jul 20 15:54:29 2015
+Path: news.gmane.org!not-for-mail
+From: Kashyap Chamarthy <kchamart@redhat.com>
+Newsgroups: gmane.comp.emulators.qemu
+Subject: Re: QEMU segfault: Booting an overlay with
+ backing_file over NBD: nbd.c:nbd_receive_request():L756: read failed
+Date: Fri, 30 Jan 2015 00:33:51 +0100
+Lines: 92
+Approved: news@gmane.org
+Message-ID: <20150129233351.GD32706@tesla.redhat.com>
+References: <20150129162509.GA32706@tesla.redhat.com>
+	<20150129164723.GA3860@redhat.com>
+	<20150129172222.GC32706@tesla.redhat.com>
+NNTP-Posting-Host: plane.gmane.org
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+X-Trace: ger.gmane.org 1422575014 4091 80.91.229.3 (29 Jan 2015 23:43:34 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 29 Jan 2015 23:43:34 +0000 (UTC)
+Cc: qemu-devel@nongnu.org
+To: "Richard W.M. Jones" <rjones@redhat.com>
+Original-X-From: qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org Fri Jan 30 00:43:33 2015
+Return-path: <qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org>
+Envelope-to: gceq-qemu-devel@gmane.org
+Original-Received: from lists.gnu.org ([208.118.235.17])
+	by plane.gmane.org with esmtp (Exim 4.69)
+	(envelope-from <qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org>)
+	id 1YGykG-0004f6-AV
+	for gceq-qemu-devel@gmane.org; Fri, 30 Jan 2015 00:43:32 +0100
+Original-Received: from localhost ([::1]:34029 helo=lists.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.71)
+	(envelope-from <qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org>)
+	id 1YGykF-0004to-JB
+	for gceq-qemu-devel@gmane.org; Thu, 29 Jan 2015 18:43:31 -0500
+Original-Received: from eggs.gnu.org ([2001:4830:134:3::10]:39145)
+	by lists.gnu.org with esmtp (Exim 4.71)
+	(envelope-from <kchamart@redhat.com>) id 1YGyk4-0004tP-99
+	for qemu-devel@nongnu.org; Thu, 29 Jan 2015 18:43:21 -0500
+Original-Received: from Debian-exim by eggs.gnu.org with spam-scanned (Exim 4.71)
+	(envelope-from <kchamart@redhat.com>) id 1YGyjz-0006jr-OX
+	for qemu-devel@nongnu.org; Thu, 29 Jan 2015 18:43:20 -0500
+Original-Received: from mx1.redhat.com ([209.132.183.28]:48913)
+	by eggs.gnu.org with esmtp (Exim 4.71)
+	(envelope-from <kchamart@redhat.com>) id 1YGyjz-0006jn-HG
+	for qemu-devel@nongnu.org; Thu, 29 Jan 2015 18:43:15 -0500
+Original-Received: from int-mx13.intmail.prod.int.phx2.redhat.com
+	(int-mx13.intmail.prod.int.phx2.redhat.com [10.5.11.26])
+	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id t0TNhEFn027713
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256
+	verify=FAIL)
+	for <qemu-devel@nongnu.org>; Thu, 29 Jan 2015 18:43:14 -0500
+Original-Received: from tesla.localdomain (ovpn-116-25.ams2.redhat.com [10.36.116.25])
+	by int-mx13.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with
+	ESMTP id t0TNhAZx021251
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256
+	verify=NO); Thu, 29 Jan 2015 18:43:13 -0500
+Original-Received: by tesla.localdomain (Postfix, from userid 1000)
+	id 40F31240F9C; Fri, 30 Jan 2015 00:33:51 +0100 (CET)
+Content-Disposition: inline
+In-Reply-To: <20150129172222.GC32706@tesla.redhat.com>
+User-Agent: Mutt/1.5.23.1-rc1 (2014-03-12)
+X-Scanned-By: MIMEDefang 2.68 on 10.5.11.26
+X-detected-operating-system: by eggs.gnu.org: GNU/Linux 3.x
+X-Received-From: 209.132.183.28
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.14
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+	<mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <http://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+	<mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org
+Original-Sender: qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org
+Xref: news.gmane.org gmane.comp.emulators.qemu:316904
+Archived-At: <http://permalink.gmane.org/gmane.comp.emulators.qemu/316904>
+
+On Thu, Jan 29, 2015 at 06:22:22PM +0100, Kashyap Chamarthy wrote:
+> On Thu, Jan 29, 2015 at 04:47:23PM +0000, Richard W.M. Jones wrote:
+> > On Thu, Jan 29, 2015 at 05:25:09PM +0100, Kashyap Chamarthy wrote:
+
+[. . .]
+
+> > > On the shell where `qemu-nbd` is running, I notice this
+> > > 
+> > >   nbd.c:nbd_receive_request():L756: read failed
+> > 
+>  
+> > You really need to get the stack trace from that core dump to
+> > debug this further.
+> 
+> I don't see the core dump locally (ABRT or some such not configured),
+> will re-test this with `gdb` in a little while to get the traces.
+
+Okay, now I had the coredump, and ran GDB ('bt full') with it[1] with
+qemu-debuginfo files installed. Not sure if it has inough info, as I
+didn't install the ~ 3.6 GB of other missing debuginfo RPMs (this is my
+primary laptop, I can replicate this test on a different machine with
+the missing debuginfo files if needed).
+
+Next, I tried the external wrapper technique you once wrote about[1], to
+run QEMU under `gdbserver`, here's the result:
+
+  $ gdb
+  . . .
+
+  (gdb) file /usr/bin/qemu-system-x86_64 
+  Reading symbols from /usr/bin/qemu-system-x86_64...Reading symbols from /usr/lib/debug/usr/bin/qemu-system-x86_64.debug...done.
+  done.
+  (gdb) target remote tcp::1234
+  Remote debugging using tcp::1234
+  Reading symbols from /lib64/ld-linux-x86-64.so.2...Reading symbols from /usr/lib/debug/usr/lib64/ld-2.20.so.debug...done.
+  done.
+  Loaded symbols for /lib64/ld-linux-x86-64.so.2
+  0x00007ffff7ddbcf0 in _start () from /lib64/ld-linux-x86-64.so.2
+  (gdb) cont
+  Continuing.
+  
+  Program received signal SIGSEGV, Segmentation fault.
+  0x0000555555872159 in aio_set_fd_handler (ctx=ctx@entry=0x0, fd=8, io_read=io_read@entry=0x5555558a5470 <nbd_reply_ready>, io_write=io_write@entry=0x5555558a4d80 <nbd_restart_write>, 
+      opaque=opaque@entry=0x5555562605e0) at aio-posix.c:50
+
+Does this help?
+
+
+Precise steps of what I did:
+
+(1) Use the below wrapper script with `gdbserver`
+----------------------------------------------------------------
+$ cat /export/qemu-wrapper.sh 
+#!/bin/bash -
+
+if ! echo "$@" | grep -sqE -- '-help|-version|-device \?' ; then
+      gdbserver="gdbserver :1234"
+      fi
+
+      exec $gdbserver /usr/bin/qemu-system-x86_64 "$@"
+----------------------------------------------------------------
+
+(2) On shell #1, export the backing file over QEMU NBD:
+
+    $ qemu-nbd -f qcow2 -p10809 \
+        /var/lib/libvirt/images/f21vm.qcow2 -t
+
+
+(3) On shell #3, Invoke the QEMU wrapper script:
+
+    $ ./qemu-wrapper.sh             \
+    -nographic                      \
+    -nodefconfig                    \
+    -nodefaults                     \
+    -m 2048                         \
+    -device virtio-scsi-pci,id=scsi \
+    -device virtio-serial-pci       \
+    -serial stdio                   \
+    -drive file=./overlay1-f21vm.qcow2,format=qcow2,if=virtio,cache=writeback
+    Process /usr/bin/qemu-system-x86_64 created; pid = 1944
+    Listening on port 1234
+
+
+(4) On shell #3, run GDB (output is above).
+
+
+[1] https://kashyapc.fedorapeople.org/virt/qemu-nbd-test/stack-traces-from-coredump.txt
+
+-- 
+/kashyap
+
+
+
+From MAILER-DAEMON Mon Jul 20 15:54:29 2015
+Path: news.gmane.org!not-for-mail
+From: Eric Blake <eblake@redhat.com>
+Newsgroups: gmane.comp.emulators.qemu
+Subject: Re: [PATCH 05/21] block: Remove per-BDS close notifiers
+Date: Thu, 29 Jan 2015 16:44:03 -0700
+Organization: Red Hat, Inc.
+Lines: 47
+Approved: news@gmane.org
+Message-ID: <54CAC5C3.4080706@redhat.com>
+References: <1422300468-16216-1-git-send-email-mreitz@redhat.com>
+	<1422300468-16216-6-git-send-email-mreitz@redhat.com>
+NNTP-Posting-Host: plane.gmane.org
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature";
+	boundary="avdpGP8cvVQtFft4fDmI1Tg41LDrtw732"
+X-Trace: ger.gmane.org 1422575065 4862 80.91.229.3 (29 Jan 2015 23:44:25 GMT)
+X-Complaints-To: usenet@ger.gmane.org
+NNTP-Posting-Date: Thu, 29 Jan 2015 23:44:25 +0000 (UTC)
+Cc: Kevin Wolf <kwolf@redhat.com>, Markus Armbruster <armbru@redhat.com>,
+	Stefan Hajnoczi <stefanha@redhat.com>
+To: Max Reitz <mreitz@redhat.com>, qemu-devel@nongnu.org
+Original-X-From: qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org Fri Jan 30 00:44:24 2015
+Return-path: <qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org>
+Envelope-to: gceq-qemu-devel@gmane.org
+Original-Received: from lists.gnu.org ([208.118.235.17])
+	by plane.gmane.org with esmtp (Exim 4.69)
+	(envelope-from <qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org>)
+	id 1YGyl5-0005Ud-UH
+	for gceq-qemu-devel@gmane.org; Fri, 30 Jan 2015 00:44:24 +0100
+Original-Received: from localhost ([::1]:34036 helo=lists.gnu.org)
+	by lists.gnu.org with esmtp (Exim 4.71)
+	(envelope-from <qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org>)
+	id 1YGyl5-0005yR-8L
+	for gceq-qemu-devel@gmane.org; Thu, 29 Jan 2015 18:44:23 -0500
+Original-Received: from eggs.gnu.org ([2001:4830:134:3::10]:39386)
+	by lists.gnu.org with esmtp (Exim 4.71)
+	(envelope-from <eblake@redhat.com>) id 1YGykp-0005qc-1W
+	for qemu-devel@nongnu.org; Thu, 29 Jan 2015 18:44:07 -0500
+Original-Received: from Debian-exim by eggs.gnu.org with spam-scanned (Exim 4.71)
+	(envelope-from <eblake@redhat.com>) id 1YGyko-0006tB-08
+	for qemu-devel@nongnu.org; Thu, 29 Jan 2015 18:44:06 -0500
+Original-Received: from mx1.redhat.com ([209.132.183.28]:49155)
+	by eggs.gnu.org with esmtp (Exim 4.71)
+	(envelope-from <eblake@redhat.com>) id 1YGykn-0006t6-IL
+	for qemu-devel@nongnu.org; Thu, 29 Jan 2015 18:44:05 -0500
+Original-Received: from int-mx09.intmail.prod.int.phx2.redhat.com
+	(int-mx09.intmail.prod.int.phx2.redhat.com [10.5.11.22])
+	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id t0TNi5ce027902
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256
+	verify=FAIL)
+	for <qemu-devel@nongnu.org>; Thu, 29 Jan 2015 18:44:05 -0500
+Original-Received: from [10.3.113.9] ([10.3.113.9])
+	by int-mx09.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with ESMTP
+	id t0TNi4Hn018609; Thu, 29 Jan 2015 18:44:04 -0500
+User-Agent: Mozilla/5.0 (X11; Linux x86_64;
+	rv:31.0) Gecko/20100101 Thunderbird/31.4.0
+In-Reply-To: <1422300468-16216-6-git-send-email-mreitz@redhat.com>
+OpenPGP: url=http://people.redhat.com/eblake/eblake.gpg
+X-Scanned-By: MIMEDefang 2.68 on 10.5.11.22
+X-detected-operating-system: by eggs.gnu.org: GNU/Linux 3.x
+X-Received-From: 209.132.183.28
+X-BeenThere: qemu-devel@nongnu.org
+X-Mailman-Version: 2.1.14
+Precedence: list
+List-Id: <qemu-devel.nongnu.org>
+List-Unsubscribe: <https://lists.nongnu.org/mailman/options/qemu-devel>,
+	<mailto:qemu-devel-request@nongnu.org?subject=unsubscribe>
+List-Archive: <http://lists.nongnu.org/archive/html/qemu-devel>
+List-Post: <mailto:qemu-devel@nongnu.org>
+List-Help: <mailto:qemu-devel-request@nongnu.org?subject=help>
+List-Subscribe: <https://lists.nongnu.org/mailman/listinfo/qemu-devel>,
+	<mailto:qemu-devel-request@nongnu.org?subject=subscribe>
+Errors-To: qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org
+Original-Sender: qemu-devel-bounces+gceq-qemu-devel=gmane.org@nongnu.org
+Xref: news.gmane.org gmane.comp.emulators.qemu:316905
+Archived-At: <http://permalink.gmane.org/gmane.comp.emulators.qemu/316905>
+
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--avdpGP8cvVQtFft4fDmI1Tg41LDrtw732
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+On 01/26/2015 12:27 PM, Max Reitz wrote:
+> They are unused, and bdrv_close_all() is a perfectly valid replacement.=
+
+>=20
+> Signed-off-by: Max Reitz <mreitz@redhat.com>
+> ---
+>  block.c                        | 7 -------
+>  block/block-backend.c          | 7 -------
+>  include/block/block.h          | 1 -
+>  include/block/block_int.h      | 2 --
+>  include/sysemu/block-backend.h | 1 -
+>  5 files changed, 18 deletions(-)
+
+Reviewed-by: Eric Blake <eblake@redhat.com>
+
+--=20
+Eric Blake   eblake redhat com    +1-919-301-3266
+Libvirt virtualization library http://libvirt.org
+
+
+--avdpGP8cvVQtFft4fDmI1Tg41LDrtw732
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+Comment: Public key at http://people.redhat.com/eblake/eblake.gpg
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+
+iQEcBAEBCAAGBQJUysXDAAoJEKeha0olJ0Nq4V8H/jFgk2I9ILq+PNNRJVLySc4l
+xOxfZLeSNwRTE1mJ7HDZeHlGZeyTwnq7lLoXZHPV+Rog/qdGQANlC6uh0bGqRhn/
+megkLgLRbxhO3a26THy7x4kIU9YGpnObVTyw98fT9YnaloyCFHKsnkYqiwHeUd3S
+nr88/vix1GmdSXcl227lhJyNbROz5YHDt6b2jrjUzE+n1AeTuqy5d4AwKsInLE6I
+tqx8jXsXuQh3o1m2cGFxyFRcCz5R+H1jPaOIlZfZ9N4KOlNNGccBdHL30ndFVshu
+2pIfYeeCpI/l1sJw6ezX+o7NGws5DRjNK8O8D7P6jDuZYK9RoLAPT6iQ2H/GuAE=
+=UMuF
+-----END PGP SIGNATURE-----
+
+--avdpGP8cvVQtFft4fDmI1Tg41LDrtw732--
