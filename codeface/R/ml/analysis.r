@@ -508,7 +508,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
   ts.df <- gen.df.from.ts(series.daily, "Mailing list activity")
   dat <- data.frame(time=as.character(ts.df$time),
                     value=ts.df$value,
-                    value.scaled=ts.df$value.scaled,
+                    value_scaled=ts.df$value.scaled,
                     plotId=activity.plot.id)
 
   ## NOTE: We append new values to the existing content. This way,
