@@ -267,8 +267,7 @@ check.corpus.precon <- function(corp.base) {
   }
 
   ## Apply checks of conditions to all documents
-  fix.corpus <- function(i) {
-    doc <- corp.base$corp[[i]]
+  fix.corpus <- function(doc) {
     meta(doc, tag="header") <- rmv.multi.refs(doc)
     meta(doc, tag="author") <- fix.author(doc)
 
@@ -278,8 +277,9 @@ check.corpus.precon <- function(corp.base) {
   ## Apply checks and fixes for all preconditions to all
   ## documents in the corpus
   idx <- 1:length(corp.base$corp)
-  corp.base$corp <- lapply(idx, fix.corpus)
-  class(corp.base$corp) <- class(corp.base$corp.orig)
+  for (i in idx) {
+    corp.base$corp[[i]] <- fix.corpus(corp.base$corp[[i]])
+  }
 
   return(corp.base)
 }
