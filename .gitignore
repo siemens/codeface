@@ -29,3 +29,7 @@ res/
 testdat/
 performance/results/
 *.tar.gz
+.idea/
+id_service/node_modules/
+*.Rproj
+.Rproj.user/
