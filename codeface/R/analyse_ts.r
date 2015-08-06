@@ -118,6 +118,7 @@ gen.full.ts <- function(conf) {
                                     boundaries$date.end[i])
   }
 
+  full.series <- full.series[sapply(full.series, length)!=0]
   full.series <- do.call(c, full.series)
 
   return (full.series)
