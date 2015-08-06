@@ -951,7 +951,8 @@ write.plots.trends <- function(trends, markov.chain, outdir) {
   analysis.method <- unique(trends$analysis.method)
 
   file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
-  save(trends, file=paste(file.dir, "/project_data.dat",sep=""))
+  data <- list(trends=trends,markov.chain=markov.chain)
+  save(data, file=paste(file.dir, "/project_data.dat",sep=""))
 
   ## Save markov chain plot
   if(!is.null(markov.chain)) {
