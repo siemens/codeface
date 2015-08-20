@@ -25,6 +25,7 @@ suppressPackageStartupMessages(library(lubridate))
 source("boundaries.r")
 
 sq <- function(string) {
+  if(is.null(string)) return(NULL)
   return(str_c("'", string, "'"))
 }
 
@@ -48,14 +49,17 @@ get.clear.plot.id.con <- function(con, pid, plot.name, range.id=NULL,
 
   dbGetQuery(con, str_c("DELETE", query))
 
-  if (is.null(range.id)) {
-    dbGetQuery(con, str_c("INSERT INTO plots (name, projectId) VALUES (",
-                          sq(plot.name), ", ", pid, ")"))
-  } else {
-    dbGetQuery(con, str_c("INSERT INTO plots (name, projectId, releaseRangeId) ",
-                          "VALUES (", sq(plot.name), ", ", pid, ", ",
-                          range.id, ")"))
-  }
+  ## Prepare data and insert
+  insert.data <- c(name=sq(plot.name),
+                   projectId=pid,
+                   releaseRangeId=range.id,
+                   labelx=sq(labelx),
+                   labely=sq(labely))
+  values <- paste(insert.data, collapse=", ")
+  columns <-  paste(names(insert.data), collapse=", ")
+  insert.query <- str_c("INSERT INTO plots (", columns, ") ",
+                        "VALUES (", values, ")")
+  dbGetQuery(con, insert.query)
 
   res <- dbGetQuery(con, str_c("SELECT id", query))
 
