@@ -26,5 +26,7 @@ setup(name='codeface',
       url='https://github.com/wolfgangmauerer/codeface',
       packages=['codeface', 'codeface.cluster'],
       package_data={'codeface': ['R/*.r', 'R/cluster/*.r', 'perl/*.pl']},
-      entry_points={'console_scripts': ['codeface = codeface.cli:main']}
-     )
+      entry_points={'console_scripts': ['codeface = codeface.cli:main']},
+      install_requires=['progressbar', 'rpy2', 'matplotlib', 'VCS', 'cppstats',
+                'python_ctags','PyYAML', 'MySQL_python']
+      )
