@@ -105,14 +105,26 @@ query.range.ids <- function(conf) {
 
 ## Obtain all release cycles of a project (date boundaries, internal ID,
 ## cycle name)
-get.cycles.con <- function(con, pid) {
-  res <- dbGetQuery(con, str_c("SELECT releaseRangeId, date_start, date_end, ",
-                               "cycle FROM revisions_view WHERE projectId=", pid))
+get.cycles.con <- function(con, pid, boundaries=FALSE) {
+  res <- dbGetQuery(con, str_c("SELECT * ",
+                               "FROM revisions_view ",
+                               "WHERE projectId=", pid))
   if (nrow(res) == 0) {
     stop(paste("No release range found for projectId=", pid))
   }
-  colnames(res) <- c("range.id", "date.start", "date.end", "cycle")
 
+  colnames(res) <- gsub("_", ".", colnames(res))
+  colnames(res)[colnames(res)=="releaseRangeID"] <- "range.id"
+
+  if(boundaries) {
+    column.selection <- c("date.start", "date.end", "date.rc.start", "tag",
+                          "cycle")
+  }
+  else{
+    column.selection <- c("range.id", "date.start", "date.end", "cycle")
+  }
+
+  res <- res[, column.selection]
   res$date.start <- ymd_hms(res$date.start, quiet=TRUE)
   res$date.end <- ymd_hms(res$date.end, quiet=TRUE)
 

@@ -16,37 +16,7 @@
 
 ## Helper functions for constructing release boundary information
 
-get.boundaries <- function(i, conf) {
-  tstamps.release <- conf$tstamps.all[conf$tstamps.all$type=="release",]
-  tstamps.rc <- conf$tstamps.all[conf$tstamps.all$type=="rc",]
-  tag <- conf$revisions[conf$revisions==tstamps.release[i+1,]$tag]
-  tag.start <- conf$revisions[conf$revisions==tstamps.release[i,]$tag]
-
-  rc <- NA
-  rc <- tstamps.rc[i,]$date
-
-  if(identical(tag, character(0)) | identical(tag.start, character(0))) {
-    df <- data.frame()
-  }
-  else {
-    df <- data.frame(date.start=tstamps.release[i,]$date,
-                     date.end=tstamps.release[i+1,]$date,
-                     date.rc_start=rc,
-                     tag=tag,
-                     cycle=paste(tag.start, tag, sep="-"))
-  }
-
-  return(df)
-}
-
 prepare.release.boundaries <- function(conf) {
-  ## TODO: The information should be constructed from an sql query,
-  ## and not be constructed with the above magic.
-  len <- dim(conf$tstamps.all[conf$tstamps.all$type=="release",])[1]-1
-  res <- lapply(1:len, function(i) {
-    return(get.boundaries(i, conf))
-  })
-
-  res <- do.call(rbind, res)
+  res <- get.cycles.con(conf$con, conf$pid, boundaries=T)
   return(res)
 }
