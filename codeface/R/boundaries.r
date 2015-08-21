@@ -18,5 +18,11 @@
 
 prepare.release.boundaries <- function(conf) {
   res <- get.cycles.con(conf$con, conf$pid, boundaries=T)
+
+  date.columns <- c("date.start", "date.end", "date.rc.start")
+  for (col in date.columns) {
+    res[, col] <- as.POSIXct(res[, col], origin="1970-01-01")
+  }
+
   return(res)
 }
