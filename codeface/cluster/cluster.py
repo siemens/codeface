@@ -1056,7 +1056,7 @@ def createStatisticalData(cmtlist, id_mgr, link_type):
     return None
 
 
-def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf, 
+def writeCommitData2File(cmtlist, id_mgr, outdir, releaseRangeID, dbm, conf,
                          cmt_depends=None, fileCommitDict=None):
     '''
     commit information is written to the outdir location
@@ -1191,7 +1191,7 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
 
 
 def writeDependsToDB(
-        logical_depends, cmtlist, dbm, conf, entity_type="Function",
+        logical_depends, cmtlist, dbm, conf, entity_type=("Function", ),
         get_entity_source_code=None):
     '''
     Write logical dependency data to database
@@ -1199,8 +1199,9 @@ def writeDependsToDB(
 
     '''
     Input:
-    logical_depends - dictionary key=cmthash, value=list of
-                 co-changed subroutines (i.e., functions)
+    logical_depends - tuple of dictionaries (key=cmthash, value=list of
+                 co-changed subroutines (e.g., functions or features))
+    entity_type - tuple of entity types corresponding to the logical_depends tuple
     '''
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
     if get_entity_source_code is None:
@@ -1211,18 +1212,32 @@ def writeDependsToDB(
     # List of tuples to store rows of DB table
     cmt_depend_rows = []
 
-    for cmt in cmtlist:
-        if (cmt.id in logical_depends) & (logical_depends is not None):
-            key = dbm.getCommitId(projectID, cmt.id)
-            depends_list = logical_depends[cmt.id]
-            function_loc = [depend for depend, count in depends_list]
-            depend_impl_list = [' '.join(get_entity_source_code(file, funcId)) for file, funcId in function_loc]
-            depends_list = [depends_list[indx][0] + (depends_list[indx][1], impl) for indx, impl in enumerate(depend_impl_list)]
+    # extract commit dependencies for all entity types
+    for entity_type_current, logical_depends_current in zip(entity_type, logical_depends):
 
-            # Write Function level dependencies
-            rows = [(key, file, entityId, entity_type, count, impl) for file, entityId, count, impl in depends_list]
-            cmt_depend_rows.extend(rows)
-    # For cmt.id
+        # get dependencies for all commits
+        for cmt in cmtlist:
+
+            # if there are dependencies for the current commit, add them to the rows to be added to DB
+            if (cmt.id in logical_depends_current) & (logical_depends_current is not None):
+                # get ID for current commit
+                key = dbm.getCommitId(projectID, cmt.id)
+
+                # get the commit dependencies for current commit
+                depends_list = logical_depends_current[cmt.id]
+                function_loc = [depend for depend, count in depends_list]
+
+                # get the corresponding source code (implementation) for all dependencies
+                # and add it to the current dependency item
+                depend_impl_list = [' '.join(get_entity_source_code(file, funcId))
+                                    for file, funcId in function_loc]
+                depends_list = [depends_list[indx][0] + (depends_list[indx][1], impl)
+                                for indx, impl in enumerate(depend_impl_list)]
+
+                # construct rows to be put in DB
+                rows = [(key, file, entityId, entity_type_current, count, impl)
+                        for file, entityId, count, impl in depends_list]
+                cmt_depend_rows.extend(rows)
 
     # Perform batch insert
     dbm.doExecCommit("INSERT INTO commit_dependency (commitId, file, entityId, entityType, size, impl)" +
@@ -1323,8 +1338,8 @@ def writeAdjMatrixMaxWeight2File(id_mgr, outdir, conf):
     out.close()
 
 
-def emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir, releaseRangeID, dbm, conf, 
-                        fileCommitDict, entity_type="Function", get_entity_source_code=None):
+def emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir, releaseRangeID, dbm, conf,
+                        fileCommitDict, entity_type=("Function", ), get_entity_source_code=None):
     """Save the available information for a release interval for further statistical processing.
 
     Several files are created in outdir respectively the database:
@@ -1440,19 +1455,24 @@ def compute_logical_depends_features(file_commit_list, cmt_dict, start_date):
                      contains the source code structural information
                      and a commit reference for every line of a file
     Output:
-    feature_depends - dictionary where key=commit hash (unique id) and
-                  value=the list of features changed with that commit
+    feature_depends - dictionaries where key=commit hash (unique id) and
+                  value=the features or feature expressions changed with that commit
 
     Description:
     We use the source code structural information we acquired from the
     cppstats analysis to identify which lines of code fall under a particular
     feature space. We save the subroutine name together with the filename that the
     subroutine belongs.
+
+    - feature expression: e.g., "(!(defined(A)) && (!(defined(B)) && defined(C)"
+    - feature set: e.g., [A, B, C] (all used constants in feature expression)
     '''
 
     feature_depends_count = {}
+    fexpr_depends_count = {}
     for file in file_commit_list.values():
         feature_depends = {}
+        fexpr_depends = {}
         filename = file.getFilename()
         idx = file.getIndx()
         for line_num in idx:
@@ -1461,16 +1481,26 @@ def compute_logical_depends_features(file_commit_list, cmt_dict, start_date):
             if cmt_id not in feature_depends_count:
                 feature_depends_count[cmt_id] = []
 
+            if cmt_id not in fexpr_depends_count:
+                fexpr_depends_count[cmt_id] = []
+
             if cmt_id in cmt_dict:
                 # If line is older than start date then ignore
                 if cmt_dict[cmt_id].getCdate() >= start_date:
                     feature_list = file.findFeatureList(line_num)
+                    feature_expression_list = file.findFeatureExpression(line_num)
 
                     feature_loc = [(filename, feature) for feature in feature_list]
                     if cmt_id in feature_depends:
                         feature_depends[cmt_id].extend(feature_loc)
                     else:
                         feature_depends[cmt_id] = feature_loc
+
+                    fexpr_loc = [(filename, fexpr) for fexpr in feature_expression_list]
+                    if cmt_id in fexpr_depends:
+                        fexpr_depends[cmt_id].extend(fexpr_loc)
+                    else:
+                        fexpr_depends[cmt_id] = fexpr_loc
 
         # Compute the number of lines of code changed for each dependency.
         # We captured the function dependency on a line by line basis above
@@ -1480,7 +1510,15 @@ def compute_logical_depends_features(file_commit_list, cmt_dict, start_date):
                 [(feature_id, len(list(group)))
                     for feature_id, group in itertools.groupby(sorted(depend_list))])
 
-    return feature_depends_count
+        # Same for feature expressions
+        for cmt_id, depend_list in fexpr_depends.iteritems():
+            fexpr_depends_count[cmt_id].extend(
+                 [(feature_id, len(list(group)))
+                    for feature_id, group in itertools.groupby(sorted(depend_list))]
+            )
+
+
+    return (feature_depends_count, fexpr_depends_count)
 
 
 def computeProximityLinks(fileCommitList, cmtList, id_mgr, link_type, \
@@ -1813,8 +1851,8 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
     if subsys_descr != None:
         id_mgr.setSubsysNames(subsys_descr.keys())
 
-    logical_depends = None
-    entity_type = "Function"
+    logical_depends = (None)
+    entity_type = ("Function", )
     get_entity_source_code = None
     fileCommitDict = git.getFileCommitDict()
     #---------------------------------
@@ -1835,13 +1873,14 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
         if link_type in (LinkType.proximity, LinkType.file):
             computeProximityLinks(
                 fileCommitDict, cmtdict, id_mgr, link_type, startDate)
-            logical_depends = computeLogicalDepends(
-                fileCommitDict, cmtdict, startDate)
+            # for the current functions, we need a tuple here
+            logical_depends = (computeLogicalDepends(
+                fileCommitDict, cmtdict, startDate), )
 
             def get_source(file, func_id):
                 return fileCommitDict[file].getFuncImpl(func_id)
             get_entity_source_code = get_source
-            entity_type = "Function"
+            entity_type = ("Function", )
         elif link_type == LinkType.feature_file:
             compute_feature_proximity_links_per_file(
                 fileCommitDict, cmtdict, id_mgr, link_type, startDate)
@@ -1851,7 +1890,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
             def get_source(file, feature_id):
                 return ""
             get_entity_source_code = get_source
-            entity_type = "Feature"
+            entity_type = ("Feature", "FeatureExpression")
         elif link_type == LinkType.feature:
             compute_feature_proximity_links(
                 fileCommitDict, cmtdict, id_mgr, link_type, startDate)
@@ -1861,7 +1900,7 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
             def get_source(file, feature_id):
                 return ""
             get_entity_source_code = get_source
-            entity_type = "Feature"
+            entity_type = ("Feature", "FeatureExpression")
 
     #---------------------------------
     #compute statistical information

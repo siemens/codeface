@@ -119,8 +119,9 @@ class FileCommit:
         # meta data
         self._src_elem_list = []
 
-        # dictionary with key = line number, value = feature list
+        # dictionaries with key = line number, value = feature list|feature expression
         self.feature_info = FileDict()
+        self.feature_expression_info = FileDict()
 
     #Getter/Setters
     def getFileSnapShots(self):
@@ -154,7 +155,8 @@ class FileCommit:
         self._src_elem_list.extend(src_elem_list)
 
     def set_feature_infos(self, feature_line_infos):
-        self.feature_info = feature_line_infos
+        self.feature_info = feature_line_infos[0]
+        self.feature_expression_info = feature_line_infos[1]
 
     #Methods
     def addFileSnapShot(self, key, dict):
@@ -191,3 +193,6 @@ class FileCommit:
 
     def findFeatureList(self, line_index):
         return self.feature_info.get_line_info(int(line_index) + 1)
+
+    def findFeatureExpression(self, line_index):
+        return self.feature_expression_info.get_line_info(int(line_index) + 1)
