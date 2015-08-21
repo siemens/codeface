@@ -49,9 +49,9 @@ get.series.boundaries <- function(conn) {
                            date.end = tstamp.to.POSIXct(elems[2]))
 
   if (length(elems) == 3) {
-    boundaries$date.rc_start= tstamp.to.POSIXct(elems[3])
+    boundaries$date.rc.start= tstamp.to.POSIXct(elems[3])
   } else {
-    boundaries$date.rc_start = NA
+    boundaries$date.rc.start = NA
   }
 
   return (boundaries)
@@ -548,7 +548,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   ## rc regions.
   if (dim(na.omit(boundaries.plot))[1] > 0) {
     ## Only plot release candidate regions if there are any, actually
-    g <- g + geom_rect(aes(NULL, NULL, xmin=date.rc_start,
+    g <- g + geom_rect(aes(NULL, NULL, xmin=date.rc.start,
                            xmax=date.end, ymin=ymin, ymax=ymax, fill="blue"),
                        data=na.omit(boundaries.plot))
 
