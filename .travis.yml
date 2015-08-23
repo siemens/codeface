@@ -8,66 +8,14 @@ virtualenv:
 env:
   - CPPSTATS_VERSION=0.8.4
 #sudo: false  # use the new container-based Travis infrastructure
-before_install: 
-  #- sudo deb http://ppa.launchpad.net/marutter/rrutter/ubuntu precise main 
-  #- sudo deb-src http://ppa.launchpad.net/marutter/rrutter/ubuntu precise main 
-  - sudo add-apt-repository -y ppa:marutter/rrutter
-  - sudo add-apt-repository -y ppa:marutter/c2d4u
-  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
-  - sudo apt-get update -qq
-  - mysql -e "CREATE DATABASE codeface;" -uroot
-  - mysql -e "CREATE USER 'codeface'@'localhost' IDENTIFIED BY 'codeface';" -uroot
-  - mysql -e "GRANT ALL PRIVILEGES ON * . * TO 'codeface'@'localhost';" -uroot
+before_install:
+  - sudo integration-scripts/install_repositories.sh
 install:
-  # R
-  - sudo apt-get install r-base r-base-dev
-  # Generic packages
-  - sudo apt-get install sinntp texlive default-jdk mysql-common mysql-client mysql-server python-dev exuberant-ctags nodejs npm git subversion libgles2-mesa python-pip sloccount graphviz doxygen
-  # develop packages 
-  - sudo apt-get install libxml2-dev libcurl4-openssl-dev xorg-dev libx11-dev libgles2-mesa-dev libglu1-mesa-dev libmysqlclient-dev libcairo2-dev libxt-dev libcairo2-dev libmysqlclient-dev
-  # Devel packages required for Ubuntu 14.04
-  - sudo apt-get install libpoppler-dev libpoppler-glib-dev
-  # Devel packages required for python packages
-  - sudo apt-get install libyaml-dev
-  # install python requirements
-  #- sudo pip install -r python_requirements.txt
-  #- sudo apt-get install python-yaml python-progressbar
-  #- sudo -H pip install python-ctags
-  - pip install -r python_requirements.txt
-  # install cppstats
-  - wget https://codeload.github.com/clhunsen/cppstats/tar.gz/v$CPPSTATS_VERSION -O /tmp/cppstats.tar.gz
-  - tar -xvf /tmp/cppstats.tar.gz
-  - export CPPSTATS=$PWD/cppstats-$CPPSTATS_VERSION/
-  - echo '#!/bin/bash' > $CPPSTATS/cppstats
-  - echo "cd $CPPSTATS" >> $CPPSTATS/cppstats
-  - echo "PYTHONPATH=\"\$PYTHONPATH:$CPPSTATS/lib\" ./cppstats.py \"\$@\"" >> $CPPSTATS/cppstats
-  - chmod +x $CPPSTATS/cppstats
-  - export PATH=$PATH:$CPPSTATS/
-  - wget http://sdml.info/lmcrs/srcML-Ubuntu12.04-64.tar.gz -O /tmp/srcML.tar.gz
-  - tar -xvf /tmp/srcML.tar.gz
-  - cp -rf $PWD/srcML/* $CPPSTATS/lib/srcml/linux/
-  # cppstats dependencies
-  - sudo apt-get install astyle xsltproc libxml2 libxml2-dev python python-libxml2 python-lxml python-notify python-lxml gcc
-  - sudo apt-get install libarchive12:i386
-  - sudo ln -s /usr/lib/i386-linux-gnu/libarchive.so.12 /usr/lib/i386-linux-gnu/libarchive.so.2
-  # Install R dependencies
-  #- sudo apt-get install r-cran-rgraphviz
-  - sudo apt-get install r-cran-ggplot2 r-cran-tm r-cran-tm.plugin.mail r-cran-optparse
-  - sudo apt-get install r-cran-igraph r-cran-zoo r-cran-xts r-cran-lubridate r-cran-xtable
-  - sudo apt-get install r-cran-reshape r-cran-wordnet r-cran-stringr r-cran-yaml r-cran-plyr
-  - sudo apt-get install r-cran-scales r-cran-gridExtra r-cran-scales r-cran-RMySQL r-cran-RJSONIO
-  - sudo apt-get install r-cran-RCurl r-cran-mgcv r-cran-shiny r-cran-dtw r-cran-httpuv r-cran-devtools
-  - sudo apt-get install r-cran-png r-cran-rjson r-cran-lsa r-cran-testthat r-cran-arules r-cran-data.table r-cran-ineq
-  - sudo Rscript packages.minimal.R
-  #- sudo Rscript packages.R
-  # Install node dependencies
-  #- sudo update-alternatives --install /usr/bin/node node /usr/bin/nodejs 99
-  - cd id_service
-  - npm install addressparser express js-yaml mysql body-parser
-  - cd ..
-  # Setup database
-  - mysql -ucodeface -pcodeface < datamodel/codeface_schema.sql
-  - sudo python setup.py -q install
+  - sudo integration-scripts/install_common.sh
+  - sudo integration-scripts/install_codeface_R.sh
+  - sudo integration-scripts/install_codeface_python.sh
+  - sudo integration-scripts/install_cppstats.sh
+  - sudo integration-scripts/setup_database.sh
+  - integration-scripts/install_codeface_node.sh
 script:
-  - ./run_integration.sh
- 
+  - integration-scripts/test_codeface.sh
