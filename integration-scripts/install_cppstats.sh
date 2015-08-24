@@ -4,6 +4,9 @@ export CPPSTATS_VERSION=0.8.4
 
 echo "Providing cppstats $CPPSTATS_VERSION"
 
+mkdir -p vendor/
+cd vendor/
+
 wget --quiet https://codeload.github.com/clhunsen/cppstats/tar.gz/v$CPPSTATS_VERSION -O /tmp/cppstats.tar.gz
 tar -xvf /tmp/cppstats.tar.gz
 export CPPSTATS=$PWD/cppstats-$CPPSTATS_VERSION/
@@ -16,3 +19,5 @@ tar -xvf /tmp/srcML.tar.gz
 cp -rf $PWD/srcML/* $CPPSTATS/lib/srcml/linux/
 
 sudo ln -sf $CPPSTATS/cppstats /usr/local/bin/cppstats
+
+cd ..
