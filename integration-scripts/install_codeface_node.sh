@@ -3,6 +3,6 @@
 echo "Providing id_service"
 
 cd id_service
-npm install
+npm install --no-bin-links
 cd ..
 
