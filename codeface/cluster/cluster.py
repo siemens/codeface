@@ -1943,68 +1943,6 @@ def doProjectAnalysis(conf, from_rev, to_rev, rc_start, outdir,
                     None, reuse_db, outdir, limit_history, range_by_date,
                     rc_range)
 
-##################################
-#         TESTING CODE
-##################################
-def testFileCommit():
-
-    dbfilename = "/Users/Mitchell/Documents/workspace/codeface_repo/cluster/linux-test"
-
-    repoDir = "/Users/Mitchell/git/linux-2.6/.git"
-    #fileNames = ["drivers/net/loopback.c"]
-
-    outDir = "/Users/Mitchell/Documents/workspace/codeface_repo/cluster/res_NonTag/30"
-
-    revRange = ["v2.6.30", "v2.6.31"]
-
-
-    #createFileCmtDB(outDir, repoDir, fileNames)
-    performNonTagAnalysis(dbfilename, repoDir, False, outDir, revRange, True)
-
-
-def testAnalysis(link_type):
-
-    dbfilename = "/home/au/workspace/codeface/cluster/res/linux/tag/v2.6.30-v2.6.31/vcs_analysis.db"
-
-    repoDir = "/Users/Mitchell/git/linux-2.6/.git"
-
-    revRange = ["v2.6.30", "v2.6.31"]
-
-    outDir = "/home/au/workspace/codeface/cluster/res/linux/tag/v2.6.30-v2.6.31"
-
-    performAnalysis(dbfilename, repoDir, revRange, None, False,
-                    outDir, rcranges=None)
-
-##################################
-#         Main
-##################################
-if __name__ == "__main__":
-
-    #testFileCommit()
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('repo', help="Path to the git repository")
-    parser.add_argument('conf', help="Project specific configuration file")
-    parser.add_argument('outdir', help="Directory to create result files in")
-    parser.add_argument('from_rev', help="Start revision")
-    parser.add_argument('to_rev', help="End revision")
-    parser.add_argument("--rc_start",
-                        help="ID/tag that marks release candidate starting point")
-    parser.add_argument('--create_db', action='store_true',
-                        help="(Re-)create database")
-
-    args = parser.parse_args()
-
-    limit_history = True
-
-    # TODO: Take project and link_type from the configuration
-    conf = load_config(args.conf)
-    global_conf = load_global_config("codeface.conf")
-
-    dbm = dbManager(global_conf)
-    doProjectAnalysis(conf, dbm, args.from_rev, args.to_rev, args.rc_start,
-                      args.outdir, args.repo, args.create_db, limit_history)
-
 #git_repo = "/Users/wolfgang/git-repos/linux/.git"
 #outbase = "/Users/wolfgang/papers/csd/cluster/res/"
 #rev = 32
