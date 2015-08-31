@@ -1533,10 +1533,10 @@ def computeProximityLinks(fileCommitList, cmtList, id_mgr, link_type, \
     Collaboration is quantified by a single metric indicating the
     strength of collaboration between two individuals.
     '''
-    for file_commit in fileCommitList.values():
+    for fileCommit in fileCommitList.values():
 
         if speedUp:
-            computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
+            computeSnapshotCollaboration(fileCommit, cmtList, id_mgr, link_type,
                                          startDate)
         else:
             [computeSnapshotCollaboration(fileSnapShot[1], [fileSnapShot[0]],
