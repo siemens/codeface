@@ -18,8 +18,6 @@
 ## Software Projects Navigation Sidebar (server.r)
 ##
 
-source("../common.server.r", chdir=TRUE)  # this activates logging
-
 ##
 ## the server function
 ##

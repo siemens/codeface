@@ -18,12 +18,6 @@
 ## Software Project dashboard (server.r)
 ##
 
-suppressPackageStartupMessages(library(RJSONIO))
-suppressPackageStartupMessages(library(shinyGridster))
-
-source('gridsterWidgetsExt.r', chdir=TRUE)
-source("../common.server.r", chdir=TRUE)   # REMARK: only source and library statements used here !!!
-
 ## generate a unique name to be added to list
 ## template used is: "prefix<integer>"
 internal.getuniqueid.last <<- 1
