@@ -33,8 +33,8 @@ $(function(){ //document ready
         function($w, wgd) { 
           return {  col: wgd.col, row: wgd.row, 
                     size_x: wgd.size_x, size_y: wgd.size_y, 
-                    id: $w.children("div['data-qaid']").attr("data-qaid"),
-                    cls: $w.children("div['data-qaclass']").attr("data-qaclass")} }
+                    id: $w.children(".data-qaid").attr("data-qaid"),
+                    cls: $w.children(".data-qaclass").attr("data-qaclass")} }
     });
   });
 
@@ -51,7 +51,7 @@ $(function(){ //document ready
         $(".icon-remove-sign").click(function(){
           var gridster = $(".gridster > ul").gridster().data('gridster');
           var el = $(this).parent();
-          var qaid = $(this).parent().children("div['data-qaid']").attr("data-qaid");
+          var qaid = $(this).parent().children(".data-qaid").attr("data-qaid");
           $(".gridster div#"+ qaid).popover('destroy'); 
           Shiny.unbindAll();
           gridster.remove_widget(el);
