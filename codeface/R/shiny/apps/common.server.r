@@ -58,8 +58,10 @@ common.server.init <- function(input, output, session, app.name) {
   ## returns a reactive list containing selected projects
   selected <- reactive({ projects.selected( projects.list, input$qacompareids) })
   selected.pids <- reactive({
-    pids <- unlist(strsplit(input$qacompareids,",")) 
-    if (is.null(pids)) { list() } else { pids }
+    if (is.null(input$qacompareids)) {
+      return(list()) }
+    else {
+      unlist(strsplit(input$qacompareids,",")) }
   })
 
   ## Create project comparison user interface

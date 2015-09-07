@@ -275,8 +275,15 @@ shinyServer(function(input, output, session) {
   choices <- projects.choices(projects.list)
 
   ## Returns a list of selected project names (reactive statement)
-  selected <- reactive({ projects.selected( projects.list, input$qacompareids) })
-  selected.pids <- reactive({  unlist(strsplit(input$qacompareids,",")) })
+  selected <- reactive({ projects.selected( projects.list, input$qacompareids)
+  })
+
+  selected.pids <- reactive({
+    if (is.null(input$qacompareids)) {
+      return(list())
+    } else {
+      return(unlist(strsplit(input$qacompareids,",")))
+  }})
 
   ## Outputs an enhanced selectInput "selectedpids" (reactive assignment)
   ##    (uses the chosen.jquery.js plugin)
