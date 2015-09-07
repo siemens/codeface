@@ -147,7 +147,7 @@ def cmd_dynamic(args):
     if not os.path.exists(cwd):
         log.critical('Path "{}" not found!'.format(cwd))
         return 1
-    Rcode = "library(shiny); runApp(port={})".format(args.port)
+    Rcode = "library(shiny); runApp(host='0.0.0.0', port={})".format(args.port)
     cmd = ["Rscript", "-e", Rcode, "-c", cfg]
     execute_command(cmd, direct_io=True, cwd=cwd)
 

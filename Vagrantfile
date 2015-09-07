@@ -30,6 +30,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.network :forwarded_port, guest: 8081, host: 8081
+  config.vm.network :forwarded_port, guest: 8100, host: 8100
 
   config.vm.provision "fix-no-tty", type: "shell" do |s|
     s.privileged = true
