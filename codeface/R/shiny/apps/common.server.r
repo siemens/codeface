@@ -85,6 +85,7 @@ common.server.init <- function(input, output, session, app.name) {
 
 
 detailPage <- function(app.name=NULL, widgets=NULL, additional.input=list()){
+  shinybootstrap2::withBootstrap2({
   function(input, output, clientData, session) {
     if (is.null(app.name)) {
       q <- parseQueryString(isolate(session$clientData$url_search))
@@ -240,5 +241,5 @@ detailPage <- function(app.name=NULL, widgets=NULL, additional.input=list()){
     })
     loginfo(paste("Finished creating detail page for", app.name))
   }
+  }) # end of shinybootstrap2
 }
-

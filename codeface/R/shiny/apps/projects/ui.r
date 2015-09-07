@@ -23,6 +23,7 @@ suppressPackageStartupMessages(library(shiny))
 ## TODO: This is needed, if we include scripts for breadcrumb navigation
 #addResourcePath("navigation", "../../nav") # hint: do not add a final "/"
 
+shinybootstrap2::withBootstrap2({
 shinyUI(bootstrapPage(
 	tags$div( class = "container",
 		## div holds breadcrumb
@@ -38,3 +39,4 @@ shinyUI(bootstrapPage(
 		#,tags$script(src = "navigation/initiframecomm.js")
 		) 
 ))
+})

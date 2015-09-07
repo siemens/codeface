@@ -16,6 +16,7 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
+shinybootstrap2::withBootstrap2({
 shinyUI(bootstrapPage(
   tagList(
     tags$div( class = "container",
@@ -38,3 +39,4 @@ shinyUI(bootstrapPage(
   	  ## finally some hidden input
   	  cookieInput("qacompareids"))
 ))
+})

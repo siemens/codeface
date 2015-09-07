@@ -21,6 +21,7 @@
 ##
 ## the server function
 ##
+shinybootstrap2::withBootstrap2({
 shinyServer(function(input, output, session) {
   paramstr <- reactive({urlparameter.checked(session$clientData$url_search)})
   observe({
@@ -73,3 +74,4 @@ shinyServer(function(input, output, session) {
 		})
 
 })
+}) # end of shinybootstrap
