@@ -17,6 +17,7 @@
 ## All Rights Reserved.
 
 library(png)
+library(grid)
 
 source("../../timezones.r", chdir=TRUE)
 
