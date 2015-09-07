@@ -107,13 +107,15 @@ widgetbase.output <- function(input, output, id, widget.class, topic, pid, size_
 
     ## build ui header
     inst.ui <- widgetUI.header(inst, id)
-    
+
     ##
     ## render a link to detail pages specific for this widget (breadcrumb will display all links)
     ##
     #str(widget.class$detailpage)
     
-    ## (1) handled by details app, needs a project id (or NULL), a widget class name and a configured topic (or NULL)
+    ## (1) handled by details app, needs a project id (or NULL), a widget
+    ## class name and a configured topic (or NULL)
+    ## Used to link from specific topic to the detail page
     if (!is.null(widget.class$detailpage$name)) {
       name <- widget.class$detailpage$name
       link <- paste("../details/?projectid=", isolate(pid()), "&widget=", name, "&topic=", isolate({topic()}), sep="")
@@ -121,10 +123,14 @@ widgetbase.output <- function(input, output, id, widget.class, topic, pid, size_
       ## TODO use a details icon instead
       detail.link <- a(class="link_details", href=link, "")
     
-      ## (2) handled by an app, needs an app, project id and a configured topic  
+      ## (2) handled by an app, needs an app, project id and a configured
+      ## topic
     } else if (!is.null(widget.class$detailpage$app)) {
+      ## Used to link from project-specific overview to a
+      ## category (for instance, to collaboration)
       app <- widget.class$detailpage$app
-      link <- paste("../", app, "/?projectid=", isolate(pid()), "&topic=", isolate({topic()}), sep="")
+      link <- paste("../", app, "/?projectid=", isolate(pid()), "&topic=",
+                    widget.class$detailpage$topic, sep="")
       
       detail.link <- a(class="link_details", href=link, "")
     } else {
