@@ -65,13 +65,14 @@ widgetbase.output.selectview <- function(w, id) {
   ## render a selectInput
   mychoices <- as.list(isolate({listViews(w)()}))
   myselected <- isolate({w$view()})
-  myselected <- names(mychoices[mychoices %in% myselected])
-  
+  myselected <- mychoices[mychoices %in% myselected]
   inputView.id.local <- paste(id, "_selectedview",sep="")
   title <- div(id = w$titleid, class = "shiny-text-output widget_title")
+
   selector <- selectInput(inputView.id.local, "",
                                 choices = mychoices,
                                 selected = myselected)
+
   selector[[2]]$attribs$class <- "widget_view_select"
   w$ui <- div(class="title_bar", 
               tags$table(width="100%", tags$tr(tags$td(title), tags$td(selector))))
