@@ -17,6 +17,8 @@
 ##
 ## Software Project Dashboard (ui.r) 
 ##
+
+shinybootstrap2::withBootstrap2({
 shinyUI(bootstrapPage(
 
   tagList(
@@ -55,3 +57,4 @@ shinyUI(bootstrapPage(
   	cookieInput("qacompareids")
   )
 	))
+}) # end of shinybootstrap2
