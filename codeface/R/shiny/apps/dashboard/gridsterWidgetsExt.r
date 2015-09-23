@@ -36,8 +36,9 @@ gridsterButton <- function(inputId, widgetdialogId) {
     tags$div( id="modalAddWidget", class="modal hide fade", tabindex="-1", role="dialog",
               "aria-labelledby"="myModalLabel", "aria-hidden"="true",
               tags$div( class="modal-header",
-                tags$button( type="button", class="close", "data-dismiss"="modal", "aria-hidden"="true","A"),
-                h3( id="myModalLabel", "Modal header")),
+                tags$button(type="button", class="close",
+		"data-dismiss"="modal", "aria-hidden"="true", "X"),
+                h3( id="myModalLabel", "Add new widgets")),
               tags$div( class="modal-body",
                 tags$p( uiOutput( widgetdialogId ) )
                 ),
