@@ -31,5 +31,5 @@ if(length(p) > 0) {
 
 p <- filter.installed.packages(c("shinyGridster"))
 if(length(p) > 0) {
-	devtools::install_github("shiny-gridster", "wch")
+	devtools::install_github("wch/shiny-gridster")
 }
