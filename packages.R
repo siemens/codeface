@@ -37,3 +37,8 @@ p <- filter.installed.packages(c("shinyGridster"))
 if(length(p) > 0) {
     devtools::install_github("wch/shiny-gridster")
 }
+
+p <- filter.installed.packages(c("shinybootstrap2"))
+if(length(p) > 0) {
+	devtools::install_github("rstudio/shinybootstrap2")
+}
