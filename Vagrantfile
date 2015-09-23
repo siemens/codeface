@@ -21,14 +21,20 @@ SCRIPT
 Vagrant.configure("2") do |config|
   # Hmm... no Debian image available yet, let's use a derivate
   # Ubuntu 12.04 LTS (Precise Pangolin)
-  config.vm.box = "precise64"
-  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
-  config.vm.provider :virtualbox do |vbox|
+ config.vm.provider :virtualbox do |vbox|
+    config.vm.box = "precise64"
+    config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+
     vbox.customize ["modifyvm", :id, "--memory", "1024"]
     vbox.customize ["modifyvm", :id, "--cpus", "2"]
   end
 
+  config.vm.provider :lxc do |lxc|
+     config.vm.box = "fgrehm/precise64-lxc"
+  end
+
+  # Forward main web ui (8081) and testing (8100) ports
   config.vm.network :forwarded_port, guest: 8081, host: 8081
   config.vm.network :forwarded_port, guest: 8100, host: 8100
 
