@@ -38,9 +38,9 @@ class TestLogger(unittest.TestCase):
         RESET_SEQ = "\033[0m"
         COLOR_SEQ = "\033[1;%dm"
         BOLD_SEQ = "\033[1m"
-        s = "Go\n$BOLDProsoda$RESET And do stuff"
-        expected_ins = "Go\n\033[1mProsoda\033[0m And do stuff"
-        expected_rem = "Go\nProsoda And do stuff"
+        s = "Go\n$BOLDCodeface$RESET And do stuff"
+        expected_ins = "Go\n\033[1mCodeface\033[0m And do stuff"
+        expected_rem = "Go\nCodeface And do stuff"
         # Repeat the string five times to test repeated replacements
         self.assertEqual(_insert_seqs(s*5), expected_ins*5)
         self.assertEqual(_remove_seqs(s*5), expected_rem*5)
