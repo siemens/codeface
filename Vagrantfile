@@ -26,7 +26,7 @@ Vagrant.configure("2") do |config|
     config.vm.box = "precise64"
     config.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
-    vbox.customize ["modifyvm", :id, "--memory", "1024"]
+    vbox.customize ["modifyvm", :id, "--memory", "4096"]
     vbox.customize ["modifyvm", :id, "--cpus", "2"]
   end
 
