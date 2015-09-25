@@ -23,11 +23,15 @@ if(length(p) > 0) {
 }
 
 
-p <- filter.installed.packages(c("snatm", "tm-plugin-mail"))
+p <- filter.installed.packages(c("shinyGridster"))
 if(length(p) > 0) {
-    install.packages(p, repos="http://R-Forge.R-project.org")
+    devtools::install_github("wolfgangmauerer/tm-plugin-mail/pkg")
 }
 
+p <- filter.installed.packages(c("snatm"))
+if(length(p) > 0) {
+    devtools::install_github("wolfgangmauerer/snatm/pkg")
+}
 
 p <- filter.installed.packages(c("shinyGridster"))
 if(length(p) > 0) {
