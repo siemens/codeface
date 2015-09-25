@@ -230,7 +230,8 @@ check.corpus.precon <- function(corp.base) {
     email.exists <- grepl("<.+>", author, TRUE)
 
     if(!email.exists) {
-      msg <- "Incorrectly formatted author field, attempting to recover..."
+      msg <- str_c("Incorrectly formatted author field (expected XXX XXX ",
+                   "<xxxyyy@abc.tld>); attempting to recover from: ", author)
       loginfo(msg, logger="ml.analysis")
 
       ## Replace textual ' at  ' with @, sometimes
