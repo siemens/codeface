@@ -12,7 +12,7 @@ if(length(p) > 0) {
 	biocLite(p)
 }
 
-p <- filter.installed.packages(c("statnet", "ggplot2", "tm", "tm.plugin.mail", "optparse",
+p <- filter.installed.packages(c("statnet", "ggplot2", "tm", "optparse",
                    "igraph", "zoo", "xts", "lubridate", "xtable",
                    "reshape", "wordnet", "stringr", "yaml", "plyr",
                    "scales", "gridExtra", "scales", "RMySQL",
