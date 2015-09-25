@@ -110,9 +110,17 @@ figure.of.merit.collaboration <- function(pid) {
 }
 
 figure.of.merit.communication <- function(pid) {
-  n.mail.threads <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM mail_thread WHERE projectId=", pid))[[1]]
-  ml.plots <-  dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", pid, " AND releaseRangeId IS NULL AND name LIKE '%activity'"))
-  if (nrow(n.mail.threads) == 0 || nrow(ml.plots) == 0) {
+  n.mail.threads <- dbGetQuery(conf$con,
+                               str_c("SELECT COUNT(*) FROM mail_thread ",
+			       "WHERE projectId=", pid))[[1]]
+
+  ml.plots <-  dbGetQuery(conf$con,
+                          str_c("SELECT id, name FROM plots ",
+                                "WHERE projectId=", pid,
+			        " AND releaseRangeId IS NULL ",
+				" AND name LIKE '% activity'"))
+
+  if (n.mail.threads == 0 || nrow(ml.plots) == 0) {
     return(list(status=status.error, why="No mailing list to analyse."))
   }
 
