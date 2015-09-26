@@ -16,31 +16,96 @@
 ## Copyright 2015 by Wolfgang Mauerer <wolfgang.mauerer@oth-regensburg.de>
 ## All Rights Reserved.
 
+## Careful: Name is not a list of widgets, but a _single_ string
+## containing a list of widgets
+detailpage <- list(name="widget.ir.receiving,widget.ir.writing",
+                   title="Initiation-Response details")
+
 source("../../ml/init.response.r", chdir=TRUE)
 
 createWidgetClass(
-  class=c("widget.ir", "widget.rangeid"),
-  name="Initiation-Response",
+  class=c("widget.ir"),
+  name="Initiation-response",
   description="Show connection between ML initiations and responses",
   topics=c("communication"),
   size.x=2,
   size.y=1,
-  compareable = FALSE
+  compareable = FALSE,
+  detailpage=detailpage
 )
 
 initWidget.widget.ir <- function(w) {
   w <- NextMethod(w) # Call superclass
 
-  w$dat.ir <- reactive({prepare.initiate.response(
-                        query.initiate.response(conf$con,
-                                  query.ml.id.simple.con(conf$con, w$pid()),
-                                  w$view()))})
+  w$dat.ir.sum <- reactive({summarise.init.response(conf$con,
+                              query.ml.id.simple.con(conf$con, w$pid()),
+                              w$pid())})
   return(w)
 }
 
 renderWidget.widget.ir <- function(w) {
   renderPlot({
+      plot.ir.summary(w$dat.ir.sum())
+  })
+}
+
+
+## Detail widgets
+createWidgetClass(
+  class=c("widget.ir.receiving", "widget.rangeid"),
+  name="Initiation-response details (receiving responses)",
+  description=paste("Scatterplot that depicts how many threads a list",
+      "contributor has opened, and how many responses the threads received"),
+  topics=c("communication"),
+  size.x=2,
+  size.y=1,
+  compareable = FALSE,
+  detailpage=detailpage
+)
+
+initWidget.widget.ir.receiving <- function(w) {
+  w <- NextMethod(w) # Call superclass
+
+  w$dat.ir <- reactive({prepare.initiate.response(
+                        query.initiate.response(conf$con,
+                              query.ml.id.simple.con(conf$con, w$pid()),
+                              w$view()))})
+  return(w)
+}
+
+renderWidget.widget.ir.receiving <- function(w) {
+  renderPlot({
       plot.init.response(w$dat.ir(),
-                         title="Initate-response structure")[[2]]
+                title="Initiate-response structure (receiving responses)")[[2]]
+  })
+}
+
+
+createWidgetClass(
+  class=c("widget.ir.writing", "widget.rangeid"),
+  name="Initiation-response details (writing responses)",
+  description=paste("Scatterplot that depicts how many threads a list",
+      "contributor has opened, and how many responses he has written"),
+  topics=c("communication"),
+  size.x=2,
+  size.y=1,
+  compareable = FALSE,
+  detailpage=detailpage
+)
+
+initWidget.widget.ir.writing <- function(w) {
+  w <- NextMethod(w) # Call superclass
+
+  w$dat.ir <- reactive({prepare.initiate.response(
+                        query.initiate.response(conf$con,
+                              query.ml.id.simple.con(conf$con, w$pid()),
+                              w$view()))})
+  return(w)
+}
+
+renderWidget.widget.ir.writing <- function(w) {
+  renderPlot({
+      plot.init.response(w$dat.ir(),
+                 title="Initiate-response structure (writing responses)")[[1]]
   })
 }
