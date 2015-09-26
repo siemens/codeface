@@ -342,6 +342,43 @@ query.person.name <- function(con, person.id) {
   return(NA)
 }
 
+## Obtain a mailing list id. The explicit name of the mailing
+## list is required
+query.ml.id.con <- function(con, pid, ml) {
+    res <- dbGetQuery(con, str_c("SELECT id from mailing_list ",
+                                 "WHERE projectId=", pid,
+                                 " AND name=", sq(ml)))
+
+    return(res)
+}
+
+## Obtain the mailing list using a conf object. It suffices
+## to specify the _type_ of the mailing list (i.e., "dev" or "user")
+query.ml.id <- function(conf, ml.type) {
+    if (!(ml.type %in% c("dev", "user"))) {
+        stop("Internal Error: query.ml.id used with invalid type")
+    }
+
+    ## Select the smallest id for which the list type matches
+    ## the desired type (NULL if no match is found)
+    idx <- do.call(c, lapply(1:length(conf$mailinglists), function(i) {
+               if (conf$mailinglists[[i]]$type==ml.type) {
+                   return(i)
+               }
+
+               return(NULL)
+           }))[[1]]
+
+    if (is.null(idx)) {
+        return(NULL)
+    }
+
+    return(query.ml.id.con(conf$con, conf$pid,
+                           conf$mailinglists[[idx]]$name)$id)
+}
+
+
+
 ## Query a two-mode edgelist (as used by the mailing list analysis in
 ## author-interest graphs) from the database
 ## type specifies the base data for the object, "subject" or "content"
