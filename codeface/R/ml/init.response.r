@@ -52,3 +52,42 @@ plot.init.response <- function(ir, title=NULL) {
 
   return(list(g1, g2))
 }
+
+summarise.init.response <- function(con, ml.id, pid) {
+    range.ids.list <- query.range.ids.con(con, pid)
+    cycles <- get.cycles.con(con, pid)
+
+    ## Comute a very heuristically motivated summary of
+    ## the mailing list structure for each release range.
+    ## For each range, compute the fraction of
+    ## responses received/messages initiated. A high ratio
+    ## indicates that topics of interest have been raised.
+    ## Compute the 0.75 quantile of the distribution to
+    ## obtain the most influential contributors
+    ## Then, compute the median degree of these contributors
+
+    dat <- lapply(range.ids.list, function(range.id) {
+         dat <- query.initiate.response(con, ml.id, range.id)
+
+         dat$frac <- dat$responses.received/dat$initiations
+         qnt <- quantile(dat$responses.received/dat$initiations,
+                         na.rm=TRUE, probs=0.75)
+         median(dat$deg[dat$frac > qnt], na.rm=T)
+
+         return(data.frame(cycle=cycles$cycle[cycles$range.id==range.id],
+                           med.deg=median(dat$deg[dat$frac > qnt], na.rm=T),
+                           num.msg=nrow(dat)))
+
+     })
+
+    return (do.call(rbind, dat))
+}
+
+## Visualise a given initiate-response data structure
+plot.ir.summary <- function(dat.ir.summary) {
+    g <- ggplot(dat.ir.summary, aes(x=cycle, y=med.deg)) +
+           geom_point(aes(size=num.msg)) +
+           xlab("Release cycle") + ylab("Med. important contributor degree") +
+           scale_size_continuous("Number of\nmessages")
+    return(g)
+}
