@@ -363,7 +363,7 @@ query.twomode.vertices <- function(con, type, ml, range.id) {
   return(dat)
 }
 
-query.initiate.response <- function(con, ml, range.id, type=NULL) {
+query.initiate.response <- function(con, ml.id, range.id, type=NULL) {
   if (!is.null(type) && !(type %in% c("subject", "content"))) {
     stop("type in query.intiate.response must be NULL or subject or content!")
   }
@@ -375,7 +375,7 @@ query.initiate.response <- function(con, ml, range.id, type=NULL) {
 
   query <- str_c("SELECT responses, initiations, responses_received, deg, source ",
                  "FROM initiate_response WHERE releaseRangeId=", range.id,
-                 " AND ml=", sq(ml))
+                 " AND mlId=", ml.id)
   if (!is.null(type)) {
     query <- str_c(query, " AND source=", type)
   }
