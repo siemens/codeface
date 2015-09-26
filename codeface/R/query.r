@@ -342,6 +342,23 @@ query.person.name <- function(con, person.id) {
   return(NA)
 }
 
+## Obtain the id of the first mailing list associated with a
+## project. This is required since currently, the type of a mailing
+## list (devel/user) is no stored in the database. Consequently,
+## we cannot distinguish the type without access to the configuration
+## file, as is the case for the web frontend.
+## The function should go away once this inconsistency is resolved.
+query.ml.id.simple.con <- function(con, pid) {
+    query <- str_c("SELECT id, name FROM mailing_list WHERE projectId=",
+                   pid)
+    res <- dbGetQuery(con, query)
+
+    if (!is.null(res)) {
+        return(res[[1]])
+    }
+    return(NULL)
+}
+
 ## Obtain a mailing list id. The explicit name of the mailing
 ## list is required
 query.ml.id.con <- function(con, pid, ml) {
@@ -352,7 +369,7 @@ query.ml.id.con <- function(con, pid, ml) {
     return(res)
 }
 
-## Obtain the mailing list using a conf object. It suffices
+## Obtain the mailing list using a full conf object. It suffices
 ## to specify the _type_ of the mailing list (i.e., "dev" or "user")
 query.ml.id <- function(conf, ml.type) {
     if (!(ml.type %in% c("dev", "user"))) {
