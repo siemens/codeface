@@ -152,7 +152,7 @@ compute.boxplot.stats <- function(v) {
                data.frame(type="q5", value=bps$stats[5]),
                data.frame(type="num.observations", value=bps$n),
                data.frame(type="conf1", value=bps$conf[1]),
-               data.frame(type="conf1", value=bps$conf[2]))
+               data.frame(type="conf2", value=bps$conf[2]))
 
   if (length(bps$out) > 0) {
     res <- rbind(res, data.frame(type="outlier", value=bps$out))
