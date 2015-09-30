@@ -69,6 +69,19 @@ query.sloccount.ts <- function(con, plot.id) {
   return(dat)
 }
 
+query.understand.ts <- function(con, plot.id, measure, kind="File",
+                                which.val="q3") {
+  query <- str_c("SELECT time, value FROM understand_raw WHERE ",
+                 "plotId=", plot.id, " AND variable='", measure, "' ",
+                 "AND name='", which.val, "' AND kind='", kind, "'")
+
+  dat <- dbGetQuery(con, query)
+  colnames(dat) <-  c("time", "value")
+  dat$time <- ymd_hms(dat$time, quiet=TRUE)
+
+  return(dat)
+}
+
 query.project.name <- function(con, pid) {
   dat <- dbGetQuery(con, str_c("SELECT name FROM project WHERE id=", sq(pid)))
 
