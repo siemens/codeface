@@ -285,8 +285,11 @@ check.corpus.precon <- function(corp.base) {
         name <- str_trim(name)
       }
 
-      ## Name and author are now given in both cases, construct
-      ## a valid auhor/email string
+      ## In some cases only an email is provided
+      if (name=="") {
+        name <- gsub("\\.", " ",gsub("@.*", "", email))
+      }
+
       author <- paste(name, ' <', email, '>', sep="")
     }
     else {
