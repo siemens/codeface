@@ -285,7 +285,6 @@ check.corpus.precon <- function(corp.base) {
   fix.corpus.doc <- function(doc) {
     meta(doc, tag="header") <- rmv.multi.refs(doc)
     meta(doc, tag="author") <- fix.author(doc)
-
     return(doc)
   }
 
