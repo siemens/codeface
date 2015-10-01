@@ -248,6 +248,11 @@ check.corpus.precon <- function(corp.base) {
         email <- paste('could.not.resolve@', name, sep="")
       }
 
+      ## In some cases only an email is provided
+      if (name=="") {
+        name <- gsub("\\.", " ",gsub("@.*", "", email))
+      }
+
       author <- paste(name, ' <', email, '>', sep="")
     }
     else {
