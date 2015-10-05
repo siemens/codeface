@@ -16,7 +16,9 @@
 
 $(function(){ //document ready
               
-$('body').on('click', 'div[.modal-footer] .action-button', function ( e ) {        
+// NOTE: Only selecting .action-button instead pf .modal-footer.action-button
+// closes the modal dialogue after adding a single widget
+$('body').on('click', '.modal-footer.action-button', function ( e ) {
   var el = $(this).parents('.modal')[0];
   $(el).modal('hide');
 });

@@ -1,0 +1,17 @@
+{
+  "name": "id_service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "id_service.js",
+  "scripts": {
+    "test": "python2.7 test.py"
+  },
+  "author": "Stefan Hagen Weber",
+  "dependencies": {
+    "addressparser": "^0.3.2",
+    "body-parser": "^1.13.3",
+    "express": "^4.13.3",
+    "js-yaml": "^3.3.1",
+    "mysql": "^2.8.0"
+  }
+}

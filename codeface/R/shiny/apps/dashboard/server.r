@@ -18,12 +18,6 @@
 ## Software Project dashboard (server.r)
 ##
 
-suppressPackageStartupMessages(library(RJSONIO))
-suppressPackageStartupMessages(library(shinyGridster))
-
-source('gridsterWidgetsExt.r', chdir=TRUE)
-source("../common.server.r", chdir=TRUE)   # REMARK: only source and library statements used here !!!
-
 ## generate a unique name to be added to list
 ## template used is: "prefix<integer>"
 internal.getuniqueid.last <<- 1
@@ -65,13 +59,14 @@ widgetbase.output.selectview <- function(w, id) {
   ## render a selectInput
   mychoices <- as.list(isolate({listViews(w)()}))
   myselected <- isolate({w$view()})
-  myselected <- names(mychoices[mychoices %in% myselected])
-  
+  myselected <- mychoices[mychoices %in% myselected]
   inputView.id.local <- paste(id, "_selectedview",sep="")
   title <- div(id = w$titleid, class = "shiny-text-output widget_title")
+
   selector <- selectInput(inputView.id.local, "",
                                 choices = mychoices,
                                 selected = myselected)
+
   selector[[2]]$attribs$class <- "widget_view_select"
   w$ui <- div(class="title_bar", 
               tags$table(width="100%", tags$tr(tags$td(title), tags$td(selector))))
@@ -106,13 +101,15 @@ widgetbase.output <- function(input, output, id, widget.class, topic, pid, size_
 
     ## build ui header
     inst.ui <- widgetUI.header(inst, id)
-    
+
     ##
     ## render a link to detail pages specific for this widget (breadcrumb will display all links)
     ##
     #str(widget.class$detailpage)
     
-    ## (1) handled by details app, needs a project id (or NULL), a widget class name and a configured topic (or NULL)
+    ## (1) handled by details app, needs a project id (or NULL), a widget
+    ## class name and a configured topic (or NULL)
+    ## Used to link from specific topic to the detail page
     if (!is.null(widget.class$detailpage$name)) {
       name <- widget.class$detailpage$name
       link <- paste("../details/?projectid=", isolate(pid()), "&widget=", name, "&topic=", isolate({topic()}), sep="")
@@ -120,10 +117,14 @@ widgetbase.output <- function(input, output, id, widget.class, topic, pid, size_
       ## TODO use a details icon instead
       detail.link <- a(class="link_details", href=link, "")
     
-      ## (2) handled by an app, needs an app, project id and a configured topic  
+      ## (2) handled by an app, needs an app, project id and a configured
+      ## topic
     } else if (!is.null(widget.class$detailpage$app)) {
+      ## Used to link from project-specific overview to a
+      ## category (for instance, to collaboration)
       app <- widget.class$detailpage$app
-      link <- paste("../", app, "/?projectid=", isolate(pid()), "&topic=", isolate({topic()}), sep="")
+      link <- paste("../", app, "/?projectid=", isolate(pid()), "&topic=",
+                    widget.class$detailpage$topic, sep="")
       
       detail.link <- a(class="link_details", href=link, "")
     } else {
@@ -275,8 +276,15 @@ shinyServer(function(input, output, session) {
   choices <- projects.choices(projects.list)
 
   ## Returns a list of selected project names (reactive statement)
-  selected <- reactive({ projects.selected( projects.list, input$qacompareids) })
-  selected.pids <- reactive({  unlist(strsplit(input$qacompareids,",")) })
+  selected <- reactive({ projects.selected( projects.list, input$qacompareids)
+  })
+
+  selected.pids <- reactive({
+    if (is.null(input$qacompareids)) {
+      return(list())
+    } else {
+      return(unlist(strsplit(input$qacompareids,",")))
+  }})
 
   ## Outputs an enhanced selectInput "selectedpids" (reactive assignment)
   ##    (uses the chosen.jquery.js plugin)

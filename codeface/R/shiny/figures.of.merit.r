@@ -57,7 +57,7 @@ fit.plot.linear <- function(pid, name, period.in.days) {
   ts <- data.frame(time=index(ts), value=coredata(ts))
   ## Check if we have any data left
   if (length(ts$time) < 2) {
-    return(rel.increase.per.year=NA, sigma=NA)
+    return(list(rel.increase.per.year=NA, sigma=NA))
   }
   ## Fit with linear model
   m1 <- lm(value ~ time, ts)
@@ -110,9 +110,17 @@ figure.of.merit.collaboration <- function(pid) {
 }
 
 figure.of.merit.communication <- function(pid) {
-  n.mail.threads <- dbGetQuery(conf$con, str_c("SELECT COUNT(*) FROM mail_thread WHERE projectId=", pid))[[1]]
-  ml.plots <-  dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", pid, " AND releaseRangeId IS NULL AND name LIKE '%activity'"))
-  if (nrow(n.mail.threads) == 0 || nrow(ml.plots) == 0) {
+  n.mail.threads <- dbGetQuery(conf$con,
+                               str_c("SELECT COUNT(*) FROM mail_thread ",
+			       "WHERE projectId=", pid))[[1]]
+
+  ml.plots <-  dbGetQuery(conf$con,
+                          str_c("SELECT id, name FROM plots ",
+                                "WHERE projectId=", pid,
+			        " AND releaseRangeId IS NULL ",
+				" AND name LIKE '% activity'"))
+
+  if (n.mail.threads == 0 || nrow(ml.plots) == 0) {
     return(list(status=status.error, why="No mailing list to analyse."))
   }
 
@@ -194,7 +202,7 @@ figure.of.merit.complexity <- function(pid) {
   understand.plots <- dbGetQuery(conf$con,
                                  str_c("SELECT id, name FROM plots WHERE ",
                                        "name LIKE 'Understand%' AND ",
-                                       "name NOT LIKE 'understand_raw' AND ",
+                                       "NOT(name='understand_raw') AND ",
                                        "projectId=", pid))
 
   if (nrow(understand.plots) == 0) {
@@ -212,8 +220,9 @@ figure.of.merit.complexity <- function(pid) {
   inc <- inc[!(is.nan(inc) | is.na(inc))]
   ## If no values are left, we have to abort.
   if (length(inc) == 0) {
-    return(list(status=status.error, why="Complexity analysis plots could not be ",
-                "fitted. Probably the complexity analysis failed."))
+    return(list(status=status.error,
+                why=str_c("Complexity analysis plots could not be ",
+                "fitted. Probably the complexity analysis failed.")))
   }
   ## Anything less than 5 sigma is not a discovery, especially not
   ## since the fit will in general be very bad.

@@ -494,7 +494,7 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
   ## scale inter-community edges seperately from intra-community edges
   if(any(inter.comm.edges)) {
     edgeData(g.viz ,from=from.inter.comm, to=to.inter.comm, "penwidth") <-
-		  as.character(scale.data((inter.comm.weights)+1, 1, 20))
+      as.character(scale.data((inter.comm.weights)+1, 5, 25))
     edgeData(g.viz ,from=from.inter.comm, to=to.inter.comm, "arrowsize") <-
 		  as.character(scale.data((inter.comm.weights)+1, 0.1, 20) / 3)
   }
@@ -504,6 +504,7 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
              as.character(scale.data(log(intra.comm.weights)+1, 1, 10))
     edgeData(g.viz, from=from.intra.comm, to=to.intra.comm, "arrowsize") <-
              as.character(scale.data(log(intra.comm.weights)+1, 1, 10) / 3)
+    edgeData(g.viz, from=from.intra.comm, to=to.intra.comm, "color") <- "#00000040"
   }
   ## edge weights are used in the layout algorithm
   edgeData(g.viz, from=from.viz, to=to.viz, "weight") <-

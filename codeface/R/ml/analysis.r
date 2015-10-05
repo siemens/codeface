@@ -230,22 +230,35 @@ check.corpus.precon <- function(corp.base) {
     email.exists <- grepl("<.+>", author, TRUE)
 
     if(!email.exists) {
-      msg <- "Incorrectly formatted author field, attempting to recover..."
-      loginfo(msg, logger="ml.analysis")
+      msg <- str_c("Incorrectly formatted author field (expected XXX XXX ",
+                   "<xxxyyy@abc.tld>); attempting to recover from: ", author)
+      logdevinfo(msg, logger="ml.analysis")
 
       ## Replace textual ' at  ' with @, sometimes
       ## we can recover an email
-      author <- gsub(' at ', '@', author)
+      author <- sub(' at ', '@', author)
+      author <- sub(' AT ', '@', author)
 
       ## Check for @ symbol
       r <- regexpr("\\S+@\\S+", author, TRUE)
       email <- substr(author, r, r + attr(r,"match.length")-1)
-      name <- gsub(email, "", author)
-      name <- str_trim(name)
 
-      ## Check if email was recovered
+      ## Use fixed=TRUE to handle synthetic email addresses like
+      ## thomas.beckmann-kcH4OoMoNbE4Q++5jOxPmw@public.gmane.org that
+      ## would otherwise be interpreted as invalid regexp
+      ## Additionally, only perform the substitution if email
+      ## is not empty, since otherwise sub() will fail.
       if(email == "") {
-        email <- paste('could.not.resolve@', name, sep="")
+        ## email address could not be resolved, use a good (but invalid)
+        ## replacement
+        email <- "could.not.resolve@unknown.tld"
+        name <- author
+    } else {
+        ## If an email address was detected, use the author
+        ## string minus the new email part as name, and construct
+        ## a valid name/email combination
+        name <- sub(email, "", author, fixed=TRUE)
+        name <- str_trim(name)
       }
 
       ## In some cases only an email is provided
@@ -253,6 +266,8 @@ check.corpus.precon <- function(corp.base) {
         name <- gsub("\\.", " ",gsub("@.*", "", email))
       }
 
+      ## Name and author are now given in both cases, construct
+      ## a valid auhor/email string
       author <- paste(name, ' <', email, '>', sep="")
     }
     else {
@@ -261,7 +276,7 @@ check.corpus.precon <- function(corp.base) {
       r <- regexpr("<.+>", author, TRUE)
       if(r[[1]] == 1) {
         email <- substr(author, r, r + attr(r,"match.length")-1)
-        name <- gsub(email, "", author)
+        name <- sub(email, "", author, fixed=TRUE)
         name <- str_trim(name)
         email <- str_trim(email)
         author <- paste(name,email)
@@ -272,7 +287,7 @@ check.corpus.precon <- function(corp.base) {
   }
 
   ## Apply checks of conditions to all documents
-  fix.corpus <- function(doc) {
+  fix.corpus.doc <- function(doc) {
     meta(doc, tag="header") <- rmv.multi.refs(doc)
     meta(doc, tag="author") <- fix.author(doc)
     return(doc)
@@ -280,7 +295,7 @@ check.corpus.precon <- function(corp.base) {
 
   ## Apply checks and fixes for all preconditions to all
   ## documents in the corpus
-  corp.base$corp <- tm_map(corp.base$corp, fix.corpus)
+  corp.base$corp <- tm_map(corp.base$corp, fix.corpus.doc)
   class(corp.base$corp) <- class(corp.base$corp.orig)
 
   return(corp.base)

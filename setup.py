@@ -16,15 +16,17 @@
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 # All Rights Reserved.
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='codeface',
       version='0.2.0',
-      description='Project for Social Data Analysis',
+      description='Codeface: Socio-Technical Analysis of Software Development',
       author='Wolfgang Mauerer',
-      author_email='wolfgang.mauerer@siemens.com',
-      url='https://github.com/wolfgangmauerer/codeface',
-      packages=['codeface', 'codeface.cluster'],
+      author_email='wolfgang.mauerer@oth-regensburg.de',
+      url='https://github.com/siemens/codeface',
+      packages=find_packages(),
       package_data={'codeface': ['R/*.r', 'R/cluster/*.r', 'perl/*.pl']},
-      entry_points={'console_scripts': ['codeface = codeface.cli:main']}
-     )
+      entry_points={'console_scripts': ['codeface = codeface.cli:main']},
+      install_requires=['progressbar', 'VCS',
+                'python_ctags','PyYAML', 'MySQL_python']
+      )

@@ -51,12 +51,20 @@ do.ts.plot <- function(ts, boundaries, title, y.label, smooth, transform) {
   ts <- data.frame(time=index(ts), value=coredata(ts))
 
   ## Visualisation
-  g <- ggplot(ts, aes(x=time, y=value)) + geom_line() +
+  g <- ggplot(ts, aes(x=time, y=value)) + geom_point() +
     geom_vline(aes(xintercept=as.numeric(date.end), colour="red"),
                data=boundaries) +
+    stat_smooth(aes(group=1), size=1) +
     scale_fill_manual(values = alpha(c("blue", "red"), .1)) +
-    xlab("Time") + ylab(str_c(y.label)) +
-    ggtitle(title)
+    xlab("Time") + ylab(y.label) +
+    ggtitle(title) +
+    theme_bw() +
+    theme(legend.position="top",
+        axis.title.x = element_text(size=15,vjust=-0.25),
+        axis.title.y = element_text(size=15),
+        axis.text.x = element_text(size=15),
+        axis.text.y = element_text(size=15))
+
   return(g)
 }
 
@@ -89,7 +97,11 @@ initWidget.widget.timeseries <- function(w) {
 initWidget.widget.timeseries.plots <- function(w) {
   # Note: The superclass may use listViews on plots
   # so we have to initialize w$plots before we pass w on
-  w$plots <- reactive({dbGetQuery(conf$con, str_c("SELECT id, name FROM plots WHERE projectId=", w$pid(), " AND releaseRangeId IS NULL"))})
+  w$plots <- reactive({
+    dbGetQuery(conf$con,
+               str_c("SELECT id, name, labely ",
+                     "FROM plots ",
+                     "WHERE projectId=", w$pid(), " AND releaseRangeId IS NULL"))})
   # Call superclass
   w <- NextMethod(w)
   return(w)
@@ -98,8 +110,12 @@ initWidget.widget.timeseries.plots <- function(w) {
 renderWidget.widget.timeseries <- function(w) {
   renderPlot({
     name <- w$plots()$name[[which(w$plots()$id==w$view())]]
+    labely <- w$plots()$labely[[which(w$plots()$id==w$view())]]
+    if(is.na(labely)) labely <- name
     ts <- get.ts.data(conf$con, w$pid(), name)
-    print(do.ts.plot(ts, w$boundaries(), name, name, w$smooth.or.def(), w$transform.or.def()))
+    g <- do.ts.plot(ts, w$boundaries(), name, labely, w$smooth.or.def(),
+                    w$transform.or.def())
+    print(g)
   })
 }
 

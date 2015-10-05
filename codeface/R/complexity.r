@@ -152,7 +152,7 @@ compute.boxplot.stats <- function(v) {
                data.frame(type="q5", value=bps$stats[5]),
                data.frame(type="num.observations", value=bps$n),
                data.frame(type="conf1", value=bps$conf[1]),
-               data.frame(type="conf1", value=bps$conf[2]))
+               data.frame(type="conf2", value=bps$conf[2]))
 
   if (length(bps$out) > 0) {
     res <- rbind(res, data.frame(type="outlier", value=bps$out))
@@ -208,13 +208,14 @@ do.complexity.analysis <- function(conf) {
       code.dir <- file.path(temp.dir, i)
       dir.create(code.dir, showWarnings=FALSE)
 
-      loginfo(str_c("Checking out revision ", commit.hash, " into ",
+      logdevinfo(str_c("Checking out revision ", commit.hash, " into ",
                     code.dir, "\n"), logger="complexity")
       perform.git.checkout(conf$repodir, commit.hash, code.dir, archive.file)
 
       if (conf$understand == TRUE) {
-        loginfo(str_c("Performing understand analysis for ", commit.hash, "\n"),
-                logger="complexity")
+        logdevinfo(str_c("Performing understand analysis for ",
+	                  commit.hash, "\n"),
+                   logger="complexity")
         do.understand.analysis(code.dir, results.file)
 
         ## The understand output still needs to be heavily post-processed.
@@ -249,8 +250,9 @@ do.complexity.analysis <- function(conf) {
       }
 
       if (conf$sloccount == TRUE) {
-        loginfo(str_c("Performing sloccount analysis for ", commit.hash, "\n"),
-                logger="complexity")
+        logdevinfo(str_c("Performing sloccount analysis for ",
+                         commit.hash, "\n"),
+                   logger="complexity")
         res <- do.sloccount.analysis(code.dir)
         add.sloccount.ts(conf, sloccount.plot.id, commit.date, res)
       }

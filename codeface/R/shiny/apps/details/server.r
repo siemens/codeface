@@ -17,4 +17,6 @@
 ## All Rights Reserved.
 
 source("../common.server.r", chdir=TRUE)
+shinybootstrap2::withBootstrap2({
 shinyServer(detailPage())
+})

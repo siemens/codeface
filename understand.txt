@@ -1,0 +1,48 @@
+Results obtained from understand are collected in table
+understand_raw -- they are not available as ready-made plots,
+but are neither in complete raw form since the amount of information
+obained from understand is impractical to analyse quickly enough
+for the web frontend.
+
+After applying understand to sample checkouts of a project
+(typically between 5-15 per release range), the quantile 
+values of the distribution are computed for each measurement
+(for instance, Cyclomatic Complexity, Knots,  ...) are
+computed for each artefact (class, file, function, ...) that can
+be analysed with understand (not all combinations are valid).
+
+The structure of table understand_raw is as follows:
+
++----------+-------------+------+-----+---------+-------+
+| Field    | Type        | Null | Key | Default | Extra |
++----------+-------------+------+-----+---------+-------+
+| plotId   | bigint(20)  | NO   | MUL | NULL    |       |
+| time     | datetime    | NO   |     | NULL    |       |
+| kind     | varchar(30) | NO   | MUL | NULL    |       |
+| name     | varchar(45) | YES  |     | NULL    |       |
+| variable | varchar(45) | NO   |     | NULL    |       |
+| value    | double      | NO   |     | NULL    |       |
++----------+-------------+------+-----+---------+-------+
+
+
+* kind is the type of artefact analysed (class, file, function, ...)
+* name can assume the following values:
+  - q1, q2, q3, q4, q5: extreme of the lower whisker, the lower ‘hinge’,
+                        the median, the upper ‘hinge’ and the extreme of
+                        the upper whisker (see boxplot.stat)
+  - num.observations: Number of, well, observations recorded by understand
+    and used to compute the summary statistics
+  - outlier: Outlier value (outliers are recorded one-by-one; the other
+    values are obviously available only once)
+  - conf1 and conf2: lower and upper extremes of the ‘notch’ (see
+    boxplot.stats)
+* variable denotes the type of measurement: RatioCommentToCode, MaxNesting,
+  CountPath, ...
+
+Time series can be generated from the raw data: To see how the
+median of the ratio of code and comments evolved over time, the following
+query needs to be run:
+
+SELECT time, value FROM understand_raw \
+       WHERE variable="RatioCommentToCode" AND kind="File" AND name="q3";
+

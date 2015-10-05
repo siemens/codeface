@@ -20,8 +20,15 @@ detailpage <- list(name="widget.contributors.pagerank,widget.contributors.pagera
                    title="Authors / Pagerank")
 
 prepare.prank.table <- function(range.id, technique) {
-  prank.id <- get.pagerank.id.con(conf$con, range.id, technique)
-  dat <- query.pagerank(conf$con, prank.id)
+  prank.id <- reactive({get.pagerank.id.con(conf$con, range.id, technique)})
+  if (is.null(prank.id())) {
+    ## No pagerank stored, either because the calculation
+    ## failed, or (much more ikely) because only a single
+    ## person contributed in the release range under consideration
+    return(NULL)
+  }
+
+  dat <- query.pagerank(conf$con, prank.id())
   dat <- cbind(dat, prank.scaled=dat$prank/max(dat$prank))
   dat <- dat[c("name", "prank", "prank.scaled")]
   colnames(dat) <- c("Name", "Page rank", "Page rank (scaled)")
@@ -87,12 +94,36 @@ createWidgetClass(
   detailpage=detailpage
 )
 
+## Output a table, or use a custom replacement text if the
+## table is empty. Code inspired from shiny, but much simpler
+## for our purposes.
+render.text.or.table <- function (expr, ..., text = "", env = parent.frame(),
+                                  quoted = FALSE) {
+    installExprFunction(expr, "func", env, quoted)
+    markRenderFunction(tableOutput, function() {
+        classNames <- "data table table-bordered table-condensed"
+        data <- func()
+        if (is.null(data) || identical(data, data.frame()))
+            return(paste(utils::capture.output(cat(text)), collapse = "\n"))
+        return(paste(utils::capture.output(print(xtable::xtable(data,
+            ...), type = "html", html.table.attributes = paste("class=\"",
+            classNames, "\"", sep = ""), ...)),
+            collapse = "\n"))
+    })
+}
+
+
+PR.NOT.COMPUTED <- paste("Page rank could not be computed ",
+		         "(likely, only a single developer contributed ",
+		         "to the cycle).")
 renderWidget.widget.contributors.pagerank <- function(w) {
-  renderTable({prepare.prank.table(w$view(), 0)})
+  render.text.or.table({prepare.prank.table(w$view(), 0)},
+                       text=PR.NOT.COMPUTED)
 }
 
 renderWidget.widget.contributors.pagerank.transposed <- function(w) {
-  renderTable({prepare.prank.table(w$view(), 1)})
+  render.text.or.table({prepare.prank.table(w$view(), 1)},
+                       text=PR.NOT.COMPUTED)
 }
 
 renderWidget.widget.contributors.commits <-  function(w) {

@@ -253,8 +253,13 @@ def parse_feature_line(sep, line):
     """
     parse the current line which is something like:
     FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS
+
+    Considering the #ifdef annotation "(!(defined(A)) && (!(defined(B)) && defined(C)",
+    the feature expression is the whole string, while the list of feature constants used
+    in the annotation (i.e., [A, B, C]).
+
     :param line: the line to parse
-    :return: start_line, end_line, line_type, feature_list
+    :return: start_line, end_line, line_type, feature_list, feature_expression
     """
     parsed_line = parse_line(sep, line)
     # FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS
@@ -272,7 +277,9 @@ def parse_feature_line(sep, line):
             feature_list = parsed_line[5].split(';')
         else:
             feature_list = []
-        return start_line, end_line, line_type, feature_list
+        feature_expression = parsed_line[4]
+
+        return start_line, end_line, line_type, feature_list, feature_expression
     except ValueError:
         raise ParseError(
             ("could not parse feature line (most likely because we "
@@ -283,40 +290,49 @@ def parse_feature_line(sep, line):
 
 def get_feature_lines(parsed_lines, filename):
     """
-    calculates an dictionary representing the feature sets for any line
-    of the given file.
+    calculates dictionaries representing the feature sets and the feature expressions
+    for any line of the given file.
+
+    - feature expression: e.g., "(!(defined(A)) && (!(defined(B)) && defined(C)"
+    - feature set: e.g., [A, B, C] (all used constants in the feature expression)
     :param parsed_lines: a list of tuples with
-    (start_line, end_line, line_type, feature_list) elements
+    (start_line, end_line, line_type, feature_list, feature_expression) elements
     :param filename: the name or the analysed files
     (only used for descriptive error messages if the calculation fails)
-    :return:
-    feature_lines: a FileDict object to access the feature sets on any line
+    :return tuple of:
+    feature_lines: a FileDict object to access the feature sets on any line;
+    fexpr_lines: a FileDict object to access the feature expression on any line
     """
-    # mapping line -> feature list, we only add changing elements
+
+    # mapping line -> feature list|feature expression, we only add changing elements
     feature_lines = FileDict()
     feature_lines.add_line(0, [])
+
+    fexpr_lines = FileDict()
+    fexpr_lines.add_line(0, [])
 
     # we want a format like (is_start, features) for every line with an
     # #ifdef (ie. line that changes the feature set)
     annotated_lines = {}
+    annotated_lines_fexpr = {}
 
-    def check_line(line):
-        if line in annotated_lines:
+    def check_line(line, lines_list):
+        if line in lines_list:
             raise ParseError(
                 ("every line index can be used at most once "
                  "(problematic line was {0} in file {1})")
-                .format(line, filename), filename)
+                    .format(line, filename), filename)
 
     # We now transform the cppstats output in another output which will
     # help to implement the algorithm below in a simple and fast way.
     # The old format is a list of
-    # (start_line, end_line, line_type, feature_list) tuples for every
-    # #ifdef/#else.
-    # The new format is a list of (is_start, feature_set)
-    # for every #ifdef(/#else)/#endif
+    # (start_line, end_line, line_type, feature_list, feature_expression)
+    # tuples for every #ifdef/#else.
+    # The new format is a list of (is_start, feature_set) and of
+    # (is_start, feature_expression, line_type) for every #ifdef(/#else)/#endif.
     # We try to ignore #else wherever possible or handle
     # the #else like a nested #if.
-    for start_line, end_line, line_type, feature_list in parsed_lines:
+    for start_line, end_line, line_type, feature_list, feature_expression in parsed_lines:
         if not feature_list:
             # empty feature list is something like: '#if 0' or
             # '#if MACRO(0,2)', we ignore those.
@@ -332,15 +348,21 @@ def get_feature_lines(parsed_lines, filename):
             # already be used by the start of an else/elif
             # (#else is the end of the previous #if
             # and the start of another '#if')
-            check_line(start_line)
+            check_line(start_line, annotated_lines)
             if end_line in annotated_lines:
                 # in that case we just say the #else line belongs to the
                 # virtual starting '#if'
                 end_line -= 1
             # Now end_line should be unused
-            check_line(end_line)
+            check_line(end_line, annotated_lines)
             annotated_lines[start_line] = (True, feature_list)
             annotated_lines[end_line] = (False, feature_list)
+
+            # for same lines, the feature expression applies
+            check_line(start_line, annotated_lines_fexpr)
+            check_line(end_line, annotated_lines_fexpr)
+            annotated_lines_fexpr[start_line] = (True, feature_expression, line_type)
+            annotated_lines_fexpr[end_line] = (False, feature_expression, line_type)
         else:
             # we try to mostly ignore else and elif if the feature_
             # list doesn't change
@@ -365,6 +387,11 @@ def get_feature_lines(parsed_lines, filename):
                 annotated_lines[start_line] = (True, feature_list)
                 annotated_lines[end_line] = \
                     (False, old_feature_list + feature_list)
+
+            # a feature expression applies for all times as it is always different to #if branch
+            annotated_lines_fexpr[start_line] = (True, feature_expression, line_type)
+            annotated_lines_fexpr[end_line] = (False, feature_expression, line_type)
+
 
     # Now that we have calculated the annotated_lines we just calculate the
     # feature sets on those lines and save them in a FileDict instance.
@@ -394,7 +421,33 @@ def get_feature_lines(parsed_lines, filename):
             line += 1
 
         feature_lines.add_line(line, new_feature_list)
-    return feature_lines
+
+    # Convert the calculated annotated_lines_fexpr to a FileDict.
+    fexpr_stack = [[]] # construct stack of current feature expressions
+    for line in sorted(annotated_lines_fexpr):
+        is_start, feature_expression, line_type = annotated_lines_fexpr[line]
+
+        if is_start:
+            if line_type == LineType.IF:
+                # start a new stack item
+                fexpr_stack.append([feature_expression])
+            else:
+                # add to last stack
+                fexpr_stack[-1].append(feature_expression)
+        else:
+            fexpr_stack.pop() # remove last stack item
+            line += 1 # Remove in next line (because we want to count the current #endif line as well).
+
+        if fexpr_stack[-1]:
+            # if there is an expression in the list, add this one
+            fexpr_lines.add_line(line, [fexpr_stack[-1][-1]])
+        else:
+            # otherwise, add empty list
+            fexpr_lines.add_line(line, [])
+
+    # return feature lines and feature-expression lines
+    return (feature_lines, fexpr_lines)
+
 
 def get_feature_lines_from_file(file_layout_src, filename):
     """
@@ -440,7 +493,7 @@ def get_feature_lines_from_file(file_layout_src, filename):
         results_file = open(featurefile.name, 'r')
         sep = parse_sep_line(next(results_file))
         headlines = parse_line(sep, next(results_file))
-        feature_lines = \
+        (feature_lines, fexpr_lines) = \
             get_feature_lines(
                 [parse_feature_line(sep, line) for line in results_file],
                 filename)
@@ -461,8 +514,10 @@ def get_feature_lines_from_file(file_layout_src, filename):
         empty = FileDict()
         empty.add_line(0, [])
         feature_lines = empty
-    # save result to the file commit instance
-    return feature_lines
+        fexpr_lines = empty
+
+    # return resulting FileDict instances for feature sets and feature expressions
+    return (feature_lines, fexpr_lines)
 
 class gitVCS (VCS):
     def __init__(self):
@@ -1239,8 +1294,8 @@ class gitVCS (VCS):
             file_commit.set_feature_infos(
                 get_feature_lines_from_file(src_lines, file_commit.filename))
 
-        # else: do not separate file commits into code structures, 
-        #       this will result in all commits to a single file seen as 
+        # else: do not separate file commits into code structures,
+        #       this will result in all commits to a single file seen as
         #       related thus the more course grained analysis
 
         blame_cmt_ids.update( cmt_lines.values() )

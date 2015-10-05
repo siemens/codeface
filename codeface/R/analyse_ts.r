@@ -49,9 +49,9 @@ get.series.boundaries <- function(conn) {
                            date.end = tstamp.to.POSIXct(elems[2]))
 
   if (length(elems) == 3) {
-    boundaries$date.rc_start= tstamp.to.POSIXct(elems[3])
+    boundaries$date.rc.start= tstamp.to.POSIXct(elems[3])
   } else {
-    boundaries$date.rc_start = NA
+    boundaries$date.rc.start = NA
   }
 
   return (boundaries)
@@ -118,6 +118,7 @@ gen.full.ts <- function(conf) {
                                     boundaries$date.end[i])
   }
 
+  full.series <- full.series[sapply(full.series, length)!=0]
   full.series <- do.call(c, full.series)
 
   return (full.series)
@@ -547,7 +548,7 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
   ## rc regions.
   if (dim(na.omit(boundaries.plot))[1] > 0) {
     ## Only plot release candidate regions if there are any, actually
-    g <- g + geom_rect(aes(NULL, NULL, xmin=date.rc_start,
+    g <- g + geom_rect(aes(NULL, NULL, xmin=date.rc.start,
                            xmax=date.end, ymin=ymin, ymax=ymax, fill="blue"),
                        data=na.omit(boundaries.plot))
 
@@ -691,7 +692,35 @@ do.sloccount.analysis <- function(conf, pid) {
         res <- dbWriteTable(conf$con, "timeseries", dat.out, append=TRUE,
                             row.names=FALSE)
         if (!res) {
-            stop("Internal error: Could not write release distance TS into database!")
+            stop("Internal error: Could not sloccount TS into database!")
+        }
+    }
+}
+
+## Compute time serie based on understand complexity analysis results
+do.understand.analysis <- function(conf, pid) {
+    if (conf$understand == FALSE) {
+      return(NULL)
+    }
+
+    ## The plot id for the raw data has already been created in complexity.r
+    plot.id.base <- get.plot.id(conf, "understand_raw")
+
+    ## Choose two metrics as example. Other suitable metrics
+    ## should be determined.
+    for (type in c("RatioCommentToCode", "CountPath")) {
+        dat <- query.understand.ts(conf$con, plot.id.base, type)
+
+        plot.name <- str_c("Understand (", type, ")")
+        plot.id <- get.clear.plot.id(conf, plot.name, labely=type)
+
+        dat.out <- data.frame(time=dat$time, value=dat$value,
+                              value_scaled=0, plotId=plot.id)
+
+        res <- dbWriteTable(conf$con, "timeseries", dat.out, append=TRUE,
+                            row.names=FALSE)
+        if (!res) {
+            stop("Internal error: Could not write understand TS into database!")
         }
     }
 }
@@ -736,6 +765,9 @@ config.script.run({
 
   do.sloccount.analysis(conf, conf$pid)
   logdevinfo("-> Finished sloccount time series analysis", logger="analyse_ts")
+
+  do.understand.analysis(conf, conf$pid)
+  logdevinfo("-> Finished complexity time series analysis", logger="analyse_ts")
 
   Rprof(NULL)
 })

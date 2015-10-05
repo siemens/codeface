@@ -191,7 +191,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     cmd.extend(("-j", str(n_jobs)))
     cmd.append(project_resdir)
     execute_command(cmd, direct_io=True, cwd=cwd)
-    log.info("=> Prosoda run complete!")
+    log.info("=> Codeface run complete!")
 
 def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
                         logfile, jobs, mailinglists):
@@ -231,4 +231,4 @@ def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
             logargs = ["--logfile", "{}.R.ml.{}".format(logfile, i)]
         execute_command([exe] + logargs + cmd + [ml["name"]],
                 direct_io=True, cwd=cwd)
-    log.info("=> Prosoda mailing list analysis complete!")
+    log.info("=> Codeface mailing list analysis complete!")

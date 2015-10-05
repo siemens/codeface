@@ -45,7 +45,7 @@ def get_parser():
     sub_parser = parser.add_subparsers(help='select action')
     test_parser = sub_parser.add_parser('test', help='Run tests')
     test_parser.set_defaults(func=cmd_test)
-    test_parser.add_argument('-c', '--config', help="Prosoda configuration file",
+    test_parser.add_argument('-c', '--config', help="Codeface configuration file",
                 default='codeface_testing.conf')
     test_parser.add_argument('-p', '--pattern', default="*",
                 help='run only tests matching the given pattern')
@@ -54,7 +54,7 @@ def get_parser():
 
     run_parser = sub_parser.add_parser('run', help='Run analysis')
     run_parser.set_defaults(func=cmd_run)
-    run_parser.add_argument('-c', '--config', help="Prosoda configuration file",
+    run_parser.add_argument('-c', '--config', help="Codeface configuration file",
                 default='codeface.conf')
     run_parser.add_argument(
         '--tagging',
@@ -82,7 +82,7 @@ def get_parser():
 
     ml_parser = sub_parser.add_parser('ml', help='Run mailing list analysis')
     ml_parser.set_defaults(func=cmd_ml)
-    ml_parser.add_argument('-c', '--config', help="Prosoda configuration file",
+    ml_parser.add_argument('-c', '--config', help="Codeface configuration file",
                 default='codeface.conf')
     ml_parser.add_argument('-p', '--project', help="Project configuration file",
                 required=True)
@@ -96,7 +96,7 @@ def get_parser():
 
     dyn_parser = sub_parser.add_parser('dynamic', help='Start R server for a dynamic graph')
     dyn_parser.set_defaults(func=cmd_dynamic)
-    dyn_parser.add_argument('-c', '--config', help="Prosoda configuration file",
+    dyn_parser.add_argument('-c', '--config', help="Codeface configuration file",
                 default='codeface.conf')
     dyn_parser.add_argument('graph', help="graph to show", default=None, nargs='?')
     dyn_parser.add_argument('-l', '--list', action="store_true", help="list available graphs")
@@ -147,7 +147,7 @@ def cmd_dynamic(args):
     if not os.path.exists(cwd):
         log.critical('Path "{}" not found!'.format(cwd))
         return 1
-    Rcode = "library(shiny); runApp(port={})".format(args.port)
+    Rcode = "library(shiny); runApp(host='0.0.0.0', port={})".format(args.port)
     cmd = ["Rscript", "-e", Rcode, "-c", cfg]
     execute_command(cmd, direct_io=True, cwd=cwd)
 
