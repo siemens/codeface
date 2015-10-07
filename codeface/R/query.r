@@ -181,6 +181,23 @@ get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
   return(ts)
 }
 
+get.commits.by.date.con <- function(con, pid, start.date, end.date,
+                                    commit.date=TRUE) {
+  if (commit.date==TRUE) {
+    date.type <- "commitDate"
+  } else {
+    date.type <- "authorDate"
+  }
+
+  query <- str_c("SELECT * FROM commit",
+                 " WHERE projectId=", pid,
+                 " AND ", date.type, ">=", sq(start.date),
+                 " AND ", date.type, "<", sq(end.date))
+  dat <- dbGetQuery(con, query)
+
+  return(dat)
+}
+
 ## Obtain commit information for a specific cycle of a project
 get.commits.by.range.con <- function(con, pid, range.id, subset=NULL, FUN=NULL) {
   dat <- dbGetQuery(con, str_c("SELECT * FROM commit where projectId=",
