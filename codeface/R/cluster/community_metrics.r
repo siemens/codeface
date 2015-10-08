@@ -25,6 +25,7 @@ suppressMessages(library(markovchain))
 
 source("../dependency_analysis.r", chdir=TRUE)
 source("../network_stream.r", chdir=TRUE)
+source("../developer_classification.r", chdir=TRUE)
 
 edge.weight.to.multi <- function(g) {
   ## Converters an edge weight to multiple edges between the connected nodes
@@ -657,6 +658,10 @@ compute.project.graph.trends <-
                 cycle <- paste(start.date, end.date, sep='-')
                 res$cycle <- cycle
 
+                ## Compute core developers based on commit counts
+                res$developer.class <- get.developer.class.con(con, p.id,
+                                                               start.date,
+                                                               end.date)
                 if (type == "developer") {
                     dev.net <- edgelist.stream[[cycle]]
                     edgelist <- dev.net$edgelist
