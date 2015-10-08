@@ -947,7 +947,7 @@ CREATE TABLE IF NOT EXISTS `codeface`.`commit_dependency` (
   `entityId` VARCHAR(255) NOT NULL,
   `entityType` VARCHAR(100) NOT NULL,
   `size` INT NULL,
-  `impl` TEXT NULL,
+  `impl` MEDIUMTEXT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_1_idx` (`commitId` ASC),
   CONSTRAINT `fk_commit_dependency`
