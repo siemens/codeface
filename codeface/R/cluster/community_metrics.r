@@ -772,7 +772,7 @@ compute.project.graph.trends <-
   class.match.df <- melt(class.match)
   class.match.df$Date <- as.Date(rownames(class.match.df))
 
-  if(length(revision.data) > 1) {
+  if(length(e$developer.class.centrality) > 1 & length(e$developer.class.commits) > 1) {
     markov.chain.commits <- compute.class.markov.chain(e$developer.class.commits)
     markov.chain.centrality <- compute.class.markov.chain(e$developer.class.centrality)
     markov.chains <- list(markov.chain.centrality=markov.chain.centrality,
