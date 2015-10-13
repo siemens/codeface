@@ -619,6 +619,8 @@ compute.project.graph.trends <-
   start.date <- min(range.data$date.start)
   end.date <- max(range.data$date.end)
 
+  loginfo("Processing network evolution for %s", project.data$name)
+
   if (any(is.na(range.data))) {
     logerror("Database contains insufficient data: %s", range.data)
     stop()
