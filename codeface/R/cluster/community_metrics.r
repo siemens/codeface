@@ -568,7 +568,8 @@ compute.community.metrics <- function(g, comm) {
   ## If less than N developers are in the power law, set x_min manually
   ## to include a minimum of number of developers and recompute the powerlaw fit
   min.devs <- 30
-  if(res$num.power.law < min.devs & res$num.vertices >= min.devs) {
+  non.zero.degree.v.count <- length(res$v.degree[res$v.degree > 0])
+  if(res$num.power.law < min.devs & non.zero.degree.v.count >= min.devs) {
     ## vertex degree is sorted above
     x.min <- res$v.degree[[min.devs]]
     p.fit <- power.law.fit(res$v.degree, implementation="plfit", xmin=x.min)
