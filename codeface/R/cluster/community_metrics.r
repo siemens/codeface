@@ -728,8 +728,8 @@ compute.project.graph.trends <-
                    comm <- community.detection.disconnected(graph,
                                                             spinglass.community.connected)
                    graph.comm <- minCommGraph(graph, comm, min=1)
-                   rev$graph <- graph.comm$graph
-                   rev$comm <- graph.comm$community
+                   rev$graph <- graph
+                   rev$comm <- comm
 
                    if(is.null(rev$comm)) {
                      rev <- NULL
