@@ -22,6 +22,7 @@ suppressMessages(library(parallel))
 suppressMessages(library(robustbase))
 suppressMessages(library(ineq))
 suppressMessages(library(markovchain))
+suppressMessages(library(scales))
 
 source("../dependency_analysis.r", chdir=TRUE)
 source("../network_stream.r", chdir=TRUE)
@@ -597,7 +598,8 @@ compute.all.project.trends <- function(con, type, outdir) {
          function(p.id) {
            trends <- compute.project.graph.trends(con, p.id, type)
            if(length(trends) > 0) {
-             write.plots.trends(trends$metrics, trends$markov.chain, outdir)
+             write.plots.trends(trends$metrics, trends$markov.chains,
+                                trends$class.match, outdir)
            }
            else print("project data frame empty")})
 
@@ -629,6 +631,8 @@ compute.project.graph.trends <-
   projects.df.list <- list()
   e <- new.env()
   e$graphs.all <- list()
+  e$developer.class.commit <- list()
+  e$developer.class.centrality <- list()
   project.name <- project.data$name
   analysis.method <- project.data$analysis.method
 
@@ -658,10 +662,6 @@ compute.project.graph.trends <-
                 cycle <- paste(start.date, end.date, sep='-')
                 res$cycle <- cycle
 
-                ## Compute core developers based on commit counts
-                res$developer.class <- get.developer.class.con(con, p.id,
-                                                               start.date,
-                                                               end.date)
                 if (type == "developer") {
                     dev.net <- edgelist.stream[[cycle]]
                     edgelist <- dev.net$edgelist
@@ -701,6 +701,14 @@ compute.project.graph.trends <-
                 if(empty(res$edgelist)) {
                   sprintf("removing empty cycle %s", cycle)
                   res <- NULL
+                }
+                else {
+                  ## Compute core developers based on commit counts
+                  e$developer.class.commits[[end.date]] <-
+                      get.developer.class.con(con, p.id, start.date, end.date)
+                  ## Compute core developers based on centrality
+                  e$developer.class.centrality[[end.date]] <-
+                      get.developer.class.centrality(res$edgelist, res$v.global.ids)
                 }
 
                 return(res)})
@@ -750,29 +758,32 @@ compute.project.graph.trends <-
 
       return(res)})
 
+  ## Compute match between developer classification
+  class.centrality <- melt(e$developer.class.centrality, c("author", "class"))
+  class.commit <- melt(e$developer.class.commits, c("author", "class"))
+  dates <- unique(union(class.commit$L1, class.centrality$L1))
+  class.match <- sapply(dates,
+      function(date) {
+        compare.classification(subset(class.centrality, L1==date),
+                               subset(class.commit, L1==date))
+      })
 
-  revision.data <- e$graphs.all
-  ## Compute network metrics for G_t -> G_t+1
+  class.match.df <- melt(class.match)
+  class.match.df$Date <- as.Date(rownames(class.match.df))
+
   if(length(revision.data) > 1) {
-    rev.indx <- 1:(length(revision.data)-1)
-    turnover <-
-      lapply(rev.indx,
-             function(i) graph.turnover(revision.data[[i]]$graph, revision.data[[i+1]]$graph,
-                                        revision.data[[i]]$v.global.ids, revision.data[[i+1]]$v.global.ids,
-                                        i))
-
-    turnover.all <- join_all(turnover, by="g.id", type="full")
-    turnover.all[is.na(turnover.all)] <- "absent"
-
-    ## Estimate markov chain
-    markov.chain <- markovchainFit(data=turnover.all[, -1], method="mle")$estimate
+    markov.chain.commits <- compute.class.markov.chain(e$developer.class.commits)
+    markov.chain.centrality <- compute.class.markov.chain(e$developer.class.centrality)
+    markov.chains <- list(markov.chain.centrality=markov.chain.centrality,
+                          markov.chain.commits=markov.chain.commits)
   }
   else {
     loginfo("Less than 2 revisions, unable to perform turn-over analysis")
-    markov.chain <- NULL
+    markov.chains <- NULL
   }
 
-  res <- list(metrics=metrics.df, markov.chain=markov.chain)
+  res <- list(metrics=metrics.df, markov.chains=markov.chains,
+              class.match=class.match.df)
 
   return(res)
 }
@@ -915,8 +926,17 @@ plot.scatter <- function(project.df, feature1, feature2, outdir) {
   }
 }
 
+plot.class.match <- function(class.match.df, filename) {
+  match.plot <- ggplot(data=class.match.df, aes(y=value, x=Date)) +
+                       geom_point(size=1) +
+                       scale_x_date(labels = date_format("%Y"),
+                       breaks = "2 year", expand=c(0,0)) +
+                       ylab("Percent Agreement")
 
-write.plots.trends <- function(trends, markov.chain, outdir) {
+  ggsave(plot=match.plot, filename=filename, width=7, height=5)
+}
+
+write.plots.trends <- function(trends, markov.chains, class.match, outdir) {
   metrics.box <- c('cluster.coefficient',
                    'betweenness.centrality',
                    'conductance',
@@ -956,16 +976,23 @@ write.plots.trends <- function(trends, markov.chain, outdir) {
   analysis.method <- unique(trends$analysis.method)
 
   file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
-  data <- list(trends=trends,markov.chain=markov.chain)
+  data <- list(trends=trends,markov.chains=markov.chains)
   save(data, file=paste(file.dir, "/project_data.dat",sep=""))
 
   ## Save markov chain plot
-  if(!is.null(markov.chain)) {
-    pdf(file=paste(file.dir, "/markov_chain.pdf", sep=""))
-    plot(markov.chain, margin=0.25)
-    dev.off()
+  if(!is.null(markov.chains)) {
+    chain.types <- names(markov.chains)
+    for (type in chain.types) {
+      filename <- paste(file.dir, "/", type, ".pdf", sep="")
+      pdf(file=filename)
+      plot(markov.chains[[type]], margin=0.25)
+      dev.off()
+    }
   }
 
+  ## Save classification match
+  filename <- paste(file.dir, "/developer_class_match.png", sep="")
+  plot.class.match(class.match, filename)
 }
 
 
