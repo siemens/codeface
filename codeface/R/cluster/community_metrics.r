@@ -600,7 +600,8 @@ compute.all.project.trends <- function(con, type, outdir) {
            trends <- compute.project.graph.trends(con, p.id, type)
            if(length(trends) > 0) {
              write.plots.trends(trends$metrics, trends$markov.chains,
-                                trends$class.match, outdir)
+                                trends$class.match, trends$class.rank.cor,
+                                outdir)
            }
            else print("project data frame empty")})
 
@@ -762,6 +763,8 @@ compute.project.graph.trends <-
   ## Compute match between developer classification
   class.centrality <- melt(e$developer.class.centrality, c("author", "class"))
   class.commit <- melt(e$developer.class.commits, c("author", "class"))
+  class.merged <- merge(class.commit, class.centrality, by=c("author", "L1"))
+  class.rank.cor <- cor(class.merged[, c("value.x", "value.y")], method="spearman")["value.x", "value.y"]
   dates <- unique(union(class.commit$L1, class.centrality$L1))
   class.match <- sapply(dates,
       function(date) {
@@ -784,7 +787,7 @@ compute.project.graph.trends <-
   }
 
   res <- list(metrics=metrics.df, markov.chains=markov.chains,
-              class.match=class.match.df)
+              class.match=class.match.df, class.rank.cor=class.rank.cor)
 
   return(res)
 }
@@ -927,17 +930,20 @@ plot.scatter <- function(project.df, feature1, feature2, outdir) {
   }
 }
 
-plot.class.match <- function(class.match.df, filename) {
+plot.class.match <- function(class.match.df, class.rank.cor, filename) {
+  rank.cor.text <- paste("Correlation:", signif(class.rank.cor,3), sep=" ")
   match.plot <- ggplot(data=class.match.df, aes(y=value, x=Date)) +
                        geom_point(size=1) +
                        scale_x_date(labels = date_format("%Y"),
                        breaks = "2 year", expand=c(0,0)) +
-                       ylab("Percent Agreement")
+                       ylab("Percent Agreement") +
+                       ggtitle(rank.cor.text)
 
   ggsave(plot=match.plot, filename=filename, width=7, height=5)
 }
 
-write.plots.trends <- function(trends, markov.chains, class.match, outdir) {
+write.plots.trends <- function(trends, markov.chains, class.match, class.rank.cor,
+                               outdir) {
   metrics.box <- c('cluster.coefficient',
                    'betweenness.centrality',
                    'conductance',
@@ -993,7 +999,7 @@ write.plots.trends <- function(trends, markov.chains, class.match, outdir) {
 
   ## Save classification match
   filename <- paste(file.dir, "/developer_class_match.png", sep="")
-  plot.class.match(class.match, filename)
+  plot.class.match(class.match, class.rank.cor, filename)
 }
 
 
