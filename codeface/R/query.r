@@ -182,17 +182,29 @@ get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
 }
 
 get.commits.by.date.con <- function(con, pid, start.date, end.date,
-                                    commit.date=TRUE) {
+                                    commit.date=TRUE,
+                                    commit.count=FALSE) {
   if (commit.date==TRUE) {
     date.type <- "commitDate"
   } else {
     date.type <- "authorDate"
   }
 
-  query <- str_c("SELECT * FROM commit",
+  if (commit.count==TRUE) {
+    select <- "SELECT author, COUNT(*) as freq"
+    group.by <- " GROUP BY author"
+  } else {
+    select <- "SELECT *"
+    group.by <- NULL
+  }
+
+  query <- str_c(select,
+                 " FROM commit",
                  " WHERE projectId=", pid,
                  " AND ", date.type, ">=", sq(start.date),
-                 " AND ", date.type, "<", sq(end.date))
+                 " AND ", date.type, "<", sq(end.date),
+                 group.by)
+
   dat <- dbGetQuery(con, query)
 
   return(dat)
