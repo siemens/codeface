@@ -10,17 +10,17 @@ source("query.r")
 ##         the structural complexity introduced by core and peripheral
 ##         developers in free software projects.
 get.developer.class.con <- function(con, project.id, start.date, end.date) {
-  commit.df <- get.commits.by.date.con(con, project.id, start.date, end.date)
-  developer.class <- get.developer.class(commit.df)
+  commit.count.df <- get.commits.by.date.con(con, project.id, start.date, end.date,
+                                             commit.count=TRUE)
+  developer.class <- get.developer.class(commit.count.df)
 
   return(developer.class)
 }
 
 ## Low-level function to compute classification
-get.developer.class <- function(commit.df, threshold=0.8) {
-  author.commit.count <- count(commit.df, "author")
+get.developer.class <- function(author.commit.count, threshold=0.8) {
   author.commit.count <- author.commit.count[order(-author.commit.count$freq),]
-  num.commits <- nrow(commit.df)
+  num.commits <- sum(author.commit.count$freq)
   commit.threshold <- round(threshold * num.commits)
   core.test <- cumsum(author.commit.count$freq) < commit.threshold
   core.developers <- author.commit.count[core.test,]

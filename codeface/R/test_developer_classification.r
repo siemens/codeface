@@ -6,7 +6,8 @@ get.developer.class.test <- function() {
   sample.size <- 1000
 
   commit.df <- data.frame(author=sample(1:50, size=sample.size, replace=T))
-  developer.class <- get.developer.class(commit.df, threshold)
+  author.commit.count <- count(commit.df, "author")
+  developer.class <- get.developer.class(author.commit.count, threshold)
   res <- sum(developer.class$core$freq) < threshold*sample.size
   return(res)
 }
