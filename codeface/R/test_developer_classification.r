@@ -29,11 +29,11 @@ compare.classification.test <- function() {
   g <- barabasi.game(300)
   edgelist <- get.data.frame(g)
   vertex.ids <- c(as.vector(V(g)))
-  degree.vec <- igraph::degree(g)[sample(seq_along(vertex.ids), length(degree.vec))]
+  degree.vec <- igraph::degree(g)[sample(seq_along(vertex.ids), length(vertex.ids))]
   commits <- unlist(sapply(vertex.ids, function(id) rep(id, degree.vec[id])))
   commit.df <- data.frame(author=commits)
   class.centrality <- get.developer.class.centrality(edgelist, vertex.ids)
-  class.commit <- get.developer.class(commit.df)
+  class.commit <- get.developer.class(count(commit.df, "author"))
   class.match <- compare.classification(class.centrality, class.commit)
   res <- class.match > 0 & class.match < 1
   return(res)
