@@ -73,3 +73,16 @@ compute.class.markov.chain <- function(developer.class.list) {
   markov.chain <- markovchainFit(data=turnover.all[, -1], method="mle")$estimate
   return(markov.chain)
 }
+
+## Centrality metric wrappers to generate named vectors
+page.rank.named <- function(g) {
+  cent.vec <- page.rank(g)$vector
+  names(cent.vec) <- V(g)$name
+  return(cent.vec)
+}
+
+evcent.named <- function(g) {
+  cent.vec <- evcent(g)$vector
+  names(cent.vec) <- V(g)$name
+  return(cent.vec)
+}
