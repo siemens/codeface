@@ -688,17 +688,17 @@ compute.project.graph.trends <-
 
                   res$edgelist <- edgelist
                 }
-				else if (type == "semantic") {
-				  semantic.coupling <- computeSemanticCouplingCon(con, p.id, start.date, end.date)
+                else if (type == "semantic") {
+                  semantic.coupling <- computeSemanticCouplingCon(con, p.id, start.date, end.date)
 
-				  ## Map vertex number to names
-				  X1 <- semantic.coupling$vertex.data$id[semantic.coupling$edgelist$X1]
-				  X2 <- semantic.coupling$vertex.data$id[semantic.coupling$edgelist$X2]
+                  ## Map vertex number to names
+                  X1 <- semantic.coupling$vertex.data$id[semantic.coupling$edgelist$X1]
+                  X2 <- semantic.coupling$vertex.data$id[semantic.coupling$edgelist$X2]
 
-				  res$edgelist <- semantic.coupling$edgelist
-				  if (!empty(res$edgelist)) res$edgelist$weight <- 1
-				  res$v.global.ids <- semantic.coupling$vertex.data$name
-				}
+                  res$edgelist <- semantic.coupling$edgelist
+                  if (!empty(res$edgelist)) res$edgelist$weight <- 1
+                  res$v.global.ids <- semantic.coupling$vertex.data$name
+                }
 
                 if(empty(res$edgelist)) {
                   sprintf("removing empty cycle %s", cycle)
@@ -740,7 +740,8 @@ compute.project.graph.trends <-
 
       ## Copy all graphs to environment for turnover analysis
       chunk.graphs <- lapply(revision.data,
-			            function(i) list(graph=i$graph, v.global.ids=i$v.global.ids))
+                              function(i) list(graph=i$graph,
+                                               v.global.ids=i$v.global.ids))
       e$graphs.all <- c(e$graphs.all, chunk.graphs)
 
       ## Remove revisions that don't have graphs
