@@ -934,6 +934,8 @@ plot.scatter <- function(project.df, feature1, feature2, outdir) {
 plot.class.match <- function(class.match.df, class.rank.cor, filename) {
   rank.cor.text <- paste("Correlation:", signif(class.rank.cor,3), sep=" ")
   match.plot <- ggplot(data=class.match.df, aes(y=value, x=Date)) +
+                      stat_smooth(aes(group=1), fill="grey65", level=0.95,
+                                  size=0.5) +
                        geom_point(size=1) +
                        scale_x_date(labels = date_format("%Y"),
                        breaks = "2 year", expand=c(0,0)) +
