@@ -593,17 +593,17 @@ compute.community.metrics <- function(g, comm) {
 
 compute.all.project.trends <- function(con, type, outdir) {
   project.ids <- query.projects(con)$id
-  #project.ids <- project.ids[!project.ids %in% c(14)]
 
-  lapply(project.ids,
-         function(p.id) {
-           trends <- compute.project.graph.trends(con, p.id, type)
-           if(length(trends) > 0) {
-             write.plots.trends(trends$metrics, trends$markov.chains,
-                                trends$class.match, trends$class.rank.cor,
-                                outdir)
-           }
-           else print("project data frame empty")})
+  for (p.id in project.ids) {
+    trends <- compute.project.graph.trends(con, p.id, type)
+    if (length(trends) > 0) {
+      write.plots.trends(trends$metrics, trends$markov.chains,
+                         trends$developer.class,
+                         outdir)
+    } else {
+      print("project data frame empty")}
+    rm(trends)
+  }
 
   return(0)
 }
@@ -761,21 +761,12 @@ compute.project.graph.trends <-
 
       return(res)})
 
-  ## Compute match between developer classification
-  class.centrality <- melt(e$developer.class.centrality, c("author", "class"))
-  class.commit <- melt(e$developer.class.commits, c("author", "class"))
+  ## Merge developer classification
+  class.centrality <- melt(e$developer.class.centrality, c("author", "class", "metric"))
+  class.commit <- melt(e$developer.class.commits, c("author", "class", "metric"))
   class.merged <- merge(class.commit, class.centrality, by=c("author", "L1"))
-  class.rank.cor <- cor(class.merged[, c("value.x", "value.y")], method="spearman")["value.x", "value.y"]
-  dates <- unique(union(class.commit$L1, class.centrality$L1))
-  class.match <- sapply(dates,
-      function(date) {
-        compare.classification(subset(class.centrality, L1==date),
-                               subset(class.commit, L1==date))
-      })
 
-  class.match.df <- melt(class.match)
-  class.match.df$Date <- as.Date(rownames(class.match.df))
-
+  ## Compute Markov chains
   if(length(e$developer.class.centrality) > 1 & length(e$developer.class.commits) > 1) {
     markov.chain.commits <- compute.class.markov.chain(e$developer.class.commits)
     markov.chain.centrality <- compute.class.markov.chain(e$developer.class.centrality)
@@ -788,7 +779,7 @@ compute.project.graph.trends <-
   }
 
   res <- list(metrics=metrics.df, markov.chains=markov.chains,
-              class.match=class.match.df, class.rank.cor=class.rank.cor)
+              developer.class=class.merged)
 
   return(res)
 }
@@ -945,7 +936,7 @@ plot.class.match <- function(class.match.df, class.rank.cor, filename) {
   ggsave(plot=match.plot, filename=filename, width=7, height=5)
 }
 
-write.plots.trends <- function(trends, markov.chains, class.match, class.rank.cor,
+write.plots.trends <- function(trends, markov.chains, developer.class,
                                outdir) {
   metrics.box <- c('cluster.coefficient',
                    'betweenness.centrality',
@@ -1001,8 +992,26 @@ write.plots.trends <- function(trends, markov.chains, class.match, class.rank.co
   }
 
   ## Save classification match
+  class.rank.cor <- cor(developer.class[, c("value.x", "value.y")],
+                        method="spearman")["value.x", "value.y"]
+  dates <- unique(developer.class$L1)
+  class.match <- sapply(dates,
+      function(date) {
+        compare.classification(subset(developer.class, L1==date)[, c("author", "class.x")],
+                               subset(developer.class, L1==date)[, c("author", "class.y")])
+      })
+
+  class.match.df <- melt(class.match)
+  class.match.df$Date <- as.Date(rownames(class.match.df))
   filename <- paste(file.dir, "/developer_class_match.png", sep="")
-  plot.class.match(class.match, class.rank.cor, filename)
+  plot.class.match(class.match.df, class.rank.cor, filename)
+  filename <- paste(file.dir, "/developer_importance_correlation.png", sep="")
+  p.cor <- ggplot(developer.class, aes(x=value.x, y=value.y)) +
+                  geom_point(alpha=0.33) +
+                  xlab(developer.class$metric.x) +
+                  ylab(developer.class$metric.y) +
+                  theme_bw()
+  ggsave(plot=p.cor, filename=filename, width=5, height=5)
 }
 
 
