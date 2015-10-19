@@ -33,14 +33,19 @@ get.developer.class <- function(author.commit.count, threshold=0.8,
 
   developer.class[core.test, "class"] <- "core"
   developer.class[!core.test, "class"] <- "peripheral"
+  developer.class$metric <- "commit.count"
 
   return(developer.class)
 }
 
 ## Determine developer class based on vertex centrality
 get.developer.class.centrality <- function(edgelist, vertex.ids, threshold=0.8,
-                                           FUN=igraph::degree,
+                                           metric="degree",
                                            quantile.threshold=TRUE) {
+  if (metric=="degree") FUN <- igraph::degree
+  if (metric=="evcent") FUN <- evcent.named
+  if (metric=="page.rank") FUN <- page.rank.named
+
   graph <- graph.data.frame(edgelist, directed=TRUE,
                             vertices=data.frame(vertex.ids))
   centrality.vec <- sort(FUN(graph), decreasing=T)
@@ -56,6 +61,7 @@ get.developer.class.centrality <- function(edgelist, vertex.ids, threshold=0.8,
 
   developer.class[core.test, "class"] <- "core"
   developer.class[!core.test, "class"] <- "peripheral"
+  developer.class$metric <- metric
 
   return(developer.class)
 }
