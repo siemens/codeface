@@ -19,11 +19,18 @@ get.developer.class.con <- function(con, project.id, start.date, end.date) {
 }
 
 ## Low-level function to compute classification
-get.developer.class <- function(author.commit.count, threshold=0.8) {
+get.developer.class <- function(author.commit.count, threshold=0.8,
+                                quantile.threshold=TRUE) {
   developer.class <- author.commit.count[order(-author.commit.count$freq),]
   num.commits <- sum(developer.class$freq)
-  commit.threshold <- round(threshold * num.commits)
-  core.test <- cumsum(developer.class$freq) < commit.threshold
+  if (quantile.threshold) {
+    commit.threshold <- quantile(developer.class$freq, probs=threshold)
+    core.test <- developer.class$freq > commit.threshold
+  } else {
+    commit.threshold <- round(threshold * num.commits)
+    core.test <- cumsum(developer.class$freq) < commit.threshold
+  }
+
   developer.class[core.test, "class"] <- "core"
   developer.class[!core.test, "class"] <- "peripheral"
 
@@ -32,14 +39,21 @@ get.developer.class <- function(author.commit.count, threshold=0.8) {
 
 ## Determine developer class based on vertex centrality
 get.developer.class.centrality <- function(edgelist, vertex.ids, threshold=0.8,
-                                           FUN=igraph::degree) {
+                                           FUN=igraph::degree,
+                                           quantile.threshold=TRUE) {
   graph <- graph.data.frame(edgelist, directed=TRUE,
                             vertices=data.frame(vertex.ids))
   centrality.vec <- sort(FUN(graph), decreasing=T)
   developer.class <- data.frame(author=names(centrality.vec),
                                 centrality=as.vector(centrality.vec))
-  centrality.threshold <- threshold * sum(centrality.vec)
-  core.test <- cumsum(developer.class$centrality) < centrality.threshold
+  if (quantile.threshold) {
+    centrality.threshold <- quantile(centrality.vec, probs=threshold)
+    core.test <- developer.class$centrality > centrality.threshold
+  } else{
+    centrality.threshold <- threshold * sum(centrality.vec)
+    core.test <- cumsum(developer.class$centrality) < centrality.threshold
+  }
+
   developer.class[core.test, "class"] <- "core"
   developer.class[!core.test, "class"] <- "peripheral"
 
