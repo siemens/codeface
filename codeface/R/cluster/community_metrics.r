@@ -924,12 +924,14 @@ plot.scatter <- function(project.df, feature1, feature2, outdir) {
 
 plot.class.match <- function(class.match.df, class.rank.cor, filename) {
   rank.cor.text <- paste("Correlation:", signif(class.rank.cor,3), sep=" ")
-  match.plot <- ggplot(data=class.match.df, aes(y=value, x=Date)) +
-                      stat_smooth(aes(group=1), fill="grey65", level=0.95,
+  class.match.df$date <- as.Date(class.match.df$date)
+  match.plot <- ggplot(data=class.match.df, aes(y=value, x=date)) +
+                      stat_smooth(aes(group=metric, color=metric), fill="grey65", level=0.95,
                                   size=0.5) +
-                       geom_point(size=1) +
+                       geom_point(aes(color=metric), size=1) +
                        scale_x_date(labels = date_format("%Y"),
                        breaks = "2 year", expand=c(0,0)) +
+                       scale_y_continuous(limits=c(0, 1)) +
                        ylab("Percent Agreement") +
                        ggtitle(rank.cor.text)
 
@@ -995,14 +997,14 @@ write.plots.trends <- function(trends, markov.chains, developer.class,
   class.rank.cor <- cor(developer.class[, c("value.x", "value.y")],
                         method="spearman")["value.x", "value.y"]
   dates <- unique(developer.class$L1)
-  class.match <- sapply(dates,
+  class.match <- lapply(dates,
       function(date) {
         compare.classification(subset(developer.class, L1==date)[, c("author", "class.x")],
                                subset(developer.class, L1==date)[, c("author", "class.y")])
       })
-
+  names(class.match) <- dates
   class.match.df <- melt(class.match)
-  class.match.df$Date <- as.Date(rownames(class.match.df))
+  colnames(class.match.df) <- c("value", "metric", "date")
   filename <- paste(file.dir, "/developer_class_match.png", sep="")
   plot.class.match(class.match.df, class.rank.cor, filename)
   filename <- paste(file.dir, "/developer_importance_correlation.png", sep="")
