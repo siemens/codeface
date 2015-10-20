@@ -1009,7 +1009,7 @@ write.plots.trends <- function(trends, markov.chains, developer.class,
   plot.class.match(class.match.df, class.rank.cor, filename)
   filename <- paste(file.dir, "/developer_importance_correlation.png", sep="")
   p.cor <- ggplot(developer.class, aes(x=value.x, y=value.y)) +
-                  geom_point(alpha=0.33) +
+                  geom_point(alpha=0.1) +
                   xlab(developer.class$metric.x) +
                   ylab(developer.class$metric.y) +
                   theme_bw()
