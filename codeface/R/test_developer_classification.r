@@ -35,7 +35,7 @@ compare.classification.test <- function() {
   class.centrality <- get.developer.class.centrality(edgelist, vertex.ids)
   class.commit <- get.developer.class(count(commit.df, "author"))
   class.match <- compare.classification(class.centrality, class.commit)
-  res <- class.match > 0 & class.match < 1
+  res <- all(class.match$total > 0 & class.match < 1)
   return(res)
 }
 

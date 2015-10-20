@@ -71,8 +71,21 @@ get.developer.class.centrality <- function(edgelist, vertex.ids, threshold=0.8,
 compare.classification <- function(developer.class.1, developer.class.2) {
   classes.merged <- merge(developer.class.1, developer.class.2, by="author")
   classes.merged$match <- classes.merged$class.x == classes.merged$class.y
-  percent.match <- nrow(subset(classes.merged, match==T)) / nrow(classes.merged)
-  return(percent.match)
+  match.total <- nrow(subset(classes.merged, match==T)) / nrow(classes.merged)
+  core.recall <- nrow(subset(classes.merged, match==T & class.x=="core")) /
+                 nrow(subset(classes.merged, class.x=="core"))
+  core.precision <- nrow(subset(classes.merged, match==T & class.x=="core")) /
+                    nrow(subset(classes.merged, class.y=="core"))
+  peripheral.recall <- nrow(subset(classes.merged, match==T & class.x=="peripheral")) /
+                       nrow(subset(classes.merged, class.x=="peripheral"))
+  peripheral.precision <- nrow(subset(classes.merged, match==T & class.x=="peripheral")) /
+                          nrow(subset(classes.merged, class.y=="peripheral"))
+  comparison <- list(total=match.total,
+                     core.recall=core.recall,
+                     core.precision=core.precision,
+                     peripheral.recall=peripheral.recall,
+                     peripheral.precision=peripheral.precision)
+  return(comparison)
 }
 
 
