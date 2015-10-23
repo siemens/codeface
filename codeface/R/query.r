@@ -542,6 +542,27 @@ query.top.contributors.changes <- function(con, range.id, limit=20) {
   return(dat)
 }
 
+## Compute edgelist for mailing list communication
+query.mail.edgelist <- function(con, pid, start.date, end.date) {
+  query <- str_c("SELECT mail_from.author as `from`, mail_to.author as `to`,
+                         COUNT(*) as `weight`",
+                 "FROM mail mail_from, mail mail_to",
+                 "WHERE mail1.projectId=", pid,
+                 "AND mail_from.projectId=mail_to.projectId",
+                 "AND mail_from.threadId=mail_to.threadId",
+                 "AND mail_from.mlId=mail_to.mlId",
+                 "AND mail_from.author!=mail_to.author",
+                 "AND mail_from.creationDate > mail_to.creationDate",
+                 "AND mail_from.creationDate >=", sq(start.date),
+                 "AND mail_from.creationDate <", sq(end.date),
+                 "AND mail_to.creationDate >=", sq(start.date),
+                 "AND mail_to.creationDate <", sq(end.date),
+                 "GROUP BY mail1.author, mail2.author", sep=" ")
+  dat <- dbGetQuery(con, query)
+
+  return(dat)
+}
+
 ## Distributions for commit statistics
 query.contributions.stats.range <- function(con, range.id, include.id=FALSE) {
   if (include.id) {
