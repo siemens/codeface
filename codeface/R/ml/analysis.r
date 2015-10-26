@@ -348,38 +348,41 @@ dispatch.all <- function(conf, repo.path, resdir) {
   release.intervals <- release.intervals[nonempty.release.intervals]
   release.labels <- release.labels[nonempty.release.intervals]
 
-  if (length(nonempty.release.intervals) == 0) {
-    stop("Mailing list does not cover any release range.")
-  }
-
-  ## TODO: Find some measure (likely depending on the number of messages per
-  ## time) to select suitable time intervals of interest. For many projects,
-  ## weekly (and monthly) are much too short, and longer intervals need to
-  ## be considered.
-  periodic.analysis <- FALSE
-  if (periodic.analysis) {
-    loginfo("Periodic analysis", logger="ml.analysis")
-    ## Select weekly and monthly intervals (TODO: With the new flexible
-    ## intervals in place, we could select proper monthly intervals)
-    iter.weekly <- gen.iter.intervals(dates, 1)
-    iter.4weekly <- gen.iter.intervals(dates, 4)
-
-    analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, resdir,
-                          paste("weekly", 1:length(iter.weekly), sep=""))
-    analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, resdir,
-                          paste("4weekly", 1:length(iter.4weekly), sep=""))
-  }
-
-  loginfo("Analysing subsequences", logger="ml.analysis")
   ## Obtain a unique numerical ID for the mailing list (and clear
   ## any existing results on the way)
   ml.id <- gen.clear.ml.id.con(conf$con, conf$listname, conf$pid)
 
-  ## Also obtain a clear plot for the mailing list activity
-  activity.plot.name <- str_c(conf$listname, " activity")
-  activity.plot.id <- get.clear.plot.id(conf, activity.plot.name)
-  analyse.sub.sequences(conf, corp.base, release.intervals, repo.path, resdir,
-                        release.labels, ml.id, activity.plot.id)
+  if (length(nonempty.release.intervals) == 0) {
+    loginfo("Mailing list does not cover any release range.")
+  }
+  else {
+    ## TODO: Find some measure (likely depending on the number of messages per
+    ## time) to select suitable time intervals of interest. For many projects,
+    ## weekly (and monthly) are much too short, and longer intervals need to
+    ## be considered.
+    periodic.analysis <- FALSE
+    if (periodic.analysis) {
+      loginfo("Periodic analysis", logger="ml.analysis")
+      ## Select weekly and monthly intervals (TODO: With the new flexible
+      ## intervals in place, we could select proper monthly intervals)
+      iter.weekly <- gen.iter.intervals(dates, 1)
+      iter.4weekly <- gen.iter.intervals(dates, 4)
+
+      analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, resdir,
+                            paste("weekly", 1:length(iter.weekly), sep=""))
+      analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, resdir,
+                            paste("4weekly", 1:length(iter.4weekly), sep=""))
+    }
+
+    loginfo("Analysing subsequences", logger="ml.analysis")
+
+    ## Also obtain a clear plot for the mailing list activity
+    activity.plot.name <- str_c(conf$listname, " activity")
+    activity.plot.id <- get.clear.plot.id(conf, activity.plot.name)
+    analyse.sub.sequences(conf, corp.base, release.intervals, repo.path, resdir,
+                          release.labels, ml.id, activity.plot.id)
+
+  }
 
   ## #######
   ## Global analysis
