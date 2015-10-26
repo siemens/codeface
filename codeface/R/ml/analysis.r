@@ -394,6 +394,10 @@ dispatch.all <- function(conf, repo.path, resdir) {
                       corp=corp,
                       corp.orig=corp.base$corp.orig)
 
+  ## Store all mails to database
+  store.mail(conf, forest.corp$forest, corp, ml.id)
+
+  ## Store all mails to local storage
   resdir.complete <- file.path(resdir, "complete")
   gen.dir(resdir.complete)
   save(file=file.path(resdir.complete, "forest.corp"), forest.corp)
@@ -714,6 +718,23 @@ store.twomode.graphs <- function(conf, twomode.graphs, ml.id, range.id) {
                       ml.id, range.id)
   store.twomode.graph(conf$con, twomode.graphs$content, "content",
                       ml.id, range.id)
+}
+
+## Write all mails in forest to database
+store.mail <- function(conf, forest, corp, ml.id ) {
+  columns <- c("threadID", "author", "subject")
+  dat <- as.data.frame(forest)[, columns]
+  dat$mlId <- ml.id
+  dat$projectId <- conf$pid
+  dat$creationDate <- sapply(rownames(dat),
+                             function(id) as.character(meta(corp[[id]], "datetimestamp")))
+  colnames(dat) <- c("threadId", "author", "subject", "mlId", "projectId",
+                     "creationDate")
+
+  res <- dbWriteTable(conf$con, "mail", dat, append=TRUE, row.names=FALSE)
+  if (!res) {
+    stop("Internal error: Could not write mails into database!")
+  }
 }
 
 store.initiate.response <- function(conf, ir, ml.id, range.id) {

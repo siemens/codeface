@@ -226,22 +226,22 @@ CREATE TABLE IF NOT EXISTS `codeface`.`mail_thread` (
   INDEX `mail_projectId_idx` (`projectId` ASC),
   INDEX `mail_release_range_key_idx` (`releaseRangeId` ASC),
   INDEX `mail_mlId_idx` (`mlId` ASC),
-  CONSTRAINT `mail_createdBy`
+  CONSTRAINT `thread_createdBy`
     FOREIGN KEY (`createdBy`)
     REFERENCES `codeface`.`person` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `mail_release_range_key`
+  CONSTRAINT `thread_release_range_key`
     FOREIGN KEY (`releaseRangeId`)
     REFERENCES `codeface`.`release_range` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `mail_projectId`
+  CONSTRAINT `thread_projectId`
     FOREIGN KEY (`projectId`)
     REFERENCES `codeface`.`project` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `mail_mlId`
+  CONSTRAINT `thread_mlId`
     FOREIGN KEY (`mlId`)
     REFERENCES `codeface`.`mailing_list` (`id`)
     ON DELETE CASCADE
@@ -953,6 +953,42 @@ CREATE TABLE IF NOT EXISTS `codeface`.`commit_dependency` (
   CONSTRAINT `fk_commit_dependency`
     FOREIGN KEY (`commitId`)
     REFERENCES `codeface`.`commit` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `codeface`.`mail`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `codeface`.`mail` ;
+
+CREATE TABLE IF NOT EXISTS `codeface`.`mail` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `projectId` BIGINT NOT NULL,
+  `threadId` BIGINT NOT NULL,
+  `mlId` BIGINT NOT NULL,
+  `author` BIGINT NOT NULL,
+  `subject` VARCHAR(255) NULL DEFAULT NULL,
+  `creationDate` DATETIME NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `mail_author_idx` (`author` ASC),
+  INDEX `mail_projectId_idx` (`projectId` ASC),
+  INDEX `mail_mlId_idx` (`mlId` ASC),
+  INDEX `mail_comp1_idx` (`mlId` ASC, `projectId` ASC, `creationDate` ASC),
+  CONSTRAINT `mail_author`
+    FOREIGN KEY (`author`)
+    REFERENCES `codeface`.`person` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `mail_projectId`
+    FOREIGN KEY (`projectId`)
+    REFERENCES `codeface`.`project` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `mail_mlId`
+    FOREIGN KEY (`mlId`)
+    REFERENCES `codeface`.`mailing_list` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
