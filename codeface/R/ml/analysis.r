@@ -25,7 +25,9 @@ source("../db.r", chdir=TRUE)
 source("../utils.r", chdir=TRUE)
 source("../query.r", chdir=TRUE)
 source("../id_manager.r", chdir=TRUE)
+source("../mc_helpers.r")
 source("project.spec.r")
+source("ml_utils.r")
 
 gen.forest <- function(conf, repo.path, resdir) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
