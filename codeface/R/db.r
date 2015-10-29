@@ -246,6 +246,17 @@ gen.clear.ml.id.con <- function(con, ml, pid) {
   return(res$id)
 }
 
+## Insert new project
+gen.clear.project.id.con <- function(con, project.name, analysis.method) {
+  dbGetQuery(con, str_c("DELETE FROM project ",
+                        "WHERE project.name=", sq(project.name)))
+  dat <- data.frame(name=project.name, analysisMethod=analysis.method)
+  dbWriteTable(con, "project", dat, row.names=FALSE, append=TRUE)
+  res <- dbGetQuery(con, str_c("SELECT id FROM project ",
+                               "WHERE name=", sq(project.name)))
+  return(res$id)
+}
+
 gen.clear.ml.id <- function(conf, ml) {
   return(gen.clear.ml.id(conf$con, ml, conf$pid))
 }
