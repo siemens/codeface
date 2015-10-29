@@ -331,24 +331,29 @@ dispatch.all <- function(conf, repo.path, resdir) {
   dates <- sort(dates)
 
   ## Compute a list of intervals for the project release cycles
-  cycles <- get.cycles(conf)
+  cycles <- get.cycles(conf, allow.empty.ranges=TRUE)
 
-  ## NOTE: We store the lubridate intervals in a list (instead of
-  ## simply appending them to the cycles data frame) because they
-  ## are coerced to numeric by the conversion to a data frame.
-  release.intervals <- list(dim(cycles)[1])
-  for (i in 1:(dim(cycles)[1])) {
-    release.intervals[[i]] <- new_interval(cycles$date.start[[i]],
-                                           cycles$date.end[[i]])
+  if (nrow(cycles) != 0) {
+    ## NOTE: We store the lubridate intervals in a list (instead of
+    ## simply appending them to the cycles data frame) because they
+    ## are coerced to numeric by the conversion to a data frame.
+    release.intervals <- list(dim(cycles)[1])
+    for (i in 1:(dim(cycles)[1])) {
+      release.intervals[[i]] <- new_interval(cycles$date.start[[i]],
+                                             cycles$date.end[[i]])
+    }
+
+    release.labels <- as.list(cycles$cycle)
+
+    ## The mailing list data may not cover the complete timeframe of
+    ## the repository, so remove any empty intervals
+    nonempty.release.intervals <- get.nonempty.intervals(dates, release.intervals)
+    release.intervals <- release.intervals[nonempty.release.intervals]
+    release.labels <- release.labels[nonempty.release.intervals]
   }
-
-  release.labels <- as.list(cycles$cycle)
-
-  ## The mailing list data may not cover the complete timeframe of
-  ## the repository, so remove any empty intervals
-  nonempty.release.intervals <- get.nonempty.intervals(dates, release.intervals)
-  release.intervals <- release.intervals[nonempty.release.intervals]
-  release.labels <- release.labels[nonempty.release.intervals]
+  else {
+    nonempty.release.intervals <- NULL
+  }
 
   ## Obtain a unique numerical ID for the mailing list (and clear
   ## any existing results on the way)

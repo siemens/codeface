@@ -124,11 +124,11 @@ query.range.ids <- function(conf) {
 
 ## Obtain all release cycles of a project (date boundaries, internal ID,
 ## cycle name)
-get.cycles.con <- function(con, pid, boundaries=FALSE) {
+get.cycles.con <- function(con, pid, boundaries=FALSE, allow.empty.ranges=FALSE) {
   res <- dbGetQuery(con, str_c("SELECT * ",
                                "FROM revisions_view ",
                                "WHERE projectId=", pid))
-  if (nrow(res) == 0) {
+  if (nrow(res) == 0 & !allow.empty.ranges) {
     stop(paste("No release range found for projectId=", pid))
   }
 
