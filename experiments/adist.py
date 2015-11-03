@@ -17,8 +17,8 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-from VCS import gitVCS
-from commit_analysis import createCumulativeSeries, createSeries, \
+from codeface.VCS import gitVCS
+from codeface.commit_analysis import createCumulativeSeries, createSeries, \
     writeToFile, getSeriesDuration
 import rpy2.robjects as robjects
 import matplotlib
@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import os.path
 from pylab import *
 from subprocess import *
-import kerninfo
+import codeface.kerninfo
 import shelve
 import re
 
