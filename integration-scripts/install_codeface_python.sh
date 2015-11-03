@@ -2,7 +2,8 @@
 
 echo "Providing codeface python"
 
-sudo pip install --upgrade -q setuptools mock
+sudo pip install --upgrade -q setuptools
+sudo pip install --upgrade -q mock
 
 # Only development mode works
 # install fails due to R scripts accessing unbundled resources!
