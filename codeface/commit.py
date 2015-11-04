@@ -18,24 +18,32 @@
 # Copyright 2010, 2011, 2012 by Wolfgang Mauerer <wm@linux-kernel.net>
 # All Rights Reserved.
 
+"""
+Contains class commit with all required members
+"""
+#TODO insert comments into docstrings
+
 class Commit:
-    # Keywords to identify corrective commits
-    # Ref: A. Mockus and L. G. Votta, Identifying Reasons for Software
-    #      Changes Using Historic Databases
+    """Keywords to identify corrective commits
+    Ref: A. Mockus and L. G. Votta, Identifying Reasons for Software
+    Changes Using Historic Databases
+    """
+
     CORRECTIVE_KEYWORDS = ['bug', 'fix', 'error', 'fail']
 
     def __init__(self):
-        # Base characteristics: uniqiue id (typically a hash value) and
-        # time stamp (commiter time) of the commit
+        """Base characteristics: uniqiue id (typically a hash value) and
+        time stamp (commiter time) of the commit
+        """
         self.id = None
         self.cdate = None
         self.adate = None
         self.adate_tz = None
-        self.author = None       # Author name
-        self.author_pi  = None   # PersonInfo instance for author
-        self.committer = None    # Committer name
-        self.committer_pi = None # PersonInfo instance for committer
-        self.is_corrective = False # Boolean for whether commit is corrective
+        self.author = None  # Author name
+        self.author_pi = None  # PersonInfo instance for author
+        self.committer = None  # Committer name
+        self.committer_pi = None  # PersonInfo instance for committer
+        self.is_corrective = False  # Boolean for whether commit is corrective
         self.description = None
 
         # Contains a tuple (added, deleted, changed)
@@ -70,13 +78,12 @@ class Commit:
         # ... and for taggers and subsystems
         self.taggers_subsys_similarity = None
 
-
     # The following methods replace hard-coded constants
     # with reasonable names
     def getCdate(self):
         return self.cdate
 
-    def setCdate(self,cdate):
+    def setCdate(self, cdate):
         self.cdate = cdate
 
     def getAddedLines(self, difftype):
@@ -100,7 +107,7 @@ class Commit:
     def getCommitMessageLines(self):
         return self.commit_msg_info[0]
 
-    def getCommitMessageSize(self): # "Size" as in "number of characters@
+    def getCommitMessageSize(self):  # "Size" as in "number of characters@
         return self.commit_msg_info[1]
 
     def getAuthorName(self):
@@ -155,15 +162,16 @@ class Commit:
         self.description = ' '.join(descr)
 
     def checkIfCorrective(self, descr):
-        # Check if commit description contains keywords that indicate a
-        # corrective commit
+        """Check if commit description contains keywords that indicate a
+        corrective commit
+        """
         for line in descr:
             contains_keyword = [keyword in line.lower()
                                 for keyword in Commit.CORRECTIVE_KEYWORDS]
             is_corrective = any(contains_keyword)
 
             if is_corrective:
-               break
+                break
         # End for line
 
         self.is_corrective = is_corrective
