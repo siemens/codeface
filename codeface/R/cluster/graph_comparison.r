@@ -126,13 +126,21 @@ graph.difference <- function(g1,g2, weighted=FALSE) {
 
 ## Compare the results of the tag and non tag based graphs
 graph.comparison <- function(g.1, g.2) {
+  aligned.graphs <- graph.align(g.1, g.2)
+  graph.diff <- graph.difference(aligned.graphs[[1]], aligned.graphs[[2]])
+  return(graph.diff)
+}
+
+
+## Align graphs
+graph.align <- function(g.1, g.2) {
   ## Normalize graphs to have binary edge weight
   E(g.1)$weight <- ceiling( scale.data(E(g.1)$weight, 0, 1) )
   E(g.2)$weight <- ceiling( scale.data(E(g.2)$weight, 0, 1) )
 
-  intersectNames <- intersect(V(g.1)$Id, V(g.2)$Id)
-  idx.1 <- match(intersectNames, V(g.1)$Id)
-  idx.2 <- match(intersectNames, V(g.2)$Id)
+  intersectNames <- intersect(V(g.1), V(g.2))
+  idx.1 <- match(intersectNames, V(g.1))
+  idx.2 <- match(intersectNames, V(g.2))
 
   ## Build adjacency matrix of interesecting ids
   adj.matrix.1.intersect <- g.1[idx.1, idx.1]
@@ -142,11 +150,8 @@ graph.comparison <- function(g.1, g.2) {
   g.1.intersect <- graph.adjacency(adj.matrix.1.intersect, mode = "directed")
   g.2.intersect <- graph.adjacency(adj.matrix.2.intersect, mode = "directed")
 
-  graph.diff <- graph.difference(g.1.intersect, g.2.intersect)
-
-  return(graph.diff)
+  return(list(g.1.intersect, g.2.intersect))
 }
-
 
 ################################################################################
 ## High Level Functions
