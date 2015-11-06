@@ -547,7 +547,7 @@ query.mail.edgelist <- function(con, pid, start.date, end.date) {
   query <- str_c("SELECT mail_from.author as `from`, mail_to.author as `to`,
                          COUNT(*) as `weight`",
                  "FROM mail mail_from, mail mail_to",
-                 "WHERE mail1.projectId=", pid,
+                 "WHERE mail_from.projectId=", pid,
                  "AND mail_from.projectId=mail_to.projectId",
                  "AND mail_from.threadId=mail_to.threadId",
                  "AND mail_from.mlId=mail_to.mlId",
@@ -557,7 +557,7 @@ query.mail.edgelist <- function(con, pid, start.date, end.date) {
                  "AND mail_from.creationDate <", sq(end.date),
                  "AND mail_to.creationDate >=", sq(start.date),
                  "AND mail_to.creationDate <", sq(end.date),
-                 "GROUP BY mail1.author, mail2.author", sep=" ")
+                 "GROUP BY mail_from.author, mail_to.author", sep=" ")
   dat <- dbGetQuery(con, query)
 
   return(dat)
