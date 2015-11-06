@@ -162,14 +162,3 @@ class idManager:
         name = string.lstrip(string.rstrip(name))
 
         return name
-############################ Test cases #########################
-if __name__ == "__main__":
-    idm = idManager()
-    for addr in ["Luck, Tony <tony.luck@intel.com>", "Tony Luck <tony.luck@intel.com>"]:
-        id = idm.getPersonID(addr)
-        print("ID for {0}: {1}".format(addr, id))
-
-    persons = idm.getPersons()
-    for id in sorted(persons.keys()):
-        pi = persons[id]
-        print "{0} -> {1}".format(id, pi.getName())

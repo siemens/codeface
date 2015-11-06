@@ -19,9 +19,9 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-from VCS import gitVCS
-from commit_analysis import createCumulativeSeries, createSeries
-import kerninfo
+from codeface.VCS import gitVCS
+from codeface.commit_analysis import createCumulativeSeries, createSeries
+import codeface.kerninfo
 
 git = gitVCS();
 git.setRepository("/home/wolfgang/git-repos/linux-2.6/.git")

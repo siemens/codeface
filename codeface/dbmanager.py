@@ -208,7 +208,7 @@ class DBManager:
             (project_id, range_id))
         ranges = self.doFetchAll()
         if self.cur.rowcount == 0:
-            raise Exception("Range id {} not found!".format(pid))
+            raise Exception("Range id {} not found!".format(project_id))
         return ranges[0]
 
     def update_release_timeline(self, project, tagging, revs, rcs,
