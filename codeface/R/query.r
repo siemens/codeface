@@ -150,8 +150,8 @@ get.cycles.con <- function(con, pid, boundaries=FALSE, allow.empty.ranges=FALSE)
   return(res)
 }
 
-get.cycles <- function(conf) {
-  return(get.cycles.con(conf$con, conf$pid))
+get.cycles <- function(conf, ...) {
+  return(get.cycles.con(conf$con, conf$pid, ...))
 }
 
 ## Obtain the per-release-range statistics
