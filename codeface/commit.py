@@ -23,7 +23,8 @@ Contains class commit with all required members
 """
 #TODO insert comments into docstrings
 
-class Commit:
+
+class Commit(object):
     """Keywords to identify corrective commits
     Ref: A. Mockus and L. G. Votta, Identifying Reasons for Software
     Changes Using Historic Databases
@@ -164,6 +165,9 @@ class Commit:
     def checkIfCorrective(self, descr):
         """Check if commit description contains keywords that indicate a
         corrective commit
+
+        Args:
+            descr:
         """
         for line in descr:
             contains_keyword = [keyword in line.lower()
