@@ -14,42 +14,50 @@
 # Copyright 2013 by Siemens AG
 # All Rights Reserved.
 
-from logging import getLogger; log = getLogger(__name__)
+from logging import getLogger
+
+log = getLogger(__name__)
 from pkg_resources import resource_filename
 from os.path import join as pathjoin, split as pathsplit, abspath
-
 from .dbmanager import DBManager
 from .configuration import Configuration, ConfigurationError
 from .cluster.cluster import doProjectAnalysis, LinkType
 from .ts import dispatch_ts_analysis
-from .util import (execute_command, generate_reports, layout_graph,
-                   check4ctags, check4cppstats, BatchJobPool, generate_analysis_windows)
+from .util import (execute_command, generate_reports, check4ctags,
+                   check4cppstats, BatchJobPool, generate_analysis_windows)
+
 
 def loginfo(msg):
-    ''' Pickleable function for multiprocessing '''
+    """ Pickleable function for multiprocessing """
     log.info(msg)
 
+
 def project_setup(conf, recreate):
-    '''
+    """
     This method updates the project in the database with the release
     information given in the configuration.
     Returns the project ID, the database manager and the list of range ids
     for the ranges between the releases specified in the configuration.
-    '''
-    # Set up project in database and retrieve ranges to analyse
-    log.info("=> Setting up project '{c[project]}'".format(c=conf))
+    Set up project in database and retrieve ranges to analyse
+    """
+    log.info("=> Setting up project '%s'", conf["project"])
     dbm = DBManager(conf)
     new_range_ids = dbm.update_release_timeline(conf["project"],
-            conf["tagging"], conf["revisions"], conf["rcs"],
-            recreate_project=recreate)
+                                                conf["tagging"],
+                                                conf["revisions"], conf["rcs"],
+                                                recreate_project=recreate)
     project_id = dbm.getProjectID(conf["project"], conf["tagging"])
     revs = conf["revisions"]
-    all_range_ids = [dbm.getReleaseRangeID(project_id,
-            ( dbm.getRevisionID(project_id, start),
-              dbm.getRevisionID(project_id, end)))
-            for (start, end) in zip(revs, revs[1:])]
+    #TODO make readable in for each! Ultra-short is useless when it is confusing
+    all_range_ids = [
+        dbm.getReleaseRangeID(project_id, (
+            dbm.getRevisionID(project_id, start),
+            dbm.getRevisionID(project_id, end)))
+        for (start, end) in zip(revs[0:], revs[1:])
+        ]
     return project_id, dbm, all_range_ids
 
+#TODO analyse and document functions then remove magic numbers and constants
 def project_analyse(resdir, gitdir, codeface_conf, project_conf,
                     no_report, loglevel, logfile, recreate, profile_r,
                     n_jobs, tagging_type, reuse_db):
@@ -61,11 +69,11 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         if not tagging_type in LinkType.get_all_link_types():
             log.critical('Unsupported tagging mechanism specified!')
             raise ConfigurationError('Unsupported tagging mechanism.')
-        # we override the configuration value
+        # we override the configuration value explicitly by cmd argument
         if tagging is not tagging_type:
             log.warn(
-                "tagging value is overwritten to {0} because of --tagging"
-                .format(tagging_type))
+                "tagging value is overwritten to %s because of --tagging",
+                tagging_type)
             tagging = tagging_type
             conf["tagging"] = tagging
 
@@ -77,11 +85,11 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     # When revisions are not provided by the configuration file
     # generate the analysis window automatically
     if len(conf["revisions"]) < 2:
-        window_size_months = 3 # Window size in months
+        window_size_months = 3  # Window size in months
         num_window = -1  # Number of ranges to analyse, -1 captures all ranges
         revs, rcs = generate_analysis_windows(repo, window_size_months)
-        conf["revisions"] = revs[-num_window-1:]
-        conf["rcs"] = rcs[-num_window-1:]
+        conf["revisions"] = revs[-num_window - 1:]
+        conf["rcs"] = rcs[-num_window - 1:]
         range_by_date = True
 
     # TODO: Sanity checks (ensure that git repo dir exists)
@@ -100,18 +108,18 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     for i, range_id in enumerate(all_range_ids):
         start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
         range_resdir = pathjoin(project_resdir, "{0}-{1}".
-                format(start_rev, end_rev))
+                                format(start_rev, end_rev))
         prefix = "  -> Revision range {0}..{1}: ".format(start_rev, end_rev)
 
         #######
         # STAGE 1: Commit analysis
         s1 = pool.add(
-                doProjectAnalysis,
-                (conf, start_rev, end_rev, rc_rev, range_resdir, repo,
-                    reuse_db, True, range_by_date),
-                startmsg=prefix + "Analysing commits...",
-                endmsg=prefix + "Commit analysis done."
-            )
+            doProjectAnalysis,
+            (conf, start_rev, end_rev, rc_rev, range_resdir, repo,
+             reuse_db, True, range_by_date),
+            startmsg=prefix + "Analysing commits...",
+            endmsg=prefix + "Commit analysis done."
+        )
 
         #########
         # STAGE 2: Cluster analysis
@@ -128,24 +136,24 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         cmd.append(str(range_id))
 
         s2 = pool.add(
-                execute_command,
-                (cmd,),
-                {"direct_io":True, "cwd":cwd},
-                deps=[s1],
-                startmsg=prefix + "Detecting clusters...",
-                endmsg=prefix + "Detecting clusters done."
-            )
+            execute_command,
+            (cmd,),
+            {"direct_io": True, "cwd": cwd},
+            deps=[s1],
+            startmsg=prefix + "Detecting clusters...",
+            endmsg=prefix + "Detecting clusters done."
+        )
 
         #########
         # STAGE 3: Generate cluster graphs
         if not no_report:
             pool.add(
-                    generate_reports,
-                    (start_rev, end_rev, range_resdir),
-                    deps=[s2],
-                    startmsg=prefix + "Generating reports...",
-                    endmsg=prefix + "Report generation done."
-                )
+                generate_reports,
+                (start_rev, end_rev, range_resdir),
+                deps=[s2],
+                startmsg=prefix + "Generating reports...",
+                endmsg=prefix + "Report generation done."
+            )
 
     # Wait until all batch jobs are finished
     pool.join()
@@ -161,7 +169,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     ## after time series generation
     log.info("=> Performing complexity analysis")
     for i, range_id in enumerate(all_range_ids):
-        log.info("  -> Analysing range {}".format(range_id))
+        log.info("  -> Analysing range '%s'", range_id)
         exe = abspath(resource_filename(__name__, "R/complexity.r"))
         cwd, _ = pathsplit(exe)
         cmd = [exe]
@@ -193,6 +201,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     execute_command(cmd, direct_io=True, cwd=cwd)
     log.info("=> Codeface run complete!")
 
+#TODO sanity check mailing lists parameter
 def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
                         logfile, jobs, mailinglists):
     conf = Configuration.load(codeface_conf, project_conf)
@@ -212,23 +221,27 @@ def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
     else:
         mailinglist_conf = []
         for mln in mailinglists:
+            #TODO check ml/mln confusion and disambiguate! should be mln (prob)
             match = [ml for ml in conf["mailinglists"] if ml["name"] == mln]
             if not match:
-                log.fatal("Mailinglist '{}' not listed in configuration file!".
-                    format(ml))
+                log.fatal(
+                    "Mailinglist '%s' not listed in configuration file!",
+                    ml)
                 raise Exception("Unknown mailing list")
             if len(match) > 1:
-                log.fatal("Mailinglist '{}' specified twice in configuration file!".
-                    format(ml))
+                log.fatal(
+                    "Mailinglist '%s' specified twice in configuration file!",
+                    ml)
                 raise Exception("Invalid config file")
             mailinglist_conf.append(match[0])
 
     for i, ml in enumerate(mailinglist_conf):
-        log.info("=> Analysing mailing list '{name}' of type '{type}'".
-                format(**ml))
+        log.info("=> Analysing mailing list '%s' of type '%s'",
+                 ml["name"],
+                 ml["type"])
         logargs = []
         if logfile:
             logargs = ["--logfile", "{}.R.ml.{}".format(logfile, i)]
         execute_command([exe] + logargs + cmd + [ml["name"]],
-                direct_io=True, cwd=cwd)
+                        direct_io=True, cwd=cwd)
     log.info("=> Codeface mailing list analysis complete!")
