@@ -166,13 +166,13 @@ class DevInfoLogger(logging.getLoggerClass()):
     """
     Logger with adjustable development levels.
     """
-    def devinfo(self, *args):
+    def devinfo(self, msg, *args, **kwargs):
         """
         Initialize root codeface logger
         Note that the Level is set to 1, so all logging messages will be passed
         to the handlers, which will then apply their log level.
         """
-        return self.log(DEVINFO_LEVEL, *args)
+        return self.log(DEVINFO_LEVEL, msg, *args, **kwargs)
 
 
 logging.setLoggerClass(DevInfoLogger)
