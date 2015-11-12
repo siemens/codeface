@@ -52,6 +52,7 @@ gen.forest <- function(conf, repo.path, resdir) {
                               preprocess=linux.kernel.preprocess)
     save(file=corp.file, corp.base)
   } else {
+    loginfo("Loading mail data from precomputed corpus instead of mbox file")
     load(file=corp.file)
   }
 
