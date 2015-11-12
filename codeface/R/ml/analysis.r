@@ -225,6 +225,10 @@ check.corpus.precon <- function(corp.base) {
       author <- "unknown"
     }
 
+    ## Remove problematic punctuation characters
+    author <- gsub("\"", " ", author)
+    author <- gsub(",", " ", author)
+
     ## Trim trailing and leading whitespace
     author <- str_trim(author)
 
