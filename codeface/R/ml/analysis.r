@@ -228,6 +228,19 @@ check.corpus.precon <- function(corp.base) {
     ## Trim trailing and leading whitespace
     author <- str_trim(author)
 
+    ## Handle case where author is like
+    ## Adrian Prantl via llvm-dev <llvm-dev@lists.llvm.org>
+    pattern <- " via [[:print:]]*"
+    if (grepl(pattern,author, TRUE)) {
+      ## Extract name and replace email part
+      name <- gsub(pattern, author, replacement="")
+
+      ## Generate ficticious email from name part
+      email <- paste("<", gsub(" ", "." ,name), "@unknown.tld>", sep="")
+
+      author <- paste(name, email)
+    }
+
     ## Check if email exists
     email.exists <- grepl("<.+>", author, TRUE)
 

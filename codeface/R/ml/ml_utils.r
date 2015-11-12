@@ -171,21 +171,9 @@ fixup.network <- function(.net) {
   return(.net[idx, idx])
 }
 
-## Fix some common problems that appear in mailing list author
-## specifications.
-fixup.authors <- function(authors) {
-  authors <- gsub(pattern=" via [[:print:]]*>?|\\]?", x=authors,
-                  replacement="")
-
-  authors[authors==""] <- NA
-  return(authors)
-}
-
 ## Author name normalisation. Replace the name/email pairs found in
 ## the messages with a decomposed name and a unique in-database ID
 do.normalise <- function(conf, authors) {
-  authors <- fixup.authors(authors)
-
   authorIDs <- sapply(authors, function(namestr) {
     if (is.na(namestr)) {
       return(NA)
