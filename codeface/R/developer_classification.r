@@ -59,6 +59,7 @@ get.developer.class.centrality <- function(edgelist, vertex.ids, threshold=0.8,
     core.test <- cumsum(developer.class$centrality) < centrality.threshold
   }
 
+  ## TODO: add back zero degree nodes to peripheral group
   developer.class[core.test, "class"] <- "core"
   developer.class[!core.test, "class"] <- "peripheral"
   developer.class$metric <- metric
