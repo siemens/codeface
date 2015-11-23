@@ -23,7 +23,7 @@ if(length(p) > 0) {
 }
 
 
-p <- filter.installed.packages(c("shinyGridster"))
+p <- filter.installed.packages(c("tm.plugin.mail"))
 if(length(p) > 0) {
     devtools::install_github("wolfgangmauerer/tm-plugin-mail/pkg")
 }
