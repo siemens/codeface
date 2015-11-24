@@ -201,3 +201,4 @@ ggsave(file="motif_count.png", p.null)
 p.null <- ggplot(data=data.frame(degree=degree(graph.data.frame(mail.dat))), aes(x=degree)) +
     geom_histogram(aes(y=..density..), colour="black", fill="white") +
     geom_density(alpha=.2, fill="#AAD4FF")
+ggsave(file="email_degree_dist.png")
