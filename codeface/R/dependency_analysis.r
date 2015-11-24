@@ -52,7 +52,7 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
                  "FROM commit_dependency INNER JOIN commit ",
                  "ON commit.id = commit_dependency.commitId ",
                  "WHERE commit.projectId=", project.id, " ",
-                 "AND commit_dependency.entityType=", sq(type), " ",
+                 "AND commit_dependency.entityType=", sq("function"), " ",
                  "AND commit.ChangedFiles <= ", limit, " ",
                  "AND commit.commitDate >=", sq(start.date), " ",
                  "AND commit.commitDate <", sq(end.date), " ",
@@ -60,10 +60,16 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
                  "ORDER BY commit.id ASC")
 
   dat <- dbGetQuery(con, query)
+
   cols <- c('file', 'entityId')
 
   if(nrow(dat) > 0) {
-    dat$entity <- apply(dat[,cols], 1, paste, collapse="/")
+    if (type == "function") {
+      dat$entity <- apply(dat[,cols], 1, paste, collapse="/")
+    } else if (type == "file") {
+      dat$entity <- dat[, "file"]
+    }
+
     dat$cycle <- paste(start.date, end.date, sep="-")
   }
 
