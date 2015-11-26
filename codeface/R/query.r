@@ -569,6 +569,21 @@ query.mail.edgelist <- function(con, pid, start.date, end.date) {
   return(dat)
 }
 
+## Compute the number messages each author generated across all mailing lists
+## for a single project
+query.author.mail.count <- function(con, pid, start.date, end.date) {
+  query <- str_c("SELECT author, COUNT(*) as freq",
+                 "FROM mail",
+                 "WHERE projectId=", pid,
+                 "AND creationDate >=", sq(start.date),
+                 "AND creationDate <", sq(end.date),
+                 "GROUP BY author", sep=" ")
+
+  dat <- dbGetQuery(con, query)
+
+  return(dat)
+}
+
 ## Distributions for commit statistics
 query.contributions.stats.range <- function(con, range.id, include.id=FALSE) {
   if (include.id) {
