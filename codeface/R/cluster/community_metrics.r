@@ -598,7 +598,7 @@ compute.all.project.trends <- function(con, type, outdir) {
     trends <- compute.project.graph.trends(con, p.id, type)
     if (length(trends) > 0) {
       write.plots.trends(trends$metrics, trends$markov.chains,
-                         trends$developer.class,
+                         trends$developer.classifications,
                          outdir)
     } else {
       print("project data frame empty")}
@@ -610,8 +610,7 @@ compute.all.project.trends <- function(con, type, outdir) {
 
 
 compute.project.graph.trends <-
-  function(con, p.id, type, window.size=90, step.size=14,
-           cluster.method="Spin Glass Community") {
+  function(con, p.id, type, window.size=90, step.size=14) {
   project.data <- list()
   project.data$p.id <- p.id
   project.data$name <- query.project.name(con, p.id)
@@ -631,12 +630,8 @@ compute.project.graph.trends <-
                                      step.size, window.size)
 
   metrics.df <- data.frame()
-  project.list <- list()
-  projects.df.list <- list()
   e <- new.env()
-  e$graphs.all <- list()
-  e$developer.class.commit <- list()
-  e$developer.class.centrality <- list()
+  e$developer.classes <- list()
   project.name <- project.data$name
   analysis.method <- project.data$analysis.method
 
@@ -706,11 +701,37 @@ compute.project.graph.trends <-
                 }
                 else {
                   ## Compute core developers based on commit counts
-                  e$developer.class.commits[[end.date]] <-
-                      get.developer.class.con(con, p.id, start.date, end.date)
-                  ## Compute core developers based on centrality
-                  e$developer.class.centrality[[end.date]] <-
-                      get.developer.class.centrality(res$edgelist, res$v.global.ids)
+                  e$developer.classes[["1"]][[end.date]] <-
+                      get.developer.class.con(con, p.id, start.date, end.date,
+                                              "VCS", count.type="commit")
+
+                  ## Compute core developers based on loc counts
+                  e$developer.classes[["2"]][[end.date]] <-
+                      get.developer.class.con(con, p.id, start.date, end.date,
+                                              "VCS", count.type="loc")
+
+                  ## Compute core developers based on mail counts
+                  e$developer.classes[["3"]][[end.date]] <-
+                      get.developer.class.con(con, p.id, start.date, end.date,
+                                              "mail", count.type="mail")
+
+                  ## Compute core developers based on degree centrality
+                  e$developer.classes[["4"]][[end.date]] <-
+                      get.developer.class.centrality(res$edgelist, res$v.global.ids,
+                                                     source="VCS", metric="degree")
+
+                 ## Compute core developer based on eigen vector centrality
+                 e$developer.classes[["5"]][[end.date]] <-
+                     get.developer.class.centrality(res$edgelist, res$v.global.ids,
+                                                    source="VCS", metric="evcent")
+
+                ## Compute core developer based on email network degree
+                email.edgelist <- query.mail.edgelist(con, p.id, start.date,
+                                                      end.date)
+                v.global.ids <- unique(c(email.edgelist$from, email.edgelist$to))
+                e$developer.classes[["6"]][[end.date]] <-
+                     get.developer.class.centrality(email.edgelist, v.global.ids,
+                                                    source="email", metric="degree")
                 }
 
                 return(res)})
@@ -738,12 +759,6 @@ compute.project.graph.trends <-
 
                    return(rev)})
 
-      ## Copy all graphs to environment for turnover analysis
-      chunk.graphs <- lapply(revision.data,
-                              function(i) list(graph=i$graph,
-                                               v.global.ids=i$v.global.ids))
-      e$graphs.all <- c(e$graphs.all, chunk.graphs)
-
       ## Remove revisions that don't have graphs
       revision.data[sapply(revision.data, is.null)] <- NULL
 
@@ -762,9 +777,11 @@ compute.project.graph.trends <-
       return(res)})
 
   ## Merge developer classification
-  class.centrality <- melt(e$developer.class.centrality, c("author", "class", "metric"))
-  class.commit <- melt(e$developer.class.commits, c("author", "class", "metric"))
-  class.merged <- merge(class.commit, class.centrality, by=c("author", "L1"))
+  developer.classifications <- list()
+  for (type in names(e$developer.classes)) {
+    developer.classifications[[type]] <- melt(e$developer.classes[[type]],
+                                              c("author", "class", "metric"))
+  }
 
   ## Compute Markov chains
   if(length(e$developer.class.centrality) > 1 & length(e$developer.class.commits) > 1) {
@@ -779,7 +796,7 @@ compute.project.graph.trends <-
   }
 
   res <- list(metrics=metrics.df, markov.chains=markov.chains,
-              developer.class=class.merged)
+              developer.classifications=developer.classifications)
 
   return(res)
 }
@@ -938,7 +955,7 @@ plot.class.match <- function(class.match.df, class.rank.cor, filename) {
   ggsave(plot=match.plot, filename=filename, width=7, height=5)
 }
 
-write.plots.trends <- function(trends, markov.chains, developer.class,
+write.plots.trends <- function(trends, markov.chains, developer.classifications,
                                outdir) {
   metrics.box <- c('cluster.coefficient',
                    'betweenness.centrality',

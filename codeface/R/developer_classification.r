@@ -1,5 +1,6 @@
 suppressMessages(library(igraph))
 suppressMessages(library(markovchain))
+suppressMessages(library(psych))
 
 source("db.r")
 source("query.r")
@@ -10,17 +11,30 @@ source("query.r")
 ## to Ref: Terceiro A, Rios LR, Chavez C (2010) An empirical study on
 ##         the structural complexity introduced by core and peripheral
 ##         developers in free software projects.
-get.developer.class.con <- function(con, project.id, start.date, end.date) {
-  commit.count.df <- get.commits.by.date.con(con, project.id, start.date, end.date,
-                                             commit.count=TRUE)
-  developer.class <- get.developer.class(commit.count.df)
+get.developer.class.con <- function(con, project.id, start.date, end.date,
+                                    source, count.type) {
+
+  if (source=="VCS") {
+    db.dat <- get.commits.by.date.con(con, project.id, start.date, end.date,
+                                       count.type)
+  } else if (source=="mail") {
+    db.dat <- query.author.mail.count(con, project.id, start.date, end.date)
+  }
+
+  developer.class <- get.developer.class(db.dat, count.type)
 
   return(developer.class)
 }
 
+
+
 ## Low-level function to compute classification
-get.developer.class <- function(author.commit.count, threshold=0.8,
+get.developer.class <- function(author.commit.count, count.type, threshold=0.8,
                                 quantile.threshold=TRUE) {
+  if (nrow(author.commit.count)==0) {
+    return(NULL)
+  }
+
   developer.class <- author.commit.count[order(-author.commit.count$freq),]
   num.commits <- sum(developer.class$freq)
   if (quantile.threshold) {
@@ -33,15 +47,19 @@ get.developer.class <- function(author.commit.count, threshold=0.8,
 
   developer.class[core.test, "class"] <- "core"
   developer.class[!core.test, "class"] <- "peripheral"
-  developer.class$metric <- "commit.count"
+  developer.class$metric <- paste(count.type, "count", sep=".")
 
   return(developer.class)
 }
 
 ## Determine developer class based on vertex centrality
-get.developer.class.centrality <- function(edgelist, vertex.ids, threshold=0.8,
-                                           metric="degree",
+get.developer.class.centrality <- function(edgelist, vertex.ids, source,
+                                           threshold=0.8, metric="degree",
                                            quantile.threshold=TRUE) {
+  if(nrow(edgelist)==0) {
+    return(NULL)
+  }
+
   if (metric=="degree") FUN <- igraph::degree
   if (metric=="evcent") FUN <- evcent.named
   if (metric=="page.rank") FUN <- page.rank.named
@@ -59,10 +77,9 @@ get.developer.class.centrality <- function(edgelist, vertex.ids, threshold=0.8,
     core.test <- cumsum(developer.class$centrality) < centrality.threshold
   }
 
-  ## TODO: add back zero degree nodes to peripheral group
   developer.class[core.test, "class"] <- "core"
   developer.class[!core.test, "class"] <- "peripheral"
-  developer.class$metric <- metric
+  developer.class$metric <- paste(source, metric, sep=" ")
 
   return(developer.class)
 }
@@ -72,20 +89,30 @@ get.developer.class.centrality <- function(edgelist, vertex.ids, threshold=0.8,
 compare.classification <- function(developer.class.1, developer.class.2) {
   classes.merged <- merge(developer.class.1, developer.class.2, by="author")
   classes.merged$match <- classes.merged$class.x == classes.merged$class.y
+
   match.total <- nrow(subset(classes.merged, match==T)) / nrow(classes.merged)
-  core.recall <- nrow(subset(classes.merged, match==T & class.x=="core")) /
-                 nrow(subset(classes.merged, class.x=="core"))
-  core.precision <- nrow(subset(classes.merged, match==T & class.x=="core")) /
-                    nrow(subset(classes.merged, class.y=="core"))
-  peripheral.recall <- nrow(subset(classes.merged, match==T & class.x=="peripheral")) /
-                       nrow(subset(classes.merged, class.x=="peripheral"))
-  peripheral.precision <- nrow(subset(classes.merged, match==T & class.x=="peripheral")) /
-                          nrow(subset(classes.merged, class.y=="peripheral"))
+
+  core.jaccard <- nrow(subset(classes.merged, match==T & class.x=="core")) /
+                 (nrow(subset(classes.merged, class.x=="core")) +
+                  nrow(subset(classes.merged, class.y=="core")) -
+                  nrow(subset(classes.merged, match==T & class.x=="core")))
+
+  peripheral.jaccard <- nrow(subset(classes.merged, match==T & class.x=="peripheral")) /
+                        (nrow(subset(classes.merged, class.x=="peripheral")) +
+                         nrow(subset(classes.merged, class.y=="peripheral")) -
+                         nrow(subset(classes.merged, match==T & class.x=="peripheral")))
+
+  if (nrow(classes.merged) > 2) {
+    cohen <- cohen.kappa(classes.merged[, c("class.x", "class.y")])$kappa
+  } else {
+    cohen <- NA
+  }
+
   comparison <- list(total=match.total,
-                     core.recall=core.recall,
-                     core.precision=core.precision,
-                     peripheral.recall=peripheral.recall,
-                     peripheral.precision=peripheral.precision)
+                     core.jaccard=core.jaccard,
+                     peripheral.jaccard=peripheral.jaccard,
+                     cohen=cohen)
+
   return(comparison)
 }
 
