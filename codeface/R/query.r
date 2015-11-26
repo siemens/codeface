@@ -188,16 +188,22 @@ get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
 }
 
 get.commits.by.date.con <- function(con, pid, start.date, end.date,
-                                    commit.date=TRUE, commit.count=FALSE) {
+                                    commit.date=TRUE, count.type="none") {
   if (commit.date==TRUE) {
     date.type <- "commitDate"
   } else {
     date.type <- "authorDate"
   }
 
-  if (commit.count==TRUE) {
+  if (count.type=="commit") {
     query <- "SELECT author, COUNT(*) as freq"
     group.by <- " GROUP BY author"
+  } else if (count.type=="loc") {
+    query <- "SELECT author, SUM(DiffSize) as freq"
+    group.by <- " GROUP BY author"
+  } else if (count.type!="none") {
+    logerror("Incorrect count.type parameter")
+    stop()
   } else {
     query <- "SELECT *"
     group.by <- NULL
