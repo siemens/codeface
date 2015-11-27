@@ -64,10 +64,14 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
   cols <- c('file', 'entityId')
 
   if(nrow(dat) > 0) {
+    type <- tolower(type)
     if (type == "function") {
       dat$entity <- apply(dat[,cols], 1, paste, collapse="/")
     } else if (type == "file") {
       dat$entity <- dat[, "file"]
+    } else{
+      logerror("Incorrect type function parameter")
+      stop()
     }
 
     dat$cycle <- paste(start.date, end.date, sep="-")
