@@ -28,10 +28,10 @@ motif.generator <- function(type) {
     V(motif)$color <- vertex.coding[V(motif)$kind]
   }
   else if (type=="triangle") {
-  motif <- add.vertices(motif, 3)
-  motif <- add.edges(motif, c(1,2, 1,3, 2,3))
-  V(motif)$kind <- c(person.role, person.role, artifact.type)
-  V(motif)$color <- vertex.coding[V(motif)$kind]
+    motif <- add.vertices(motif, 3)
+    motif <- add.edges(motif, c(1,2, 1,3, 2,3))
+    V(motif)$kind <- c(person.role, person.role, artifact.type)
+    V(motif)$color <- vertex.coding[V(motif)$kind]
   }
   else {
     motif <- NULL
