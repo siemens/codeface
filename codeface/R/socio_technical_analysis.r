@@ -61,10 +61,13 @@ preprocess.graph <- function(g) {
 ## Configuration
 if (!exists("conf")) conf <- connect.db("../../codeface.conf")
 dsm.filename <- "/home/mitchell/Downloads/cassandra-2.1.0.dsm.xlsx"
+jira.filename <- "/home/mitchell/Downloads/jira-comment-authors.csv"
+codeface.filename <- "/home/mitchell/Downloads/jiraId_CodefaceId.csv"
 con <- conf$con
 project.id <- 2
 artifact.type <- list("function", "file")[[2]]
 dependency.type <- list("co-change", "dsm")[[2]]
+communication.type <- list("mail", "jira")[[2]]
 person.role <- "developer"
 start.date <- "2015-07-01"
 end.date <- "2015-10-01"
@@ -77,8 +80,13 @@ vcs.dat <- query.dependency(con, project.id, artifact.type, file.limit,
 vcs.dat$author <- as.character(vcs.dat$author)
 
 ## Compute communication relations
-mail.dat <- query.mail.edgelist(con, project.id, start.date, end.date)
-mail.dat[, c(1,2)] <- sapply(mail.dat[, c(1,2)], as.character)
+if (communication.type=="mail") {
+  comm.dat <- query.mail.edgelist(con, project.id, start.date, end.date)
+  colnames(comm.dat) <- c("V1", "V2", "weight")
+} else if (communication.type=="jira") {
+  comm.dat <- load.jira.edgelist(jira.filename, codeface.filename)
+}
+comm.dat[, c(1,2)] <- sapply(comm.dat[, c(1,2)], as.character)
 
 ## Compute entity-entity relations
 relavent.entity.list <- unique(vcs.dat$entity)
@@ -123,7 +131,7 @@ g.bipartite <- add.edges(g.nodes, vcs.edgelist)
 
 ## Add developer-developer communication edges
 g <- graph.empty(directed=FALSE)
-mail.edgelist <- as.character(with(mail.dat, ggplot2:::interleave(from, to)))
+comm.edgelist <- as.character(with(comm.dat, ggplot2:::interleave(V1, V2)))
 g <- add.edges(g.bipartite, mail.edgelist, attr=list(color="red"))
 
 ## Add entity-entity edges
