@@ -720,18 +720,22 @@ compute.project.graph.trends <-
                       get.developer.class.centrality(res$edgelist, res$v.global.ids,
                                                      source="VCS", metric="degree")
 
-                 ## Compute core developer based on eigen vector centrality
-                 e$developer.classes[["5"]][[end.date]] <-
-                     get.developer.class.centrality(res$edgelist, res$v.global.ids,
-                                                    source="VCS", metric="evcent")
+                  ## Compute core developer based on eigen vector centrality
+                  e$developer.classes[["5"]][[end.date]] <-
+                      get.developer.class.centrality(res$edgelist, res$v.global.ids,
+                                                     source="VCS", metric="page.rank")
 
-                ## Compute core developer based on email network degree
-                email.edgelist <- query.mail.edgelist(con, p.id, start.date,
-                                                      end.date)
-                v.global.ids <- unique(c(email.edgelist$from, email.edgelist$to))
-                e$developer.classes[["6"]][[end.date]] <-
-                     get.developer.class.centrality(email.edgelist, v.global.ids,
-                                                    source="email", metric="degree")
+                  ## Compute core developer based on email network degree
+                  email.edgelist <- query.mail.edgelist(con, p.id, start.date,
+                                                        end.date)
+                  v.global.ids <- unique(c(email.edgelist$from, email.edgelist$to))
+                  e$developer.classes[["6"]][[end.date]] <-
+                      get.developer.class.centrality(email.edgelist, v.global.ids,
+                                                     source="mail", metric="degree")
+
+                  e$developer.classes[["7"]][[end.date]] <-
+                      get.developer.class.centrality(email.edgelist, v.global.ids,
+                                                     source="mail", metric="page.rank")
                 }
 
                 return(res)})
