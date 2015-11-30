@@ -1015,26 +1015,54 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
   }
 
   ## Save classification match
-  class.rank.cor <- cor(developer.class[, c("value.x", "value.y")],
-                        method="spearman")["value.x", "value.y"]
-  dates <- unique(developer.class$L1)
-  class.match <- lapply(dates,
-      function(date) {
-        compare.classification(subset(developer.class, L1==date)[, c("author", "class.x")],
-                               subset(developer.class, L1==date)[, c("author", "class.y")])
-      })
-  names(class.match) <- dates
-  class.match.df <- melt(class.match)
-  colnames(class.match.df) <- c("value", "metric", "date")
+  classification.types <- names(developer.classifications)
+  classification.pairs <- combn(classification.types, 2, simplify=FALSE)
+  classification.agreement <- list()
+  for (pair in classification.pairs) {
+    classification.1 <- developer.classifications[[pair[[1]]]]
+    classification.2 <- developer.classifications[[pair[[2]]]]
+    classes.merged <- merge(classification.1, classification.2,
+                            by=c("author", "L1"))
+    dates <- unique(classes.merged$L1)
+
+    ## Compute classification agreement over for all dates
+    class.match <- lapply(dates,
+        function(date) {
+          compare.classification(subset(classes.merged, L1==date)[, c("author", "class.x")],
+                                 subset(classes.merged, L1==date)[, c("author", "class.y")])
+        })
+    class.match.df <- melt(class.match)
+    class.match.df$L1 <- dates[class.match.df$L1]
+    correlation.type <- "spearman"
+    colnames(class.match.df) <- c("value", "metric", "date")
+    class.cor <- lapply(dates,
+        function(date) {
+          class.rank.cor <- cor(subset(classes.merged, L1==date)[, c("value.x", "value.y")],
+                                method=correlation.type)["value.x", "value.y"]
+        })
+    class.cor.df <- melt(class.cor)
+    class.cor.df$metric <- correlation.type
+    class.cor.df$L1 <- dates[class.cor.df$L1]
+    colnames(class.cor.df) <- c("value", "date", "metric")
+
+    classification.1 <- unique(classification.1$metric)
+    classification.2 <- unique(classification.2$metric)
+    comparison <- paste(classification.1, classification.2, sep=" vs ")
+    classification.agreement[[comparison]] <- list(class.cor.df, class.match.df)
+  }
+
+  classification.agreement <- melt(classification.agreement)
+  classification.agreement$date <- as.Date(classification.agreement$date)
+  p.class.ag <- ggplot(classification.agreement, aes(y=value, x=date)) +
+                       geom_point(aes(group=metric, color=metric)) +
+                       stat_smooth(aes(group=metric, color=metric), fill="grey65",
+                                       level=0.95, size=0.5) +
+                       scale_x_date(labels = date_format("%Y"),
+                                    breaks = "3 months", expand=c(0,0)) +
+                       facet_wrap(~ L1, ncol=1)
+
   filename <- paste(file.dir, "/developer_class_match.png", sep="")
-  plot.class.match(class.match.df, class.rank.cor, filename)
-  filename <- paste(file.dir, "/developer_importance_correlation.png", sep="")
-  p.cor <- ggplot(developer.class, aes(x=value.x, y=value.y)) +
-                  geom_point(alpha=0.1) +
-                  xlab(developer.class$metric.x) +
-                  ylab(developer.class$metric.y) +
-                  theme_bw()
-  ggsave(plot=p.cor, filename=filename, width=5, height=5)
+  ggsave(plot=p.class.ag, filename=filename, width=10, height=30)
 }
 
 
