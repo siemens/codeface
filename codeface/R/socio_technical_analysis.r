@@ -4,8 +4,9 @@ library("BiRewire")
 
 source("query.r")
 source("config.r")
-source('dependency_analysis.r')
-source('process_dsm.r')
+source("dependency_analysis.r")
+source("process_dsm.r")
+source("process_jira.r")
 
 plot.to.file <- function(g, outfile) {
   g <- simplify(g,edge.attr.comb="first")
