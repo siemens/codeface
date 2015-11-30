@@ -16,7 +16,7 @@ get.developer.class.con <- function(con, project.id, start.date, end.date,
 
   if (source=="VCS") {
     db.dat <- get.commits.by.date.con(con, project.id, start.date, end.date,
-                                       count.type)
+                                      count.type=count.type)
   } else if (source=="mail") {
     db.dat <- query.author.mail.count(con, project.id, start.date, end.date)
   }
