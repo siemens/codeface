@@ -169,7 +169,7 @@ motif.count.null <-
                           as.character(with(get.data.frame(g.bipartite.rewired),
                                             ggplot2:::interleave(from, to))))
       ## Aritfact-artifact edges
-      g.null <- add.edges(g.null, co.change.edgelist)
+      g.null <- add.edges(g.null, dependency.edgelist)
 
       ## Test degree dist
       #if(!all(sort(as.vector(degree(g.null))) ==
