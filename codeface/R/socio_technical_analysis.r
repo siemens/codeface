@@ -11,7 +11,7 @@ source("process_jira.r")
 plot.to.file <- function(g, outfile) {
   g <- simplify(g,edge.attr.comb="first")
   g <- delete.vertices(g, names(which(degree(g)<2)))
-  E(g)[is.na(E(g)$color)]$color <- "gray80"
+  E(g)[is.na(E(g)$color)]$color <- "#0000001A"
   png(file=outfile, width=10, height=10, units="in", res=300)
   plot(g, layout=layout.kamada.kawai, vertex.size=2,
        vertex.label.dist=0.5, edge.arrow.size=0.5,
