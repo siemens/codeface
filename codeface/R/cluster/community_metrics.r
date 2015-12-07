@@ -1066,6 +1066,10 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
 
   filename <- paste(file.dir, "/developer_class_match.png", sep="")
   ggsave(plot=p.class.ag, filename=filename, width=10, height=30)
+
+  p.matrix <- plot.agreement(all.agreement)
+  filename <- paste(file.dir, "/developer_class_match_matrix.png", sep="")
+  ggsave(plot=p.matrix, filename=filename, width=10, height=5)
 }
 
 
