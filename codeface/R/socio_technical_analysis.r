@@ -154,6 +154,9 @@ motif <- motif.generator("square")
 ## Count subgraph isomorphisms
 motif.count <- count_subgraph_isomorphisms(motif, g, method="vf2")
 
+## Extract subgraph isomorphisms
+motif.subgraphs <- subgraph_isomorphisms(motif, g, method="vf2")
+
 ## Compute null model
 niter <- 1000
 motif.count.null <- c()
