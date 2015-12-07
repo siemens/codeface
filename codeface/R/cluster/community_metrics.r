@@ -1016,8 +1016,10 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
 
   ## Save classification match
   classification.types <- names(developer.classifications)
-  classification.pairs <- combn(classification.types, 2, simplify=FALSE)
-  classification.agreement <- list()
+  classification.pairs <- combn(classification.types, m=2, simplify=F)
+
+  all.agreement <- list()
+  i <- 0
   for (pair in classification.pairs) {
     classification.1 <- developer.classifications[[pair[[1]]]]
     classification.2 <- developer.classifications[[pair[[2]]]]
@@ -1045,21 +1047,22 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
     class.cor.df$L1 <- dates[class.cor.df$L1]
     colnames(class.cor.df) <- c("value", "date", "metric")
 
-    classification.1 <- unique(classification.1$metric)
-    classification.2 <- unique(classification.2$metric)
-    comparison <- paste(classification.1, classification.2, sep=" vs ")
-    classification.agreement[[comparison]] <- list(class.cor.df, class.match.df)
+    agreement.df <- rbind(class.cor.df, class.match.df)
+    agreement.df[, "class1"] <- unique(classification.1$metric)
+    agreement.df[, "class2"] <- unique(classification.2$metric)
+    all.agreement[[paste(pair, collapse="-")]] <- agreement.df
   }
 
-  classification.agreement <- melt(classification.agreement)
-  classification.agreement$date <- as.Date(classification.agreement$date)
-  p.class.ag <- ggplot(classification.agreement, aes(y=value, x=date)) +
+  all.agreement <- do.call(rbind, all.agreement)
+  all.agreement$date <- as.Date(all.agreement$date)
+  all.agreement$comp <- paste(all.agreement$class1, all.agreement$class2, sep=" vs ")
+  p.class.ag <- ggplot(all.agreement, aes(y=value, x=date)) +
                        geom_point(aes(group=metric, color=metric)) +
                        stat_smooth(aes(group=metric, color=metric), fill="grey65",
                                        level=0.95, size=0.5) +
                        scale_x_date(labels = date_format("%Y"),
                                     breaks = "3 months", expand=c(0,0)) +
-                       facet_wrap(~ L1, ncol=1)
+                       facet_wrap(~ comp, ncol=1)
 
   filename <- paste(file.dir, "/developer_class_match.png", sep="")
   ggsave(plot=p.class.ag, filename=filename, width=10, height=30)
