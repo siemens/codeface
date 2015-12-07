@@ -114,7 +114,7 @@ if (dependency.type == "co-change") {
 
 ## Compute node sets
 node.function <- unique(vcs.dat$entity)
-node.dev <- unique(c(mail.dat$to, mail.dat$from, vcs.dat$author))
+node.dev <- unique(c(comm.dat$V1, comm.dat$V2, vcs.dat$author))
 
 ## Generate bipartite network
 g.nodes <- graph.empty(directed=FALSE)
@@ -127,12 +127,12 @@ g.nodes  <- add.vertices(g.nodes, nv=length(node.function),
 
 ## Add developer-entity edges
 vcs.edgelist <- with(vcs.dat, ggplot2:::interleave(author, entity))
-g.bipartite <- add.edges(g.nodes, vcs.edgelist)
+g.bipartite <- add.edges(g.nodes, vcs.edgelist, attr=list(color="#00FF001A"))
 
 ## Add developer-developer communication edges
 g <- graph.empty(directed=FALSE)
 comm.edgelist <- as.character(with(comm.dat, ggplot2:::interleave(V1, V2)))
-g <- add.edges(g.bipartite, mail.edgelist, attr=list(color="red"))
+g <- add.edges(g.bipartite, comm.edgelist, attr=list(color="#FF00001A"))
 
 ## Add entity-entity edges
 dependency.edgelist <- as.character(with(dependency.dat,
@@ -176,17 +176,17 @@ motif.count.null <-
       #        sort(as.vector(degree(g.bipartite))))) stop("Degree distribution not conserved")
 
       ## Rewire dev-dev communication graph
-      g.mail <- graph.data.frame(mail.dat)
-      g.mail.null <- birewire.rewire.undirected(simplify(g.mail),
+      g.comm <- graph.data.frame(comm.dat)
+      g.comm.null <- birewire.rewire.undirected(simplify(g.comm),
                                                 verbose=FALSE)
+
       ## Test degree dist
-      if(!all(sort(as.vector(degree(g.mail.null))) ==
-              sort(as.vector(degree(g.mail))))) stop("Degree distribution not conserved")
+      if(!all(sort(as.vector(degree(g.comm.null))) ==
+              sort(as.vector(degree(g.comm))))) stop("Degree distribution not conserved")
 
       g.null <- add.edges(g.null,
-                          as.character(with(get.data.frame(g.mail.null),
-                                       ggplot2:::interleave(from, to))),
-                          attr=list(color="red"))
+                          as.character(with(get.data.frame(g.comm.null),
+                                       ggplot2:::interleave(from, to))))
 
       ## Code and count motif
       V(g.null)$color <- vertex.coding[V(g.null)$kind]
@@ -207,7 +207,9 @@ p.null <- ggplot(data=motif.count.dat, aes(x=motif.count.null)) +
        geom_density(alpha=.2, fill="#AAD4FF")
 ggsave(file="motif_count.png", p.null)
 
-p.null <- ggplot(data=data.frame(degree=degree(graph.data.frame(mail.dat))), aes(x=degree)) +
+p.comm <- ggplot(data=data.frame(degree=degree(graph.data.frame(comm.dat))), aes(x=degree)) +
     geom_histogram(aes(y=..density..), colour="black", fill="white") +
     geom_density(alpha=.2, fill="#AAD4FF")
-ggsave(file="email_degree_dist.png")
+ggsave(file="communication_degree_dist.png", p.comm)
+
+plot.to.file(g, "socio_technical_network.png")
