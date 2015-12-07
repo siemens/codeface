@@ -155,7 +155,13 @@ evcent.named <- function(g) {
 
 ## Plot agreement between classifications
 plot.agreement <- function(dat) {
+  ## Sort based on number of occurences
+  freq <- ave(rep(1, times=nrow(dat)), dat$class2, FUN=sum)
+  dat <- dat[sort.list(freq), ]
+  freq <- ave(rep(1, times=nrow(dat)), dat$class1, FUN=sum)
+  dat <- dat[sort.list(freq), ]
   labels <- unique(unlist(dat[,c("class1", "class2")]))
+
   p.matrix <- ggplot(dat, aes(x=class1, y=class2, fill=value)) +
       geom_tile(stat="identity", color="white") +
       geom_text(aes(Var1=class1, Var2=class2, label=signif(value,2)),
