@@ -86,34 +86,38 @@ get.developer.class.centrality <- function(edgelist, vertex.ids, source,
 
 
 ## Compare aggreement between developer classes
-compare.classification <- function(developer.class.1, developer.class.2) {
+compare.classification <- function(developer.class.1, developer.class.2,
+                                   similarity.metric=c("cohen")) {
   classes.merged <- merge(developer.class.1, developer.class.2, by="author")
   classes.merged$match <- classes.merged$class.x == classes.merged$class.y
 
-  match.total <- nrow(subset(classes.merged, match==T)) / nrow(classes.merged)
+  res <- list()
+  if ("jaccard" %in% similarity.metric) {
+    res[["total.jaccard"]] <- nrow(subset(classes.merged, match==T)) /
+                              nrow(classes.merged)
 
-  core.jaccard <- nrow(subset(classes.merged, match==T & class.x=="core")) /
-                 (nrow(subset(classes.merged, class.x=="core")) +
-                  nrow(subset(classes.merged, class.y=="core")) -
-                  nrow(subset(classes.merged, match==T & class.x=="core")))
+    res[["core.jaccard"]] <- nrow(subset(classes.merged, match==T &
+                                         class.x=="core")) /
+                             (nrow(subset(classes.merged, class.x=="core")) +
+                             nrow(subset(classes.merged, class.y=="core")) -
+                             nrow(subset(classes.merged, match==T & class.x=="core")))
 
-  peripheral.jaccard <- nrow(subset(classes.merged, match==T & class.x=="peripheral")) /
-                        (nrow(subset(classes.merged, class.x=="peripheral")) +
-                         nrow(subset(classes.merged, class.y=="peripheral")) -
-                         nrow(subset(classes.merged, match==T & class.x=="peripheral")))
-
-  if (nrow(classes.merged) > 2) {
-    cohen <- cohen.kappa(classes.merged[, c("class.x", "class.y")])$kappa
-  } else {
-    cohen <- NA
+    res[["peripheral.jaccard"]] <- nrow(subset(classes.merged, match==T &
+                                               class.x=="peripheral")) /
+                                   (nrow(subset(classes.merged, class.x=="peripheral")) +
+                                   nrow(subset(classes.merged, class.y=="peripheral")) -
+                                   nrow(subset(classes.merged, match==T & class.x=="peripheral")))
   }
 
-  comparison <- list(total=match.total,
-                     core.jaccard=core.jaccard,
-                     peripheral.jaccard=peripheral.jaccard,
-                     cohen=cohen)
+  if ("cohen" %in% similarity.metric) {
+    if (nrow(classes.merged) > 2) {
+      res[["cohen"]] <- cohen.kappa(classes.merged[, c("class.x", "class.y")])$kappa
+    } else {
+      res[["cohen"]] <- NA
+    }
+  }
 
-  return(comparison)
+  return(res)
 }
 
 
