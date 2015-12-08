@@ -156,29 +156,28 @@ evcent.named <- function(g) {
 ## Plot agreement between classifications
 plot.agreement <- function(dat) {
   ## Sort based on number of occurences
-  freq <- ave(rep(1, times=nrow(dat)), dat$class2, FUN=sum)
+  freq <- ave(rep(1, times=nrow(dat)), c(dat$class1, dat$class2), FUN=sum)
   dat <- dat[sort.list(freq), ]
-  freq <- ave(rep(1, times=nrow(dat)), dat$class1, FUN=sum)
-  dat <- dat[sort.list(freq), ]
-  labels <- unique(unlist(dat[,c("class1", "class2")]))
+  labels <- unique(c(dat$class2, dat$class1))
 
   p.matrix <- ggplot(dat, aes(x=class1, y=class2, fill=value)) +
       geom_tile(stat="identity", color="white") +
       geom_text(aes(Var1=class1, Var2=class2, label=signif(value,2)),
                     color="black", size=4) +
       facet_wrap(~ metric, ncol=2) +
-      scale_fill_gradient(low="green", high="red", na.value="white", limit=c(0,1)) +
+      scale_fill_gradient(low="green", high="red", na.value="white",
+                          limit=c(0,1)) +
       scale_x_discrete(limits=labels) +
       scale_y_discrete(limits=labels) +
       coord_fixed() +
       theme_minimal() +
       theme(axis.title.x = element_blank(),
-          axis.text.x=element_blank(),
-          axis.title.y = element_blank(),
-          panel.grid.major = element_blank(),
-          panel.border = element_blank(),
-          panel.background = element_blank(),
-          axis.ticks = element_blank())
+            axis.text.x=element_text(angle=90, vjust=1),
+            axis.title.y = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            axis.ticks = element_blank())
 
   return(p.matrix)
 }
