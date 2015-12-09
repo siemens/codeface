@@ -1039,8 +1039,11 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
     colnames(class.match.df) <- c("value", "metric", "date")
     class.cor <- lapply(dates,
         function(date) {
-          class.rank.cor <- cor(subset(classes.merged, L1==date)[, c("value.x", "value.y")],
-                                method=correlation.type)["value.x", "value.y"]
+          metric.values <- subset(classes.merged, L1==date)[, c("value.x",
+                                                                "value.y")]
+          class.rank.cor <- cor(metric.values$value.x,
+                                metric.values$value.y,
+                                method=correlation.type)
         })
     class.cor.df <- melt(class.cor)
     class.cor.df$metric <- correlation.type
