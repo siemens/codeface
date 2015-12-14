@@ -7,6 +7,7 @@ source("config.r")
 source("dependency_analysis.r")
 source("process_dsm.r")
 source("process_jira.r")
+source("quality_analysis.r")
 
 plot.to.file <- function(g, outfile) {
   g <- simplify(g,edge.attr.comb="first")
@@ -236,3 +237,17 @@ p.comm <- ggplot(data=data.frame(degree=degree(graph.data.frame(comm.dat))), aes
 ggsave(file="communication_degree_dist.png", p.comm)
 
 plot.to.file(g, "socio_technical_network.png")
+
+## Perform quality analysis
+corrective.dat <- get.corrective.count(con, project.id, start.date, end.date,
+                                       artifact.type)
+
+artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs,
+                                                   function(i) i[[3]]$name))))
+anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs.anti,
+                                                        function(i) i[[3]]$name))))
+compare.motifs <- merge(artifacts, anti.artifacts, by='entity', all=TRUE)
+compare.motifs[is.na(compare.motifs)] <- 0
+names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
+
+artifacts.dat <- merge(corrective.dat, compare.motifs, by="entity")
