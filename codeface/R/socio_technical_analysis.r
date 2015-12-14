@@ -125,7 +125,7 @@ if (dependency.type == "co-change") {
 
 ## Compute node sets
 node.function <- unique(vcs.dat$entity)
-node.dev <- unique(c(comm.dat$V1, comm.dat$V2, vcs.dat$author))
+node.dev <- unique(c(vcs.dat$author))
 
 ## Generate bipartite network
 g.nodes <- graph.empty(directed=FALSE)
@@ -142,7 +142,9 @@ g.bipartite <- add.edges(g.nodes, vcs.edgelist, attr=list(color="#00FF001A"))
 
 ## Add developer-developer communication edges
 g <- graph.empty(directed=FALSE)
-comm.edgelist <- as.character(with(comm.dat, ggplot2:::interleave(V1, V2)))
+## Remove persons that don't appear in VCS data
+comm.inter.dat <- comm.dat[comm.dat$V1 %in% node.dev & comm.dat$V2 %in% node.dev, ]
+comm.edgelist <- as.character(with(comm.inter.dat, ggplot2:::interleave(V1, V2)))
 g <- add.edges(g.bipartite, comm.edgelist, attr=list(color="#FF00001A"))
 
 ## Add entity-entity edges
@@ -190,7 +192,7 @@ motif.count.null <-
       #        sort(as.vector(degree(g.bipartite))))) stop("Degree distribution not conserved")
 
       ## Rewire dev-dev communication graph
-      g.comm <- graph.data.frame(comm.dat)
+      g.comm <- graph.data.frame(comm.inter.dat)
       g.comm.null <- birewire.rewire.undirected(simplify(g.comm),
                                                 verbose=FALSE)
 
