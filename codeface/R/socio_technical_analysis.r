@@ -111,6 +111,16 @@ if (dependency.type == "co-change") {
   dependency.dat <-
     dependency.dat[dependency.dat[, 1] %in% relavent.entity.list &
                    dependency.dat[, 2] %in% relavent.entity.list, ]
+} else if (dependency.type == "feature_call") {
+  graph.dat <- read.graph(feature.call.filename, format="pajek")
+  V(graph.dat)$name <- V(graph.dat)$id
+  dependency.dat <- get.data.frame(graph.dat)
+  dependency.dat <-
+      dependency.dat[dependency.dat[, 1] %in% relavent.entity.list &
+                     dependency.dat[, 2] %in% relavent.entity.list, ]
+  names(dependency.dat) <- c("V1", "V2")
+} else {
+  dependency.dat <- data.frame()
 }
 
 ## Compute node sets
