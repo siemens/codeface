@@ -148,9 +148,11 @@ comm.edgelist <- as.character(with(comm.inter.dat, ggplot2:::interleave(V1, V2))
 g <- add.edges(g.bipartite, comm.edgelist, attr=list(color="#FF00001A"))
 
 ## Add entity-entity edges
-dependency.edgelist <- as.character(with(dependency.dat,
-                                         ggplot2:::interleave(V1, V2)))
-g <- add.edges(g, dependency.edgelist)
+if(nrow(dependency.dat) > 0) {
+  dependency.edgelist <- as.character(with(dependency.dat,
+                                           ggplot2:::interleave(V1, V2)))
+  g <- add.edges(g, dependency.edgelist)
+}
 
 ## Apply filters
 g <- preprocess.graph(g)
@@ -184,8 +186,11 @@ motif.count.null <-
       g.null <- add.edges(g.nodes,
                           as.character(with(get.data.frame(g.bipartite.rewired),
                                             ggplot2:::interleave(from, to))))
+
       ## Aritfact-artifact edges
-      g.null <- add.edges(g.null, dependency.edgelist)
+      if (nrow(dependency.dat) > 0) {
+        g.null <- add.edges(g.null, dependency.edgelist)
+      }
 
       ## Test degree dist
       #if(!all(sort(as.vector(degree(g.null))) ==
