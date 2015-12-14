@@ -19,7 +19,7 @@ plot.to.file <- function(g, outfile) {
   dev.off()
 }
 
-motif.generator <- function(type) {
+motif.generator <- function(type, anti=FALSE) {
   motif <- graph.empty(directed=FALSE)
   if (type=="square") {
     motif <- add.vertices(motif, 4)
@@ -30,6 +30,7 @@ motif.generator <- function(type) {
   else if (type=="triangle") {
     motif <- add.vertices(motif, 3)
     motif <- add.edges(motif, c(1,2, 1,3, 2,3))
+    if (anti) motif <- delete.edges(motif, c(1))
     V(motif)$kind <- c(person.role, person.role, artifact.type)
     V(motif)$color <- vertex.coding[V(motif)$kind]
   }
