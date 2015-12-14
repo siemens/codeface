@@ -164,13 +164,15 @@ vertex.coding[artifact.type] <- 2
 V(g)$color <- vertex.coding[V(g)$kind]
 
 ## Define motif
-motif <- motif.generator("square")
+motif <- motif.generator("triangle")
+motif.anti <- motif.generator("triangle", anti=TRUE)
 
 ## Count subgraph isomorphisms
 motif.count <- count_subgraph_isomorphisms(motif, g, method="vf2")
 
 ## Extract subgraph isomorphisms
 motif.subgraphs <- subgraph_isomorphisms(motif, g, method="vf2")
+motif.subgraphs.anti <- subgraph_isomorphisms(motif.anti, g, method="vf2")
 
 ## Compute null model
 niter <- 1000
