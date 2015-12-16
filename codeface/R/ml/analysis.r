@@ -753,14 +753,20 @@ store.twomode.graphs <- function(conf, twomode.graphs, ml.id, range.id) {
 store.mail <- function(conf, forest, corp, ml.id ) {
   columns <- c("threadID", "author", "subject")
   dat <- as.data.frame(forest)[, columns]
+  dat$ID <- rownames(dat)
   dat$mlId <- ml.id
   dat$projectId <- conf$pid
-  dat$creationDate <- sapply(rownames(dat),
-                             function(id) as.character(meta(corp[[id]], "datetimestamp")))
-  colnames(dat) <- c("threadId", "author", "subject", "mlId", "projectId",
-                     "creationDate")
+
+  ##Extract dates from corpus and add them to the data frame
+  dates <- meta(corp, "datetimestamp")
+  dates.df <- data.frame(ID=names(dates),
+                         creationDate=sapply(dates, as.character))
+  dat <- merge(dat, dates.df, by="ID")
+  dat$ID <- NULL
+  colnames(dat)[which(colnames(dat)=="threadID")] <- "threadId"
 
   res <- dbWriteTable(conf$con, "mail", dat, append=TRUE, row.names=FALSE)
+
   if (!res) {
     stop("Internal error: Could not write mails into database!")
   }
