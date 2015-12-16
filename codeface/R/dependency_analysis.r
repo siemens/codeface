@@ -32,6 +32,13 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
   ##        a single commit. Often one would want to eliminate commits
   ##        that touch a very large number of files because the nature
   ##        of them is unique (e.g., change licence information)
+  type <- tolower(type)
+  valid.types <- c("function", "file", "feature")
+  if (!type %in% valid.types) {
+    logerror("Incorrect type function parameter")
+    stop()
+  }
+
   select.str <- "SELECT DISTINCT author, commitDate, commit.id, file, entityId,
                  entityType, size "
 
@@ -48,11 +55,18 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
     group.str <- ""
   }
 
+  ## Select entity type, for file level we actually use function and then
+  ## aggregate function together into files
+  type.db <- type
+  if (type.db=="file") {
+    type.db <- "function"
+  }
+
   query <- str_c(select.str,
                  "FROM commit_dependency INNER JOIN commit ",
                  "ON commit.id = commit_dependency.commitId ",
                  "WHERE commit.projectId=", project.id, " ",
-                 "AND commit_dependency.entityType=", sq("function"), " ",
+                 "AND commit_dependency.entityType=", sq(type.db), " ",
                  "AND commit.ChangedFiles <= ", limit, " ",
                  "AND commit.commitDate >=", sq(start.date), " ",
                  "AND commit.commitDate <", sq(end.date), " ",
@@ -64,16 +78,13 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
   cols <- c('file', 'entityId')
 
   if(nrow(dat) > 0) {
-    type <- tolower(type)
     if (type == "function") {
       dat$entity <- apply(dat[,cols], 1, paste, collapse="/")
     } else if (type == "file") {
       dat$entity <- dat[, "file"]
-    } else{
-      logerror("Incorrect type function parameter")
-      stop()
+    } else if (type == "feature") {
+      dat$entity <- dat[, "entityId"]
     }
-
     dat$cycle <- paste(start.date, end.date, sep="-")
   }
 
