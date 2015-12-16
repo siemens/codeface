@@ -758,8 +758,12 @@ store.mail <- function(conf, forest, corp, ml.id ) {
   dat <- as.data.frame(forest)[, columns]
   dat$mlId <- ml.id
   dat$projectId <- conf$pid
-  dat$creationDate <- sapply(rownames(dat),
-                             function(id) as.character(meta(corp[[id]], "datetimestamp")))
+
+  ##Extract dates from corpus and add them to the data frame
+  dates <- data.frame(creationDate=sapply(meta(corp, "datetimestamp"),
+                                          as.character))
+  dat <- merge(dat,dates,by=0)[,-1]
+
   colnames(dat) <- c("threadId", "author", "subject", "mlId", "projectId",
                      "creationDate")
 
