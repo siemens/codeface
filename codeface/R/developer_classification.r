@@ -165,7 +165,7 @@ plot.agreement <- function(dat) {
       geom_text(aes(Var1=class1, Var2=class2, label=signif(value,2)),
                     color="black", size=4) +
       facet_wrap(~ metric, ncol=2) +
-      scale_fill_gradient(low="green", high="red", na.value="white",
+      scale_fill_gradient(low="#FF0000", high="#006400", na.value="white",
                           limit=c(0,1)) +
       scale_x_discrete(limits=labels) +
       scale_y_discrete(limits=labels) +
@@ -174,9 +174,9 @@ plot.agreement <- function(dat) {
       theme(axis.title.x = element_blank(),
             axis.text.x=element_text(angle=90, vjust=1),
             axis.title.y = element_blank(),
-            panel.grid.major = element_blank(),
+            #panel.grid.major = element_blank(),
             panel.border = element_blank(),
-            panel.background = element_blank(),
+            #panel.background = element_blank(),
             axis.ticks = element_blank())
 
   return(p.matrix)
