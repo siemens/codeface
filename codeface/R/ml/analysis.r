@@ -417,6 +417,8 @@ dispatch.all <- function(conf, repo.path, resdir) {
   ## NOTE: We only compute the forest for the complete interval to allow for creating
   ## descriptive statistics.
   corp <- corp.base$corp
+  ## Remove duplicate mails
+  corp <- corp[!duplicated(meta(corp, "id"))]
 
   ## NOTE: conf must be present in the defining scope
   do.normalise.bound <- function(authors) {
