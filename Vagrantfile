@@ -22,16 +22,16 @@ Vagrant.configure("2") do |config|
   # Hmm... no Debian image available yet, let's use a derivate
   # Ubuntu 12.04 LTS (Precise Pangolin)
 
- config.vm.provider :virtualbox do |vbox|
-    config.vm.box = "precise64"
-    config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+ config.vm.provider :virtualbox do |vbox, override|
+    override.vm.box = "precise64"
+    override.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
     vbox.customize ["modifyvm", :id, "--memory", "4096"]
     vbox.customize ["modifyvm", :id, "--cpus", "2"]
   end
 
-  config.vm.provider :lxc do |lxc|
-     config.vm.box = "fgrehm/precise64-lxc"
+  config.vm.provider :lxc do |lxc, override|
+     override.vm.box = "fgrehm/precise64-lxc"
   end
 
   # Forward main web ui (8081) and testing (8100) ports
