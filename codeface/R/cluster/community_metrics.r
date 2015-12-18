@@ -1074,7 +1074,8 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
 
   ## Take average over time and plot similarity comparisons
   all.agreement.agg <- ddply(all.agreement, .(class1,class2,metric), summarize,
-                             value=mean(value))
+                             value=mean(value, na.rm=T))
+
   p.matrix <- plot.agreement(all.agreement.agg)
   filename <- paste(file.dir, "/developer_class_match_matrix.png", sep="")
   ggsave(plot=p.matrix, filename=filename, width=10, height=5)
