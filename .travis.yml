@@ -1,14 +1,7 @@
-language: python
-python:
-  - "2.7"
-# So we can install python packages via apt-get: http://docs.travis-ci.com/user/languages/python/
-# NOTE: this only works for 2.7 so longer term we should switch to "pip" only
-virtualenv:
-  system_site_packages: true
-env:
-  - CPPSTATS_VERSION=0.8.4
 #sudo: false  # use the new container-based Travis infrastructure
 before_install:
+  - sudo rm /usr/local/bin/pip
+  - sudo rm -rf /usr/local/lib/python2.7
   - sudo integration-scripts/install_repositories.sh
 install:
   - sudo integration-scripts/install_common.sh
