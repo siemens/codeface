@@ -13,31 +13,33 @@
 #
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 # All Rights Reserved.
-'''
+"""
 Configuration module for codeface
 
 Encapsulates a configuration as an immutable dict
-'''
+"""
 
 import yaml
 from collections import Mapping
-from logging import getLogger;
+from logging import getLogger
 from codeface.linktype import LinkType
-
-log = getLogger(__name__)
 from tempfile import NamedTemporaryFile
 
+log = getLogger(__name__)
+
+
 class ConfigurationError(Exception):
-    '''Raised if any part of the configuration is malformed'''
+    """Raised if any part of the configuration is malformed"""
     pass
 
+
 class Configuration(Mapping):
-    '''
+    """
     Encapsulates the codeface configuration
-    '''
+    """
 
     GLOBAL_KEYS = ('dbname', 'dbhost', 'dbuser', 'dbpwd',
-            'idServiceHostname', 'idServicePort')
+                   'idServiceHostname', 'idServicePort')
     GLOBAL_OPTIONAL_KEYS = ('dbport',)
     PROJECT_KEYS = ('project', 'repo', 'tagging', 'revisions', 'rcs')
     OPTIONAL_KEYS = ('description', 'ml', 'mailinglists', 'sleepTime',
@@ -48,30 +50,36 @@ class Configuration(Mapping):
                    OPTIONAL_KEYS)
 
     def __init__(self):
-        '''
+        """
         Initialize an empty configuration object with the default values
-        '''
+        """
         self._conf = {
-                'idServiceHostname' : '127.0.0.1',
-                'idServicePort' : 8080
-                }
+            'idServiceHostname': '127.0.0.1',
+            'idServicePort': 8080
+        }
 
-	self._conf_file_loc = None
+        self._conf_file_loc = None
+        self._project_conf = None
+        self._global_conf = None
 
     @classmethod
-    def load(self, global_conffile, local_conffile=None):
-        '''
+    def load(cls, global_conffile, local_conffile=None):
+        """
         Load configuration from global/local files
-        '''
+
+        Args:
+            global_conffile: Project independent configuration
+            local_conffile: Project specific configuration, overrides global
+        """
         c = Configuration()
         log.devinfo("Loading global configuration file '{}'".
-                format(global_conffile))
-        self._global_conf = c._load(global_conffile)
+                    format(global_conffile))
+        c._global_conf = c._load(global_conffile)
         c._conf.update(c._global_conf)
         if local_conffile:
             log.devinfo("Loading project configuration file '{}'".
-                    format(local_conffile))
-            self._project_conf = c._load(local_conffile)
+                        format(local_conffile))
+            c._project_conf = c._load(local_conffile)
             c._conf.update(c._project_conf)
         else:
             log.devinfo("Not loading project configuration file!")
@@ -79,21 +87,22 @@ class Configuration(Mapping):
         c._check_sanity()
         return c
 
-    def _load(self, filename):
-        '''Helper function that checks loading errors and logs them'''
+    @staticmethod
+    def _load(filename):
+        """Helper function that checks loading errors and logs them"""
         try:
             return yaml.load(open(filename))
         except IOError:
             log.exception("Could not open configuration file '{}'".
-                    format(filename))
+                          format(filename))
             raise
         except yaml.YAMLError:
             log.exception("Could not parse configuration file '{}'".
-                    format(filename))
+                          format(filename))
             raise
 
     def _initialize(self):
-        '''Infer missing values in the configuration'''
+        """Infer missing values in the configuration"""
         if "rcs" not in self:
             self._conf["rcs"] = [None for x in range(len(self["revisions"]))]
 
@@ -111,22 +120,22 @@ class Configuration(Mapping):
             self._conf["dbport"] = int(self._conf["dbport"])
 
     def _check_sanity(self):
-        '''
+        """
         Check that the configuration makes sense.
         :raise ConfigurationError
-        '''
+        """
 
         # Some elementary sanity checks
         for key in self.GLOBAL_KEYS:
             if self._project_conf and key in self._project_conf:
                 log.critical("The key '{}' may not be overridden in the "
-                        "project configuration file".format(key))
+                             "project configuration file".format(key))
                 raise ConfigurationError('Invalid configuration key.')
 
         for key in self.GLOBAL_KEYS + self.PROJECT_KEYS:
-            if not key in self:
+            if key not in self:
                 log.critical("Required key '{}' missing in configuration!"
-                        ''.format(key))
+                             ''.format(key))
                 raise ConfigurationError('Missing configuration key.')
 
         if not self['tagging'] in LinkType.get_all_link_types():
@@ -134,13 +143,15 @@ class Configuration(Mapping):
             raise ConfigurationError('Unsupported tagging mechanism.')
 
         if len(self["revisions"]) < 2:
-            log.info("No revision range specified in configuration, analyzing history "
-                     "in 3 month increments")
+            log.info(
+                    "No revision range specified in configuration, "
+                    "analyzing history in 3 month increments")
 
         if len(self["revisions"]) != len(self["rcs"]):
             log.critical("Malformed configuration: revision and rcs list "
-                "lengths differ! Found {0} revisions and {1} release "
-                "candidates.".format(len(self["revisions"]), len(self["rcs"])))
+                         "lengths differ! Found {0} revisions and {1} release "
+                         "candidates.".format(len(self["revisions"]),
+                                              len(self["rcs"])))
             raise ConfigurationError('Malformed configuration.')
 
         unknown_keys = [k for k in self if k not in self.ALL_KEYS]
@@ -148,14 +159,14 @@ class Configuration(Mapping):
             log.warning("Unknown key '{}' in configuration.".format(key))
 
     def write(self):
-      conf_file = NamedTemporaryFile(mode='w', prefix=self._conf['project'],
-                                     delete=False)
-      yaml.dump(self._conf, conf_file)
-      self._conf_file_loc = conf_file.name
-      conf_file.close()
+        conf_file = NamedTemporaryFile(mode='w', prefix=self._conf['project'],
+                                       delete=False)
+        yaml.dump(self._conf, conf_file)
+        self._conf_file_loc = conf_file.name
+        conf_file.close()
 
     def get_conf_file_loc(self):
-      return self._conf_file_loc
+        return self._conf_file_loc
 
     # Function for the Configuration object to function as a dict
     def __getitem__(self, key):
@@ -174,11 +185,10 @@ class Configuration(Mapping):
         return self._conf.keys()
 
     def __str__(self):
-        '''
+        """
         Return a pretty string for display and logging
-        '''
-        r = []
-        r.append("--- # global codeface configuration")
+        """
+        r = ["--- # global codeface configuration"]
         for key in self.GLOBAL_KEYS:
             if key in self:
                 r.append("{}: {}".format(key, repr(self[key])))
