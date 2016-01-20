@@ -118,12 +118,18 @@ getSimilarDocIds <- function(dist.mat, threshold) {
 
 
 getSimDocIds <- function(dist.mat, threshold) {
-  ## Matrix is symetric so we don't need to make all comparisons
-  edgelist <- which(dist.mat >= threshold, arr.ind=TRUE,
-                    useNames=FALSE)
+  ## Generate lower-tri index
+  num.rows <- nrow(dist.mat)
+  row.seq <- seq(num.rows)
+  edgelist <- cbind(
+    row=unlist(lapply(2:num.rows, function(x) x:num.rows), use.names=FALSE),
+    col=rep(row.seq[-length(row.seq)], times=rev(tail(row.seq,-1))-1))
 
-  ## Remove the upper diagonal including diagonal indices
-  edgelist <- edgelist[edgelist[ ,1] > edgelist[ ,2],]
+  values <- dist.mat[edgelist]
+
+  ## Return document pairs that exceed similarity threshold
+  keep <- values >= threshold
+  edgelist <- edgelist[keep, ]
 
   return(data.frame(edgelist))
 }
