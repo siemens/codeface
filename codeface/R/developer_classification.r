@@ -174,7 +174,7 @@ plot.agreement <- function(dat) {
       geom_text(aes(Var1=class1, Var2=class2, label=signif(value,2)),
                     color="black", size=4) +
       facet_wrap(~ metric, ncol=2) +
-      scale_fill_gradient(low="#FF0000", high="#006400", na.value="white",
+      scale_fill_gradient(low="#32cd32", high="#145214", na.value="white",
                           limit=c(0,1)) +
       scale_x_discrete(limits=labels) +
       scale_y_discrete(limits=labels) +
