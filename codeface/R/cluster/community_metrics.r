@@ -736,6 +736,10 @@ compute.project.graph.trends <-
                   e$developer.classes[["7"]][[end.date]] <-
                       get.developer.class.centrality(email.edgelist, v.global.ids,
                                                      source="mail", metric="page.rank")
+
+                 e$developer.classes[["8"]][[end.date]] <-
+                      get.developer.class.centrality(email.edgelist, v.global.ids,
+                                                     source="VCS", metric="hierarchy")
                 }
 
                 return(res)})

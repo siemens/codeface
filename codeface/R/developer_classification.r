@@ -63,6 +63,7 @@ get.developer.class.centrality <- function(edgelist, vertex.ids, source,
   if (metric=="degree") FUN <- igraph::degree
   if (metric=="evcent") FUN <- evcent.named
   if (metric=="page.rank") FUN <- page.rank.named
+  if (metric=="hierarchy") FUN <- vertex.hierarchy
 
   graph <- graph.data.frame(edgelist, directed=TRUE,
                             vertices=data.frame(vertex.ids))
@@ -152,6 +153,14 @@ evcent.named <- function(g) {
   return(cent.vec)
 }
 
+vertex.hierarchy <- function (g) {
+  v.ids <- V(g)
+  cc <- igraph::transitivity(g, type="local", vids=)
+  deg <- igraph::degree(g, v=)
+  hier <- deg/cc
+  hier[!is.finite(hier)] <- 0
+  return(hier)
+}
 
 ## Plot agreement between classifications
 plot.agreement <- function(dat) {
