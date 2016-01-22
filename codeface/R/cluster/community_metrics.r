@@ -1069,17 +1069,21 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
   all.agreement$date <- as.Date(all.agreement$date)
 
   ## Genearte time series similarity plots
+  #existing.metrics <- c("loc.count", "mail.count", "commit.count", "mail degree")
   all.agreement$comp <- paste(all.agreement$class1, all.agreement$class2, sep=" vs ")
+  #all.agreement.t <- subset(all.agreement, class1 %in% existing.metrics  & class2 %in% existing.metrics)
   p.class.ag <- ggplot(all.agreement, aes(y=value, x=date)) +
-                       geom_point(aes(group=metric, color=metric)) +
-                       stat_smooth(aes(group=metric, color=metric), fill="grey65",
-                                       level=0.95, size=0.5) +
+                       geom_point() +
+                       stat_smooth(aes(group=comp, color=comp), fill="grey65",
+                                       level=0.90, size=0.5, se=F) +
                        scale_x_date(labels = date_format("%Y"),
                                     breaks = "3 months", expand=c(0,0)) +
-                       facet_wrap(~ comp, ncol=1)
+                       ylim(c(0,1)) +
+                       facet_wrap(~ metric, ncol=1) +
+                       theme_bw()
 
   filename <- paste(file.dir, "/developer_class_match.png", sep="")
-  ggsave(plot=p.class.ag, filename=filename, width=10, height=30)
+  ggsave(plot=p.class.ag, filename=filename, width=10, height=30, dpi = 300)
 
   ## Take average over time and plot similarity comparisons
   all.agreement.agg <- ddply(all.agreement, .(class1,class2,metric), summarize,
