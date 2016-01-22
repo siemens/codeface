@@ -63,13 +63,16 @@ preprocess.graph <- function(g) {
 ## Configuration
 if (!exists("conf")) conf <- connect.db("../../codeface.conf")
 dsm.filename <- "/home/mitchell/Downloads/cassandra-2.1.0.dsm.xlsx"
+feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
 jira.filename <- "/home/mitchell/Downloads/jira-comment-authors.csv"
+defect.filename <- "/home/mitchell/Downloads/cassandra-1.0.7-bugs.csv"
 codeface.filename <- "/home/mitchell/Downloads/jiraId_CodefaceId.csv"
 con <- conf$con
 project.id <- 2
-artifact.type <- list("function", "file")[[2]]
-dependency.type <- list("co-change", "dsm")[[2]]
-communication.type <- list("mail", "jira")[[2]]
+artifact.type <- list("function", "file", "feature")[[2]]
+dependency.type <- list("co-change", "dsm", "feature_call", "none")[[4]]
+quality.type <- list("corrective", "defect")[[2]]
+communication.type <- list("mail", "jira")[[1]]
 person.role <- "developer"
 start.date <- "2015-07-01"
 end.date <- "2015-10-01"
