@@ -792,11 +792,9 @@ compute.project.graph.trends <-
   }
 
   ## Compute Markov chains
-  if(length(e$developer.class.centrality) > 1 & length(e$developer.class.commits) > 1) {
-    markov.chain.commits <- compute.class.markov.chain(e$developer.class.commits)
-    markov.chain.centrality <- compute.class.markov.chain(e$developer.class.centrality)
-    markov.chains <- list(markov.chain.centrality=markov.chain.centrality,
-                          markov.chain.commits=markov.chain.commits)
+  if(length(e$developer.classes[["5"]]) > 1) {
+    markov.chain.centrality <- compute.class.markov.chain(e$developer.classes[["5"]])
+    markov.chains <- list(markov.chain.centrality=markov.chain.centrality)
   }
   else {
     loginfo("Less than 2 revisions, unable to perform turn-over analysis")
