@@ -242,8 +242,12 @@ ggsave(file="communication_degree_dist.png", p.comm)
 plot.to.file(g, "socio_technical_network.png")
 
 ## Perform quality analysis
-corrective.dat <- get.corrective.count(con, project.id, start.date, end.date,
-                                       artifact.type)
+if (quality.type=="defect") {
+  quality.dat <- load.defect.data(defect.filename)
+} else {
+  quality.dat <- get.corrective.count(con, project.id, start.date, end.date,
+                                      artifact.type)
+}
 
 artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs,
                                                    function(i) i[[3]]$name))))
@@ -253,4 +257,4 @@ compare.motifs <- merge(artifacts, anti.artifacts, by='entity', all=TRUE)
 compare.motifs[is.na(compare.motifs)] <- 0
 names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
 
-artifacts.dat <- merge(corrective.dat, compare.motifs, by="entity")
+artifacts.dat <- merge(quality.dat, compare.motifs, by="entity")
