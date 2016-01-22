@@ -804,6 +804,13 @@ compute.project.graph.trends <-
   res <- list(metrics=metrics.df, markov.chains=markov.chains,
               developer.classifications=developer.classifications)
 
+  degree.df <- subset(metrics.df, metric=="v.degree")
+  dev.degree.df <- split(degree.df, degree.df$g.id)
+  t <- lapply(dev.degree.df,
+              function(dev.df) {
+                ts <- xts(dev.df$value, as.Date(dev.df$cycle))
+                ts <- 1 + ts
+                mean(ts/lag(ts, +1) -1, na.rm=T)})
   return(res)
 }
 
