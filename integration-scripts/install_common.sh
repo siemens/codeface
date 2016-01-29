@@ -14,5 +14,5 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install sinntp texlive default-
 	gfortran python-setuptools python-pkg-resources python-numpy python-matplotlib \
 	python-libxml2 python-lxml python-notify python-lxml gcc libarchive12 python-pip \
 	libxml2-dev libcurl4-openssl-dev xorg-dev libx11-dev libgles2-mesa-dev \
-	libglu1-mesa-dev libxt-dev libpoppler-dev libpoppler-glib-dev python-mock
+	libglu1-mesa-dev libxt-dev libpoppler-dev libpoppler-glib-dev python-mock screen
 
