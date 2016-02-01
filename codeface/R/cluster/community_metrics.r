@@ -23,6 +23,7 @@ suppressMessages(library(robustbase))
 suppressMessages(library(ineq))
 suppressMessages(library(markovchain))
 suppressMessages(library(scales))
+suppressMessages(library(xts))
 
 source("../dependency_analysis.r", chdir=TRUE)
 source("../network_stream.r", chdir=TRUE)
