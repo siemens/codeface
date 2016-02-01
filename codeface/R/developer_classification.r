@@ -65,7 +65,7 @@ get.developer.class.centrality <- function(edgelist, vertex.ids, source,
   if (metric=="page.rank") FUN <- page.rank.named
   if (metric=="hierarchy") FUN <- vertex.hierarchy
 
-  graph <- graph.data.frame(edgelist, directed=TRUE,
+  graph <- graph.data.frame(edgelist, directed=FALSE,
                             vertices=data.frame(vertex.ids))
   centrality.vec <- sort(FUN(graph), decreasing=T)
   developer.class <- data.frame(author=names(centrality.vec),
