@@ -600,6 +600,7 @@ compute.all.project.trends <- function(con, type, outdir) {
     if (length(trends) > 0) {
       write.plots.trends(trends$metrics, trends$markov.chains,
                          trends$developer.classifications,
+                         trends$class.edge.probs,
                          outdir)
     } else {
       print("project data frame empty")}
@@ -633,6 +634,7 @@ compute.project.graph.trends <-
   metrics.df <- data.frame()
   e <- new.env()
   e$developer.classes <- list()
+  e$developer.edge.probs <- list()
   project.name <- project.data$name
   analysis.method <- project.data$analysis.method
 
@@ -720,6 +722,9 @@ compute.project.graph.trends <-
                   e$developer.classes[["4"]][[end.date]] <-
                       get.developer.class.centrality(res$edgelist, res$v.global.ids,
                                                      source="VCS", metric="degree")
+                  e$developer.edge.probs[["4"]][[end.date]] <-
+                      compute.edge.probs(e$developer.classes[["4"]][[end.date]], 
+                                         res$edgelist, res$v.global.ids)
 
                   ## Compute core developer based on eigen vector centrality
                   e$developer.classes[["5"]][[end.date]] <-
@@ -792,6 +797,12 @@ compute.project.graph.trends <-
                                               c("author", "class", "metric"))
   }
 
+  ## Combine class probabilities
+  class.edge.probs <- list()
+  for (type in names(e$developer.edge.probs)) {
+    class.edge.probs[[type]] <- melt(e$developer.edge.probs[[type]])
+  }
+
   ## Compute Markov chains
   if(length(e$developer.classes[["5"]]) > 1) {
     markov.chain.centrality <- compute.class.markov.chain(e$developer.classes[["5"]])
@@ -803,7 +814,8 @@ compute.project.graph.trends <-
   }
 
   res <- list(metrics=metrics.df, markov.chains=markov.chains,
-              developer.classifications=developer.classifications)
+              developer.classifications=developer.classifications,
+              class.edge.probs=class.edge.probs)
 
   degree.df <- subset(metrics.df, metric=="v.degree")
   dev.degree.df <- split(degree.df, degree.df$g.id)
@@ -970,7 +982,7 @@ plot.class.match <- function(class.match.df, class.rank.cor, filename) {
 }
 
 write.plots.trends <- function(trends, markov.chains, developer.classifications,
-                               outdir) {
+                               class.edge.probs, outdir) {
   metrics.box <- c('cluster.coefficient',
                    'betweenness.centrality',
                    'conductance',
@@ -1010,7 +1022,9 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
   analysis.method <- unique(trends$analysis.method)
 
   file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
-  data <- list(trends=trends,markov.chains=markov.chains)
+  data <- list(trends=trends,markov.chains=markov.chains,
+               developer.classifications= developer.classifications,
+               class.edge.probs=class.edge.probs)
   save(data, file=paste(file.dir, "/project_data.dat",sep=""))
 
   ## Save markov chain plot
