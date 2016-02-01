@@ -121,6 +121,35 @@ compare.classification <- function(developer.class.1, developer.class.2,
   return(res)
 }
 
+## Compute edge probabilities between core and peripheral groups
+compute.edge.probs <- function(developer.class.list, edgelist, vertex.ids) {
+  developer.class.list$author <- as.character(developer.class.list$author)
+  edgelist[, 1:2] <- sapply(edgelist[, 1:2], as.character)
+  graph <- graph.data.frame(edgelist, directed=FALSE,
+                            vertices=data.frame(as.character(vertex.ids)))
+  graph <- simplify(graph)
+
+  ## Compute core edge probability
+  core.ids <- subset(developer.class.list, class=="core")$author
+  g.core <- induced.subgraph(graph, as.character(core.ids))
+  core.prob <- ecount(g.core) / choose(vcount(g.core),2)
+
+  ## Compute peripheral edge probability
+  peri.ids <- subset(developer.class.list, class=="peripheral")$author
+  g.peri <- induced.subgraph(graph, as.character(peri.ids))
+  peri.prob <- ecount(g.peri) / choose(vcount(g.peri),2)
+
+  ## Compute core-peripheral edge probability
+  inter.edges <- E(graph)[core.ids %--% peri.ids]
+  inter.prob <- length(inter.edges) / choose(vcount(graph),2)
+
+  res <- c("core.prob"=core.prob,
+           "peripheral.prob"=peri.prob,
+           "inter.prob"=inter.prob)
+
+  return(res)
+}
+
 
 ## Compute markov chain for developer class transitions
 compute.class.markov.chain <- function(developer.class.list) {
