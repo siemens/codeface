@@ -277,7 +277,7 @@ check.corpus.precon <- function(corp.base) {
         ## replacement
         email <- "could.not.resolve@unknown.tld"
         name <- author
-    } else {
+      } else {
         ## If an email address was detected, use the author
         ## string minus the new email part as name, and construct
         ## a valid name/email combination
@@ -447,7 +447,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 
   timestamps <- do.call(c, lapply(seq_along(corp.base$corp),
                                   function(i) meta(corp.base$corp[[i]], tag="datetimestamp")))
-  
+
   loginfo(paste(length(corp.base$corp), "messages in corpus"), logger="ml.analysis")
   loginfo(paste("Date range is", as.character(int_start(iter[[1]])), "to",
       as.character(int_end(iter[[length(iter)]]))), logger="ml.analysis")
@@ -771,7 +771,7 @@ store.mail <- function(conf, forest, corp, ml.id ) {
   dat <- merge(dat, dates.df, by="ID")
   dat$ID <- NULL
   colnames(dat)[which(colnames(dat)=="threadID")] <- "threadId"
-  
+
   # re-order columns to match the order as defined in the database to
   # improve the stability
   dat = dat[c("projectId", "threadId", "mlId", "author", "subject", "creationDate")]
