@@ -29,13 +29,12 @@ source("../mc_helpers.r")
 source("project.spec.r")
 source("ml_utils.r")
 
-gen.forest <- function(conf, repo.path, resdir) {
+gen.forest <- function(conf, repo.path, resdir, use.mbox=TRUE) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
   ## lkml variant
   corp.file <- file.path(resdir, paste("corp.base", conf$listname, sep="."))
-  doCompute <- !(file.exists(corp.file))
 
-  if (doCompute) {
+  if (use.mbox) {
     corp.base <- gen.corpus(conf$listname, repo.path, suffix=".mbox",
                             marks=c("^_{10,}", "^-{10,}", "^[*]{10,},",
                                    # Also remove inline diffs. TODO: Better
@@ -51,9 +50,12 @@ gen.forest <- function(conf, repo.path, resdir) {
                               encoding="UTF-8",
                               preprocess=linux.kernel.preprocess)
     save(file=corp.file, corp.base)
-  } else {
+  } else if (!use.mbox & file.exists(corp.file)) {
     loginfo("Loading mail data from precomputed corpus instead of mbox file")
     load(file=corp.file)
+  } else {
+    logerror("Corpus file not found")
+    stop()
   }
 
   return(corp.base)
@@ -227,8 +229,10 @@ check.corpus.precon <- function(corp.base) {
     }
 
     ## Remove problematic punctuation characters
-    author <- gsub("\"", " ", author)
-    author <- gsub(",", " ", author)
+    problem.characters <- c("\"", ",", "\\(", "\\)")
+    for (p.char in problem.characters) {
+      author <- gsub(p.char, " ", author)
+    }
 
     ## Trim trailing and leading whitespace
     author <- str_trim(author)
@@ -410,6 +414,8 @@ dispatch.all <- function(conf, repo.path, resdir) {
   ## NOTE: We only compute the forest for the complete interval to allow for creating
   ## descriptive statistics.
   corp <- corp.base$corp
+  ## Remove duplicate mails
+  corp <- corp[!duplicated(meta(corp, "id"))]
 
   ## NOTE: conf must be present in the defining scope
   do.normalise.bound <- function(authors) {
@@ -749,14 +755,20 @@ store.twomode.graphs <- function(conf, twomode.graphs, ml.id, range.id) {
 store.mail <- function(conf, forest, corp, ml.id ) {
   columns <- c("threadID", "author", "subject")
   dat <- as.data.frame(forest)[, columns]
+  dat$ID <- rownames(dat)
   dat$mlId <- ml.id
   dat$projectId <- conf$pid
-  dat$creationDate <- sapply(rownames(dat),
-                             function(id) as.character(meta(corp[[id]], "datetimestamp")))
-  colnames(dat) <- c("threadId", "author", "subject", "mlId", "projectId",
-                     "creationDate")
+
+  ##Extract dates from corpus and add them to the data frame
+  dates <- meta(corp, "datetimestamp")
+  dates.df <- data.frame(ID=names(dates),
+                         creationDate=sapply(dates, as.character))
+  dat <- merge(dat, dates.df, by="ID")
+  dat$ID <- NULL
+  colnames(dat)[which(colnames(dat)=="threadID")] <- "threadId"
 
   res <- dbWriteTable(conf$con, "mail", dat, append=TRUE, row.names=FALSE)
+
   if (!res) {
     stop("Internal error: Could not write mails into database!")
   }
