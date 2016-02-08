@@ -229,7 +229,7 @@ check.corpus.precon <- function(corp.base) {
     }
 
     ## Remove problematic punctuation characters
-    problem.characters <- c("\"", ",", "\\(", "\\)")
+    problem.characters <- c("\"", ",", ";", "\\(", "\\)")
     for (p.char in problem.characters) {
       author <- gsub(p.char, " ", author)
     }
