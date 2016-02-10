@@ -740,17 +740,14 @@ compute.project.graph.trends <-
                   email.edgelist <- query.mail.edgelist(con, p.id, start.date,
                                                         end.date)
                   v.global.ids <- unique(c(email.edgelist$from, email.edgelist$to))
-                  e$developer.classes[["6"]][[end.date]] <-
-                      get.developer.class.centrality(email.edgelist, v.global.ids,
-                                                     source="mail", metric="degree")
 
                   e$developer.classes[["7"]][[end.date]] <-
                       get.developer.class.centrality(email.edgelist, v.global.ids,
-                                                     source="mail", metric="page.rank")
+                                                     source="mail", metric="degree")
 
-                 e$developer.classes[["8"]][[end.date]] <-
+                  e$developer.classes[["8"]][[end.date]] <-
                       get.developer.class.centrality(email.edgelist, v.global.ids,
-                                                     source="VCS", metric="hierarchy")
+                                                     source="mail", metric="page.rank")
                 }
 
                 return(res)})
