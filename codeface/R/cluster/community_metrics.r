@@ -731,6 +731,11 @@ compute.project.graph.trends <-
                       get.developer.class.centrality(res$edgelist, res$v.global.ids,
                                                      source="VCS", metric="page.rank")
 
+                  ## Compute core developer based on hierarchy
+                  e$developer.classes[["6"]][[end.date]] <-
+                      get.developer.class.centrality(res$edgelist, res$v.global.ids,
+                                                     source="VCS", metric="hierarchy")
+
                   ## Compute core developer based on email network degree
                   email.edgelist <- query.mail.edgelist(con, p.id, start.date,
                                                         end.date)
