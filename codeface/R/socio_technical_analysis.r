@@ -82,6 +82,8 @@ historical.limit <- ddays(365)
 ## Compute dev-artifact relations
 vcs.dat <- query.dependency(con, project.id, artifact.type, file.limit,
                             start.date, end.date, impl=FALSE, rmv.dups=FALSE)
+vcs.dat$entity <- sapply(vcs.dat$entity,
+    function(filename) filename <- gsub("/", ".", filename, fixed=T))
 vcs.dat$author <- as.character(vcs.dat$author)
 
 ## Compute communication relations
@@ -186,7 +188,7 @@ motif.count.null <-
   sapply(seq(niter),
     function(i) {
       ## Rewire dev-artifact bipartite
-      g.bipartite.rewired <- g.bipartite #birewire.rewire.bipartite(simplify(g.bipartite), verbose=FALSE)
+      g.bipartite.rewired <- birewire.rewire.bipartite(simplify(g.bipartite), verbose=FALSE) #g.bipartite
 
       ## Add rewired edges
       g.null <- add.edges(g.nodes,

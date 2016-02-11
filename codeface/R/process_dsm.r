@@ -11,8 +11,8 @@ load.dsm.edgelist <- function(dsm.filname) {
   names(dsm.vertices) <- dsm[, 1]
   dsm.vertices <- sapply(dsm.vertices,
                          function(filename) {
-                           filename <- gsub(".", "/", filename, fixed=T)
-                           filename <- gsub("_", ".", filename, fixed=T)
+                           #filename <- gsub(".", "/", filename, fixed=T)
+                           #filename <- gsub("_", ".", filename, fixed=T)
                            return(filename)})
 
   ## Drop filename column
