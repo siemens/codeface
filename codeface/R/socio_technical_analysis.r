@@ -8,6 +8,8 @@ source("dependency_analysis.r")
 source("process_dsm.r")
 source("process_jira.r")
 source("quality_analysis.r")
+source("ml/ml_utils.r", chdir=T)
+source("id_manager.r")
 
 plot.to.file <- function(g, outfile) {
   g <- simplify(g,edge.attr.comb="first")
@@ -68,7 +70,8 @@ jira.filename <- "/home/mitchell/Downloads/jira-comment-authors.csv"
 defect.filename <- "/home/mitchell/Downloads/cassandra-1.0.7-bugs.csv"
 codeface.filename <- "/home/mitchell/Downloads/jiraId_CodefaceId.csv"
 con <- conf$con
-project.id <- 2
+project.id <- 15
+conf$pid <- project.id
 artifact.type <- list("function", "file", "feature")[[2]]
 dependency.type <- list("co-change", "dsm", "feature_call", "none")[[4]]
 quality.type <- list("corrective", "defect")[[2]]
@@ -91,7 +94,7 @@ if (communication.type=="mail") {
   comm.dat <- query.mail.edgelist(con, project.id, start.date, end.date)
   colnames(comm.dat) <- c("V1", "V2", "weight")
 } else if (communication.type=="jira") {
-  comm.dat <- load.jira.edgelist(jira.filename, codeface.filename)
+  comm.dat <- load.jira.edgelist(conf, jira.filename)
 }
 comm.dat[, c(1,2)] <- sapply(comm.dat[, c(1,2)], as.character)
 
