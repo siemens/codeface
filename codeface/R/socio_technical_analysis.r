@@ -94,7 +94,7 @@ if (communication.type=="mail") {
   comm.dat <- query.mail.edgelist(con, project.id, start.date, end.date)
   colnames(comm.dat) <- c("V1", "V2", "weight")
 } else if (communication.type=="jira") {
-  comm.dat <- load.jira.edgelist(conf, jira.filename)
+  comm.dat <- load.jira.edgelist(conf, jira.filename, start.date, end.date)
 }
 comm.dat[, c(1,2)] <- sapply(comm.dat[, c(1,2)], as.character)
 

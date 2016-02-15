@@ -1,8 +1,21 @@
 library(igraph)
 
-load.jira.edgelist <- function(conf, jira.filename) {
+load.jira.edgelist <- function(conf, jira.filename, start.date, end.date) {
   ## Load jira userId to IssueId mapping
   jira.dat <- read.csv(jira.filename, header=TRUE)
+
+  ## Cast to date
+  date <- ldply(jira.dat$CommentTimestamp,
+                function(date.str) {
+                  date.str <- as.character(date.str)
+                  date.str <- strsplit(date.str, ", ")[[1]][2]
+                  res <- as.Date(date.str, "%d %b %Y")
+                  return(res)
+                })
+
+  ## Remove rows that are outside the date range
+  keep.row <- date$V1 >= start.date & date$V1 <= end.date
+  jira.dat <- jira.dat[keep.row, ]
 
   ## Map user emails to codeface Ids
   jira.dat$personId <- sapply(jira.dat$userEmail,
