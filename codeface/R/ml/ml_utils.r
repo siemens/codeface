@@ -433,3 +433,15 @@ ml.thread.loc.to.glob <- function(ml.id.map, loc.id) {
 
   return(global.id)
 }
+
+## Given a name with leading and pending whitespace that is possibly
+## surrounded by braces, return the name proper.
+fix.name <- function(name) {
+    name <- str_trim(name)
+    if (substr(name, 1, 1) == "(" && substr(name, str_length(name),
+                                            str_length(name)) == ")") {
+        name <- substr(name, 2, str_length(name)-1)
+    }
+
+    return (name)
+}
