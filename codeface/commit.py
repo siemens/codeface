@@ -49,6 +49,9 @@ class Commit(object):
         taggers_subsys_similarity: Focus of taggers on the subsystems
     Methods;
     """
+    #TODO Replace java-style getters with python-style properties
+    # http://2ndscale.com/rtomayko/2005/getters-setters-fuxors
+    # https://google.github.io/styleguide/pyguide.html#Properties
 
     CORRECTIVE_KEYWORDS = ['bug', 'fix', 'error', 'fail']
     """Keywords to identify corrective commits"""
