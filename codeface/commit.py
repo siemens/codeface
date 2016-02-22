@@ -18,65 +18,68 @@
 # Copyright 2010, 2011, 2012 by Wolfgang Mauerer <wm@linux-kernel.net>
 # All Rights Reserved.
 
-"""
-Contains class commit with all required members
-"""
+"""Contains class commit with all required members"""
 #TODO insert comments into docstrings
 
 
 class Commit(object):
-    """Keywords to identify corrective commits
+    """Describes a single commit.
+
+    Attributes:
+        id:
+        cdate:
+        adate:
+        adate_tz:
+        author: Author name
+        author_pi: PersonInfo instance for author
+        committer: Committer name
+        committer_pi: PersonInfo instance for Committer
+        is_corrective: Boolean for whether commit is corrective
+        description:
+        diff_info: Contains tuple (added, changed, deleted) for each diff type
+        commit_msg_info: First entry is number of lines, second number of chars
+        tag_pi_list: A hash with tag type as key. The datum is an array with
+            all PersonInfo instances for the tag type
+        tag_names_list: A hash with tag type as key. The datum is an array with
+            all names (as string) for the tag type
+        subsystems_touched: Subsystems the commit touches. Keys are the
+            subsystem names, values are 1 for touched and 0 for not touched.
+        inRC: Boolean for whether the commit is part of an RC phase or not
+        author_subsy_similarity: Measure of how focused the author is on the
+            subsystems touched by the commit (0 is minimal, 1 is maximal focus)
+        author_taggers_similarity: Similarities between author and taggers
+        taggers_subsys_similarity: Focus of taggers on the subsystems
+
+    Keywords to identify corrective commits
     Ref: A. Mockus and L. G. Votta, Identifying Reasons for Software
     Changes Using Historic Databases
+
     """
 
     CORRECTIVE_KEYWORDS = ['bug', 'fix', 'error', 'fail']
 
     def __init__(self):
-        """Base characteristics: uniqiue id (typically a hash value) and
-        time stamp (commiter time) of the commit
+        """Base characteristics: unique id (typically a hash value) and
+        time stamp (committer time) of the commit
         """
         self.id = None
         self.cdate = None
         self.adate = None
         self.adate_tz = None
-        self.author = None  # Author name
-        self.author_pi = None  # PersonInfo instance for author
-        self.committer = None  # Committer name
-        self.committer_pi = None  # PersonInfo instance for committer
-        self.is_corrective = False  # Boolean for whether commit is corrective
+        self.author = None
+        self.author_pi = None
+        self.committer = None
+        self.committer_pi = None
+        self.is_corrective = False
         self.description = None
-
-        # Contains a tuple (added, deleted, changed)
-        # for each diff type.
         self.diff_info = []
-
-        # First entry is number of lines, second number of characters
         self.commit_msg_info = (None, None)
-
-        # A hash with tag type as key. The datum is an array
-        # with all PersonInfo instances for the tag type
         self.tag_pi_list = {}
-
-        # A hash with tag type as key. The datum is an array
-        # with all names (as string) for the tag type
         self.tag_names_list = {}
-
-        # Subsystems the commit touches. Keys are the subsystem names
-        # values are 1 for touched and 0 for not touched.
         self.subsystems_touched = {}
-
-        # Does the commit fall into a RC phase?
         self.inRC = False
-
-        # Measure of how focused the author is on the subsystems
-        # touched by the commit (0 is minimal, 1 is maximal focus)
         self.author_subsys_similarity = None
-
-        # Same for the similarity between author and taggers
         self.author_taggers_similarity = None
-
-        # ... and for taggers and subsystems
         self.taggers_subsys_similarity = None
 
     # The following methods replace hard-coded constants
