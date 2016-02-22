@@ -1024,10 +1024,6 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
   analysis.method <- unique(trends$analysis.method)
 
   file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
-  data <- list(trends=trends,markov.chains=markov.chains,
-               developer.classifications= developer.classifications,
-               class.edge.probs=class.edge.probs)
-  save(data, file=paste(file.dir, "/project_data.dat",sep=""))
 
   ## Save markov chain plot
   if(!is.null(markov.chains)) {
@@ -1109,6 +1105,14 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
   p.matrix <- plot.agreement(all.agreement.agg)
   filename <- paste(file.dir, "/developer_class_match_matrix.png", sep="")
   ggsave(plot=p.matrix, filename=filename, width=10, height=5)
+
+  data <- list(trends=trends,markov.chains=markov.chains,
+               developer.classifications= developer.classifications,
+               class.edge.probs=class.edge.probs,
+               all.agreement=all.agreement)
+
+  save(data, file=paste(file.dir, "/project_data.dat",sep=""))
+
 }
 
 
