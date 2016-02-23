@@ -83,7 +83,17 @@ def project_setup(conf, recreate):
         ]
     return project_id, dbm, all_range_ids
 
-#TODO analyse and document functions then remove magic numbers and constants
+
+# TODO analyse and document functions then remove magic numbers and constants
+# TODO discuss refactoring due to too many locals and arguments
+# TODO refactor this function due to multiple issues!
+# C: 69, 0: Missing function docstring (missing-docstring)
+# R: 69, 0: Too many arguments (12/5) (too-many-arguments)
+# R: 69, 0: Too many local variables (39/15) (too-many-locals)
+# C:123, 8: Invalid variable name "s1" (invalid-name)
+# C:144, 8: Invalid variable name "s2" (invalid-name)
+# R: 69, 0: Too many branches (13/12) (too-many-branches)
+# R: 69, 0: Too many statements (80/50) (too-many-statements
 def project_analyse(resdir, gitdir, codeface_conf, project_conf,
                     no_report, loglevel, logfile, recreate, profile_r,
                     n_jobs, tagging_type, reuse_db):
@@ -244,7 +254,17 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     execute_command(cmd, direct_io=True, cwd=cwd)
     log.info("=> Codeface run complete!")
 
-#TODO sanity check mailing lists parameter
+
+# TODO sanity check mailing lists parameter
+# TODO refactor due to multiple issues
+# C:217, 0: Missing function docstring (missing-docstring)
+# R:217, 0: Too many arguments (8/5) (too-many-arguments)
+# R:217, 0: Too many local variables (20/15) (too-many-locals)
+# W:241,20: Using possibly undefined loop variable 'ml' (undefined-loop-variable
+# W:246,20: Using possibly undefined loop variable 'ml' (undefined-loop-variable
+# C:250,11: Invalid variable name "ml" (invalid-name)
+
+
 def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
                         logfile, jobs, mailinglists):
     """Analyse a mailing list.
