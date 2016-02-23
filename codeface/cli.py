@@ -15,9 +15,9 @@
 # All Rights Reserved.
 
 """
-Command-line interface driver for the codeface package
+Command-line interface driver for the codeface package.
 
-Provides parser for run and ml options
+Provides parser for run, ml, dynamic and test options.
 If codeface is run as backend for the webservice dynamic parser is used
 """
 
