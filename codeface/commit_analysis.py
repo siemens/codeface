@@ -24,8 +24,10 @@
 # TODO: Add further measures for the commit size
 
 from logging import getLogger
+from codeface.commit import Commit
 from codeface.linktype import LinkType
 from codeface.TimeSeries import TimeSeries
+from codeface.VCS import VCS
 
 log = getLogger(__name__)
 
@@ -35,11 +37,11 @@ def _commit_size_ub(add, deleted):
     It's as simple as adding the added and deleted lines.
 
     Args:
-        add: Lines of codes added.
-        deleted: Lines of code deleted.
+        add (int): Lines of codes added.
+        deleted (int): Lines of code deleted.
 
     Returns:
-        Upper bound for commit size.
+        int: Upper bound for commit size.
     """
     return int(add + deleted)
 
@@ -47,10 +49,10 @@ def _mean(nums):
     """ Compute mean over a sequence of numbers.
 
     Args:
-        nums: A sequence of numbers.
+        nums (list): A sequence of numbers.
 
     Returns:
-        Mean value.
+        float: Mean value.
     """
     # TODO This is not mean but average
     if len(nums):
@@ -71,11 +73,11 @@ def _compute_next_timestamp(time, last_time):
     but add one.
 
     Args:
-        time: Unix timestamp to be rebased.
-        last_time: Base Unix timestamp.
+        time (int): Unix timestamp to be rebased.
+        last_time (int): Base Unix timestamp.
 
     Returns:
-        Rebased Unix timestamp.
+        int: Rebased Unix timestamp.
     """
     # Correct for identical dates
     if time == last_time:
@@ -93,12 +95,12 @@ def createCumulativeSeries(vcs, subsys="__main__", revrange=None):
     """Create a cumulative diff history by summing up the diff sizes.
 
     Args:
-        vcs: Instance of VCS.
-        subsys: Name of subsystem.
-        revrange: Tuple of commit IDs or None.
+        vcs (VCS): Instance of VCS.
+        subsys (str): Name of subsystem.
+        revrange (tuple): Tuple of commit IDs or None.
 
     Returns:
-        Instance of TimeSeries.
+        TimeSeries: Instance of TimeSeries.
 
         TimeSeries.series contains a list of dicts, using the following pattern:
         [{'commit': Commit ID, 'value': {Diff type: Lines affected, ...}, ...]
@@ -130,16 +132,16 @@ def createCumulativeSeries(vcs, subsys="__main__", revrange=None):
 
 
 def createSeries(vcs, subsys="__main__", revrange=None, rc_start=None):
-    """Create the list of all diffs (time/value pairs) for subsystem subsys.
+    """Create the list of all diffs (time/value pairs) for subsystem `subsys`.
 
     Args:
-        vcs: Instance of VCS.
-        subsys: Name of subsystem.
-        revrange: Tuple of commit IDs or None.
-        rc_start: Commit ID within revrange or None.
+        vcs (VCS): Instance of VCS.
+        subsys (str): Name of subsystem.
+        revrange (tuple): Tuple of commit IDs or None.
+        rc_start (str): Commit ID within revrange or None.
 
     Returns:
-        Instance of TimeSeries.
+        TimeSeries: Instance of TimeSeries.
 
         TimeSeries.series contains a list of dicts, using the following pattern:
         [{'commit': Commit ID, 'value': {Diff type: Lines affected, ...}, ...]
@@ -178,10 +180,10 @@ def getSignoffCount(cmt):
     """Get the number of people who signed a commit off.
 
     Args:
-        cmt: Instance of Commit.
+        cmt (Commit): Instance of Commit.
 
     Returns:
-        Number of Signed-off-by tags.
+        int: Number of Signed-off-by tags.
     """
     tag_names_list = cmt.getTagNames()
     if "Signed-off-by" in tag_names_list.keys():
@@ -196,11 +198,11 @@ def getInvolvedPersons(cmt, categories):
     """Determine the names of persons involved with a commit.
 
     Args:
-        cmt: Instance of Commit.
-        categories: List of tag names to be filtered by.
+        cmt (Commit): Instance of Commit.
+        categories (list): List of tag names to be filtered by.
 
     Returns:
-        List of person names matching the category filter.
+        list: List of person names matching the category filter.
     """
     signoffs = []
 
@@ -219,10 +221,10 @@ def getSignoffEtcCount(cmt):
     """Similar to getSignoffCount(), but also counts CCed, Acked-by, etc.
 
     Args:
-        cmt: Instance of Commit.
+        cmt (Commit): Instance of Commit.
 
     Returns:
-        Number of sign offs.
+        int: Number of sign offs.
     """
     signoffs = 0
 
@@ -242,10 +244,10 @@ def getSeriesDuration(series):
     commits outside this range may be included in the series.
 
     Args:
-        series: Instance of TimeSeries.
+        series (TimeSeries): Instance of TimeSeries.
 
     Returns:
-        Length of the time series in seconds.
+        int: Length of the time series in seconds.
     """
 
     return int(series.series[-1]["commit"].cdate) - int(
@@ -255,10 +257,10 @@ def writeToFile(res, name, uniqueTS=True):
     """Write a result list to a file.
 
     Args:
-        res: Instance of TimeSeries.
-        name: Name of the output file.
-        uniqueTS: Transform the date indices into a strictly monotonic series if
-            true.
+        res (TimeSeries): Instance of TimeSeries.
+        name (str): Name of the output file.
+        uniqueTS (bool): Transform the date indices into a strictly monotonic
+        series if true.
     """
     # TODO deprecated, to be removed.
     FILE = open(name, "w")

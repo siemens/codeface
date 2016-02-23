@@ -15,6 +15,7 @@
 # All Rights Reserved.
 """Provide a generic wrapper for time series of commits."""
 
+
 class TimeSeries(object):
     """Simple wrapper for a time series.
 
@@ -24,12 +25,13 @@ class TimeSeries(object):
     be data points outside the intended range.
 
     Attributes:
-        series: A list of dicts, using the following pattern:
+        series (list): A list of dicts, using the following pattern:
             [{'commit': Commit ID, 'value': Payload}, ...]
-        start: Commit ID of range start.
-        end: Commit ID of range end.
-        rc_start: Commit ID of first RC inside the range or None.
+        start (int): Unix timestamp of range start.
+        end (int): Unix timestamp of range end.
+        rc_start (int): Unix timestamp first RC inside the range or None.
     """
+    # TODO This class is not using properties, but explicit getters and setters
 
     def __init__(self, subsys_names=[], ID=None, name="", email=""):
         self.series = []
@@ -44,7 +46,7 @@ class TimeSeries(object):
         self.start = _start
 
     def get_start(self):
-        if (self.start == -1):
+        if self.start == -1:
             raise Exception("Time series start date is undefined")
         return self.start
 
@@ -52,7 +54,7 @@ class TimeSeries(object):
         self.end = _end
 
     def get_end(self):
-        if (self.end == -1):
+        if self.end == -1:
             raise Exception("Time series end date is undefined")
         return self.end
 

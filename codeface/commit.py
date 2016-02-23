@@ -175,7 +175,7 @@ class Commit(object):
         Args:
             desc (list): Sequence of description lines.
         """
-        # TODO Shoulnd't this method use self.description instead of parameter?
+        # TODO Shouldn't this method use self.description instead of parameter?
         is_corrective = False
         for line in desc:
             contains_keyword = [keyword in line.lower()
