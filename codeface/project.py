@@ -14,9 +14,19 @@
 # Copyright 2013 by Siemens AG
 # All Rights Reserved.
 
-from logging import getLogger
+"""Module containing analysis methods.
 
-log = getLogger(__name__)
+Attributes:
+    log:
+
+Methods:
+    loginfo: Pickleable function for multiprocesssing
+    project_setup: Setup analysis form configuration file
+    project_analyse: Analyse git project
+    mailinglist_analyse: Analyse mailing list
+"""
+
+from logging import getLogger
 from pkg_resources import resource_filename
 from os.path import join as pathjoin, split as pathsplit, abspath
 from .dbmanager import DBManager
@@ -26,20 +36,36 @@ from .ts import dispatch_ts_analysis
 from .util import (execute_command, generate_reports, check4ctags,
                    check4cppstats, BatchJobPool, generate_analysis_windows)
 
+log = getLogger(__name__)
+
 
 def loginfo(msg):
-    """ Pickleable function for multiprocessing """
+    """Pickleable function for multiprocessing
+
+    Args:
+        msg:
+    """
+
     log.info(msg)
 
 
 def project_setup(conf, recreate):
-    """
-    This method updates the project in the database with the release
+    """This method updates the project in the database with the release
     information given in the configuration.
     Returns the project ID, the database manager and the list of range ids
     for the ranges between the releases specified in the configuration.
     Set up project in database and retrieve ranges to analyse
+
+    Args:
+        conf:
+        recreate:
+
+    Returns:
+        project_id:
+        dbm:
+        all_range_ids:
     """
+
     log.info("=> Setting up project '%s'", conf["project"])
     dbm = DBManager(conf)
     new_range_ids = dbm.update_release_timeline(conf["project"],
@@ -61,6 +87,29 @@ def project_setup(conf, recreate):
 def project_analyse(resdir, gitdir, codeface_conf, project_conf,
                     no_report, loglevel, logfile, recreate, profile_r,
                     n_jobs, tagging_type, reuse_db):
+    """Analyses a git project.
+
+    Args:
+        resdir: Directory to store results in.
+        mldir: Storage directory for source mailing list.
+        codeface_conf: Codeface configuration file, contains database access,
+            PersonID settings, Java BugExtractor settings and complexity
+            analysis settings.
+        project_conf: Project configuration file, contains project name, repo
+            type, mailing list storage, mailing lists, descriptions, revisions,
+            rcs and tagging.
+        no_report: Enable/disable report generation.
+        loglevel:
+        logfile:
+        recreate: Enable/disable recreation of
+        profile_r: Specify R profile.
+        n_jobs: Number of parallel processes.
+        tagging_type: Specify tagging type, valid ones are:
+            tag, proximity, committer2author, file, feature, feature_file
+        reuse_db: Toggle reuse of existing database.
+
+    """
+
     pool = BatchJobPool(int(n_jobs))
     conf = Configuration.load(codeface_conf, project_conf)
     tagging = conf["tagging"]
@@ -100,7 +149,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
 
     project_id, dbm, all_range_ids = project_setup(conf, recreate)
 
-    ## Save configuration file
+    # Save configuration file
     conf.write()
     project_conf = conf.get_conf_file_loc()
 
@@ -111,7 +160,6 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
                                 format(start_rev, end_rev))
         prefix = "  -> Revision range {0}..{1}: ".format(start_rev, end_rev)
 
-        #######
         # STAGE 1: Commit analysis
         s1 = pool.add(
             doProjectAnalysis,
@@ -121,7 +169,6 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
             endmsg=prefix + "Commit analysis done."
         )
 
-        #########
         # STAGE 2: Cluster analysis
         exe = abspath(resource_filename(__name__, "R/cluster/persons.r"))
         cwd, _ = pathsplit(exe)
@@ -144,7 +191,6 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
             endmsg=prefix + "Detecting clusters done."
         )
 
-        #########
         # STAGE 3: Generate cluster graphs
         if not no_report:
             pool.add(
@@ -158,15 +204,13 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     # Wait until all batch jobs are finished
     pool.join()
 
-    #########
     # Global stage 1: Time series generation
     log.info("=> Preparing time series data")
     dispatch_ts_analysis(project_resdir, conf)
 
-    #########
     # Global stage 2: Complexity analysis
-    ## NOTE: We rely on proper timestamps, so we can only run
-    ## after time series generation
+    # NOTE: We rely on proper timestamps, so we can only run after time series
+    # generation
     log.info("=> Performing complexity analysis")
     for i, range_id in enumerate(all_range_ids):
         log.info("  -> Analysing range '%s'", range_id)
@@ -183,7 +227,6 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         cmd.append(str(range_id))
         execute_command(cmd, direct_io=True, cwd=cwd)
 
-    #########
     # Global stage 3: Time series analysis
     log.info("=> Analysing time series")
     exe = abspath(resource_filename(__name__, "R/analyse_ts.r"))
@@ -204,6 +247,24 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
 #TODO sanity check mailing lists parameter
 def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
                         logfile, jobs, mailinglists):
+    """Analyse a mailing list.
+
+    Args:
+        resdir: Directory to store results in.
+        mldir: Storage directory for source mailing list.
+        codeface_conf: Codeface configuration file, contains database access,
+            PersonID settings, Java BugExtractor settings and complexity
+            analysis settings.
+        project_conf: Project configuration file, contains project name, repo
+            type, mailing list storage, mailing lists, descriptions, revisions,
+            rcs and tagging.
+        loglevel: Amount of logging done.
+        logfile:
+        jobs: Maximum parallel processes to work with.
+        mailinglists: Mailing lists to check.
+
+    """
+    
     conf = Configuration.load(codeface_conf, project_conf)
     ml_resdir = pathjoin(resdir, conf["project"], "ml")
 
@@ -221,7 +282,7 @@ def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
     else:
         mailinglist_conf = []
         for mln in mailinglists:
-            #TODO check ml/mln confusion and disambiguate! should be mln (prob)
+            # TODO check ml/mln confusion and disambiguate! should be mln (prob)
             match = [ml for ml in conf["mailinglists"] if ml["name"] == mln]
             if not match:
                 log.fatal(
