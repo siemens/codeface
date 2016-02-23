@@ -191,7 +191,7 @@ class Configuration(Mapping):
         return self._conf[key]
 
     def __setitem__(self, key, value):
-        # TODO Sanity check is missing?
+        # TODO Key is not validated?
         self._conf[key] = value
 
     def __len__(self):

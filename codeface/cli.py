@@ -172,7 +172,7 @@ def cmd_run(args):
     """Dispatch the ``run`` command.
 
     Args:
-        args (list): Command line arguments
+        args: Command line arguments
 
     Returns:
         int: 0 on success, != 0 otherwise.

@@ -31,6 +31,7 @@ from codeface.VCS import VCS
 
 log = getLogger(__name__)
 
+
 def _commit_size_ub(add, deleted):
     """ Compute the upper bound on the commit size.
 
@@ -44,6 +45,7 @@ def _commit_size_ub(add, deleted):
         int: Upper bound for commit size.
     """
     return int(add + deleted)
+
 
 def _mean(nums):
     """ Compute mean over a sequence of numbers.
@@ -252,6 +254,7 @@ def getSeriesDuration(series):
 
     return int(series.series[-1]["commit"].cdate) - int(
         series.series[0]["commit"].cdate)
+
 
 def writeToFile(res, name, uniqueTS=True):
     """Write a result list to a file.

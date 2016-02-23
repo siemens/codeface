@@ -48,8 +48,8 @@ class Commit(object):
             to boolean.
         inRC (bool): Boolean for whether the commit is part of an RC phase or
             not.
-        author_subsy_similarity (float): Measure of how focused the author is on
-            the subsystems touched by the commit, normalized to [0.0 ... 1.0]
+        author_subsys_similarity (float): Measure of how focused the author is
+            on the subsystems touched by the commit, normalized to [0.0 ... 1.0]
         author_taggers_similarity (float): Similarities between author and
             taggers, also normalized.
         taggers_subsys_similarity (float): Focus of taggers on the subsystems,
