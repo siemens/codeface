@@ -74,7 +74,7 @@ def project_setup(conf, recreate):
                                                 recreate_project=recreate)
     project_id = dbm.getProjectID(conf["project"], conf["tagging"])
     revs = conf["revisions"]
-    #TODO make readable in for each! Ultra-short is useless when it is confusing
+    # TODO make readable
     all_range_ids = [
         dbm.getReleaseRangeID(project_id, (
             dbm.getRevisionID(project_id, start),
@@ -125,7 +125,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     tagging = conf["tagging"]
     if tagging_type is not "default":
 
-        if not tagging_type in LinkType.get_all_link_types():
+        if tagging_type not in LinkType.get_all_link_types():
             log.critical('Unsupported tagging mechanism specified!')
             raise ConfigurationError('Unsupported tagging mechanism.')
         # we override the configuration value explicitly by cmd argument
@@ -284,7 +284,7 @@ def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
         mailinglists: Mailing lists to check.
 
     """
-    
+
     conf = Configuration.load(codeface_conf, project_conf)
     ml_resdir = pathjoin(resdir, conf["project"], "ml")
 
