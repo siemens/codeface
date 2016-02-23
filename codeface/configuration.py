@@ -72,7 +72,8 @@ class Configuration(Mapping):
 
         Args:
             global_conf_file (str): Project independent configuration.
-            local_conf_file (str): Project specific configuration, overrides global.
+            local_conf_file (str): Project specific configuration, overrides
+                global settings.
 
         Returns:
             Configuration: Instance of Configuration with settings from both
@@ -111,7 +112,7 @@ class Configuration(Mapping):
     def _initialize(self):
         """Infer missing values in the configuration"""
         if "rcs" not in self:
-            self._conf["rcs"] = [None for x in range(len(self["revisions"]))]
+            self._conf["rcs"] = [None for _ in range(len(self["revisions"]))]
 
         if "mailinglists" not in self:
             self._conf["mailinglists"] = []
