@@ -15,9 +15,9 @@
 # All Rights Reserved.
 
 """
-Command-line interface driver for the codeface package
+Command-line interface driver for the codeface package.
 
-Provides parser for run and ml options
+Provides parser for run, ml, dynamic and test options.
 If codeface is run as backend for the webservice dynamic parser is used
 """
 
@@ -34,7 +34,7 @@ def get_parser():
     """ Create parser with required command line arguments.
 
     Returns:
-        ArgumentParser instance for the command line interface.
+        ArgumentParser: Instance for the command line interface.
     """
     parser = argparse.ArgumentParser(
         prog='codeface',
@@ -172,10 +172,10 @@ def cmd_run(args):
     """Dispatch the ``run`` command.
 
     Args:
-        args: Command line arguments.
+        args (list): Command line arguments
 
     Returns:
-        0 on success, integer != 0 otherwise.
+        int: 0 on success, != 0 otherwise.
     """
     # First make all the args absolute, variant a
     resdir, gitdir = map(os.path.abspath, (args.resdir, args.gitdir))
@@ -194,10 +194,10 @@ def cmd_ml(args):
     """Dispatch the ``ml`` command.
 
     Args:
-        args:  Command line arguments.
+        args: Command line arguments.
 
     Returns:
-        0 on success, integer != 0 otherwise.
+        int: 0 on success, != 0 otherwise.
     """
     # First make all the args absolute
     resdir, mldir = map(os.path.abspath, (args.resdir, args.mldir))
@@ -212,13 +212,15 @@ def cmd_ml(args):
 
 
 def cmd_dynamic(args):
-    """ Executes if Codeface is run to provide the backend to the website.
+    """Dispatch the ``dynamic`` command.
+
+    Executes if Codeface is run to provide the backend to the website.
 
     Args:
         args: Command line arguments.
 
     Returns:
-        0 on success, integer != 0 otherwise.
+        int: 0 on success, integer != 0 otherwise.
     """
     dyn_directory = resource_filename(__name__, "R/shiny/apps")
 
@@ -247,10 +249,10 @@ def cmd_test(args):
     """Sub-command handler for the ``test`` command.
 
     Args:
-        args:  Command line arguments.
+        args: Command line arguments.
 
     Returns:
-        0 on success, integer != 0 otherwise.
+        int: 0 on success, != 0 otherwise.
     """
     unit_only = args.unit
     pattern = args.pattern
@@ -279,7 +281,7 @@ def cmd_test(args):
             integration tests, since we need the DB and REST configurations.
 
         Args:
-            suite: Instance of TestSuite to run.
+            suite (TestSuite): Test suite to run.
         """
         if isinstance(suite, unittest.TestSuite):
             for test in suite:
@@ -300,10 +302,10 @@ def run(argv):
     """Creates and applies parser for command line arguments.
 
     Args:
-        argv: Command line arguments
+        argv (list): Command line arguments.
 
     Returns:
-        0 on success, integer != 0 otherwise.
+        int: 0 on success, integer != 0 otherwise.
     """
     parser = get_parser()
     # Note: The first argument of argv is the name of the command
@@ -318,7 +320,7 @@ def main():
     """Main function for command line interface.
 
     Returns:
-        0 on success, integer != 0 otherwise.
+        int: 0 on success, integer != 0 otherwise.
     """
     import sys
     return run(sys.argv)
