@@ -33,7 +33,7 @@ log = getLogger(__name__)
 
 
 def _commit_size_ub(add, deleted):
-    """ Compute the upper bound on the commit size.
+    """Compute the upper bound on the commit size.
 
     It's as simple as adding the added and deleted lines.
 
@@ -48,7 +48,7 @@ def _commit_size_ub(add, deleted):
 
 
 def _mean(nums):
-    """ Compute mean over a sequence of numbers.
+    """Compute mean over a sequence of numbers.
 
     Args:
         nums (list): A sequence of numbers.

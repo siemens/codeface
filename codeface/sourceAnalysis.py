@@ -20,8 +20,8 @@ from os import path
 from subprocess import Popen, PIPE
 
 
-class FileAnalysis:
-    """ List of source code elements we want to capture """
+class FileAnalysis (object):
+    """List of source code elements we want to capture """
     SRC_ELEMS = ['function']
 
     def __init__(self, filename, doxygen_conf, outdir):
@@ -31,7 +31,7 @@ class FileAnalysis:
         self.src_elem_list = []
 
     def gen_XML_files(self):
-        """ Run source code analysis and generate xml files """
+        """Run source code analysis and generate xml files """
         input_file = 'INPUT=' + self.filename
         output_dir = 'OUTPUT_DIRECTORY=' + self.outdir
         cmd_1 = ['cat', self.conf]
@@ -47,7 +47,7 @@ class FileAnalysis:
         p2.communicate()
 
     def _parse_XML_index(self):
-        """ Parse index file generate by deoxygen that contains the compound
+        """Parse index file generate by deoxygen that contains the compound
         elements
         Returns:
 

@@ -29,7 +29,7 @@ from .dbmanager import DBManager, tstamp_to_sql
 
 
 def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
-    """ Analyses something....
+    """Analyses something....
 
     Args:
         dbfilename (str): Database file name.
@@ -49,7 +49,6 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
     else:
         sfx = "{0}-{1}".format(vcs.rev_start, vcs.rev_end)
 
-    # This is most wierd...
     res = createSeries(vcs, "__main__", revrange, rc_start)
     return res
 
@@ -120,6 +119,7 @@ def dispatch_ts_analysis(resdir, conf):
     # Stage 2: Insert time stamps for all releases considered into the database
     writeReleases(dbm, tstamps, conf)
 
+# TODO Remove this, it's deprecated!
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('resdir')

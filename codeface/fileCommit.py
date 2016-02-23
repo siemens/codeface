@@ -32,7 +32,7 @@ class FileDict(object):
     So we only save the information on lines that change that info
     and use bisect to retrieve that information (for any line).
     """
-    #TODO Canidate for deletion?
+    # TODO Candidate for deletion?
     def __init__(self, line_list, line_dict):
         """
         :rtype : FileDict

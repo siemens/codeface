@@ -29,4 +29,4 @@ setup(name='codeface',
       entry_points={'console_scripts': ['codeface = codeface.cli:main']},
       install_requires=['progressbar', 'VCS',
                         'python_ctags', 'PyYAML', 'MySQL_python']
-     )
+      )

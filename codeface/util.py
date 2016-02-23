@@ -50,8 +50,7 @@ class BatchJob(BatchJobTuple):
 
 
 class BatchJobPool(object):
-    """
-    Implementation of a dependency-respecting batch pool
+    """Implementation of a dependency-respecting batch pool
 
     This system uses a pool of N worker processes to run jobs. Since the
     multiprocessing module is used, all functions, args and kwargs must be

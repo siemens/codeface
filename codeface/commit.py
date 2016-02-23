@@ -62,6 +62,7 @@ class Commit(object):
 
     CORRECTIVE_KEYWORDS = ['bug', 'fix', 'error', 'fail']
     """Keywords to identify corrective commits"""
+
     # Ref: A. Mockus and L. G. Votta:
     # Identifying Reasons for Software Changes Using Historic Databases
 
@@ -115,6 +116,11 @@ class Commit(object):
         return self.commit_msg_info[0]
 
     def getCommitMessageSize(self):
+        """Get commit message size.
+
+        Returns:
+            int: Number of characters in commit message.
+        """
         return self.commit_msg_info[1]
 
     def getAuthorName(self):

@@ -31,7 +31,7 @@ from codeface.project import project_analyse, mailinglist_analyse
 
 
 def get_parser():
-    """ Create parser with required command line arguments.
+    """Create parser with required command line arguments.
 
     Returns:
         ArgumentParser: Instance for the command line interface.
