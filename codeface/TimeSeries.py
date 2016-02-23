@@ -32,6 +32,7 @@ class TimeSeries(object):
         rc_start (int): Unix timestamp first RC inside the range or None.
     """
     # TODO This class is not using properties, but explicit getters and setters
+    # TODO Properties of this class are accessed both ways...
 
     def __init__(self, subsys_names=[], ID=None, name="", email=""):
         self.series = []
@@ -43,23 +44,53 @@ class TimeSeries(object):
         self.rc_start = None
 
     def set_start(self, _start):
+        """Setter for `start`.
+
+        Args:
+            _start (int): Unix timestamp.
+        """
         self.start = _start
 
     def get_start(self):
+        """Getter for `start`.
+
+        Returns:
+            int: Unix timestamp.
+        """
         if self.start == -1:
             raise Exception("Time series start date is undefined")
         return self.start
 
     def set_end(self, _end):
+        """Setter for `end`.
+
+        Args:
+            _end (int): Unix timestamp.
+        """
         self.end = _end
 
     def get_end(self):
+        """Getter for `end`
+
+        Returns:
+            int: Unix timestamp.
+        """
         if self.end == -1:
             raise Exception("Time series end date is undefined")
         return self.end
 
     def set_rc_start(self, _start):
+        """Setter for `rc_start`
+
+        Args:
+            _start (int): Unix timestamp.
+        """
         self.rc_start = _start
 
     def get_rc_start(self):
+        """Getter for `rc_start`.
+
+        Returns:
+            int: Unix timestamp.
+        """
         return self.rc_start
