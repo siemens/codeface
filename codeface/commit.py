@@ -19,15 +19,13 @@
 # All Rights Reserved.
 
 """Contains class commit with all required members"""
-#TODO insert comments into docstrings
-
 
 class Commit(object):
     """Describes a single commit.
 
     Attributes:
-        id:
-        cdate:
+        id: Unique ID (hash value expected)
+        cdate: Timestamp of the commit
         adate:
         adate_tz:
         author: Author name
@@ -49,19 +47,20 @@ class Commit(object):
             subsystems touched by the commit (0 is minimal, 1 is maximal focus)
         author_taggers_similarity: Similarities between author and taggers
         taggers_subsys_similarity: Focus of taggers on the subsystems
-
-    Keywords to identify corrective commits
-    Ref: A. Mockus and L. G. Votta, Identifying Reasons for Software
-    Changes Using Historic Databases
-
+    Methods;
     """
+    #TODO Replace java-style getters with python-style properties
+    # http://2ndscale.com/rtomayko/2005/getters-setters-fuxors
+    # https://google.github.io/styleguide/pyguide.html#Properties
 
     CORRECTIVE_KEYWORDS = ['bug', 'fix', 'error', 'fail']
+    """Keywords to identify corrective commits"""
+    # Ref: A. Mockus and L. G. Votta:
+    # Identifying Reasons for Software Changes Using Historic Databases
+
 
     def __init__(self):
-        """Base characteristics: unique id (typically a hash value) and
-        time stamp (committer time) of the commit
-        """
+        """Initialise a commit object with blank values"""
         self.id = None
         self.cdate = None
         self.adate = None
@@ -85,24 +84,31 @@ class Commit(object):
     # The following methods replace hard-coded constants
     # with reasonable names
     def getCdate(self):
+        """Returns date of commit"""
         return self.cdate
 
     def setCdate(self, cdate):
+        """Sets date of commit"""
         self.cdate = cdate
 
     def getAddedLines(self, difftype):
+        """Returns added lines"""
         return self.diff_info[difftype][1]
 
     def getDeletedLines(self, difftype):
+        """Returns deleted lines"""
         return self.diff_info[difftype][2]
 
     def getChangedFiles(self, difftype):
+        """Returns names of changed files"""
         return self.diff_info[difftype][0]
 
     def getTagPIs(self):
+        """Returns PersonInfo IDs for tag"""
         return self.tag_pi_list
 
     def setTagPIs(self, tag_pi_list):
+        """Sets PersonInfo IDs for tags"""
         self.tag_pi_list = tag_pi_list
 
     def getTagNames(self):
@@ -111,7 +117,7 @@ class Commit(object):
     def getCommitMessageLines(self):
         return self.commit_msg_info[0]
 
-    def getCommitMessageSize(self):  # "Size" as in "number of characters@
+    def getCommitMessageSize(self):
         return self.commit_msg_info[1]
 
     def getAuthorName(self):
