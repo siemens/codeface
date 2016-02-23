@@ -32,7 +32,8 @@ from codeface.project import project_analyse, mailinglist_analyse
 
 def get_parser():
     """ Create parser with required command line arguments
-    Returns: Parser for the command line interface
+
+    Returns: ArgumentParser instance for the command line interface
     """
     parser = argparse.ArgumentParser(
         prog='codeface',
@@ -170,7 +171,9 @@ def cmd_run(args):
     """Dispatch the ``run`` command.
 
     Args:
-        args:
+        args: Command line arguments
+
+    Returns: 0 on success, integer != 0 otherwise
     """
     # First make all the args absolute, variant a
     resdir, gitdir = map(os.path.abspath, (args.resdir, args.gitdir))
@@ -189,7 +192,9 @@ def cmd_ml(args):
     """Dispatch the ``ml`` command.
 
     Args:
-        args:
+        args:  Command line arguments
+
+    Returns: 0 on success, integer != 0 otherwise
     """
     # First make all the args absolute
     resdir, mldir = map(os.path.abspath, (args.resdir, args.mldir))
@@ -206,9 +211,9 @@ def cmd_ml(args):
 def cmd_dynamic(args):
     """ Executes if Codeface is run to provide the backend to the website
     Args:
-        args:
+        args: Command line arguments
 
-    Returns:
+    Returns: 0 on success, integer != 0 otherwise
     """
     dyn_directory = resource_filename(__name__, "R/shiny/apps")
 
@@ -237,7 +242,9 @@ def cmd_test(args):
     """Sub-command handler for the ``test`` command.
 
     Args:
-        args:
+        args:  Command line arguments
+
+    Returns: 0 on success, integer != 0 otherwise
     """
     unit_only = args.unit
     pattern = args.pattern
@@ -287,9 +294,9 @@ def cmd_test(args):
 def run(argv):
     """Creates and applies parser for command line arguments
     Args:
-        argv:
+        argv: Command line arguments
 
-    Returns:
+    Returns: 0 on success, integer != 0 otherwise
 
     """
     parser = get_parser()
@@ -302,8 +309,9 @@ def run(argv):
 
 
 def main():
-    """ main fuction for command line interface
-    Returns:
+    """ main function for command line interface
+
+    Returns: 0 on success, integer != 0 otherwise
 
     """
     import sys
