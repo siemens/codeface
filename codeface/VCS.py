@@ -20,8 +20,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 # Copyright 2010, 2011, by Wolfgang Mauerer <wm@linux-kernel.net>
-# Copyright 2012, 2013, Siemens AG,
-# Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
+# Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
 # WM 15-Feb-2010 (Polished and generalised version based on
@@ -70,9 +69,8 @@ class ParseError(Error):
         self.id = id
 
 
-class VCS:
-    """
-    Encapsulate methods to analyse VCS repositories
+class VCS (object):
+    """Encapsulate methods to analyse VCS repositories
 
     This base class does nothing in particular, but serves
     as an 'interface' (or what you would regard in the Python world
@@ -83,9 +81,17 @@ class VCS:
     and to call extractCommitData to perform the time-consuming
     processing. Afterwards, the object can be serialised for later
     (and faster) use by various post-processing and analysis methods.
+
+    Attributes:
+        rev_start_date:
     """
 
     def __init__(self):
+        """
+
+        Returns:
+
+        """
         # "None" represents HEAD for end and the inital
         # commit for start
         self.rev_start_date = None
@@ -170,14 +176,21 @@ class VCS:
 
         Takes the list of commits, computes the associated
         diffs in various ways, and stores (i.e., caches) the results
-        in the object instance so that they can be serialised."""
+        in the object instance so that they can be serialised.
+
+        Args:
+            subsys: """
         return []
 
     def extractCommitDataRange(self, revrange, subsys="__main__"):
         """Analyse a certain range of the repository.
 
         Restrict the data obtained from extractCommitData() to
-        a specific time slice."""
+        a specific time slice.
+
+        Args:
+            revrange:
+            subsys: """
         return []
 
     def getDiffVariations(self):
@@ -242,7 +255,10 @@ def parse_line(sep, line):
     return [l.strip() for l in parse_line_enumerator(sep, line)]
 
 
-class LineType:
+class LineType(object):
+    """
+
+    """
     IF = "#if"
     ELSE = "#else"
     ELIF = "#elif"
@@ -260,6 +276,10 @@ def parse_feature_line(sep, line):
 
     :param line: the line to parse
     :return: start_line, end_line, line_type, feature_list, feature_expression
+
+    Args:
+        sep:
+        sep:
     """
     parsed_line = parse_line(sep, line)
     # FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS
@@ -287,8 +307,7 @@ def parse_feature_line(sep, line):
 
 
 def get_feature_lines(parsed_lines, filename):
-    """
-    calculates dictionaries representing the feature sets
+    """Calculates dictionaries representing the feature sets
     and the feature expressions for any line of the given file.
 
     - feature expression: e.g., "(!(defined(A)) && (!(defined(B)) && defined(C)"
@@ -460,6 +479,10 @@ def get_feature_lines_from_file(file_layout_src, filename):
     """
     similar to _getFunctionLines but computes the line numbers of each
     feature in the file.
+
+    Args:
+        file_layout_src:
+        filename:
     """
     '''
     - Input -
@@ -835,7 +858,7 @@ class gitVCS(VCS):
 
         # Commit is not associated with a specific subsystem, so
         # file it under "general"
-        if touched_subsys == False:
+        if touched_subsys is False:
             cmt_subsystems["general"] = 1
         else:
             cmt_subsystems["general"] = 0
@@ -891,7 +914,7 @@ class gitVCS(VCS):
     def _analyseCommitMsg(self, msg, cmt):
         """Analyse the commit message."""
         # The format we are analysing is the following:
-        ######
+
         # commit db1f05bb85d7966b9176e293f3ceead1cb8b5d79
         # Author: Author Name <author.name@email.tld>
         # Date:   Wed Feb 10 12:15:53 2010 +0100
@@ -909,8 +932,8 @@ class gitVCS(VCS):
         #
         # 8	1	path/to/file.c
         # 2	0	path/to/another.c
-        #  2 files changed, 10 insertions(+), 1 deletions(-)
-        ######
+        # 2 files changed, 10 insertions(+), 1 deletions(-)
+
         # We get a list representation of the commit that was split
         # by line breaks, so restore the original state first and then
         # do a decomposition into parts
@@ -1001,14 +1024,17 @@ class gitVCS(VCS):
                 log.debug('{0}'.format(entry))
 
     def extractCommitDataRange(self, revrange, subsys="__main__"):
-        """
-        Same as extractCommitData, but for a specific temporal range.
+        """Same as extractCommitData, but for a specific temporal range.
 
         Instead of using the whole repo, we extract a temporal
         subset. Since the data for the complete repo are cached, we
         use them as basis: The appropriate commit objects are cherry-picked
         from the global list and rearranged into a new, subsys and
         range-specific list.
+
+        Args:
+            revrange:
+            subsys:
         """
 
         if len(revrange) != 2:
@@ -1124,8 +1150,7 @@ class gitVCS(VCS):
 
     def _prepareFileCommitList(self, fnameList, link_type, singleBlame=True,
                                ignoreOldCmts=True):
-        """
-        uses git blame to determine the file layout of a revision
+        """Uses git blame to determine the file layout of a revision
         The file layout is a dictionary that indicates which commit hash is
         responsible for each line of code in a file. The blame data can be
         recorded for each commit or only for one revision.
@@ -1268,9 +1293,7 @@ class gitVCS(VCS):
                 pbar.finish()
 
     def _addBlameRev(self, rev, file_commit, blame_cmt_ids, link_type):
-        """
-        saves the git blame output of a revision for a particular file
-        """
+        """saves the git blame output of a revision for a particular file"""
         '''
         -Input-
         rev: a revision, could be a commit hash or "v2.6.31"
@@ -1391,9 +1414,7 @@ class gitVCS(VCS):
         return func_lines
 
     def _getFunctionLines(self, file_layout_src, file_commit):
-        """
-        computes the line numbers of each function in the file
-        """
+        """computes the line numbers of each function in the file"""
         '''
         - Input -
         file_name: original name of the file, used only to determine the
@@ -1447,10 +1468,14 @@ class gitVCS(VCS):
             file_commit.addFuncImplLine(line_num, src_line_rmv)
 
     def cmtHash2CmtObj(self, cmtHash):
-        """
-        input: cmtHash
-        output: a commit object with additional commit information added
-        such as author, committer and date
+        """Transforms a commit hash into a commit object.
+
+        Args:
+            cmtHash:
+
+        Returns:
+            cmtObj(commit): Commit object with additional commit information
+                such as author, committer and date
         """
 
         # query git for log information on this particular cmtHash
@@ -1466,6 +1491,11 @@ class gitVCS(VCS):
         returns a list of commit objects from the commits on a given
         file and revision range. If no revision range is provided
         the whole history is captured
+
+        Args:
+            fname:
+            rev_start:
+            rev_end:
         """
 
         # query git to get all committers to a particular file
@@ -1478,12 +1508,14 @@ class gitVCS(VCS):
         return cmtList
 
     def addFiles4Analysis(self, cmt_id_list):
-        """
-        use this to configue what files should be included in the
+        """Use this to configure what files should be included in the
         file based analysis (ie. non-tag based method). This will
         query git for the file names and build the list automatically.
         -- Input --
         directories - a list of paths to limit the search for filenames
+
+        Args:
+            cmt_id_list:
         """
         cmd_base = 'git --git-dir={0} diff-tree'.format(self.repo).split()
         cmd_base.append("--diff-filter=ACMRTB")
