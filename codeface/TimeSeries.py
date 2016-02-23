@@ -13,16 +13,25 @@
 #
 # Copyright 2013 by Siemens AG< Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
+"""Provide a generic wrapper for time series of commits."""
 
-class TimeSeries:
+class TimeSeries(object):
     """Simple wrapper for a time series.
 
     The raw data are stored in a plain array, augmented with information
     about start end end date of the series. It's not sufficient to take
     the first end final list element for this purpose because there may
-    be data points outside the intended range."""
+    be data points outside the intended range.
 
-    def __init__(self, subsys_names = [], ID=None, name="", email=""):
+    Attributes:
+        series: A list of dicts, using the following pattern:
+            [{'commit': Commit ID, 'value': Payload}, ...]
+        start: Commit ID of range start.
+        end: Commit ID of range end.
+        rc_start: Commit ID of first RC inside the range or None.
+    """
+
+    def __init__(self, subsys_names=[], ID=None, name="", email=""):
         self.series = []
         self.start = -1
         self.end = -1

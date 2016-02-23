@@ -18,37 +18,37 @@
 # Copyright 2010, 2011, 2012 by Wolfgang Mauerer <wm@linux-kernel.net>
 # All Rights Reserved.
 
-"""Contains class commit with all required members"""
+"""Contains class Commit with all required members."""
 
 class Commit(object):
     """Describes a single commit.
 
     Attributes:
-        id: Unique ID (hash value expected)
-        cdate: Commit timestamp
-        adate: Author timestamp
-        adate_tz: Author timestamp timezone
-        author: Author name
-        author_pi: PersonInfo instance for author
-        committer: Committer name
-        committer_pi: PersonInfo instance for Committer
-        is_corrective: Boolean for whether commit is corrective
-        description: Commit message
-        diff_info: Contains tuple (added, changed, deleted) for each diff type
-        commit_msg_info: First entry is number of lines, second number of chars
+        id: Unique ID (hash value expected).
+        cdate: Commit timestamp.
+        adate: Author timestamp.
+        adate_tz: Author timestamp timezone.
+        author: Author name.
+        author_pi: PersonInfo instance for author.
+        committer: Committer name.
+        committer_pi: PersonInfo instance for Committer.
+        is_corrective: Boolean for whether commit is corrective.
+        description: Commit message.
+        diff_info: Dict of tuples (Lines added, Lines changed, Lines deleted),
+            mapping from diff type to number of lines affected by Commit.
+        commit_msg_info: Tuple of (Number of lines, Number of chars).
         tag_pi_list: A dict of sets, mapping tag types to sets of PersonInfo
             instances.
         tag_names_list: A dict of sets, mapping tag types to sets of names.
         subsystems_touched: A dict of booleans, mapping subsystem names to
             boolean.
-        inRC: Boolean for whether the commit is part of an RC phase or not
+        inRC: Boolean for whether the commit is part of an RC phase or not.
         author_subsy_similarity: Measure of how focused the author is on the
-            subsystems touched by the commit (0 is minimal, 1 is maximal focus)
-        author_taggers_similarity: Similarities between author and taggers
-        taggers_subsys_similarity: Focus of taggers on the subsystems
-    Methods;
+            subsystems touched by the commit (0 is minimal, 1 is maximal focus).
+        author_taggers_similarity: Similarities between author and taggers.
+        taggers_subsys_similarity: Focus of taggers on the subsystems.
     """
-    #TODO Replace java-style getters with python-style properties
+    # TODO Replace java-style getters with python-style properties
     # http://2ndscale.com/rtomayko/2005/getters-setters-fuxors
     # https://google.github.io/styleguide/pyguide.html#Properties
 
@@ -59,7 +59,7 @@ class Commit(object):
 
 
     def __init__(self):
-        """Initialise a commit object with blank values"""
+        """Initialise a commit object with blank values."""
         self.id = None
         self.cdate = None
         self.adate = None
@@ -163,12 +163,12 @@ class Commit(object):
 
     def checkIfCorrective(self, descr):
         """Check if commit description contains keywords that indicate a
-        corrective commit
+        corrective commit.
 
         Args:
-            descr: Sequence of description lines
+            descr: Sequence of description lines.
         """
-        #TODO Shoulnd't this method use self.description instead of parameter?
+        # TODO Shoulnd't this method use self.description instead of parameter?
         is_corrective = False
         for line in descr:
             contains_keyword = [keyword in line.lower()
