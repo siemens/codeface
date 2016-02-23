@@ -14,15 +14,16 @@
 # Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # Copyright 2014 by Matthias Dittrich <matthi.d@gmail.com>
 # All Rights Reserved.
-"""
-Module for containing the LinkType class
-"""
+"""Module for containing the LinkType class"""
 __author__ = "drag0on"
 
 
 class LinkType(object):
-    """ enum-like class to distinguish between the various
+    """enum-like class to distinguish between the various
     methods used to link individuals
+
+    Attributes:
+
     """
     tag = "tag"
     proximity = "proximity"
