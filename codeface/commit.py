@@ -25,23 +25,22 @@ class Commit(object):
 
     Attributes:
         id: Unique ID (hash value expected)
-        cdate: Timestamp of the commit
-        adate:
-        adate_tz:
+        cdate: Commit timestamp
+        adate: Author timestamp
+        adate_tz: Author timestamp timezone
         author: Author name
         author_pi: PersonInfo instance for author
         committer: Committer name
         committer_pi: PersonInfo instance for Committer
         is_corrective: Boolean for whether commit is corrective
-        description:
+        description: Commit message
         diff_info: Contains tuple (added, changed, deleted) for each diff type
         commit_msg_info: First entry is number of lines, second number of chars
-        tag_pi_list: A hash with tag type as key. The datum is an array with
-            all PersonInfo instances for the tag type
-        tag_names_list: A hash with tag type as key. The datum is an array with
-            all names (as string) for the tag type
-        subsystems_touched: Subsystems the commit touches. Keys are the
-            subsystem names, values are 1 for touched and 0 for not touched.
+        tag_pi_list: A dict of sets, mapping tag types to sets of PersonInfo
+            instances.
+        tag_names_list: A dict of sets, mapping tag types to sets of names.
+        subsystems_touched: A dict of booleans, mapping subsystem names to
+            boolean.
         inRC: Boolean for whether the commit is part of an RC phase or not
         author_subsy_similarity: Measure of how focused the author is on the
             subsystems touched by the commit (0 is minimal, 1 is maximal focus)
@@ -81,34 +80,25 @@ class Commit(object):
         self.author_taggers_similarity = None
         self.taggers_subsys_similarity = None
 
-    # The following methods replace hard-coded constants
-    # with reasonable names
     def getCdate(self):
-        """Returns date of commit"""
         return self.cdate
 
     def setCdate(self, cdate):
-        """Sets date of commit"""
         self.cdate = cdate
 
     def getAddedLines(self, difftype):
-        """Returns added lines"""
         return self.diff_info[difftype][1]
 
     def getDeletedLines(self, difftype):
-        """Returns deleted lines"""
         return self.diff_info[difftype][2]
 
     def getChangedFiles(self, difftype):
-        """Returns names of changed files"""
         return self.diff_info[difftype][0]
 
     def getTagPIs(self):
-        """Returns PersonInfo IDs for tag"""
         return self.tag_pi_list
 
     def setTagPIs(self, tag_pi_list):
-        """Sets PersonInfo IDs for tags"""
         self.tag_pi_list = tag_pi_list
 
     def getTagNames(self):
@@ -176,8 +166,10 @@ class Commit(object):
         corrective commit
 
         Args:
-            descr:
+            descr: Sequence of description lines
         """
+        #TODO Shoulnd't this method use self.description instead of parameter?
+        is_corrective = False
         for line in descr:
             contains_keyword = [keyword in line.lower()
                                 for keyword in Commit.CORRECTIVE_KEYWORDS]
@@ -185,6 +177,5 @@ class Commit(object):
 
             if is_corrective:
                 break
-        # End for line
 
         self.is_corrective = is_corrective
