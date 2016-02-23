@@ -20,35 +20,43 @@
 
 """Contains class Commit with all required members."""
 
+from cluster.PersonInfo import PersonInfo
+
+
 class Commit(object):
     """Describes a single commit.
 
     Attributes:
-        id: Unique ID (hash value expected).
-        cdate: Commit timestamp.
-        adate: Author timestamp.
-        adate_tz: Author timestamp timezone.
-        author: Author name.
-        author_pi: PersonInfo instance for author.
-        committer: Committer name.
-        committer_pi: PersonInfo instance for Committer.
-        is_corrective: Boolean for whether commit is corrective.
-        description: Commit message.
-        diff_info: Dict of tuples (Lines added, Lines changed, Lines deleted),
-            mapping from diff type to number of lines affected by Commit.
-        commit_msg_info: Tuple of (Number of lines, Number of chars).
-        tag_pi_list: A dict of sets, mapping tag types to sets of PersonInfo
-            instances.
-        tag_names_list: A dict of sets, mapping tag types to sets of names.
-        subsystems_touched: A dict of booleans, mapping subsystem names to
-            boolean.
-        inRC: Boolean for whether the commit is part of an RC phase or not.
-        author_subsy_similarity: Measure of how focused the author is on the
-            subsystems touched by the commit (0 is minimal, 1 is maximal focus).
-        author_taggers_similarity: Similarities between author and taggers.
-        taggers_subsys_similarity: Focus of taggers on the subsystems.
+        id (str): Unique ID (hash value expected).
+        cdate (int): Commit timestamp.
+        adate (int): Author timestamp.
+        adate_tz (int): Author timestamp timezone.
+        author (str): Author name.
+        author_pi (PersonInfo): PersonInfo instance for author.
+        committer (str): Committer name.
+        committer_pi (PersonInfo): PersonInfo instance for Committer.
+        is_corrective (bool): Boolean for whether commit is corrective.
+        description (str): Commit message.
+        diff_info (dict): Dict of tuples (Lines added, Lines changed, Lines
+            deleted), mapping from diff type to number of lines affected.
+        commit_msg_info (tuple): Tuple of (Number of lines, Number of chars).
+        tag_pi_list (dict): A dict of lists, mapping tag types to sets of
+            PersonInfo instances.
+        tag_names_list (dict): A dict of lists, mapping tag types to sets of
+            names.
+        subsystems_touched (dict): A dict of booleans, mapping subsystem names
+            to boolean.
+        inRC (bool): Boolean for whether the commit is part of an RC phase or
+            not.
+        author_subsy_similarity (float): Measure of how focused the author is on
+            the subsystems touched by the commit, normalized to [0.0 ... 1.0]
+        author_taggers_similarity (float): Similarities between author and
+            taggers, also normalized.
+        taggers_subsys_similarity (float): Focus of taggers on the subsystems,
+            also normalized.
     """
     # TODO Replace java-style getters with python-style properties
+    # TODO `diff_info` appears to be dead code
     # http://2ndscale.com/rtomayko/2005/getters-setters-fuxors
     # https://google.github.io/styleguide/pyguide.html#Properties
 
@@ -56,7 +64,6 @@ class Commit(object):
     """Keywords to identify corrective commits"""
     # Ref: A. Mockus and L. G. Votta:
     # Identifying Reasons for Software Changes Using Historic Databases
-
 
     def __init__(self):
         """Initialise a commit object with blank values."""
@@ -158,19 +165,19 @@ class Commit(object):
     def getTaggersSubsysSimilarity(self):
         return self.taggers_subsys_similarity
 
-    def setDescription(self, descr):
-        self.description = ' '.join(descr)
+    def setDescription(self, desc):
+        self.description = ' '.join(desc)
 
-    def checkIfCorrective(self, descr):
+    def checkIfCorrective(self, desc):
         """Check if commit description contains keywords that indicate a
         corrective commit.
 
         Args:
-            descr: Sequence of description lines.
+            desc (list): Sequence of description lines.
         """
         # TODO Shoulnd't this method use self.description instead of parameter?
         is_corrective = False
-        for line in descr:
+        for line in desc:
             contains_keyword = [keyword in line.lower()
                                 for keyword in Commit.CORRECTIVE_KEYWORDS]
             is_corrective = any(contains_keyword)
