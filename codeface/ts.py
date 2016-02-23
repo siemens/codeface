@@ -16,7 +16,9 @@
 # Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-# Create time series from a sequence of VCS objects
+"""Create time series from a sequence of VCS objects"""
+
+# TODO de-confuse the mess with the __main__
 
 import argparse
 import os.path
@@ -25,8 +27,19 @@ import pickle
 from .commit_analysis import createSeries
 from .dbmanager import DBManager, tstamp_to_sql
 
-# TODO remove sfx ?
+
 def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
+    """ Analyses something....
+
+    Args:
+        dbfilename (str): Database file name.
+        destdir (str): Output directory name.
+        revrange:
+        rc_start:
+
+    Returns:
+
+    """
     pkl_file = open(dbfilename, 'rb')
     vcs = pickle.load(pkl_file)
     pkl_file.close()
@@ -36,11 +49,22 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
     else:
         sfx = "{0}-{1}".format(vcs.rev_start, vcs.rev_end)
 
+    # This is most wierd...
     res = createSeries(vcs, "__main__", revrange, rc_start)
     return res
 
 
 def writeReleases(dbm, tstamps, conf):
+    """
+
+    Args:
+        dbm:
+        tstamps:
+        conf:
+
+    Returns:
+
+    """
     pid = dbm.getProjectID(conf["project"], conf["tagging"])
 
     for tstamp in tstamps:
@@ -51,6 +75,15 @@ def writeReleases(dbm, tstamps, conf):
 
 
 def dispatch_ts_analysis(resdir, conf):
+    """
+
+    Args:
+        resdir:
+        conf:
+
+    Returns:
+
+    """
     dbpath = resdir
     destdir = os.path.join(dbpath, "ts")
     dbm = DBManager(conf)
