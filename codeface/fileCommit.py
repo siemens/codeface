@@ -86,6 +86,25 @@ class FileDict(object):
 
 
 class FileCommit(object):
+    """Container for tracking all features and contributions to a single file.
+
+    The state, contributions and features stored by an instance of this class
+    represent the state of the file at a specific commit.
+
+    Attributes:
+        filename (str): Filename under investigation.
+        fileSnapShots (dict): Dictionary of dicts, mapping commits to
+            dicts mapping line numbers to commits, as seen on the first key.
+            E.g.: {Commit: {1: {Commit}, 2: {Commit}}
+            This is essentially a list of blame snapshots for each commit.
+        revCmts (list): List of all commit hashes contributing to this file.
+        doxygen_analysis (bool): Flag if the file was analysed with Doxygen.
+            False can either mean "Analyzed with ctags" or "Not analyzed yet".
+        feature_info (FileDict):
+        feature_expression_info (FileDict):
+    """
+    # TODO Inconsistent naming scheme for methods
+    # TODO doxygen_analysis = False has an ambiguous meaning!
     def __init__(self):
 
         # filename under investigation
@@ -103,21 +122,25 @@ class FileCommit(object):
 
         # dictionary with key = line number, value = function name
         file_level = -1
+        # TODO Should this really be a public attribute?
         self.functionIds = {file_level: 'File_Level'}
 
         # list of function line numbers in sorted order, this is for
         # optimizing the process of finding a function Id given a line number
+        # TODO Should this really be a public attribute?
         self.functionLineNums = [file_level]
 
         # Function Implementation
+        # TODO Should this really be a public attribute?
         self.functionImpl = {}
 
         # doxygen flag
         self.doxygen_analysis = False
 
         # source code element list
-        # stores all source code elements of interest andg
+        # stores all source code elements of interest and
         # meta data
+        # TODO Write only attribute?
         self._src_elem_list = []
 
         # dictionaries with key = line number,
@@ -142,6 +165,16 @@ class FileCommit(object):
         return self.revCmts
 
     def getFuncImpl(self, id):
+        """Fetch the implementation of a specific function.
+
+        Args:
+            id (int): Function id, as returned by `findFuncId`.
+
+        Returns:
+            list: List of strings, representing each line of the implementation.
+            The list is empty if the implementation or the function is unknown.
+
+        """
         if id in self.functionImpl:
             return self.functionImpl[id]
         else:
