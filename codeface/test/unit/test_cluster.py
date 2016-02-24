@@ -22,6 +22,7 @@ import codeface.commit as commit
 
 class TestCluster(unittest.TestCase):
     '''Test logical dependency functions'''
+    # TODO This only tests ctag-style function index, not Doxygen style
     def setUp(self):
         '''
         Constructs a dictionary of fileCommit objects for testing purposes

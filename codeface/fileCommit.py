@@ -95,7 +95,7 @@ class FileCommit(object):
         filename (str): Filename under investigation.
         fileSnapShots (dict): Dictionary of dicts, mapping commits to
             dicts mapping line numbers to commits, as seen on the first key.
-            E.g.: {Commit: {1: {Commit}, 2: {Commit}}
+            E.g.: {'commit': {'1': 'commit1', '2': 'commit2', ...}, ...}
             This is essentially a list of blame snapshots for each commit.
         revCmts (list): List of all commit hashes contributing to this file.
         doxygen_analysis (bool): Flag if the file was analysed with Doxygen.
@@ -104,7 +104,6 @@ class FileCommit(object):
         feature_expression_info (FileDict):
     """
     # TODO Inconsistent naming scheme for methods
-    # TODO doxygen_analysis = False has an ambiguous meaning!
     def __init__(self):
 
         # filename under investigation
@@ -135,6 +134,7 @@ class FileCommit(object):
         self.functionImpl = {}
 
         # doxygen flag
+        # TODO doxygen_analysis = False has an ambiguous meaning!
         self.doxygen_analysis = False
 
         # source code element list
@@ -148,11 +148,23 @@ class FileCommit(object):
         self.feature_info = FileDict()
         self.feature_expression_info = FileDict()
 
-    # Getter/Setters
     def getFileSnapShots(self):
+        """Get all file snapshots.
+
+        Returns:
+            dict: Dictionary mapping commit hashes to dicts of line numbers
+            mapping to commit hashes. E.g.:
+            {'commit': {'1': 'commit1', '2': 'commit2', ...}, ...}
+        """
         return self.fileSnapShots
 
     def getFileSnapShot(self):
+        """Get the most recent file snapshot.
+
+        Returns:
+            dict: Dictionary of line numbers to commit hashes.
+            E.g. {'1': 'commit1', '2': 'commit2', ...}
+        """
         return self.fileSnapShots.values()[0]
 
     def getFilename(self):
@@ -168,7 +180,7 @@ class FileCommit(object):
         """Fetch the implementation of a specific function.
 
         Args:
-            id (int): Function id, as returned by `findFuncId`.
+            id (str): Function id, as returned by `findFuncId`.
 
         Returns:
             list: List of strings, representing each line of the implementation.
@@ -181,10 +193,28 @@ class FileCommit(object):
             return []
 
     def setFunctionLines(self, functionIds):
+        """Flags lines as belonging to a specific function.
+
+        Notes:
+            For successive calls, the line numbers used as keys must be
+            strictly ascending, or it will cause unexpected side effects.
+
+            Calls to this method have the side effect of discarding all
+            previously recorded function implementations.
+
+        Args:
+            functionIds (dict): Dict mapping line numbers to function ids.
+        """
+        # TODO Is the key for functionIds a function id or a line number?
         self.functionIds.update(functionIds)
         for id in self.functionIds.values():
             self.functionImpl.update({id: []})
+        # TODO Why does this discard ALL of functionImpl?
         self.functionLineNums.extend(sorted(self.functionIds.iterkeys()))
+        # TODO dict.iterkeys() should be replaced by dict.keys()
+        # There is no advantage of using iterkeys, it stops being a hard
+        # reference the moment it's sorted.
+        # TODO This does not guarantee that functionLineNums remains sorted!
 
     def setSrcElems(self, src_elem_list):
         self._src_elem_list.extend(src_elem_list)
@@ -193,14 +223,31 @@ class FileCommit(object):
         self.feature_info = feature_line_infos[0]
         self.feature_expression_info = feature_line_infos[1]
 
-    # Methods
-    def addFileSnapShot(self, key, dict):
-        self.fileSnapShots[key] = dict
+    def addFileSnapShot(self, commit, snapshot):
+        self.fileSnapShots[commit] = snapshot
 
     def findFuncId(self, line_num):
-        # returns the identifier of a function given a line number
+        """Find the function ID belonging to a given line number.
+
+        Notes:
+            The behavior of this method is controlled by `doxygen_analysis`.
+            For `doxygen_analysis` = True, every line is expected to be tagged,
+            untagged lines are treated as "File_Level" scope.
+            For `doxygen_analysis` = False, untagged lines are treated as
+            belonging to the same function as the last tagged line.
+
+        Args:
+            line_num (int): The line number.
+
+        Returns:
+            str: Name of the function, defaults to "File_Level" if the line
+            can't be attributed to a specific function.
+
+        """
         func_id = 'File_Level'
         line_num = int(line_num)
+        # TODO Why does this method need to be aware who generated the index?
+        # The index structure should be normalized to follow the Doxygen style!
         if self.doxygen_analysis:
             if line_num in self.functionIds:
                 func_id = self.functionIds[line_num]
@@ -211,8 +258,16 @@ class FileCommit(object):
         return func_id
 
     def getLineCmtId(self, line_num):
-        ## Retrieve the first file snap
+        """Get the commit hash of the latest commit contributing to a line.
+
+        Args:
+            line_num (int): The line number.
+
+        Returns:
+            str: Commit hash of the latest contribution to the line.
+        """
         line_num = str(line_num)
+        # Retrieve the first file snap
         file_snapshot = self.getFileSnapShot()
         return file_snapshot[line_num]
 
@@ -223,6 +278,18 @@ class FileCommit(object):
         return self.getFileSnapShot().keys()
 
     def addFuncImplLine(self, lineNum, srcLine):
+        """Add a single source code line to the implementation of a function.
+
+        Notes:
+            For correct function, `setFunctionLines` needs to have been called
+            before. Otherwise, the source would be attributed to "File_Level".
+
+            Calling `setFunctionLines` will discard all source recorded.
+
+        Args:
+            lineNum (int): Original line number.
+            srcLine (str): Line content.
+        """
         id = self.findFuncId(lineNum)
         self.functionImpl[id].append(srcLine)
 
