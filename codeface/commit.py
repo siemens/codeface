@@ -18,65 +18,80 @@
 # Copyright 2010, 2011, 2012 by Wolfgang Mauerer <wm@linux-kernel.net>
 # All Rights Reserved.
 
-class Commit:
-    # Keywords to identify corrective commits
-    # Ref: A. Mockus and L. G. Votta, Identifying Reasons for Software
-    #      Changes Using Historic Databases
+"""Contains class Commit with all required members."""
+
+from cluster.PersonInfo import PersonInfo
+
+
+class Commit(object):
+    """Describes a single commit.
+
+    Attributes:
+        id (str): Unique ID (hash value expected).
+        cdate (int): Commit timestamp.
+        adate (int): Author timestamp.
+        adate_tz (int): Author timestamp timezone.
+        author (str): Author name.
+        author_pi (PersonInfo): PersonInfo instance for author.
+        committer (str): Committer name.
+        committer_pi (PersonInfo): PersonInfo instance for Committer.
+        is_corrective (bool): Boolean for whether commit is corrective.
+        description (str): Commit message.
+        diff_info (dict): Dict of tuples (Lines added, Lines changed, Lines
+            deleted), mapping from diff type to number of lines affected.
+        commit_msg_info (tuple): Tuple of (Number of lines, Number of chars).
+        tag_pi_list (dict): A dict of lists, mapping tag types to sets of
+            PersonInfo instances.
+        tag_names_list (dict): A dict of lists, mapping tag types to sets of
+            names.
+        subsystems_touched (dict): A dict of booleans, mapping subsystem names
+            to boolean.
+        inRC (bool): Boolean for whether the commit is part of an RC phase or
+            not.
+        author_subsys_similarity (float): Measure of how focused the author is
+            on the subsystems touched by the commit, normalized to [0.0 ... 1.0]
+        author_taggers_similarity (float): Similarities between author and
+            taggers, also normalized.
+        taggers_subsys_similarity (float): Focus of taggers on the subsystems,
+            also normalized.
+    """
+    # TODO Replace java-style getters with python-style properties
+    # TODO `diff_info` appears to be dead code
+    # http://2ndscale.com/rtomayko/2005/getters-setters-fuxors
+    # https://google.github.io/styleguide/pyguide.html#Properties
+
     CORRECTIVE_KEYWORDS = ['bug', 'fix', 'error', 'fail']
+    """Keywords to identify corrective commits"""
+
+    # Ref: A. Mockus and L. G. Votta:
+    # Identifying Reasons for Software Changes Using Historic Databases
 
     def __init__(self):
-        # Base characteristics: uniqiue id (typically a hash value) and
-        # time stamp (commiter time) of the commit
+        """Initialise a commit object with blank values."""
         self.id = None
         self.cdate = None
         self.adate = None
         self.adate_tz = None
-        self.author = None       # Author name
-        self.author_pi  = None   # PersonInfo instance for author
-        self.committer = None    # Committer name
-        self.committer_pi = None # PersonInfo instance for committer
-        self.is_corrective = False # Boolean for whether commit is corrective
+        self.author = None
+        self.author_pi = None
+        self.committer = None
+        self.committer_pi = None
+        self.is_corrective = False
         self.description = None
-
-        # Contains a tuple (added, deleted, changed)
-        # for each diff type.
         self.diff_info = []
-
-        # First entry is number of lines, second number of characters
         self.commit_msg_info = (None, None)
-
-        # A hash with tag type as key. The datum is an array
-        # with all PersonInfo instances for the tag type
         self.tag_pi_list = {}
-
-        # A hash with tag type as key. The datum is an array
-        # with all names (as string) for the tag type
         self.tag_names_list = {}
-
-        # Subsystems the commit touches. Keys are the subsystem names
-        # values are 1 for touched and 0 for not touched.
         self.subsystems_touched = {}
-
-        # Does the commit fall into a RC phase?
         self.inRC = False
-
-        # Measure of how focused the author is on the subsystems
-        # touched by the commit (0 is minimal, 1 is maximal focus)
         self.author_subsys_similarity = None
-
-        # Same for the similarity between author and taggers
         self.author_taggers_similarity = None
-
-        # ... and for taggers and subsystems
         self.taggers_subsys_similarity = None
 
-
-    # The following methods replace hard-coded constants
-    # with reasonable names
     def getCdate(self):
         return self.cdate
 
-    def setCdate(self,cdate):
+    def setCdate(self, cdate):
         self.cdate = cdate
 
     def getAddedLines(self, difftype):
@@ -100,7 +115,12 @@ class Commit:
     def getCommitMessageLines(self):
         return self.commit_msg_info[0]
 
-    def getCommitMessageSize(self): # "Size" as in "number of characters@
+    def getCommitMessageSize(self):
+        """Get commit message size.
+
+        Returns:
+            int: Number of characters in commit message.
+        """
         return self.commit_msg_info[1]
 
     def getAuthorName(self):
@@ -151,19 +171,24 @@ class Commit:
     def getTaggersSubsysSimilarity(self):
         return self.taggers_subsys_similarity
 
-    def setDescription(self, descr):
-        self.description = ' '.join(descr)
+    def setDescription(self, desc):
+        self.description = ' '.join(desc)
 
-    def checkIfCorrective(self, descr):
-        # Check if commit description contains keywords that indicate a
-        # corrective commit
-        for line in descr:
+    def checkIfCorrective(self, desc):
+        """Check if commit description contains keywords that indicate a
+        corrective commit.
+
+        Args:
+            desc (list): Sequence of description lines.
+        """
+        # TODO Shouldn't this method use self.description instead of parameter?
+        is_corrective = False
+        for line in desc:
             contains_keyword = [keyword in line.lower()
                                 for keyword in Commit.CORRECTIVE_KEYWORDS]
             is_corrective = any(contains_keyword)
 
             if is_corrective:
-               break
-        # End for line
+                break
 
         self.is_corrective = is_corrective

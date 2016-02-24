@@ -20,48 +20,67 @@
 #
 # Copyright 2010, 2011, 2012 by Wolfgang Mauerer <wm@linux-kernel.net>
 # All Rights Reserved.
+"""Analyses the commits."""
+# TODO: Add further measures for the commit size
 
-from TimeSeries import TimeSeries
-from logging import getLogger;
+from logging import getLogger
+from codeface.commit import Commit
 from codeface.linktype import LinkType
+from codeface.TimeSeries import TimeSeries
+from codeface.VCS import VCS
 
 log = getLogger(__name__)
 
 
-def flatten(lst):
-    for elem in lst:
-        if type(elem) in (tuple, list):
-            for i in flatten(elem):
-                yield i
-            else:
-                yield elem
-
 def _commit_size_ub(add, deleted):
-    """
-    Compute the upper bound on the commit size,
+    """Compute the upper bound on the commit size.
 
     It's as simple as adding the added and deleted lines.
+
+    Args:
+        add (int): Lines of codes added.
+        deleted (int): Lines of code deleted.
+
+    Returns:
+        int: Upper bound for commit size.
     """
     return int(add + deleted)
 
-# TODO: Add further measures for the commit size
 
 def _mean(nums):
+    """Compute mean over a sequence of numbers.
+
+    Args:
+        nums (list): A sequence of numbers.
+
+    Returns:
+        float: Mean value.
+    """
+    # TODO This is not mean but average
     if len(nums):
-        return float(sum(nums)/len(nums))
+        return float(sum(nums) / len(nums))
     else:
         return 0.0
 
 
 def _compute_next_timestamp(time, last_time):
-    # Computing the time stamp for the NMA routine is done using
-    # this seemingly bizarre way because we need to have strictly
-    # monotonic timestamps on the one hand, but want to have
-    # the distance between commits proportional to their real
-    # temporal committance distance. So we cannot just use
-    # the timestamp difference between this and the last event,
-    # but add one.
+    """Generate strictly monotonic increasing timestamp.
 
+    Computing the time stamp for the NMA routine is done using
+    this seemingly bizarre way because we need to have strictly
+    monotonic timestamps on the one hand, but want to have
+    the distance between commits proportional to their real
+    temporal committance distance. So we cannot just use
+    the timestamp difference between this and the last event,
+    but add one.
+
+    Args:
+        time (int): Unix timestamp to be rebased.
+        last_time (int): Base Unix timestamp.
+
+    Returns:
+        int: Rebased Unix timestamp.
+    """
     # Correct for identical dates
     if time == last_time:
         time += 1
@@ -73,87 +92,101 @@ def _compute_next_timestamp(time, last_time):
 
     return time
 
+
 def createCumulativeSeries(vcs, subsys="__main__", revrange=None):
+    """Create a cumulative diff history by summing up the diff sizes.
+
+    Args:
+        vcs (VCS): Instance of VCS.
+        subsys (str): Name of subsystem.
+        revrange (tuple): Tuple of commit IDs or None.
+
+    Returns:
+        TimeSeries: Instance of TimeSeries.
+
+        TimeSeries.series contains a list of dicts, using the following pattern:
+        [{'commit': Commit ID, 'value': {Diff type: Lines affected, ...}, ...]
     """
-    Create a cumulative diff history by summing up the diff sizes.
 
-    Returns a list with one dictionary per commit. The dictionary
-    contains two items:
+    last_cum = [0] * vcs.getDiffVariations()
 
-    commit -- A list with one entry per diff type of the cumulative value of
-           diff size up to (and including) the commit.
-    cdate -- Unix timestamp of the committer date.
-    """
+    # TODO Check if subsys exists; if not, bark.
 
-    last_cum = [0] * vcs.getDiffVariations();
-
-    # TODO: Check if subsys exists; if not, bark.
-
-    res = TimeSeries()
-    if revrange==None:
-        list = vcs.extractCommitData(subsys)
+    result = TimeSeries()
+    if revrange is None:
+        commits = vcs.extractCommitData(subsys)
     else:
-        list = vcs.extractCommitDataRange(revrange, subsys)
+        commits = vcs.extractCommitDataRange(revrange, subsys)
 
-    for cmt in list:
-        entry = {"commit" : cmt,
-                 "value" : [0] * vcs.getDiffVariations() }
-        for difftype in range(0,vcs.getDiffVariations()):
-
-            csize = _commit_size_ub(cmt.getAddedLines(difftype),
-                                    cmt.getDeletedLines(difftype))
+    for commit in commits:
+        entry = {"commit": commit,
+                 "value": [0] * vcs.getDiffVariations()}
+        for difftype in range(0, vcs.getDiffVariations()):
+            csize = _commit_size_ub(commit.getAddedLines(difftype),
+                                    commit.getDeletedLines(difftype))
 
             entry["value"][difftype] = csize + last_cum[difftype]
             last_cum[difftype] = csize + last_cum[difftype]
 
-        res.series.append(entry)
+        result.series.append(entry)
 
-    return res
+    return result
 
 
 def createSeries(vcs, subsys="__main__", revrange=None, rc_start=None):
-    """
-    Create the list of all diffs (time/value pairs) for subsystem subsys.
+    """Create the list of all diffs (time/value pairs) for subsystem `subsys`.
 
-    Returns a list with one dictionary per commit. The dictionary
-    contains two items:
+    Args:
+        vcs (VCS): Instance of VCS.
+        subsys (str): Name of subsystem.
+        revrange (tuple): Tuple of commit IDs or None.
+        rc_start (str): Commit ID within revrange or None.
 
-    commit -- A list with one entry per diff type of the diff size of
-              the commit.
-    cdate -- Unix timestamp of the committer date.
+    Returns:
+        TimeSeries: Instance of TimeSeries.
+
+        TimeSeries.series contains a list of dicts, using the following pattern:
+        [{'commit': Commit ID, 'value': {Diff type: Lines affected, ...}, ...]
     """
 
     # TODO: Check if subsys exists; if not, bark.
 
-    res = TimeSeries()
-    if revrange==None:
-        list = vcs.extractCommitData(subsys)
-        res.set_start(vcs.getCommitDate(vcs.rev_start))
-        res.set_end(vcs.getCommitDate(vcs.rev_end))
+    result = TimeSeries()
+    if revrange is None:
+        commits = vcs.extractCommitData(subsys)
+        result.set_start(vcs.getCommitDate(vcs.rev_start))
+        result.set_end(vcs.getCommitDate(vcs.rev_end))
     else:
-        list = vcs.extractCommitDataRange(revrange, subsys)
-        res.set_start(vcs.getCommitDate(revrange[0]))
-        res.set_end(vcs.getCommitDate(revrange[1]))
+        commits = vcs.extractCommitDataRange(revrange, subsys)
+        result.set_start(vcs.getCommitDate(revrange[0]))
+        result.set_end(vcs.getCommitDate(revrange[1]))
 
     if rc_start:
-        res.set_rc_start(vcs.getCommitDate(rc_start))
+        result.set_rc_start(vcs.getCommitDate(rc_start))
 
-    for cmt in list:
-        entry = {"commit" : cmt,
-                 "value" : [0] * vcs.getDiffVariations() }
-        for difftype in range(0,vcs.getDiffVariations()):
-
-            csize = _commit_size_ub(cmt.getAddedLines(difftype),
-                                    cmt.getDeletedLines(difftype))
+    for commit in commits:
+        entry = {"commit": commit,
+                 "value": [0] * vcs.getDiffVariations()}
+        for difftype in range(0, vcs.getDiffVariations()):
+            csize = _commit_size_ub(commit.getAddedLines(difftype),
+                                    commit.getDeletedLines(difftype))
 
             entry["value"][difftype] = csize
 
-        res.series.append(entry)
+        result.series.append(entry)
 
-    return res
+    return result
+
 
 def getSignoffCount(cmt):
-    """Get the number of people who signed a commit off."""
+    """Get the number of people who signed a commit off.
+
+    Args:
+        cmt (Commit): Instance of Commit.
+
+    Returns:
+        int: Number of Signed-off-by tags.
+    """
     tag_names_list = cmt.getTagNames()
     if "Signed-off-by" in tag_names_list.keys():
         signoffs = len(tag_names_list["Signed-off-by"])
@@ -162,12 +195,20 @@ def getSignoffCount(cmt):
 
     return signoffs
 
+
 def getInvolvedPersons(cmt, categories):
-    """Determine the names of persons involved with a commit. categories
-    is a list with entries like Signed-off-by, Acked-by, etc. """
+    """Determine the names of persons involved with a commit.
+
+    Args:
+        cmt (Commit): Instance of Commit.
+        categories (list): List of tag names to be filtered by.
+
+    Returns:
+        list: List of person names matching the category filter.
+    """
     signoffs = []
 
-    if (not(type(categories) == list)):
+    if type(categories) is not list:
         categories = [categories]
 
     tag_names_list = cmt.getTagNames()
@@ -179,7 +220,14 @@ def getInvolvedPersons(cmt, categories):
 
 
 def getSignoffEtcCount(cmt):
-    """Similar to getSignoffCount(), but also counts CCed, Acked-by, etc."""
+    """Similar to getSignoffCount(), but also counts CCed, Acked-by, etc.
+
+    Args:
+        cmt (Commit): Instance of Commit.
+
+    Returns:
+        int: Number of sign offs.
+    """
     signoffs = 0
 
     tag_names_list = cmt.getTagNames()
@@ -189,40 +237,52 @@ def getSignoffEtcCount(cmt):
 
     return signoffs
 
-def getSeriesDuration(res):
+
+def getSeriesDuration(series):
     """Compute the duration of a commit series in seconds.
 
-    NOTE: The method computed the difference between the first and
-    last commit in the series, which may not be the duration of the
-    initially queried range -- commits outside this range may be
-    included in the series."""
+    The method computes the difference between the first and last commit in the
+    series, which may not be the duration of the initially queried range,
+    commits outside this range may be included in the series.
 
-    return int(res.series[-1]["commit"].cdate)-int(res.series[0]["commit"].cdate)
+    Args:
+        series (TimeSeries): Instance of TimeSeries.
+
+    Returns:
+        int: Length of the time series in seconds.
+    """
+
+    return int(series.series[-1]["commit"].cdate) - int(
+        series.series[0]["commit"].cdate)
+
 
 def writeToFile(res, name, uniqueTS=True):
     """Write a result list to a file.
 
-    res -- TimeSeries object obtained by createSeries etc.
-    name -- Name of the output file.
-    uniqueTS -- Transform the date indices into a strictly monotonic
-                series if true."""
-    FILE=open(name, "w")
+    Args:
+        res (TimeSeries): Instance of TimeSeries.
+        name (str): Name of the output file.
+        uniqueTS (bool): Transform the date indices into a strictly monotonic
+        series if true.
+    """
+    # TODO deprecated, to be removed.
+    FILE = open(name, "w")
     last_timestamp = 0
 
     FILE.write("#\t{0}\t{1}".format(res.get_start(), res.get_end()))
-    if (res.get_rc_start()):
+    if res.get_rc_start():
         FILE.write("\t{0}".format(res.get_rc_start()))
     FILE.write("\n")
 
-    for i in range(0,len(res.series)):
+    for i in range(0, len(res.series)):
         cmt = res.series[i]["commit"]
         if uniqueTS:
             try:
                 timestamp = _compute_next_timestamp(int(cmt.cdate),
                                                     last_timestamp)
             except ValueError:
-                logger.warning("Could not determine timestamp for commit "
-                        "{}, skipping it.".format(cmt.id))
+                log.warning("Could not determine timestamp for commit"
+                            " '%s', skipping it.", cmt.id)
                 continue
             last_timestamp = int(timestamp)
         else:
@@ -233,7 +293,8 @@ def writeToFile(res, name, uniqueTS=True):
         FILE.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n".
                    format(timestamp, res.series[i]["value"][0],
                           res.series[i]["value"][1], res.series[i]["value"][2],
-                          res.series[i]["value"][3], cmt.getCommitMessageLines(),
+                          res.series[i]["value"][3],
+                          cmt.getCommitMessageLines(),
                           getSignoffCount(cmt),
                           getSignoffEtcCount(cmt)))
     FILE.close()

@@ -16,21 +16,30 @@
 # Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-# Create time series from a sequence of VCS objects
+"""Create time series from a sequence of VCS objects"""
 
-import yaml
-import os.path
-import kerninfo
-import pickle
+# TODO de-confuse the mess with the __main__
+
 import argparse
-from datetime import datetime
+import os.path
+import pickle
 
-from .VCS import gitVCS
-from .commit_analysis import createCumulativeSeries, createSeries, \
-    writeToFile, getSeriesDuration
+from .commit_analysis import createSeries
 from .dbmanager import DBManager, tstamp_to_sql
 
+
 def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
+    """Analyses something....
+
+    Args:
+        dbfilename (str): Database file name.
+        destdir (str): Output directory name.
+        revrange:
+        rc_start:
+
+    Returns:
+
+    """
     pkl_file = open(dbfilename, 'rb')
     vcs = pickle.load(pkl_file)
     pkl_file.close()
@@ -43,7 +52,18 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
     res = createSeries(vcs, "__main__", revrange, rc_start)
     return res
 
+
 def writeReleases(dbm, tstamps, conf):
+    """
+
+    Args:
+        dbm:
+        tstamps:
+        conf:
+
+    Returns:
+
+    """
     pid = dbm.getProjectID(conf["project"], conf["tagging"])
 
     for tstamp in tstamps:
@@ -52,12 +72,22 @@ def writeReleases(dbm, tstamps, conf):
                    (tstamp_to_sql(int(tstamp[2])), pid, tstamp[0], tstamp[1]))
     dbm.doCommit()
 
+
 def dispatch_ts_analysis(resdir, conf):
+    """
+
+    Args:
+        resdir:
+        conf:
+
+    Returns:
+
+    """
     dbpath = resdir
     destdir = os.path.join(dbpath, "ts")
     dbm = DBManager(conf)
 
-    if not(os.path.exists(destdir)):
+    if not os.path.exists(destdir):
         os.mkdir(destdir)
 
     # Stage 1: Create the individual time series (and record all time
@@ -67,25 +97,29 @@ def dispatch_ts_analysis(resdir, conf):
     # not rely on the content of tstamps before that is done.
     tstamps = []
     for i in range(1, len(conf["revisions"])):
-        dbfilename = os.path.join(dbpath, "{0}-{1}".format(conf["revisions"][i-1],
-                                                           conf["revisions"][i]),
+        dbfilename = os.path.join(dbpath,
+                                  "{0}-{1}".format(conf["revisions"][i - 1],
+                                                   conf["revisions"][i]),
                                   "vcs_analysis.db")
 
         ts = doAnalysis(dbfilename, destdir,
-                        revrange=[conf["revisions"][i-1], conf["revisions"][i]],
+                        revrange=[conf["revisions"][i - 1],
+                                  conf["revisions"][i]],
                         rc_start=conf["rcs"][i])
 
-        if (i==1):
-            tstamps.append(("release", conf["revisions"][i-1], ts.get_start()))
+        if i == 1:
+            tstamps.append(
+                ("release", conf["revisions"][i - 1], ts.get_start()))
 
-        if (ts.get_rc_start()):
+        if ts.get_rc_start():
             tstamps.append(("rc", conf["rcs"][i], ts.get_rc_start()))
 
         tstamps.append(("release", conf["revisions"][i], ts.get_end()))
 
-    ## Stage 2: Insert time stamps for all releases considered into the database
+    # Stage 2: Insert time stamps for all releases considered into the database
     writeReleases(dbm, tstamps, conf)
 
+# TODO Remove this, it's deprecated!
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('resdir')

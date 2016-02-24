@@ -29,4 +29,6 @@ class TestCLI(unittest.TestCase):
         self.assertIsInstance(parser, argparse.ArgumentParser)
         with hide_output():
             self.assertRaises(SystemExit, parser.parse_args, ["--help"])
-        parser.parse_args(["--loglevel", "info", "test"])
+        parser.parse_args(["--loglevel", "info",
+                           "test",
+                           "--config", "dummy.conf"])

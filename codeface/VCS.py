@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 # Define classes to interact with source code management
 # systems (currently, only git is supported, but adding
 # support for Mercurial and Subversion should be easy to do)
@@ -34,30 +32,31 @@
 # VCS-specific.
 # TODO: Unify range handling. Either a range is always a list, or always
 # represented by two parameters.
-import itertools
-import readline
+import os
+import re
+import shutil
+import tempfile
+from logging import getLogger
+
+from ctags import CTags, TagEntry
+from progressbar import ProgressBar, Percentage, Bar, ETA
+from .util import execute_command
+
+from fileCommit import FileCommit
 
 import commit
 import fileCommit
-import re
-import os
-import bisect
-import ctags
-import tempfile
 import sourceAnalysis
-import shutil
-from fileCommit import FileDict
-from progressbar import ProgressBar, Percentage, Bar, ETA
-from ctags import CTags, TagEntry
-from logging import getLogger
 from codeface.linktype import LinkType
+from fileCommit import FileDict
 
 log = getLogger(__name__)
-from .util import execute_command
+
 
 class Error(Exception):
     """Base class for exceptions in this module."""
     pass
+
 
 class ParseError(Error):
     """Exception raised for parsing errors.
@@ -71,9 +70,9 @@ class ParseError(Error):
         self.line = line
         self.id = id
 
-class VCS:
-    """
-    Encapsulate methods to analyse VCS repositories
+
+class VCS (object):
+    """Encapsulate methods to analyse VCS repositories
 
     This base class does nothing in particular, but serves
     as an 'interface' (or what you would regard in the Python world
@@ -84,16 +83,24 @@ class VCS:
     and to call extractCommitData to perform the time-consuming
     processing. Afterwards, the object can be serialised for later
     (and faster) use by various post-processing and analysis methods.
+
+    Attributes:
+        rev_start_date:
     """
 
     def __init__(self):
+        """
+
+        Returns:
+
+        """
         # "None" represents HEAD for end and the inital
         # commit for start
-        self.rev_start_date = None;
-        self.rev_end_date = None;
-        self.rev_start     = None;
-        self.rev_end       = None;
-        self.repo          = None
+        self.rev_start_date = None
+        self.rev_end_date = None
+        self.rev_start = None
+        self.rev_end = None
+        self.repo = None
 
         # Get commit ranges using dates
         # True: get list of commits made between revision date range
@@ -117,11 +124,11 @@ class VCS:
         # Contains all commits indexed by commit id
         self._commit_dict = None
 
-        #Dictionary with key = filename and value = list of all commits
-        #for that file
+        # Dictionary with key = filename and value = list of all commits
+        # for that file
         self._fileCommit_dict = None
 
-        #file names to include in analysis(non-taged based)
+        # file names to include in analysis(non-taged based)
         self._fileNames = None
 
         self.subsys_description = {}
@@ -156,7 +163,7 @@ class VCS:
 
     def setSubsysDescription(self, subsys_description):
         # See kerninfo.py for some examples of the format
-        if subsys_description != None:
+        if subsys_description is not None:
             self.subsys_description = subsys_description
 
     def setRCRanges(self, rc_ranges):
@@ -171,14 +178,21 @@ class VCS:
 
         Takes the list of commits, computes the associated
         diffs in various ways, and stores (i.e., caches) the results
-        in the object instance so that they can be serialised."""
+        in the object instance so that they can be serialised.
+
+        Args:
+            subsys: """
         return []
 
     def extractCommitDataRange(self, revrange, subsys="__main__"):
         """Analyse a certain range of the repository.
 
         Restrict the data obtained from extractCommitData() to
-        a specific time slice."""
+        a specific time slice.
+
+        Args:
+            revrange:
+            subsys: """
         return []
 
     def getDiffVariations(self):
@@ -186,21 +200,19 @@ class VCS:
 
     def _subsysIsValid(self, subsys):
         """Check if subsystem subsys is valid."""
-        return subsys=="__main__" or subsys in self.subsys_description.keys()
+        return subsys == "__main__" or subsys in self.subsys_description.keys()
 
 
 def parse_sep_line(line):
     if not line.startswith("\"sep="):
         raise ParseError(
             ("expected that the csv file header starts with '\"sep=' "
-             "but it started with '{}'")
-            .format(line), 'CSVFile')
+             "but it started with '{}'").format(line), 'CSVFile')
     stripped = line.rstrip()
     if not stripped.endswith("\""):
         raise ParseError(
             ("expected that the csv file header ends with '\"' "
-             "but the line was '{}'")
-            .format(line), 'CSVFile')
+             "but the line was '{}'").format(line), 'CSVFile')
     return stripped[5:-1]
 
 
@@ -211,6 +223,7 @@ def parse_line(sep, line):
     :param line:
     :return:
     """
+
     def parse_line_enumerator(sep, line):
         # 'test,test' will be '"test,test"' in the csv file
         # 'test"this,"test' will be '"test""this,""test"' in the csv file
@@ -220,7 +233,7 @@ def parse_line(sep, line):
         index = -1
         for c in line:
             index += 1
-            assert (c == line[index])
+            assert c == line[index]
             if ignore_next:
                 ignore_next = False
                 continue
@@ -240,10 +253,14 @@ def parse_line(sep, line):
             else:
                 current_value += c
         yield current_value
+
     return [l.strip() for l in parse_line_enumerator(sep, line)]
 
 
-class LineType:
+class LineType(object):
+    """
+
+    """
     IF = "#if"
     ELSE = "#else"
     ELIF = "#elif"
@@ -254,12 +271,17 @@ def parse_feature_line(sep, line):
     parse the current line which is something like:
     FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS
 
-    Considering the #ifdef annotation "(!(defined(A)) && (!(defined(B)) && defined(C)",
-    the feature expression is the whole string, while the list of feature constants used
-    in the annotation (i.e., [A, B, C]).
+    Considering the #ifdef annotation
+    "(!(defined(A)) && (!(defined(B)) && defined(C)",
+    the feature expression is the whole string,while the list of feature
+    constants used in the annotation (i.e., [A, B, C]).
 
     :param line: the line to parse
     :return: start_line, end_line, line_type, feature_list, feature_expression
+
+    Args:
+        sep:
+        sep:
     """
     parsed_line = parse_line(sep, line)
     # FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS
@@ -268,10 +290,9 @@ def parse_feature_line(sep, line):
         end_line = int(parsed_line[2])
         line_type_raw = parsed_line[3]
         if line_type_raw not in (LineType.IF, LineType.ELSE, LineType.ELIF):
-            raise ParseError(
-                ("could not parse feature line (because we could"
-                 "not parse the line_type): \"{}\"")
-                .format(line), 'CSVFile')
+            raise ParseError((
+                "could not parse feature line (because we could"
+                "not parse the line_type): \"{}\"").format(line), 'CSVFile')
         line_type = line_type_raw
         if parsed_line[5]:
             feature_list = parsed_line[5].split(';')
@@ -284,17 +305,16 @@ def parse_feature_line(sep, line):
         raise ParseError(
             ("could not parse feature line (most likely because we "
              "could not parse the start- or end-line which should "
-             "be on index 2 and 3): \"{}\"")
-            .format(line), 'CSVFile')
+             "be on index 2 and 3): \"{}\"").format(line), 'CSVFile')
 
 
 def get_feature_lines(parsed_lines, filename):
-    """
-    calculates dictionaries representing the feature sets and the feature expressions
-    for any line of the given file.
+    """Calculates dictionaries representing the feature sets
+    and the feature expressions for any line of the given file.
 
     - feature expression: e.g., "(!(defined(A)) && (!(defined(B)) && defined(C)"
-    - feature set: e.g., [A, B, C] (all used constants in the feature expression)
+    - feature set: e.g., [A, B, C]
+    (all used constants in the feature expression)
     :param parsed_lines: a list of tuples with
     (start_line, end_line, line_type, feature_list, feature_expression) elements
     :param filename: the name or the analysed files
@@ -304,7 +324,8 @@ def get_feature_lines(parsed_lines, filename):
     fexpr_lines: a FileDict object to access the feature expression on any line
     """
 
-    # mapping line -> feature list|feature expression, we only add changing elements
+    # mapping line -> feature list|feature expression,
+    # we only add changing elements
     feature_lines = FileDict()
     feature_lines.add_line(0, [])
 
@@ -318,10 +339,10 @@ def get_feature_lines(parsed_lines, filename):
 
     def check_line(line, lines_list):
         if line in lines_list:
-            raise ParseError(
-                ("every line index can be used at most once "
-                 "(problematic line was {0} in file {1})")
-                    .format(line, filename), filename)
+            raise ParseError((
+                "every line index can be used at most once "
+                "(problematic line was {0} in file {1})"
+                ).format(line, filename), filename)
 
     # We now transform the cppstats output in another output which will
     # help to implement the algorithm below in a simple and fast way.
@@ -332,16 +353,17 @@ def get_feature_lines(parsed_lines, filename):
     # (is_start, feature_expression, line_type) for every #ifdef(/#else)/#endif.
     # We try to ignore #else wherever possible or handle
     # the #else like a nested #if.
-    for start_line, end_line, line_type, feature_list, feature_expression in parsed_lines:
+    for (start_line, end_line, line_type,
+         feature_list, feature_expression) in parsed_lines:
         if not feature_list:
             # empty feature list is something like: '#if 0' or
             # '#if MACRO(0,2)', we ignore those.
             continue
         if start_line >= end_line:
-            raise ParseError(
-                ("start_line can't be greater or equal to end_line "
-                 "(problematic line was {0} in file {1})")
-                .format(start_line, filename), filename)
+            raise ParseError((
+                "start_line can't be greater or equal to end_line "
+                "(problematic line was {0} in file {1})"
+                ).format(start_line, filename), filename)
 
         if line_type == LineType.IF:
             # ifs start on their own line, however the end_line could
@@ -361,8 +383,10 @@ def get_feature_lines(parsed_lines, filename):
             # for same lines, the feature expression applies
             check_line(start_line, annotated_lines_fexpr)
             check_line(end_line, annotated_lines_fexpr)
-            annotated_lines_fexpr[start_line] = (True, feature_expression, line_type)
-            annotated_lines_fexpr[end_line] = (False, feature_expression, line_type)
+            annotated_lines_fexpr[start_line] = (
+                True, feature_expression, line_type)
+            annotated_lines_fexpr[end_line] = (
+                False, feature_expression, line_type)
         else:
             # we try to mostly ignore else and elif if the feature_
             # list doesn't change
@@ -374,10 +398,10 @@ def get_feature_lines(parsed_lines, filename):
                 del annotated_lines[start_line]
                 annotated_lines[end_line] = is_start, old_feature_list
             elif is_start:
-                raise ParseError(
-                    ("line {0} appeared twice as start line "
-                     "(problematic file was {1})")
-                        .format(start_line, filename), filename)
+                raise ParseError((
+                    "line {0} appeared twice as start line "
+                    "(problematic file was {1})"
+                    ).format(start_line, filename), filename)
             else:
                 # So we have a elif with different features,
                 # so we start more features now end add them to the ending
@@ -388,10 +412,12 @@ def get_feature_lines(parsed_lines, filename):
                 annotated_lines[end_line] = \
                     (False, old_feature_list + feature_list)
 
-            # a feature expression applies for all times as it is always different to #if branch
-            annotated_lines_fexpr[start_line] = (True, feature_expression, line_type)
-            annotated_lines_fexpr[end_line] = (False, feature_expression, line_type)
-
+            # a feature expression applies for all times as
+            # it is always different to #if branch
+            annotated_lines_fexpr[start_line] = (
+                True, feature_expression, line_type)
+            annotated_lines_fexpr[end_line] = (
+                False, feature_expression, line_type)
 
     # Now that we have calculated the annotated_lines we just calculate the
     # feature sets on those lines and save them in a FileDict instance.
@@ -415,7 +441,7 @@ def get_feature_lines(parsed_lines, filename):
             # (reverse order as adding).
             for r in reversed(features):
                 item = new_feature_list.pop(0)
-                assert(item == r)
+                assert item == r
             # Remove in next line
             # (because we want to count the current #endif line as well).
             line += 1
@@ -423,7 +449,7 @@ def get_feature_lines(parsed_lines, filename):
         feature_lines.add_line(line, new_feature_list)
 
     # Convert the calculated annotated_lines_fexpr to a FileDict.
-    fexpr_stack = [[]] # construct stack of current feature expressions
+    fexpr_stack = [[]]  # construct stack of current feature expressions
     for line in sorted(annotated_lines_fexpr):
         is_start, feature_expression, line_type = annotated_lines_fexpr[line]
 
@@ -435,8 +461,10 @@ def get_feature_lines(parsed_lines, filename):
                 # add to last stack
                 fexpr_stack[-1].append(feature_expression)
         else:
-            fexpr_stack.pop() # remove last stack item
-            line += 1 # Remove in next line (because we want to count the current #endif line as well).
+            fexpr_stack.pop()  # remove last stack item
+            # Remove in next line (because we want to count the
+            # current #endif line as well).
+            line += 1
 
         if fexpr_stack[-1]:
             # if there is an expression in the list, add this one
@@ -446,13 +474,17 @@ def get_feature_lines(parsed_lines, filename):
             fexpr_lines.add_line(line, [])
 
     # return feature lines and feature-expression lines
-    return (feature_lines, fexpr_lines)
+    return feature_lines, fexpr_lines
 
 
 def get_feature_lines_from_file(file_layout_src, filename):
     """
     similar to _getFunctionLines but computes the line numbers of each
     feature in the file.
+
+    Args:
+        file_layout_src:
+        filename:
     """
     '''
     - Input -
@@ -480,14 +512,14 @@ def get_feature_lines_from_file(file_layout_src, filename):
     srcFile.flush()
 
     # run cppstats analysis on the file to get the feature locations
-    cmd = "/usr/bin/env cppstats --kind featurelocations --file {0} {1}"\
+    cmd = "/usr/bin/env cppstats --kind featurelocations --file {0} {1}" \
         .format(srcFile.name, featurefile.name).split()
     try:
         # direct_io is a bit noisy, but there are "silent" errors in
         # cppstats which are only shown in its output
         # and not in the return code. Enable the following line if
         # you think you run into such an error (IE unit tests fail).
-        #execute_command(cmd, direct_io=True)
+        # execute_command(cmd, direct_io=True)
         execute_command(cmd)
 
         results_file = open(featurefile.name, 'r')
@@ -516,17 +548,21 @@ def get_feature_lines_from_file(file_layout_src, filename):
         feature_lines = empty
         fexpr_lines = empty
 
-    # return resulting FileDict instances for feature sets and feature expressions
-    return (feature_lines, fexpr_lines)
+    # return resulting FileDict instances
+    # for feature sets and feature expressions
+    return feature_lines, fexpr_lines
 
-class gitVCS (VCS):
+
+class gitVCS(VCS):
     def __init__(self):
-        VCS.__init__(self) # Python OOP braindamage
+        VCS.__init__(self)  # Python OOP braindamage
         # Some analysis patterns that are required to analyse the
         # output of git
         self.cmtHashPattern = re.compile(r'^\w{40}$')
-        # The Log pattern must match : <timestamp> <hash> <timestamp> <date> <time> <timezone>
-        self.logPattern = re.compile(r'([0-9]+) ([0-9a-f]+) ([0-9]+) [0-9-]+ [0-9:]+ ([0-9\+\-]+)$')
+        # The Log pattern must match :
+        # <timestamp> <hash> <timestamp> <date> <time> <timezone>
+        self.logPattern = re.compile(
+            r'([0-9]+) ([0-9a-f]+) ([0-9]+) [0-9-]+ [0-9:]+ ([0-9\+\-]+)$')
         self.prettyFormat = "--pretty=format:%ct %H %at %ai"
         self.authorPattern = re.compile(r'^Author: (.*)$')
         self.committerPattern = re.compile(r'^Commit: (.*)$')
@@ -536,9 +572,11 @@ class gitVCS (VCS):
         self.diffStatDeletePattern = re.compile(r' (\d*?) deletion')
         # Commit Sign-off patterns
         sign_off_prefix = ("CC:", "Signed-off-by:", "Acked-by:", "Reviewed-by:",
-                           "Reported-by:", "Tested-by:", "LKML-Reference:", "Patch:")
-        sign_off_prefix = ["("+s+")(\s*)(.*)$" for s in sign_off_prefix]
-        self.signOffPatterns = [re.compile(prefix, re.I) for prefix in sign_off_prefix]
+                           "Reported-by:", "Tested-by:", "LKML-Reference:",
+                           "Patch:")
+        sign_off_prefix = ["(" + s + ")(\s*)(.*)$" for s in sign_off_prefix]
+        self.signOffPatterns = [re.compile(prefix, re.I) for prefix in
+                                sign_off_prefix]
 
     def getDiffVariations(self):
         # We support diffs formed of 2x2 combinations:
@@ -547,10 +585,11 @@ class gitVCS (VCS):
         return 4
 
     def _getRevDate(self, rev):
-         cmd_base = 'git --git-dir={0} log --no-merges --format=%ct -1'.format(self.repo).split()
-         cmd = cmd_base + [rev]
-         date = execute_command(cmd)
-         return date.strip()
+        cmd_base = 'git --git-dir={0} log --no-merges --format=%ct -1'.format(
+            self.repo).split()
+        cmd = cmd_base + [rev]
+        date = execute_command(cmd)
+        return date.strip()
 
     def _prepareCommitLists(self):
         """Gets the hash values (or whatever is used to identify
@@ -562,11 +601,11 @@ class gitVCS (VCS):
         commit lists as values. The global list (i.e., for the complete
         project including all subsystems) is stored under "__main__".
         """
-        if self.repo == None:
+        if self.repo is None:
             log.critical("Repository unset in Git VCS")
             raise Error("Can't do anything without repo")
 
-        ## Retrieve and store the commit timestamp for the revision range
+        # Retrieve and store the commit timestamp for the revision range
         self.rev_start_date = self._getRevDate(self.rev_start)
         self.rev_end_date = self._getRevDate(self.rev_end)
 
@@ -596,11 +635,11 @@ class gitVCS (VCS):
         # Finally, we also create commit ID lists for ranges of
         # interest (currently, only to decide whether a commit is in
         # a feature freeze phase or not)
-        if self._rc_ranges != None:
+        if self._rc_ranges is not None:
             for range in self._rc_ranges:
                 clist = self._getCommitIDsLL(range[0], range[1])
                 self._rc_id_list.extend([self._Logstring2ID(logstring)
-                                          for logstring in clist])
+                                         for logstring in clist])
 
     def _getCommitIDsLL(self, rev_start, rev_end, dir_list=None):
         """Low-level routine to extract the commit list from the VCS.
@@ -655,26 +694,26 @@ class gitVCS (VCS):
         return clist
 
     def _getSingleCommitInfo(self, cmtHash):
-        #produces the git log output for a single commit hash
+        # produces the git log output for a single commit hash
 
-        #build git command
+        # build git command
         cmd = 'git --git-dir={0} log'.format(self.repo).split()
         cmd.append(cmtHash)
         cmd.append("-1")
         cmd.append(self.prettyFormat)
 
-        #submit query to git
+        # submit query to git
         logMsg = execute_command(cmd).splitlines()
 
         return logMsg
 
     def _getFileCommitInfo(self, fname=None, rev_start=None, rev_end=None):
-        '''extracts a list of commits on a specific file for the specified
-        revision range'''
+        """extracts a list of commits on a specific file for the specified
+        revision range"""
 
         revrange = ""
 
-        if rev_start == None and rev_end != None:
+        if rev_start is None and rev_end is not None:
             revrange += rev_end
         else:
             if rev_start:
@@ -683,11 +722,11 @@ class gitVCS (VCS):
             if rev_end:
                 revrange += rev_end
 
-
-        #build git command
-        #we must take merge commits, otherwise when we cross-reference with
-        #git blame some commits will be missing
-        cmd = 'git --git-dir={0} log --no-merges -M -C'.format(self.repo).split()
+        # build git command
+        # we must take merge commits, otherwise when we cross-reference with
+        # git blame some commits will be missing
+        cmd = 'git --git-dir={0} log --no-merges -M -C'.format(
+            self.repo).split()
         cmd.append(self.prettyFormat)
         if rev_start and rev_end:
             cmd.append(revrange)
@@ -695,8 +734,7 @@ class gitVCS (VCS):
             cmd.append("--")
             cmd.append(fname)
 
-
-        #submit query command
+        # submit query command
         clist = execute_command(cmd).splitlines()
 
         # Remember the comment about monotonically increasing time sequences
@@ -719,7 +757,7 @@ class gitVCS (VCS):
         """
         # If we have already computed the list, we need not
         # do it again
-        if self._commit_list_dict != None:
+        if self._commit_list_dict is not None:
             return
 
         self._commit_list_dict = {}
@@ -738,7 +776,7 @@ class gitVCS (VCS):
     def _Logstring2ID(self, str):
         """Extract the commit ID from a log string."""
         match = self.logPattern.search(str)
-        if not(match):
+        if not match:
             log.critical("_Logstring2ID could not parse log string!")
             raise Error("_Logstring2ID could not parse log string!")
 
@@ -751,7 +789,7 @@ class gitVCS (VCS):
         returned by getCommitIDsLL into a commit.Commit instance"""
 
         match = self.logPattern.search(str)
-        if not(match):
+        if not match:
             log.critical("_Logstring2Commit could not parse log string!")
             raise Error("_Logstring2Commit could not parse log string!")
 
@@ -776,17 +814,17 @@ class gitVCS (VCS):
 
         try:
             match = self.diffStatFilesPattern.search(msg[-1])
-            if (match):
+            if match:
                 files = match.group(1)
                 matched = True
 
             match = self.diffStatInsertPattern.search(msg[-1])
-            if (match):
+            if match:
                 insertions = match.group(1)
                 matched = True
 
             match = self.diffStatDeletePattern.search(msg[-1])
-            if (match):
+            if match:
                 deletions = match.group(1)
                 matched = True
 
@@ -800,10 +838,10 @@ class gitVCS (VCS):
 
         except IndexError:
             log.error("Empty commit?! Commit <id {}> is: '{}'".
-                    format(cmt.id, msg))
+                      format(cmt.id, msg))
             raise ParseError("Empty commit?", cmt.id)
 
-        if not(matched):
+        if not matched:
             raise ParseError(msg[-1], cmt.id)
 
         cmt.diff_info.append((int(files), int(insertions), int(deletions)))
@@ -822,7 +860,7 @@ class gitVCS (VCS):
 
         # Commit is not associated with a specific subsystem, so
         # file it under "general"
-        if touched_subsys == False:
+        if touched_subsys is False:
             cmt_subsystems["general"] = 1
         else:
             cmt_subsystems["general"] = 0
@@ -830,7 +868,7 @@ class gitVCS (VCS):
             cmt.setSubsystemsTouched(cmt_subsystems)
 
         # Second, check if the commit is within the release cycle
-        if self._rc_id_list != None:
+        if self._rc_id_list is not None:
             if cmt.id in self._rc_id_list:
                 cmt.setInRC(True)
             else:
@@ -844,7 +882,8 @@ class gitVCS (VCS):
             for whitespace in ("", "--ignore-space-change"):
                 cmd = ("git --git-dir={0} show --format=full --shortstat "
                        "--numstat {1} {2} {3}".format(self.repo, difftype,
-                                                      whitespace, cmt.id)).split()
+                                                      whitespace,
+                                                      cmt.id)).split()
                 try:
                     # print("About to call " + " ".join(cmd))
                     msg = execute_command(cmd)
@@ -854,18 +893,18 @@ class gitVCS (VCS):
                     # Python is supposed to work with), this exception
                     # seems to stem from a faulty encoding. Just
                     # ignore the commit
-                    cmt.diff_info.append((0,0,0))
+                    cmt.diff_info.append((0, 0, 0))
                     log.warning("Ignoring commit {} due to unicode error.".
-                            format(pe.id))
+                                format(pe.id))
                 except ParseError as pe:
                     # Since the diff format is very easy to parse,
                     # this most likely stems from a malformed diff
                     # that can be ignored. Nevertheless, report the
                     # line and the commit id
                     log.error("Could not parse diffstat for {0}!".
-                          format(pe.id))
+                              format(pe.id))
                     log.error("{0}".format(pe.line))
-                    cmt.diff_info.append((0,0,0))
+                    cmt.diff_info.append((0, 0, 0))
                 except OSError:
                     log.exception("Could not spawn git")
                     raise
@@ -874,12 +913,10 @@ class gitVCS (VCS):
         # can re-use the information in msg
         self._analyseCommitMsg(msg, cmt)
 
-
-
     def _analyseCommitMsg(self, msg, cmt):
         """Analyse the commit message."""
         # The format we are analysing is the following:
-        ######
+
         # commit db1f05bb85d7966b9176e293f3ceead1cb8b5d79
         # Author: Author Name <author.name@email.tld>
         # Date:   Wed Feb 10 12:15:53 2010 +0100
@@ -897,8 +934,8 @@ class gitVCS (VCS):
         #
         # 8	1	path/to/file.c
         # 2	0	path/to/another.c
-        #  2 files changed, 10 insertions(+), 1 deletions(-)
-        ######
+        # 2 files changed, 10 insertions(+), 1 deletions(-)
+
         # We get a list representation of the commit that was split
         # by line breaks, so restore the original state first and then
         # do a decomposition into parts
@@ -910,7 +947,7 @@ class gitVCS (VCS):
         for i in range(0, len(parts)):
             if parts[i].startswith("commit "):
                 break
-            elif i == len(parts)-1:
+            elif i == len(parts) - 1:
                 # On some occasions, this
                 # error is triggered although the commit in question
                 # (e.g., 9d32c30542f9ec) can be parsed
@@ -922,16 +959,16 @@ class gitVCS (VCS):
                 raise Error("Cannot find metadata start in commit message!")
 
         commit_index = i
-        descr_index = i+1
+        descr_index = i + 1
 
         # Determine author and committer
         for line in parts[commit_index].split("\n"):
             match = self.authorPattern.search(line)
-            if (match):
+            if match:
                 cmt.author = match.group(1)
 
             match = self.committerPattern.search(line)
-            if (match):
+            if match:
                 cmt.committer = match.group(1)
 
         descr = parts[descr_index].split("\n")
@@ -950,11 +987,11 @@ class gitVCS (VCS):
             found = any([prefix.match(line) for prefix in self.signOffPatterns])
             if found:
                 break
-            i+=1
+            i += 1
 
         if found:
             descr_message = "\n".join(parts[descr_index].
-                                      split("\n \n ")[0:i-1])
+                                      split("\n \n ")[0:i - 1])
             self._analyseSignedOffs(descr[i:], cmt)
         else:
             descr_message = parts[descr_index]
@@ -975,8 +1012,8 @@ class gitVCS (VCS):
         for entry in msg:
             entry = entry.lstrip()
             matches = [tag.search(entry) for tag in self.signOffPatterns
-                       if tag.search(entry)!=None]
-            if (matches):
+                       if tag.search(entry) is not None]
+            if matches:
                 match = matches[0]
                 key = match.group(1).replace(" ", "").replace(":", "")
                 value = match.group(3)
@@ -989,17 +1026,20 @@ class gitVCS (VCS):
                 log.debug('{0}'.format(entry))
 
     def extractCommitDataRange(self, revrange, subsys="__main__"):
-        """
-        Same as extractCommitData, but for a specific temporal range.
+        """Same as extractCommitData, but for a specific temporal range.
 
         Instead of using the whole repo, we extract a temporal
         subset. Since the data for the complete repo are cached, we
         use them as basis: The appropriate commit objects are cherry-picked
         from the global list and rearranged into a new, subsys and
         range-specific list.
+
+        Args:
+            revrange:
+            subsys:
         """
 
-        if (len(revrange) != 2):
+        if len(revrange) != 2:
             log.critical("Bogus range")
             raise Error("Bogus range")
 
@@ -1007,7 +1047,7 @@ class gitVCS (VCS):
 
         # NOTE: __main__ is a pseudo-subsystem that is not contained
         # in the subsystem description
-        if subsys=="__main__":
+        if subsys == "__main__":
             clist = self._getCommitIDsLL(revrange[0], revrange[1])
         else:
             clist = self._getCommitIDsLL(revrange[0], revrange[1],
@@ -1016,9 +1056,8 @@ class gitVCS (VCS):
         return [self._commit_dict[self._Logstring2ID(logstring)]
                 for logstring in reversed(clist)]
 
-
     def extractCommitData(self, subsys="__main__", link_type=None):
-        if not(self._subsysIsValid(subsys)):
+        if not self._subsysIsValid(subsys):
             log.critical("Subsys specification invalid: {0}\n".format(subsys))
             raise Error("Invalid subsystem specification.")
 
@@ -1051,9 +1090,9 @@ class gitVCS (VCS):
             if count % 20 == 0:
                 pbar.update(count)
 
-#            print("Processing commit {0}/{1} ({2})".
-#                  format(count, len(self._commit_list_dict["__main__"]),
-#                         cmt.id))
+            # print("Processing commit {0}/{1} ({2})".
+            #             format(count, len(self._commit_list_dict["__main__"]),
+            #                         cmt.id))
 
             self._parseCommit(cmt)
 
@@ -1064,62 +1103,56 @@ class gitVCS (VCS):
 
         return self._commit_list_dict[subsys]
 
-
     def _getBlameMsg(self, fileName, rev):
-        '''provided with a filename and revision the function returns
-        the blame message'''
+        """provided with a filename and revision the function returns
+        the blame message"""
 
-        #build command string
+        # build command string
         cmd = 'git --git-dir={0} blame'.format(self.repo).split()
-        cmd.append("-p") #format for machine consumption
-        cmd.append("-w") #ignore whitespace changes
-        cmd.append("-C") #find copied code (attribute to original)
-        cmd.append("-M") #find moved code (attribute to original)
+        cmd.append("-p")  # format for machine consumption
+        cmd.append("-w")  # ignore whitespace changes
+        cmd.append("-C")  # find copied code (attribute to original)
+        cmd.append("-M")  # find moved code (attribute to original)
         cmd.append(rev)
         cmd.append("--")
         cmd.append(fileName)
 
-        #query git repository
+        # query git repository
         blameMsg = execute_command(cmd).splitlines()
 
         return blameMsg
 
-
     def _parseBlameMsg(self, msg):
-        '''input a blame msg and the commitID under examination the
-        output contains code line numbers and corresponding commitID'''
+        """input a blame msg and the commitID under examination the
+        output contains code line numbers and corresponding commitID"""
 
-        #variable declarations
-        commitLineDict = {} #dictionary, key is line number, value is commit ID
-        codeLines      = [] # list of source code lines
+        # variable declarations
+        # dictionary, key is line number, value is commit ID
+        commitLineDict = {}
+        codeLines = []  # list of source code lines
 
         while msg:
 
             line = msg.pop(0).split(" ")
 
-            #the lines we want to match start with a commit hash
-            if(self.cmtHashPattern.match( line[0] ) ):
+            # the lines we want to match start with a commit hash
+            if self.cmtHashPattern.match(line[0]):
 
-               lineNum    = str(int(line[2]) - 1)
-               commitHash = line[0]
+                lineNum = str(int(line[2]) - 1)
+                commitHash = line[0]
 
-               commitLineDict[lineNum] = commitHash
+                commitLineDict[lineNum] = commitHash
 
             # check for line of code, signaled by a tab character
             elif line[0].startswith('\t'):
-               line[0] = line[0][1:] # remove tab character
-               codeLines.append(' '.join(line) + '\n')
+                line[0] = line[0][1:]  # remove tab character
+                codeLines.append(' '.join(line) + '\n')
 
-
-        return (commitLineDict, codeLines)
-
+        return commitLineDict, codeLines
 
     def _prepareFileCommitList(self, fnameList, link_type, singleBlame=True,
                                ignoreOldCmts=True):
-        '''
-        uses git blame to determine the file layout of a revision
-        '''
-        '''
+        """Uses git blame to determine the file layout of a revision
         The file layout is a dictionary that indicates which commit hash is
         responsible for each line of code in a file. The blame data can be
         recorded for each commit or only for one revision.
@@ -1136,14 +1169,13 @@ class gitVCS (VCS):
                         range will be ignored from the analysis. That is to say
                         lines of code that existed prior to the revision start
                         are ignored.
-        '''
+        """
 
-
-        #variable initialization
+        # variable initialization
         if self._fileCommit_dict is None:
             self._fileCommit_dict = {}
 
-        blameMsgCmtIds = set() #stores all commit Ids seen from blame messages
+        blameMsgCmtIds = set()  # stores all commit Ids seen from blame messages
 
         if self._commit_dict is None:
             self._commit_dict = {}
@@ -1161,30 +1193,30 @@ class gitVCS (VCS):
             if count % 20 == 0:
                 pbar.update(count)
 
-            #create fileCommit object, one per filename to be
-            #stored in _fileCommit_dict
+            # create fileCommit object, one per filename to be
+            # stored in _fileCommit_dict
             file_commit = fileCommit.FileCommit()
             file_commit.filename = fname
 
-            #get commit objects for the given file within revision range
-            cmtList  = []
-            cmtList  = self.getFileCommits(fname, self.rev_start, self.rev_end)
+            # get commit objects for the given file within revision range
+            cmtList = []
+            cmtList = self.getFileCommits(fname, self.rev_start, self.rev_end)
 
-            #store commit hash in fileCommit object, store only the hash
-            #and then reference the commit db to get the object
+            # store commit hash in fileCommit object, store only the hash
+            # and then reference the commit db to get the object
             file_commit.setCommitList([cmt.id for cmt in cmtList])
 
-            #store the commit object to the committerDB, the justification
-            #for splitting this way is to avoid redundant commit info
-            #since a commit can touch many files, we use the commit
-            #hash to reference the commit object (author, date etc)
-            self._commit_dict.update({cmt.id:cmt for cmt in cmtList
-             if cmt.id not in self._commit_dict})
+            # store the commit object to the committerDB, the justification
+            # for splitting this way is to avoid redundant commit info
+            # since a commit can touch many files, we use the commit
+            # hash to reference the commit object (author, date etc)
+            self._commit_dict.update({cmt.id: cmt for cmt in cmtList
+                                      if cmt.id not in self._commit_dict})
 
-            #Determine the revision that git blame will be called on
+            # Determine the revision that git blame will be called on
             if self.range_by_date:
-                #Find the revision where the last change was applied up until the
-                #the end of the analysis time window specified by a date
+                # Find the revision where the last change was applied up until
+                # the end of the analysis time window specified by a date
                 cmd = 'git --git-dir={0} log'.format(self.repo).split()
                 cmd.append("--until={0}".format(self.rev_end_date))
                 cmd.append("--format=%H")
@@ -1195,8 +1227,8 @@ class gitVCS (VCS):
                 cmd.append(file_commit.filename)
                 rev = execute_command(cmd).strip()
             else:
-                #Use revision that represents the final commit for the specified
-                #revision range
+                # Use revision that represents the final commit
+                # for the specified revision range
                 rev = self.rev_end
 
             # Check if file has been deleted
@@ -1208,25 +1240,26 @@ class gitVCS (VCS):
             existing_files = execute_command(cmd).split()
             if file_commit.filename in existing_files:
                 # retrieve blame data
-                if singleBlame: #only one set of blame data per file
+                if singleBlame:  # only one set of blame data per file
                     self._addBlameRev(rev, file_commit,
                                       blameMsgCmtIds, link_type)
-                else: # get one set of blame data for every commit made
-                    # this option is computationally intensive thus the alternative
-                    # singleBlame option is possible when speed is a higher
-                    # priority than precision
+                else:  # get one set of blame data for every commit made
+                    # this option is computationally intensive thus the
+                    # alternative singleBlame option is possible when
+                    # speed is a higher priority than precision
                     [self._addBlameRev(cmt.id, file_commit,
-                                       blameMsgCmtIds, link_type) for cmt in cmtList]
+                                       blameMsgCmtIds, link_type) for cmt in
+                     cmtList]
 
-                #store fileCommit object to dictionary
+                # store fileCommit object to dictionary
                 self._fileCommit_dict[fname] = file_commit
 
-        #end for fnameList
+        # end for fnameList
         pbar.finish()
 
-        #-------------------------------
-        #capture old commits
-        #-------------------------------
+        # -------------------------------
+        # capture old commits
+        # -------------------------------
         '''
          If the analysis of the git blame messages is focused
          only on a temporal region (ie. not entire history) it
@@ -1237,15 +1270,15 @@ class gitVCS (VCS):
          the blame message analysis.
          '''
 
-        if not(ignoreOldCmts):
-            #find all commits that are missing from the commit dictionary
-            #recall that fileCommit_dict stores all the commit ids for a
-            #file to reference commit objects in the commit_dict
+        if not ignoreOldCmts:
+            # find all commits that are missing from the commit dictionary
+            # recall that fileCommit_dict stores all the commit ids for a
+            # file to reference commit objects in the commit_dict
             missingCmtIds = blameMsgCmtIds - set(self._commit_dict)
 
-            #retrieve missing commit information and add it to the commit_dict
-            missingCmts = [ self.cmtHash2CmtObj(cmtId)
-                            for cmtId in missingCmtIds ]
+            # retrieve missing commit information and add it to the commit_dict
+            missingCmts = [self.cmtHash2CmtObj(cmtId)
+                           for cmtId in missingCmtIds]
             if missingCmts:
                 count = 0
                 widgets = ['Pass 1.5/2: ', Percentage(), ' ', Bar(), ' ', ETA()]
@@ -1262,28 +1295,29 @@ class gitVCS (VCS):
                 pbar.finish()
 
     def _addBlameRev(self, rev, file_commit, blame_cmt_ids, link_type):
-        '''
-        saves the git blame output of a revision for a particular file
-        '''
-        '''
-        -Input-
-        rev: a revision, could be a commit hash or "v2.6.31"
-        fname: string of a filename to call git blame on
-        file_commit: a fileCommit object to store the resulting blame data
-        blame_cmt_ids: a list to keep track of all commit ids seen in the blame
-        '''
+        """Saves the git blame output of a revision for a particular file.
 
-        #query git reppository for blame message
+        Args:
+            rev (str): A revision, could be a commit hash or "v2.6.31".
+            file_commit (FileCommit): FileCommit object to store the resulting
+                blame.
+            blame_cmt_ids (set): A set to keep track of all commit ids seen in
+                the blame.
+            link_type (str): One of the link types as returned by
+                `LinkType.get_all_link_types`.
+        """
+
+        # query git reppository for blame message
         blameMsg = self._getBlameMsg(file_commit.filename, rev)
 
-        #parse the blame message, this extracts the line number
-        #and corresponding commit hash, returns a dictionary
-        #Key = line number, value = commit hash
-        #basically a snapshot of what the file looked like
-        #at the time of the commit
+        # parse the blame message, this extracts the line number
+        # and corresponding commit hash, returns a dictionary
+        # Key = line number, value = commit hash
+        # basically a snapshot of what the file looked like
+        # at the time of the commit
         (cmt_lines, src_lines) = self._parseBlameMsg(blameMsg)
 
-        #store the dictionary to the fileCommit Object
+        # store the dictionary to the fileCommit Object
         file_commit.addFileSnapShot(rev, cmt_lines)
 
         # locate all function lines in the file
@@ -1298,7 +1332,7 @@ class gitVCS (VCS):
         #       this will result in all commits to a single file seen as
         #       related thus the more course grained analysis
 
-        blame_cmt_ids.update( cmt_lines.values() )
+        blame_cmt_ids.update(cmt_lines.values())
 
     def _parseSrcFileDoxygen(self, src_file):
         log.debug("Running Doxygen analysis")
@@ -1312,7 +1346,8 @@ class gitVCS (VCS):
         try:
             file_analysis.run_analysis()
         except Exception, e:
-            log.critical("doxygen analysis error{0} - defaulting to Ctags".format(e))
+            log.critical(
+                "doxygen analysis error{0} - defaulting to Ctags".format(e))
             return {}, []
 
         # Delete tmp directory storing doxygen files
@@ -1325,7 +1360,7 @@ class gitVCS (VCS):
             start = int(elem['bodystart']) - 1
             end = int(elem['bodyend']) - 1
             name = elem['name']
-            f_lines = {line_num:name  for line_num in range(start, end+1)}
+            f_lines = {line_num: name for line_num in range(start, end + 1)}
             func_lines.update(f_lines)
 
         return func_lines, file_analysis.src_elem_list
@@ -1359,20 +1394,20 @@ class gitVCS (VCS):
         # see all tag meanings per language
         fileExt = os.path.splitext(src_file)[1].lower()
         if fileExt in (".java", ".j", ".jav", ".cs", ".js"):
-            structures.append("m") # methods
-            structures.append("i") # interface
-        elif fileExt in (".php"):
-            structures.append("i") # interface
-            structures.append("j") # functions
-        elif fileExt in (".py"):
-            structures.append("m") # class members
+            structures.append("m")  # methods
+            structures.append("i")  # interface
+        elif fileExt in ".php":
+            structures.append("i")  # interface
+            structures.append("j")  # functions
+        elif fileExt in ".py":
+            structures.append("m")  # class members
 
-        while(tags.next(entry)):
+        while tags.next(entry):
             if entry['kind'] in structures:
-                ## Ctags indexes starting at 1
+                # Ctags indexes starting at 1
                 line_num = int(entry['lineNumber']) - 1
 
-                ## Ctags sometimes assigns line numbers 0 in .js files
+                # Ctags sometimes assigns line numbers 0 in .js files
                 if line_num < 0:
                     line_num = 0
 
@@ -1384,9 +1419,7 @@ class gitVCS (VCS):
         return func_lines
 
     def _getFunctionLines(self, file_layout_src, file_commit):
-        '''
-        computes the line numbers of each function in the file
-        '''
+        """computes the line numbers of each function in the file"""
         '''
         - Input -
         file_name: original name of the file, used only to determine the
@@ -1423,7 +1456,7 @@ class gitVCS (VCS):
             file_commit.setSrcElems(src_elems)
             file_commit.doxygen_analysis = True
 
-        if not func_lines: # for everything else use Ctags
+        if not func_lines:  # for everything else use Ctags
             func_lines = self._parseSrcFileCtags(srcFile.name)
             file_commit.doxygen_analysis = False
 
@@ -1439,63 +1472,72 @@ class gitVCS (VCS):
             src_line_rmv = re.sub(rmv_char, ' ', src_line.strip())
             file_commit.addFuncImplLine(line_num, src_line_rmv)
 
-
     def cmtHash2CmtObj(self, cmtHash):
-        '''
-        input: cmtHash
-        output: a commit object with additional commit information added
-        such as author, committer and date
-        '''
+        """Transforms a commit hash into a commit object.
 
-        #query git for log information on this particular cmtHash
+        Args:
+            cmtHash:
+
+        Returns:
+            cmtObj(commit): Commit object with additional commit information
+                such as author, committer and date
+        """
+
+        # query git for log information on this particular cmtHash
         logMsg = self._getSingleCommitInfo(cmtHash)
 
-        #create commit object from the log message
+        # create commit object from the log message
         cmtObj = self._Logstring2Commit(logMsg[0])
-
 
         return cmtObj
 
     def getFileCommits(self, fname=None, rev_start=None, rev_end=None):
-        '''
+        """
         returns a list of commit objects from the commits on a given
         file and revision range. If no revision range is provided
         the whole history is captured
-        '''
 
-        #query git to get all committers to a particular file
-        #includes commit hash, author and committer data and time
+        Args:
+            fname:
+            rev_start:
+            rev_end:
+        """
+
+        # query git to get all committers to a particular file
+        # includes commit hash, author and committer data and time
         logMsg = self._getFileCommitInfo(fname, rev_start, rev_end)
 
-        #store the commit hash to the fileCommitList
+        # store the commit hash to the fileCommitList
         cmtList = map(self._Logstring2Commit, logMsg)
 
         return cmtList
 
     def addFiles4Analysis(self, cmt_id_list):
-        '''
-        use this to configue what files should be included in the
+        """Use this to configure what files should be included in the
         file based analysis (ie. non-tag based method). This will
         query git for the file names and build the list automatically.
         -- Input --
         directories - a list of paths to limit the search for filenames
-        '''
+
+        Args:
+            cmt_id_list:
+        """
         cmd_base = 'git --git-dir={0} diff-tree'.format(self.repo).split()
         cmd_base.append("--diff-filter=ACMRTB")
         cmd_base.append("--no-commit-id")
         cmd_base.append("--name-only")
         cmd_base.append("-r")
 
-        #get all files touched by all commits
+        # get all files touched by all commits
         all_files = set()
         for cmt_id in cmt_id_list:
             cmd = cmd_base + [cmt_id]
             cmt_files = execute_command(cmd).splitlines()
             all_files.update(cmt_files)
 
-        #filter results to only get implementation files
+        # filter results to only get implementation files
         fileExt = (".c", ".cc", ".cpp", ".cxx", ".cs", ".asmx", ".m", ".mm",
-                   ".js", ".java", ".j", ".jav", ".php",".py", ".sh", ".rb",
+                   ".js", ".java", ".j", ".jav", ".php", ".py", ".sh", ".rb",
                    '.d', '.php4', '.php5', '.inc', '.phtml', '.m', '.mm',
                    '.f', '.for', '.f90', '.idl', '.ddl', '.odl', '.tcl')
 
@@ -1503,63 +1545,3 @@ class gitVCS (VCS):
                      fileName.lower().endswith(fileExt)]
 
         self.setFileNames(fileNames)
-
-
-
-################### Testing Functions ###########################
-
-    def _testNonTagSNA(self,git):
-
-        testRepo = "/home/au/workspace/codeface/.git"
-        git.setRepository(testRepo)
-        self._fileNames = ["cluster/cluster.py"]
-
-        self.extractFileCommitData()
-
-    def _testCtagsFunctionality(self):
-       # setup
-       filePath = '/Users/Mitchell/Documents/workspace/codeface/cluster/cluster.py'
-       srcFile = open(filePath, 'r')
-       file_layout = []
-       line_number = 0
-       for line in srcFile:
-           file_layout.append(line)
-
-       # test function call
-       file_commit = fileCommit.FileCommit()
-       file_commit.filename = filePath
-       funcLines = self._getFunctionLines(file_layout, file_commit)
-
-
-############################ Test cases #########################
-if __name__ == "__main__":
-
-    #test nontagSNA
-    git = gitVCS()
-    git._testNonTagSNA(git)
-
-
-    git.setRepository("/Users/Mitchell/git/linux-2.6/.git")
-    git.setRevisionRange("22242681cff52bfb7cb~1", "22242681cff52bfb7cb")
-    clist = git.extractCommitData("__main__")
-
-    print("Shelfing the git object")
-    import shelve
-    d = shelve.open("/tmp/git-shelf")
-    d["git"] = git
-    d.close()
-
-    print("Obtained {0} commits".format(len(clist)))
-    for cmt in clist[0:10]:
-        print("Commit {0}: {1}, {2}".format(cmt.id, cmt.cdate, cmt.diff_info))
-    quit()
-
-    print("Same in blue after unshelfing:")
-    k = shelve.open("/tmp/git-shelf")
-    git2 = k["git"]
-    k.close()
-
-    clist2 = git2.extractCommitData()
-    print("Obtained {0} commits".format(len(clist2)))
-    for cmt in clist2[0:10]:
-        print("Commit {0}: {1}, {2}".format(cmt.id, cmt.cdate, cmt.diff_info))

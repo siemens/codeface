@@ -87,7 +87,7 @@ def readDB(filename):
 
 
 def computeSubsysAuthorSimilarity(cmt_subsys, author):
-    """ Compute a similarity measure between commit and commit author
+    """Compute a similarity measure between commit and commit author
     in terms of touched subsystems (ranges from 0 to 1)."""
 
     # NOTE: This is naturally subjective because there are many

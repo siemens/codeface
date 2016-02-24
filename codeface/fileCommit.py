@@ -14,17 +14,17 @@
 # Copyright 2013, Siemens AG, Mitchell Joblin <mitchell.joblin.ext@siemens.com>
 # All Rights Reserved.
 
-'''This class is a container to represent a commits relationship to the
+"""This class is a container to represent a commits relationship to the
 other commits present in a particular file at the time of the commit.
 The analysis is performed on a file by file basis. A commit can touch multiple
 files however this class considers a given commit only in the context of a
-single file.'''
+single file.
+"""
 
-import commit
 import bisect
 
 
-class FileDict:
+class FileDict(object):
     """
     A generic dictionary for saving per-line information.
     We assume that this information is available on any line,
@@ -32,6 +32,7 @@ class FileDict:
     So we only save the information on lines that change that info
     and use bisect to retrieve that information (for any line).
     """
+    # TODO Candidate for deletion?
     def __init__(self, line_list, line_dict):
         """
         :rtype : FileDict
@@ -60,7 +61,7 @@ class FileDict:
         :return: the information for the given line.
         """
         i = bisect.bisect_right(self.line_list, line_nr)
-        info_line = self.line_list[i-1]
+        info_line = self.line_list[i - 1]
         return self.line_dict[info_line]
 
     def get_line_info(self, line_nr):
@@ -84,50 +85,86 @@ class FileDict:
         return self.line_dict.values()
 
 
-class FileCommit:
+class FileCommit(object):
+    """Container for tracking all features and contributions to a single file.
+
+    The state, contributions and features stored by an instance of this class
+    represent the state of the file at a specific commit.
+
+    Attributes:
+        filename (str): Filename under investigation.
+        fileSnapShots (dict): Dictionary of dicts, mapping commits to
+            dicts mapping line numbers to commits, as seen on the first key.
+            E.g.: {'commit': {'1': 'commit1', '2': 'commit2', ...}, ...}
+            This is essentially a list of blame snapshots for each commit.
+        revCmts (list): List of all commit hashes contributing to this file.
+        doxygen_analysis (bool): Flag if the file was analysed with Doxygen.
+            False can either mean "Analyzed with ctags" or "Not analyzed yet".
+        feature_info (FileDict):
+        feature_expression_info (FileDict):
+    """
+    # TODO Inconsistent naming scheme for methods
     def __init__(self):
 
-        #filename under investigation
+        # filename under investigation
         self.filename = None
 
-        #dictionary of dictionaries key is commit, value is a
-        #dictionary with keys=lineNumbers value=commitHash, stores
-        #the line number and corresponding commit hash for every
-        #line of the file,
+        # dictionary of dictionaries key is commit, value is a
+        # dictionary with keys=lineNumbers value=commitHash, stores
+        # the line number and corresponding commit hash for every
+        # line of the file,
         self.fileSnapShots = {}
 
-        #stores the commit hash of all contributions to the file for a
-        #particular revision
+        # stores the commit hash of all contributions to the file for a
+        # particular revision
         self.revCmts = []
 
         # dictionary with key = line number, value = function name
         file_level = -1
-        self.functionIds = {file_level:'File_Level'}
+        # TODO Should this really be a public attribute?
+        self.functionIds = {file_level: 'File_Level'}
 
         # list of function line numbers in sorted order, this is for
         # optimizing the process of finding a function Id given a line number
+        # TODO Should this really be a public attribute?
         self.functionLineNums = [file_level]
 
         # Function Implementation
+        # TODO Should this really be a public attribute?
         self.functionImpl = {}
 
         # doxygen flag
+        # TODO doxygen_analysis = False has an ambiguous meaning!
         self.doxygen_analysis = False
 
         # source code element list
         # stores all source code elements of interest and
         # meta data
+        # TODO Write only attribute?
         self._src_elem_list = []
 
-        # dictionaries with key = line number, value = feature list|feature expression
+        # dictionaries with key = line number,
+        # value = feature list|feature expression
         self.feature_info = FileDict()
         self.feature_expression_info = FileDict()
 
-    #Getter/Setters
     def getFileSnapShots(self):
+        """Get all file snapshots.
+
+        Returns:
+            dict: Dictionary mapping commit hashes to dicts of line numbers
+            mapping to commit hashes. E.g.:
+            {'commit': {'1': 'commit1', '2': 'commit2', ...}, ...}
+        """
         return self.fileSnapShots
 
     def getFileSnapShot(self):
+        """Get the most recent file snapshot.
+
+        Returns:
+            dict: Dictionary of line numbers to commit hashes.
+            E.g. {'1': 'commit1', '2': 'commit2', ...}
+        """
         return self.fileSnapShots.values()[0]
 
     def getFilename(self):
@@ -139,17 +176,45 @@ class FileCommit:
     def getrevCmts(self):
         return self.revCmts
 
-    def getFuncImpl(self,id):
+    def getFuncImpl(self, id):
+        """Fetch the implementation of a specific function.
+
+        Args:
+            id (str): Function id, as returned by `findFuncId`.
+
+        Returns:
+            list: List of strings, representing each line of the implementation.
+            The list is empty if the implementation or the function is unknown.
+
+        """
         if id in self.functionImpl:
             return self.functionImpl[id]
         else:
             return []
 
     def setFunctionLines(self, functionIds):
+        """Flags lines as belonging to a specific function.
+
+        Notes:
+            For successive calls, the line numbers used as keys must be
+            strictly ascending, or it will cause unexpected side effects.
+
+            Calls to this method have the side effect of discarding all
+            previously recorded function implementations.
+
+        Args:
+            functionIds (dict): Dict mapping line numbers to function ids.
+        """
+        # TODO Is the key for functionIds a function id or a line number?
         self.functionIds.update(functionIds)
         for id in self.functionIds.values():
-            self.functionImpl.update({id:[]})
+            self.functionImpl.update({id: []})
+        # TODO Why does this discard ALL of functionImpl?
         self.functionLineNums.extend(sorted(self.functionIds.iterkeys()))
+        # TODO dict.iterkeys() should be replaced by dict.keys()
+        # There is no advantage of using iterkeys, it stops being a hard
+        # reference the moment it's sorted.
+        # TODO This does not guarantee that functionLineNums remains sorted!
 
     def setSrcElems(self, src_elem_list):
         self._src_elem_list.extend(src_elem_list)
@@ -158,36 +223,75 @@ class FileCommit:
         self.feature_info = feature_line_infos[0]
         self.feature_expression_info = feature_line_infos[1]
 
-    #Methods
-    def addFileSnapShot(self, key, dict):
-        self.fileSnapShots[key] = dict
+    def addFileSnapShot(self, commit, snapshot):
+        self.fileSnapShots[commit] = snapshot
 
     def findFuncId(self, line_num):
-        # returns the identifier of a function given a line number
+        """Find the function ID belonging to a given line number.
+
+        Notes:
+            The behavior of this method is controlled by `doxygen_analysis`.
+            For `doxygen_analysis` = True, every line is expected to be tagged,
+            untagged lines are treated as "File_Level" scope.
+            For `doxygen_analysis` = False, untagged lines are treated as
+            belonging to the same function as the last tagged line.
+
+        Args:
+            line_num (int): The line number.
+
+        Returns:
+            str: Name of the function, defaults to "File_Level" if the line
+            can't be attributed to a specific function.
+
+        """
         func_id = 'File_Level'
         line_num = int(line_num)
-        if self.doxygen_analysis == True:
+        # TODO Why does this method need to be aware who generated the index?
+        # The index structure should be normalized to follow the Doxygen style!
+        if self.doxygen_analysis:
             if line_num in self.functionIds:
                 func_id = self.functionIds[line_num]
         else:
             i = bisect.bisect_right(self.functionLineNums, line_num)
-            func_line = self.functionLineNums[i-1]
+            func_line = self.functionLineNums[i - 1]
             func_id = self.functionIds[func_line]
         return func_id
 
     def getLineCmtId(self, line_num):
-        ## Retrieve the first file snap
+        """Get the commit hash of the latest commit contributing to a line.
+
+        Args:
+            line_num (int): The line number.
+
+        Returns:
+            str: Commit hash of the latest contribution to the line.
+        """
         line_num = str(line_num)
+        # Retrieve the first file snap
         file_snapshot = self.getFileSnapShot()
         return file_snapshot[line_num]
 
     def getLength(self):
+        # TODO Rename
         return len(self.getFileSnapShot())
 
     def getIndx(self):
+        # TODO Rename
         return self.getFileSnapShot().keys()
 
     def addFuncImplLine(self, lineNum, srcLine):
+        """Add a single source code line to the implementation of a function.
+
+        Notes:
+            For correct function, `setFunctionLines` needs to have been called
+            before. Otherwise, the source would be attributed to "File_Level".
+
+            Invoking `setFunctionLines` will discard all recorded sources.
+
+        Args:
+            lineNum (int): Original line number.
+            srcLine (str): Line content.
+        """
         id = self.findFuncId(lineNum)
         self.functionImpl[id].append(srcLine)
 

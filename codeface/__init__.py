@@ -13,6 +13,6 @@
 #
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 # All Rights Reserved.
-'''
+"""
 Social data mining for programming projects
-'''
+"""

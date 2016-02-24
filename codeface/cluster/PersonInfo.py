@@ -89,7 +89,7 @@ class RelationWeights:
         return new
 
 class PersonInfo:
-    """ Information about a commiter, and his relation to other commiters"""
+    """Information about a commiter, and his relation to other commiters"""
 
     def __init__(self, subsys_names = [], ID=None, name="", email=""):
         self.ID = ID
