@@ -722,7 +722,7 @@ compute.project.graph.trends <-
                   e$developer.classes[["4"]][[end.date]] <-
                       get.developer.class.centrality(res$edgelist, res$v.global.ids,
                                                      source="VCS", metric="degree")
-                  e$developer.edge.probs[["4"]][[end.date]] <-
+                  e$developer.edge.probs[[end.date]] <-
                       compute.edge.probs(e$developer.classes[["4"]][[end.date]], 
                                          res$edgelist, res$v.global.ids)
 
@@ -799,12 +799,6 @@ compute.project.graph.trends <-
                                               c("author", "class", "metric"))
   }
 
-  ## Combine class probabilities
-  class.edge.probs <- list()
-  for (type in names(e$developer.edge.probs)) {
-    class.edge.probs[[type]] <- melt(e$developer.edge.probs[[type]])
-  }
-
   ## Compute Markov chains
   if(length(e$developer.classes[["5"]]) > 1) {
     markov.chain.centrality <- compute.class.markov.chain(e$developer.classes[["5"]])
@@ -817,7 +811,7 @@ compute.project.graph.trends <-
 
   res <- list(metrics=metrics.df, markov.chains=markov.chains,
               developer.classifications=developer.classifications,
-              class.edge.probs=class.edge.probs)
+              class.edge.probs=e$developer.edge.probs)
 
   degree.df <- subset(metrics.df, metric=="v.degree")
   dev.degree.df <- split(degree.df, degree.df$g.id)
