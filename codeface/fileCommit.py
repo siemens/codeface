@@ -272,9 +272,11 @@ class FileCommit(object):
         return file_snapshot[line_num]
 
     def getLength(self):
+        # TODO Rename
         return len(self.getFileSnapShot())
 
     def getIndx(self):
+        # TODO Rename
         return self.getFileSnapShot().keys()
 
     def addFuncImplLine(self, lineNum, srcLine):
@@ -284,7 +286,7 @@ class FileCommit(object):
             For correct function, `setFunctionLines` needs to have been called
             before. Otherwise, the source would be attributed to "File_Level".
 
-            Calling `setFunctionLines` will discard all source recorded.
+            Invoking `setFunctionLines` will discard all recorded sources.
 
         Args:
             lineNum (int): Original line number.

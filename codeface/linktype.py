@@ -25,6 +25,7 @@ class LinkType(object):
     Attributes:
 
     """
+    # TODO This is NOT a proper Enum type class as it can't be instantiated!
     tag = "tag"
     proximity = "proximity"
     committer2author = "committer2author"

@@ -42,6 +42,8 @@ from ctags import CTags, TagEntry
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from .util import execute_command
 
+from fileCommit import FileCommit
+
 import commit
 import fileCommit
 import sourceAnalysis
@@ -1293,14 +1295,17 @@ class gitVCS(VCS):
                 pbar.finish()
 
     def _addBlameRev(self, rev, file_commit, blame_cmt_ids, link_type):
-        """saves the git blame output of a revision for a particular file"""
-        '''
-        -Input-
-        rev: a revision, could be a commit hash or "v2.6.31"
-        fname: string of a filename to call git blame on
-        file_commit: a fileCommit object to store the resulting blame data
-        blame_cmt_ids: a list to keep track of all commit ids seen in the blame
-        '''
+        """Saves the git blame output of a revision for a particular file.
+
+        Args:
+            rev (str): A revision, could be a commit hash or "v2.6.31".
+            file_commit (FileCommit): FileCommit object to store the resulting
+                blame.
+            blame_cmt_ids (set): A set to keep track of all commit ids seen in
+                the blame.
+            link_type (str): One of the link types as returned by
+                `LinkType.get_all_link_types`.
+        """
 
         # query git reppository for blame message
         blameMsg = self._getBlameMsg(file_commit.filename, rev)
