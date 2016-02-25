@@ -37,3 +37,5 @@ build/
 dist/
 vendor/
 .coverage
+/.project
+/.pydevproject
