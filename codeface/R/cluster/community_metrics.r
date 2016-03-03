@@ -557,6 +557,7 @@ compute.community.metrics <- function(g, comm) {
   res$diversity <- graph.diversity(g)
   res$diversity[!is.finite(res$diversity)] <- NA
   res$min.cut <- graph.mincut(g)
+  res$edge.vert.ratio <- ecount(g) / vcount(g)
 
   ## Power-law fiting
   p.fit <- power.law.fit(res$v.degree, implementation="plfit")
@@ -988,9 +989,7 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
                    'ev.cent',
                    'diversity')
 
-  metrics.series <- c('diameter',
-                      'average.path.len',
-                      'num.communities',
+  metrics.series <- c('num.communities',
                       'num.vertices',
                       'percent.power.law',
                       'modularity',
@@ -998,9 +997,9 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
                       'alpha',
                       'xmin',
                       'KS.p',
-                      'core.count',
                       'degree.gini',
-                      'num.power.law')
+                      'num.power.law',
+                      'edge.vert.ratio')
 
 
   ## Generate and save box plots for each project
