@@ -29,13 +29,12 @@ source("../mc_helpers.r")
 source("project.spec.r")
 source("ml_utils.r")
 
-gen.forest <- function(conf, repo.path, resdir) {
+gen.forest <- function(conf, repo.path, resdir, use.mbox=TRUE) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
   ## lkml variant
   corp.file <- file.path(resdir, paste("corp.base", conf$listname, sep="."))
-  doCompute <- !(file.exists(corp.file))
 
-  if (doCompute) {
+  if (use.mbox) {
     corp.base <- gen.corpus(conf$listname, repo.path, suffix=".mbox",
                             marks=c("^_{10,}", "^-{10,}", "^[*]{10,},",
                                    # Also remove inline diffs. TODO: Better
@@ -51,9 +50,12 @@ gen.forest <- function(conf, repo.path, resdir) {
                               encoding="UTF-8",
                               preprocess=linux.kernel.preprocess)
     save(file=corp.file, corp.base)
-  } else {
+  } else if (!use.mbox & file.exists(corp.file)) {
     loginfo("Loading mail data from precomputed corpus instead of mbox file")
     load(file=corp.file)
+  } else {
+    logerror("Corpus file not found")
+    stop()
   }
 
   return(corp.base)
@@ -227,11 +229,18 @@ check.corpus.precon <- function(corp.base) {
     }
 
     ## Remove problematic punctuation characters
-    author <- gsub("\"", " ", author)
-    author <- gsub(",", " ", author)
+    problem.characters <- c("\"", ",", ";", "\\(", "\\)")
+    for (p.char in problem.characters) {
+      author <- gsub(p.char, " ", author)
+    }
 
     ## Trim trailing and leading whitespace
     author <- str_trim(author)
+
+    ## Replace textual ' at  ' with @, sometimes
+    ## we can recover an email
+    author <- sub(' at ', '@', author)
+    author <- sub(' AT ', '@', author)
 
     ## Handle case where author is like
     ## Adrian Prantl via llvm-dev <llvm-dev@lists.llvm.org>
@@ -254,11 +263,6 @@ check.corpus.precon <- function(corp.base) {
                    "<xxxyyy@abc.tld>); attempting to recover from: ", author)
       logdevinfo(msg, logger="ml.analysis")
 
-      ## Replace textual ' at  ' with @, sometimes
-      ## we can recover an email
-      author <- sub(' at ', '@', author)
-      author <- sub(' AT ', '@', author)
-
       ## Check for @ symbol
       r <- regexpr("\\S+@\\S+", author, TRUE)
       email <- substr(author, r, r + attr(r,"match.length")-1)
@@ -273,26 +277,31 @@ check.corpus.precon <- function(corp.base) {
         ## replacement
         email <- "could.not.resolve@unknown.tld"
         name <- author
-    } else {
+      } else {
         ## If an email address was detected, use the author
         ## string minus the new email part as name, and construct
         ## a valid name/email combination
         name <- sub(email, "", author, fixed=TRUE)
-        name <- str_trim(name)
+        name <- fix.name(name)
       }
 
-      ## Name and author are now given in both cases, construct
-      ## a valid auhor/email string
+      ## In some cases only an email is provided
+      if (name=="") {
+        name <- gsub("\\.", " ",gsub("@.*", "", email))
+      }
+
       author <- paste(name, ' <', email, '>', sep="")
     }
     else {
-      ## Verify that the order is correct
+      ## There is a correct email address. Ensure that the order is correct
+      ## and fix cases like "<hans.huber@hubercorp.com> Hans Huber"
+
       ## Get email and name parts
       r <- regexpr("<.+>", author, TRUE)
       if(r[[1]] == 1) {
         email <- substr(author, r, r + attr(r,"match.length")-1)
         name <- sub(email, "", author, fixed=TRUE)
-        name <- str_trim(name)
+        name <- fix.name(name)
         email <- str_trim(email)
         author <- paste(name,email)
       }
@@ -410,6 +419,8 @@ dispatch.all <- function(conf, repo.path, resdir) {
   ## NOTE: We only compute the forest for the complete interval to allow for creating
   ## descriptive statistics.
   corp <- corp.base$corp
+  ## Remove duplicate mails
+  corp <- corp[!duplicated(meta(corp, "id"))]
 
   ## NOTE: conf must be present in the defining scope
   do.normalise.bound <- function(authors) {
@@ -436,7 +447,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 
   timestamps <- do.call(c, lapply(seq_along(corp.base$corp),
                                   function(i) meta(corp.base$corp[[i]], tag="datetimestamp")))
-  
+
   loginfo(paste(length(corp.base$corp), "messages in corpus"), logger="ml.analysis")
   loginfo(paste("Date range is", as.character(int_start(iter[[1]])), "to",
       as.character(int_end(iter[[length(iter)]]))), logger="ml.analysis")
@@ -749,14 +760,24 @@ store.twomode.graphs <- function(conf, twomode.graphs, ml.id, range.id) {
 store.mail <- function(conf, forest, corp, ml.id ) {
   columns <- c("threadID", "author", "subject")
   dat <- as.data.frame(forest)[, columns]
+  dat$ID <- rownames(dat)
   dat$mlId <- ml.id
   dat$projectId <- conf$pid
-  dat$creationDate <- sapply(rownames(dat),
-                             function(id) as.character(meta(corp[[id]], "datetimestamp")))
-  colnames(dat) <- c("threadId", "author", "subject", "mlId", "projectId",
-                     "creationDate")
+
+  ##Extract dates from corpus and add them to the data frame
+  dates <- meta(corp, "datetimestamp")
+  dates.df <- data.frame(ID=names(dates),
+                         creationDate=sapply(dates, as.character))
+  dat <- merge(dat, dates.df, by="ID")
+  dat$ID <- NULL
+  colnames(dat)[which(colnames(dat)=="threadID")] <- "threadId"
+  
+  ## Re-order columns to match the order as defined in the database to
+  ## improve the stability
+  dat = dat[c("projectId", "threadId", "mlId", "author", "subject", "creationDate")]
 
   res <- dbWriteTable(conf$con, "mail", dat, append=TRUE, row.names=FALSE)
+
   if (!res) {
     stop("Internal error: Could not write mails into database!")
   }
