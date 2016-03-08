@@ -37,14 +37,16 @@ get.corrective.count <- function(con, project.id, start.date, end.date,
   return(dat)
 }
 
-load.defect.data <- function(filename) {
+load.defect.data <- function(filename, relavent.files) {
   defect.dat <- read.csv(filename, header=TRUE)
+  defect.dat <- defect.dat[defect.dat$Filename %in% relavent.files, ]
+  defect.dat$CountLineCode <- as.integer(defect.dat$CountLineCode)
 
   ## Normalize filenames
   defect.dat$entity <- sapply(defect.dat$Filename,
       function(filename) {
-        filename <- sprintf("src.java.%s_java", filename)
-        filename <- gsub(".", "/", filename, fixed=T)
+        #filename <- sprintf("src.java.%s_java", filename)
+        #filename <- gsub(".", "/", filename, fixed=T)
         filename <- gsub("_", ".", filename, fixed=T)
         return(filename)})
 
