@@ -1,6 +1,9 @@
 library(ggplot2)
 library(igraph)
-library("BiRewire")
+library(BiRewire)
+library(GGally)
+library(lubridate)
+library(corrplot)
 
 source("query.r")
 source("config.r")
@@ -27,6 +30,7 @@ motif.generator <- function(type, anti=FALSE) {
   if (type=="square") {
     motif <- add.vertices(motif, 4)
     motif <- add.edges(motif, c(1,2, 1,3, 2,4, 3,4))
+    if (anti) motif <- delete.edges(motif, c(1))
     V(motif)$kind <- c(person.role, person.role, artifact.type, artifact.type)
     V(motif)$color <- vertex.coding[V(motif)$kind]
   }
@@ -50,9 +54,9 @@ preprocess.graph <- function(g) {
                 edge.attr.comb="first")
 
   ## Remove low degree artifacts
-  artifact.degree <- degree(g, V(g)[V(g)$kind==artifact.type])
-  low.degree.artifact <- artifact.degree[artifact.degree < 2]
-  g <- delete.vertices(g, v=names(low.degree.artifact))
+  ##artifact.degree <- degree(g, V(g)[V(g)$kind==artifact.type])
+  ##low.degree.artifact <- artifact.degree[artifact.degree < 2]
+  ##g <- delete.vertices(g, v=names(low.degree.artifact))
 
   ## Remove isolated developers
   dev.degree <- degree(g, V(g)[V(g)$kind==person.role])
@@ -62,23 +66,106 @@ preprocess.graph <- function(g) {
   return(g)
 }
 
+cor.mtest <- function(mat, conf.level = 0.95) {
+  mat <- as.matrix(mat)
+  n <- ncol(mat)
+  p.mat <- lowCI.mat <- uppCI.mat <- matrix(NA, n, n)
+  diag(p.mat) <- 0
+  diag(lowCI.mat) <- diag(uppCI.mat) <- 1
+  for (i in 1:(n - 1)) {
+    for (j in (i + 1):n) {
+      tmp <- cor.test(mat[, i], mat[, j], conf.level = conf.level, method="spearman")
+      p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
+      #lowCI.mat[i, j] <- lowCI.mat[j, i] <- tmp$conf.int[1]
+      #uppCI.mat[i, j] <- uppCI.mat[j, i] <- tmp$conf.int[2]
+    }
+  }
+  return(list(p.mat, lowCI.mat, uppCI.mat))
+}
+
 ## Configuration
 if (!exists("conf")) conf <- connect.db("../../codeface.conf")
-dsm.filename <- "/home/mitchell/Downloads/cassandra-2.1.0.dsm.xlsx"
-feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
-jira.filename <- "/home/mitchell/Downloads/jira-comment-authors.csv"
-defect.filename <- "/home/mitchell/Downloads/cassandra-1.0.7-bugs.csv"
-codeface.filename <- "/home/mitchell/Downloads/jiraId_CodefaceId.csv"
 con <- conf$con
-project.id <- 15
+project.list <- list(
+                     "flink",
+                     "cassandra",
+#                     "thrift",
+                     "storm",
+                     "camel",
+                     "solr",
+                     "hbase",
+                     "lucene",
+                     "accumulo")
+
+for(project.name in  project.list) {
+
+project.name <- "storm"
+print(project.name)
+
+project.id <- list(flink=17, cassandra=22, thrift=15, storm=24, camel=20,
+                   solr=30,lucene=30, accumulo=26)[[project.name]]
 conf$pid <- project.id
+
+## Analysis window
+window.size <- 12 # months
+end.date <- list(flink="2015-11-22",
+                 cassandra="2016-01-18",
+                 thrift="2015-09-25",
+                 storm="2015-10-28",
+                 camel="2012-10-10",
+                 solr="2016-02-20",
+                 hbase="2016-02-23",
+                 lucene="2016-02-20",
+                 accumulo="2016-02-16")[[project.name]]
+start.date <- as.character(ymd(end.date) - months(window.size))
+
+## Directories
+output.dir <- file.path("/home/mitchell/workspace/motif_results", project.name)
+data.base.dir <- "/home/mitchell/workspace/artifact_data"
+dir.create(output.dir, recursive=T, showWarnings=F)
+
+dsm.filename <- list(flink="/home/mitchell/workspace/artifact_data/flink/dsm/flink-0.10.1-dsm.xlsx",
+                     cassandra="/home/mitchell/workspace/artifact_data/cassandra/dsm/cassandra-3.2.1-dsm.xlsx",
+                     thrift="/home/mitchell/workspace/artifact_data/thrift/dsm/thrift-0.9.3-dsm.xlsx",
+                     storm="/home/mitchell/workspace/artifact_data/storm/dsm/storm-0.9.6-dsm.xlsx",
+                     camel="/home/mitchell/workspace/artifact_data/camel/dsm/camel-2.14.0-dsm.xlsx",
+                     solr=file.path(data.base.dir, "solr/solr-5.5.0.xlsx"),
+                     hbase=file.path(data.base.dir, "hbase/hbase-1.2.0.xlsx"),
+                     lucene=file.path(data.base.dir, "lucene/lucene-5.5.0.xlsx"),
+                     accumulo=file.path(data.base.dir, "accumulo/accumulo-1.6.5.xlsx"))[[project.name]]
+
+feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
+
+jira.filename <- list(flink="/home/mitchell/workspace/artifact_data/flink/jira/jira-comment-authors-with-email.csv",
+                      cassandra="/home/mitchell/workspace/artifact_data/cassandra/jira/jira-comment-authors-with-email.csv",
+                      thrift="/home/mitchell/workspace/artifact_data/thrift/jira/jira-comment-authors-with-email.csv",
+                      storm="/home/mitchell/workspace/artifact_data/storm/jira/jira-comment-authors-with-email.csv",
+                      camel="/home/mitchell/workspace/artifact_data/camel/jira/jira-comment-authors-with-email.csv",
+                      solr=file.path(data.base.dir, "solr/_jira-comment-authors-with-email.csv"),
+                      hbase=file.path(data.base.dir, "hbase/_jira-comment-authors-with-email.csv"),
+                      lucene=file.path(data.base.dir, "lucene/_jira-comment-authors-with-email.csv"),
+                      accumulo=file.path(data.base.dir, "accumulo/_jira-comment-authors-with-email.csv"))[[project.name]]
+
+defect.filename <- list(flink="/home/mitchell/workspace/artifact_data/flink/metric/flink-0.10.1-report.csv",
+                        cassandra="/home/mitchell/workspace/artifact_data/cassandra/metric/cassandra-3.2.1-report.csv",
+                        thrift="/home/mitchell/workspace/artifact_data/thrift/metric/thrift-0.9.3-report.csv",
+                        storm="/home/mitchell/workspace/artifact_data/storm/metrics/storm-0.9.6-report.csv",
+                        camel="/home/mitchell/workspace/artifact_data/camel/metric/camel-2.14.0-report.csv",
+                        solr=file.path(data.base.dir, "solr/solr-5.5.0-report.csv"),
+                        hbase=file.path(data.base.dir, "hbase/hbase-1.2.0-report.csv"),
+                        lucene=file.path(data.base.dir, "lucene/lucene-5.5.0-report.csv"),
+                        accumulo=file.path(data.base.dir, "accumulo/accumulo-1.6.5-report.csv"))[[project.name]]
+
+
+## Analysis
+motif.type <- list("triangle", "square")[[1]]
 artifact.type <- list("function", "file", "feature")[[2]]
-dependency.type <- list("co-change", "dsm", "feature_call", "none")[[4]]
+dependency.type <- list("co-change", "dsm", "feature_call", "none")[[2]]
 quality.type <- list("corrective", "defect")[[2]]
-communication.type <- list("mail", "jira")[[1]]
+communication.type <- list("mail", "jira")[[2]]
+
+## Constants
 person.role <- "developer"
-start.date <- "2015-07-01"
-end.date <- "2015-10-01"
 file.limit <- 30
 historical.limit <- ddays(365)
 
@@ -88,6 +175,9 @@ vcs.dat <- query.dependency(con, project.id, artifact.type, file.limit,
 vcs.dat$entity <- sapply(vcs.dat$entity,
     function(filename) filename <- gsub("/", ".", filename, fixed=T))
 vcs.dat$author <- as.character(vcs.dat$author)
+
+## Save to csv
+write.csv(vcs.dat, file.path(output.dir, "commit_data.csv"))
 
 ## Compute communication relations
 if (communication.type=="mail") {
@@ -116,7 +206,7 @@ if (dependency.type == "co-change") {
   names(dependency.dat) <- c("V1", "V2")
 
 } else if (dependency.type == "dsm") {
-  dependency.dat <- load.dsm.edgelist(dsm.filename)
+  dependency.dat <- load.dsm.edgelist(dsm.filename, relavent.entity.list)
   dependency.dat <-
     dependency.dat[dependency.dat[, 1] %in% relavent.entity.list &
                    dependency.dat[, 2] %in% relavent.entity.list, ]
@@ -172,23 +262,27 @@ vertex.coding[person.role] <- 1
 vertex.coding[artifact.type] <- 2
 V(g)$color <- vertex.coding[V(g)$kind]
 
+## Save graph
+write.graph(g, file.path(output.dir, "network_data.graphml"), format="graphml")
+
 ## Define motif
-motif <- motif.generator("triangle")
-motif.anti <- motif.generator("triangle", anti=TRUE)
+motif <- motif.generator(motif.type)
+motif.anti <- motif.generator(motif.type, anti=TRUE)
 
 ## Count subgraph isomorphisms
 motif.count <- count_subgraph_isomorphisms(motif, g, method="vf2")
+motif.anti.count <- count_subgraph_isomorphisms(motif.anti, g, method="vf2")
 
 ## Extract subgraph isomorphisms
 motif.subgraphs <- subgraph_isomorphisms(motif, g, method="vf2")
 motif.subgraphs.anti <- subgraph_isomorphisms(motif.anti, g, method="vf2")
 
 ## Compute null model
-niter <- 1000
+niter <- 500
 motif.count.null <- c()
 
 motif.count.null <-
-  sapply(seq(niter),
+  mclapply(seq(niter),
     function(i) {
       ## Rewire dev-artifact bipartite
       g.bipartite.rewired <- birewire.rewire.bipartite(simplify(g.bipartite), verbose=FALSE) #g.bipartite
@@ -225,30 +319,46 @@ motif.count.null <-
 
       g.null <- preprocess.graph(g.null)
 
-      res <- count_subgraph_isomorphisms(motif, g.null, method="vf2")
+      count.positive <- count_subgraph_isomorphisms(motif, g.null, method="vf2")
+      count.negative <- count_subgraph_isomorphisms(motif.anti, g.null, method="vf2")
 
-      return(res)})
+      res <- data.frame(count.type=c("positive", "negative"),
+                        count=c(count.positive, count.negative))
 
-motif.count.dat <- data.frame(motif.count.null=motif.count.null,
-                              motif.count.empirical=motif.count)
+      return(res)}, mc.cores=2)
 
+null.model.dat <- do.call(rbind, motif.count.null)
+null.model.dat[null.model.dat$count.type=="positive", "empirical.count"] <- motif.count
+null.model.dat[null.model.dat$count.type=="negative", "empirical.count"] <- motif.anti.count
 
-p.null <- ggplot(data=motif.count.dat, aes(x=motif.count.null)) +
+## Save plots
+networks.dir <- file.path(output.dir, "motif_analysis", motif.type, communication.type)
+dir.create(networks.dir, recursive=T, showWarnings=T)
+
+## Null model
+p.null <- ggplot(data=null.model.dat, aes(x=count)) +
        geom_histogram(aes(y=..density..), colour="black", fill="white") +
-       geom_point(aes(x=motif.count.empirical), y=0, color="red", size=5) +
-       geom_density(alpha=.2, fill="#AAD4FF")
-ggsave(file="motif_count.png", p.null)
+       geom_point(aes(x=empirical.count), y=0, color="red", size=5) +
+       geom_density(alpha=.2, fill="#AAD4FF") +
+       facet_wrap(~count.type, scales="free")
 
+ggsave(plot=p.null,
+       filename=file.path(networks.dir, "motif_null_model.png"))
+
+## Communication degree distribution
 p.comm <- ggplot(data=data.frame(degree=degree(graph.data.frame(comm.dat))), aes(x=degree)) +
     geom_histogram(aes(y=..density..), colour="black", fill="white") +
     geom_density(alpha=.2, fill="#AAD4FF")
-ggsave(file="communication_degree_dist.png", p.comm)
 
-plot.to.file(g, "socio_technical_network.png")
+ggsave(plot=p.comm,
+       filename=file.path(networks.dir, "communication_degree_dist.png"))
+
+## Complete network
+plot.to.file(g, file.path(networks.dir, "socio_technical_network.png"))
 
 ## Perform quality analysis
 if (quality.type=="defect") {
-  quality.dat <- load.defect.data(defect.filename)
+  quality.dat <- load.defect.data(defect.filename, relavent.entity.list)
 } else {
   quality.dat <- get.corrective.count(con, project.id, start.date, end.date,
                                       artifact.type)
@@ -258,8 +368,68 @@ artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs,
                                                    function(i) i[[3]]$name))))
 anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs.anti,
                                                         function(i) i[[3]]$name))))
+
+## Get file developer count
+file.dev.count.df <- ddply(vcs.dat, .(entity),
+                           function(df) data.frame(entity=unique(df$entity),
+                                                   dev.count=length(unique(df$id))))
+
 compare.motifs <- merge(artifacts, anti.artifacts, by='entity', all=TRUE)
+
 compare.motifs[is.na(compare.motifs)] <- 0
 names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
 
 artifacts.dat <- merge(quality.dat, compare.motifs, by="entity")
+artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
+
+## Add features
+artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count - artifacts.dat$motif.count) /
+                                           (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
+artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count / artifacts.dat$motif.count
+artifacts.dat$motif.ratio[is.infinite(artifacts.dat$motif.ratio)] <- NA
+artifacts.dat$bug.density <- artifacts.dat$BugIssueCount / (artifacts.dat$CountLineCode+1)
+artifacts.dat$motif.count.norm <- artifacts.dat$motif.count / artifacts.dat$dev.count
+artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count / artifacts.dat$dev.count
+
+## Generate correlation plot
+corr.cols <- c("motif.count",
+    "motif.anti.count",
+    "motif.count.norm",
+    "motif.anti.count.norm",
+    "motif.ratio",
+    "motif.percent.diff",
+    "dev.count",
+    "bug.density",
+    "BugIssueCount",
+    "BugIssueChurn",
+    "IssueChurn",
+    "IssueCommits",
+    "CountLineCode")
+
+correlation.dat <- ggpairs(artifacts.dat,
+                           columns=corr.cols,
+                           lower=list(continuous=wrap("points",
+                                                      alpha=0.33,
+                                                      size=0.5)),
+                           upper=list(continuous=wrap('cor',
+                                                     method='spearman'))) +
+                           theme(axis.title.x = element_text(angle = 90, vjust = 1, color = "black"))
+
+corr.mat <- cor(artifacts.dat[, corr.cols], use="pairwise.complete.obs", method="spearman")
+corr.test <- cor.mtest(artifacts.dat[, corr.cols])
+
+## Write correlations and raw data to file
+corr.plot.path <- file.path(output.dir, "quality_analysis", motif.type, communication.type)
+dir.create(corr.plot.path, recursive=T, showWarnings=T)
+png(file.path(corr.plot.path, "correlation_plot.png"), width=1200, height=1200)
+print(correlation.dat)
+dev.off()
+
+png(file.path(corr.plot.path, "correlation_plot_color.png"), width=700, height=700)
+corrplot(corr.mat, p.mat=corr.test[[1]],
+         insig = "p-value", sig.level=0.05, method="color",
+         type="upper")
+dev.off()
+
+write.csv(artifacts.dat, file.path(corr.plot.path, "quality_data.csv"))
+}
