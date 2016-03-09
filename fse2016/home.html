@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <head>
+    <title>Codeface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link type="text/css" href="css/bootstrap.min.css" rel="stylesheet"
+	  media="screen">
+  </head>
+</head>
+<body>
+  <div class="jumbotron">
+    <div class="container">
+      <h2>
+        Classifying Developers into Core and Peripheral:<br>An Empirical Study on Count and Network Metrics
+      </h2>
+      <p>Supplementary material for the International Symposium on the Foundations of Software Engineering submission.</p>
+      <div class="row">
+        <div class="col-md-4">
+          <p style="font-size: 15px; line-height: 120%;">
+            Mitchell Joblin<br>Siemens AG
+          </p>
+        </div>
+        <div class="col-md-4">
+          <p style="font-size: 15px; line-height: 120%;">
+            Sven Apel & Claus Hunsen<br>University of Passau
+          </p>
+        </div>
+        <div class="col-md-4">
+          <p style="font-size: 15px; line-height: 120%;">
+            Wolfgang Mauerer<br>Siemens AG, OTH Regensburg
+          </p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-3">
+          <p>
+            <a href="http://rfhinf067.hs-regensburg.de/projects.zip" class="btn btn-primary">Download Project Data</a>
+          </p>
+        </div>
+        <div class="col-md-3">
+          <p>
+            <a href="data/survey_vs_operationalizations.csv" class="btn btn-primary">Download Survey Data</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-6">
+      <div class="padded">
+        <h2>Abstract</h2>
+        <p align="justify"><p>Knowledge about the roles developers play in a software
+project is crucial to understanding the project's collaborative dynamics.
+Developers are often classifed according to
+the dichotomy of core and peripheral roles. Typically, operationalizations
+based on simple counts of developer activities
+(e.g., number of commits) are used for this purpose, but
+there is concern regarding their validity and ability to elicit
+meaningful insights. To shed light on this issue, we investigate
+whether commonly used operationalizations of core-peripheral
+roles produce consistent results, and we validate
+them with respect to developers' perceptions by surveying
+166 developers. Improving over the state of the art, we propose
+a relational perspective on developer roles, using developer
+networks to model the organizational structure, and
+by examining core-peripheral roles in terms of developers'
+positions and stability within the organizational structure.
+In a study of 10 substantial open-source projects, we found
+that the existing and our proposed core-peripheral operationalizations
+are largely consistent and valid. Furthermore,
+we demonstrate that a relational perspective can reveal further
+meaningful insights, such as that core developers exhibit
+high positional stability, upper positions in the hierarchy,
+and high levels of coordination with other core developers.
+        </p>
+      </div>
+      <!--/padded-->
+    </div>
+    <!--/col-md--->
+    <div class="col-md-6">
+     <div class="padded">
+     <h2>Developer Networks</h2>
+    <!--/col-md--->
+        <img id="figFileBased"
+          src="../Results/QEMU/Function-Based/v0.15.0-v1.0/community.svg"
+          width="70%" class="img-responsive" alt="Responsive image">
+      </div>
+      <!--/padded-->
+    </div>
+    <!--/col-md--->
+  </div>
+  <!--/row-->
+</div>
+
+  <script src="http://code.jquery.com/jquery.js"></script>
+  <script src="js/bootstrap.js"></script>
+</body>
+</html>
