@@ -42,6 +42,10 @@ from .PersonInfo import PersonInfo
 from .idManager import idManager
 from codeface.linktype import LinkType
 
+from gender_detector import GenderDetector
+import re
+
+
 #Global Constants
 SEED = 448
 
@@ -1368,6 +1372,44 @@ def emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir, releaseRangeID
     return None
 
 
+def inferGender(people):
+    """ Infer peopple gender given the first name
+    
+    gender-detector module by Marcos Vanetta (GPL2) is used to infer gender.
+    Data-sets with support names from United States, United Kingdom, Argentina and Uruguay
+    Non-ascii names are considered invalid because they are not supported by the module
+    All datasets are used: if different outcome occur the gender is randomly assigned
+    Unknown genders are randomly assigned using adequate gender probability
+    """
+    supportedNameDatasets = ["us","uk","ar","uy"]
+    nameDatasets = []
+    random.seed(SEED)
+    
+    # initialize gender detectors for all data-sets available
+    for dataset in supportedNameDatasets:
+        nameDatasets.append(GenderDetector(dataset))
+  
+    for person in people:
+        # Non-ascii names are considered invalid because used module can't handle them
+        firstname =  re.sub(r'[^\x00-\x7F]+','anonymous', person.getName().split(" ")[0])
+        gender = None
+        # use all data-sets to infer gender and resolve conflicts if any
+        for dat in nameDatasets:
+            tmpGender = dat.guess(firstname)
+            if gender == None or (gender == "unknown" and tmpGender != "unknown"):
+                gender = tmpGender
+            elif gender != tmpGender and tmpGender != "unknown":
+                # different outcomes from data-sets. Choose randomly
+                gender = random.choice([gender,tmpGender])
+    
+        if gender == "unknown":
+            # considering the result from http://floss2013.libresoft.es/results.en.html
+            # Randomly choice with a 11% probability of female gender
+            gender = "female" if (random.randint(0, 100) < 12) else "male"
+        
+        # assign gender to person instance
+        person.setGender(gender)
+
 def populatePersonDB(cmtlist, id_mgr, link_type=None):
     for cmt in cmtlist:
         #create person for author
@@ -1384,6 +1426,9 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
             pi = id_mgr.getPI(ID)
             cmt.setCommitterPI(pi)
             pi.addCommit(cmt)
+    
+    # assign gender to people
+    inferGender(id_mgr.getPersons().values())
 
     return None
 
@@ -1814,6 +1859,24 @@ def computeSimilarity(cmtlist):
 
         cmt.setAuthorTaggersSimilarity(atsim)
         cmt.setTaggersSubsysSimilarity(tssim)
+
+def computeGenderDiversity(id_mgr):
+    """ Compute gender diversity
+    
+    Use Blau index to calculate gender diversity.
+    return the blau index of gender diversity
+    """
+    female = float(0)
+    # count female gender occurrence
+    for person in id_mgr.getPersons().values():
+        if person.getGender() == "female":
+            female = female + 1
+    total = float(len(id_mgr.getPersons().values()))    
+    
+    blau = 1 - ( math.pow((total-female)/total, 2) + math.pow(female/total, 2))
+    
+    return blau
+
 
 ###########################################################################
 # Main part

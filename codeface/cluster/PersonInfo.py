@@ -96,6 +96,7 @@ class PersonInfo:
         self.name = name
         self.email = email
         self.subsys_names = subsys_names
+        self.gender = None
 
         # Store from which developers the person received a tag
         self.associations = {}
@@ -172,6 +173,12 @@ class PersonInfo:
         self.ID = ID
     def getID(self):
         return self.ID
+    
+    def setGender(self, gender):
+        self.gender = gender
+        
+    def getGender(self):
+        return self.gender
 
     def setName(self, name):
         self.name = name
