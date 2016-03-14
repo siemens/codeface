@@ -111,7 +111,9 @@ compare.classification <- function(developer.class.1, developer.class.2,
   }
 
   if ("cohen" %in% similarity.metric) {
-    if (nrow(classes.merged) > 2) {
+    if (all(classes.merged$match)) {
+      res[["cohen"]] <- 1
+    } else if (nrow(classes.merged) > 2) {
       res[["cohen"]] <- cohen.kappa(classes.merged[, c("class.x", "class.y")])$kappa
     } else {
       res[["cohen"]] <- NA
