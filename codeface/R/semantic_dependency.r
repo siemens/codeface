@@ -26,14 +26,12 @@ processCorpus <- function(corp) {
                    s5 <- gsub("[^[:alnum:] ]", " ", s4)
                    return(s5)}
 
-  ct <- content_transformer(removeSoft)
-  corp_mod <- tm_map(corp, ct)
+  funs <- list(stripWhitespace, # Remove excess whitespace
+               stemDocument,
+               function(x) removeWords(x, stopwords("english")), # Remove stop words,
+               content_transformer(removeSoft)) # Handle prog lang specifics)
 
-  ## Remove stop words
-  corp_mod <- tm_map(corp_mod, removeWords, stopwords("english"))
-
-  ## Stem words
-  corp_mod <- tm_map(corp_mod, stemDocument)
+  corp_mod <- tm_map(corp, FUN=tm_reduce, tmFuns=funs)
 
   return(corp_mod)
 }
