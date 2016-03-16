@@ -120,8 +120,8 @@ getSimDocIds <- function(dist.mat, threshold) {
   num.rows <- nrow(dist.mat)
   row.seq <- seq(num.rows)
   edgelist <- cbind(
-    row=unlist(lapply(2:num.rows, function(x) x:num.rows), use.names=FALSE),
-    col=rep(row.seq[-length(row.seq)], times=rev(tail(row.seq,-1))-1))
+    X1=unlist(lapply(2:num.rows, function(x) x:num.rows), use.names=FALSE),
+    X2=rep(row.seq[-length(row.seq)], times=rev(tail(row.seq,-1))-1))
 
   values <- dist.mat[edgelist]
 
