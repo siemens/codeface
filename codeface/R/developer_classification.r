@@ -123,6 +123,55 @@ compare.classification <- function(developer.class.1, developer.class.2,
   return(res)
 }
 
+## Compare aggreement accross a set of developer classes
+compare.classification.all <- function(developer.classifications) {
+  classification.types <- names(developer.classifications)
+  classification.pairs <- combn(classification.types, m=2, simplify=F)
+
+  all.agreement <- list()
+  i <- 0
+  for (pair in classification.pairs) {
+    classification.1 <- developer.classifications[[pair[[1]]]]
+    classification.2 <- developer.classifications[[pair[[2]]]]
+    classes.merged <- merge(classification.1, classification.2,
+        by=c("author", "L1"))
+    dates <- unique(classes.merged$L1)
+
+    ## Compute classification agreement over for all dates
+    class.match <- lapply(dates,
+        function(date) {
+          compare.classification(subset(classes.merged, L1==date)[, c("author", "class.x")],
+              subset(classes.merged, L1==date)[, c("author", "class.y")])
+        })
+    class.match.df <- melt(class.match)
+    class.match.df$L1 <- dates[class.match.df$L1]
+    correlation.type <- "spearman"
+    colnames(class.match.df) <- c("value", "metric", "date")
+    class.cor <- lapply(dates,
+        function(date) {
+          metric.values <- subset(classes.merged, L1==date)[, c("value.x",
+                  "value.y")]
+          class.rank.cor <- cor(metric.values$value.x,
+              metric.values$value.y,
+              method=correlation.type)
+        })
+    class.cor.df <- melt(class.cor)
+    class.cor.df$metric <- correlation.type
+    class.cor.df$L1 <- dates[class.cor.df$L1]
+    colnames(class.cor.df) <- c("value", "date", "metric")
+
+    agreement.df <- rbind(class.cor.df, class.match.df)
+    agreement.df[, "class1"] <- unique(classification.1$metric)
+    agreement.df[, "class2"] <- unique(classification.2$metric)
+    all.agreement[[paste(pair, collapse="-")]] <- agreement.df
+  }
+
+  all.agreement <- do.call(rbind, all.agreement)
+  all.agreement$date <- as.Date(all.agreement$date)
+
+  return(all.agreement)
+}
+
 ## Compute edge probabilities between core and peripheral groups
 compute.edge.probs <- function(developer.class.list, edgelist, vertex.ids) {
   developer.class.list$author <- as.character(developer.class.list$author)

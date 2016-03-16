@@ -1029,76 +1029,13 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
     }
   }
 
-  ## Save classification match
-  classification.types <- names(developer.classifications)
-  classification.pairs <- combn(classification.types, m=2, simplify=F)
-
+  ## Compute all classification match stats
   all.agreement <- list()
-  i <- 0
-  for (pair in classification.pairs) {
-    classification.1 <- developer.classifications[[pair[[1]]]]
-    classification.2 <- developer.classifications[[pair[[2]]]]
-    classes.merged <- merge(classification.1, classification.2,
-                            by=c("author", "L1"))
-    dates <- unique(classes.merged$L1)
-
-    ## Compute classification agreement over for all dates
-    class.match <- lapply(dates,
-        function(date) {
-          compare.classification(subset(classes.merged, L1==date)[, c("author", "class.x")],
-                                 subset(classes.merged, L1==date)[, c("author", "class.y")])
-        })
-    class.match.df <- melt(class.match)
-    class.match.df$L1 <- dates[class.match.df$L1]
-    correlation.type <- "spearman"
-    colnames(class.match.df) <- c("value", "metric", "date")
-    class.cor <- lapply(dates,
-        function(date) {
-          metric.values <- subset(classes.merged, L1==date)[, c("value.x",
-                                                                "value.y")]
-          class.rank.cor <- cor(metric.values$value.x,
-                                metric.values$value.y,
-                                method=correlation.type)
-        })
-    class.cor.df <- melt(class.cor)
-    class.cor.df$metric <- correlation.type
-    class.cor.df$L1 <- dates[class.cor.df$L1]
-    colnames(class.cor.df) <- c("value", "date", "metric")
-
-    agreement.df <- rbind(class.cor.df, class.match.df)
-    agreement.df[, "class1"] <- unique(classification.1$metric)
-    agreement.df[, "class2"] <- unique(classification.2$metric)
-    all.agreement[[paste(pair, collapse="-")]] <- agreement.df
+  if (length(developer.classifications) != 0) {
+    all.agreement <- compare.classification.all(developer.classifications)
   }
 
-  all.agreement <- do.call(rbind, all.agreement)
-  all.agreement$date <- as.Date(all.agreement$date)
-
-  ## Genearte time series similarity plots
-  #existing.metrics <- c("loc.count", "mail.count", "commit.count", "mail degree")
-  all.agreement$comp <- paste(all.agreement$class1, all.agreement$class2, sep=" vs ")
-  #all.agreement.t <- subset(all.agreement, class1 %in% existing.metrics  & class2 %in% existing.metrics)
-  p.class.ag <- ggplot(all.agreement, aes(y=value, x=date)) +
-                       geom_point() +
-                       stat_smooth(aes(group=comp, color=comp), fill="grey65",
-                                       level=0.90, size=0.5, se=F) +
-                       scale_x_date(labels = date_format("%Y"),
-                                    breaks = "3 months", expand=c(0,0)) +
-                       ylim(c(0,1)) +
-                       facet_wrap(~ metric, ncol=1) +
-                       theme_bw()
-
-  filename <- paste(file.dir, "/developer_class_match.png", sep="")
-  ggsave(plot=p.class.ag, filename=filename, width=10, height=30, dpi = 300)
-
-  ## Take average over time and plot similarity comparisons
-  all.agreement.agg <- ddply(all.agreement, .(class1,class2,metric), summarize,
-                             value=mean(value, na.rm=T))
-
-  p.matrix <- plot.agreement(all.agreement.agg)
-  filename <- paste(file.dir, "/developer_class_match_matrix.png", sep="")
-  ggsave(plot=p.matrix, filename=filename, width=10, height=5)
-
+  ## Save data to file
   data <- list(trends=trends,markov.chains=markov.chains,
                developer.classifications= developer.classifications,
                class.edge.probs=class.edge.probs,
