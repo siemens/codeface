@@ -703,7 +703,7 @@ compute.project.graph.trends <-
                   sprintf("removing empty cycle %s", cycle)
                   res <- NULL
                 }
-                else {
+                else if (FALSE) {
                   ## Compute core developers based on commit counts
                   e$developer.classes[["1"]][[end.date]] <-
                       get.developer.class.con(con, p.id, start.date, end.date,
