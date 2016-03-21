@@ -719,10 +719,6 @@ compute.project.graph.trends <-
                       get.developer.class.con(con, p.id, start.date, end.date,
                                               "mail", count.type="mail")
 
-                  ## Compute core developers based on degree centrality
-                  e$developer.classes[["4"]][[end.date]] <-
-                      get.developer.class.centrality(res$edgelist, res$v.global.ids,
-                                                     source="VCS", metric="degree")
                   e$developer.edge.probs[[end.date]] <-
                       compute.edge.probs(e$developer.classes[["4"]][[end.date]], 
                                          res$edgelist, res$v.global.ids)
@@ -749,6 +745,11 @@ compute.project.graph.trends <-
                   e$developer.classes[["8"]][[end.date]] <-
                       get.developer.class.centrality(email.edgelist, v.global.ids,
                                                      source="mail", metric="page.rank")
+                } else {
+                  ## Compute core developers based on degree centrality
+                  e$developer.classes[["4"]][[end.date]] <-
+                      get.developer.class.centrality(res$edgelist, res$v.global.ids,
+                          source="VCS", metric="degree")
                 }
 
                 return(res)})
@@ -801,8 +802,8 @@ compute.project.graph.trends <-
   }
 
   ## Compute Markov chains
-  if(length(e$developer.classes[["5"]]) > 1) {
-    markov.chain.centrality <- compute.class.markov.chain(e$developer.classes[["5"]])
+  if(length(e$developer.classes[["4"]]) > 1) {
+    markov.chain.centrality <- compute.class.markov.chain(e$developer.classes[["4"]])
     markov.chains <- list(markov.chain.centrality=markov.chain.centrality)
   }
   else {
