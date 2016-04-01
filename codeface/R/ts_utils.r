@@ -81,6 +81,7 @@ compute.ts.distance <- function(series1, series2) {
 
 ## Compute the distance between a specific time series of a project
 ## for all subsequent releases
+## Returns NA if only 2 or less revisions are present
 compute.release.distance <- function(series.merged, conf) {
   series <- gen.series(series.merged, "Averaged (large window)")
   series <- split.by.ranges(series, conf$boundaries)
@@ -88,8 +89,9 @@ compute.release.distance <- function(series.merged, conf) {
   ## Number of series is equal to (1 - number of revisions) provided
   ## by the configuration file
   if(length(series) < 2) {
-    logerror("Less than 3 revisions provided by configuration file",
+    logwarn("Less than 3 revisions provided by configuration file, skipping analysis",
              logger="ts_ulits")
+    return(NA)
   }
 
   res <- sapply(1:(length(series)-1), function(i) {

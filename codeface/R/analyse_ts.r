@@ -606,12 +606,14 @@ do.release.analysis <- function(resdir, graphdir, conf) {
   plot.id <- get.clear.plot.id(conf, plot.name)
 
   dat <- compute.release.distance(series.merged, conf)
-  dat <- data.frame(time=as.character(conf$boundaries$date.end[-1]), value=dat,
-                    value_scaled=dat, plotId=plot.id)
+  if (!is.na(dat)) { # if too few revisions are present, skip further analysis
+    dat <- data.frame(time=as.character(conf$boundaries$date.end[-1]), value=dat,
+                      value_scaled=dat, plotId=plot.id)
 
-  res <- dbWriteTable(conf$con, "timeseries", dat, append=TRUE, row.names=FALSE)
-  if (!res) {
-    stop("Internal error: Could not write release distance TS into database!")
+    res <- dbWriteTable(conf$con, "timeseries", dat, append=TRUE, row.names=FALSE)
+    if (!res) {
+      stop("Internal error: Could not write release distance TS into database!")
+    }
   }
 
   ## TODO: Compute the difference between release cycles and a
