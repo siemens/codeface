@@ -175,6 +175,10 @@ add.entity.relation <- function(commit.df, entity.group, type) {
   }
   else logerror("Incorrect parameter passed", logger="network_stream")
 
+  if (nrow(edgelist)==0) {
+    return(entity.group)
+  }
+
   ## Compute entity neighbor list
   g <- graph.data.frame(edgelist, directed=F)
   entity.rel.map <- neighborhood(g, 1)
