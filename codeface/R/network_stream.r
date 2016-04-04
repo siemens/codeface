@@ -126,6 +126,8 @@ construct.edgelist <- function(commit.list, add.co.change.rel, add.semantic.rel)
 
 aggregate.on.common.entity <- function(commit.df) {
     ## Group rows that make a change to a common entity
+    commit.df <- as.data.table(commit.df)
+    commit.df$impl <- NULL
     entity.factor <- as.factor(commit.df$entity)
     entity.group <- split(commit.df, entity.factor)
 
@@ -137,7 +139,7 @@ add.entity.relation <- function(commit.df, entity.group, type) {
   ## Get list of currently changed entities, then we can use this information
   ## to eliminate the historical relationships that are not relavent to the current
   ## development
-  relavent.entity.list <- unique(do.call(rbind, entity.group)$entity)
+  relavent.entity.list <- unique(rbindlist(entity.group)$entity)
   names(relavent.entity.list) <- relavent.entity.list
 
   ## If the commit data frame is empty then there is no possibility to
@@ -173,26 +175,27 @@ add.entity.relation <- function(commit.df, entity.group, type) {
   }
   else logerror("Incorrect parameter passed", logger="network_stream")
 
-  entity.rel.map <-
-    lapply(relavent.entity.list,
-           function(entity) {
-             ## Find related entities by creating a mapping
-             ## between one entity and all related entities
-             col.1.entity.match <- edgelist$X1 == entity
-             col.2.entity.match <- edgelist$X2 == entity
-             related.entities <- union(edgelist[col.1.entity.match, "X2"],
-                                       edgelist[col.2.entity.match, "X1"])
-             return(related.entities)})
+  ## Compute entity neighbor list
+  g <- graph.data.frame(edgelist, directed=F)
+  entity.rel.map <- neighborhood(g, 1)
+  names(entity.rel.map) <- V(g)$name
 
   ## Group entities that share a relation according to entity.rel.map
   entity.group <-
-    lapply(names(entity.group),
+    lapply(relavent.entity.list,
            function(entity.name) {
-             entity.rel.group <- entity.rel.map[[entity.name]]
+             entity.rel.group <- entity.rel.map[[entity.name]]$name
+
+             ## If the entity has no neighbors, null is returned
+             ## but we still want to add to the entity group
+             if(is.null(entity.rel.group)) entity.rel.group <- c(entity.name)
+
              df.list <- entity.group[entity.rel.group]
+
              ## Combine data frames
-             df.relations <- do.call(rbind, df.list)
-             res <- rbind(df.relations, entity.group[[entity.name]])})
+             res <- rbindlist(df.list)})
+
+  names(entity.group) <- relavent.entity.list
 
   return(entity.group)
 }
@@ -206,35 +209,43 @@ generate.person.edgelist <- function(entity.group) {
   entity.group <- entity.group[unlist(keep.element)]
 
   edgelist.total <-
-    mclapply(entity.group, mc.cores = get.num.cores(),
-      function(g) {
+    mclapply(names(entity.group), mc.cores=2,
+      function(entity.name) {
         ## Sort for optimization
-        g <- g[order(g$commitDate, decreasing=T),]
+        g <- entity.group[[entity.name]]
+        g <- g[, list(size=sum(size)), by=list(author, entity)]
         num.rows <- nrow(g)
-        edgelist.part <- vector(mode="list", length=num.rows)
+        edgelist.part <- list() #vector(mode="list", length=num.rows)
+
+        cmt.idx <- which(g$entity==entity.name)
 
         ## Loop over data frame rows containing code contributions
         ## to connect developers making commits to related artifacts
-        for (i in seq(from=1,to=num.rows)) {
-          cmt.1 <- g[i,]
-          row.idx <- seq(from=i, to=num.rows)
-          cmt.1.size <- cmt.1$size
-          to <- g[row.idx, 'author']
-          from <- rep(cmt.1$author, length(to))
-          weight <- g[row.idx, 'size'] + cmt.1.size
-          edgelist.part[[i]] <- cbind(from, to, weight)
+        for (i in cmt.idx) {
+          cmt.from <- g[i,]
+          cmt.to <- g[cmt.from$author!=g$author,]
+          weight <- cmt.from$size + cmt.to$size
+          edgelist.part[[i]] <- data.table(from=cmt.from$author,
+                                           to=cmt.to$author,
+                                           weight=weight)
         }
-        res <- do.call(rbind, edgelist.part)
-        res <- data.table(res)[, list(weight=sum(weight)), by=.(from, to)]
+
+        res <- rbindlist(edgelist.part)
+
+        if (nrow(res)!=0) {
+          res <- res[, list(weight=sum(weight)), by=list(from,to)]
+        } else {
+          res <- NULL
+        }
 
         return(res)})
 
-  edgelist <- data.frame()
+  edgelist <- data.table()
   if (length(edgelist.total) != 0) {
-    edgelist <- do.call(rbind, edgelist.total)
+    edgelist <- rbindlist(edgelist.total)
 
     ## Aggregate edge multiplicity into a single edge
-    edgelist <- edgelist[, list(weight=sum(weight)), by=.(from, to)]
+    edgelist <- edgelist[, list(weight=sum(weight)), by=list(from, to)]
     edgelist <- as.data.frame(edgelist)
   }
 
