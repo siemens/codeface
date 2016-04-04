@@ -1032,7 +1032,7 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
 
   ## Compute all classification match stats
   all.agreement <- list()
-  if (length(developer.classifications) != 0) {
+  if (length(developer.classifications) > 1) {
     all.agreement <- compare.classification.all(developer.classifications)
   }
 
