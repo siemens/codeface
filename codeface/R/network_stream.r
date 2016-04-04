@@ -26,7 +26,7 @@ entity.group.to.edgelist <- function(entity.groups, cycle) {
 
   ## Get all authors since some may be isolated and will then not appear in the
   ## edgelist
-  author.id <- unique(do.call(rbind,entity.groups)$author)
+  author.id <- unique(rbindlist(entity.groups)$author)
   vertex.data <- data.frame(id=author.id)
 
   return(list(edgelist=edgelist, vertex.data=vertex.data,
