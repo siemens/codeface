@@ -65,6 +65,10 @@ computeDocSimilarity <- function(tdm) {
   cmpCosine <- cmpfun(cosineVectorized)
   similarity.mat <- cmpCosine(diag(latent.space$sk) %*% t(latent.space$dk))
 
+  ## After document weighting, some documents have no elements and
+  ## the similarity computation results in nan
+  similarity.mat[is.nan(similarity.mat)] <- 0
+
   return(similarity.mat)
 }
 
