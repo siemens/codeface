@@ -56,3 +56,4 @@ reinstall.package.from.github("tm.plugin.mail", "wolfgangmauerer/tm-plugin-mail/
 reinstall.package.from.github("snatm", "wolfgangmauerer/snatm/pkg")
 reinstall.package.from.github("shinyGridster", "wch/shiny-gridster")
 reinstall.package.from.github("shinybootstrap2", "rstudio/shinybootstrap2")
+reinstall.package.from.github("Rgraphviz", "mitchell-joblin/Rgraphviz")
