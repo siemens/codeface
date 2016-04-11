@@ -580,8 +580,8 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
 
   dummy <- sapply(seq(min.year, max.year), function(year) {
     logdevinfo(paste("Creating annual time series for", year), logger="analyse_ts")
-    g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=TRUE),
-                       dmy(paste("31-12-", year, sep=""), quiet=TRUE)) +
+    g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=TRUE, tz = "UTC"),
+                       dmy(paste("31-12-", year, sep=""), quiet=TRUE, tz = "UTC")) +
               ggtitle(paste("Code changes in ", year, " for project '",
                             conf$description, "'", sep=""))
 
