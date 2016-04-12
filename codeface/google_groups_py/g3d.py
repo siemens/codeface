@@ -1,3 +1,19 @@
+## This file is part of Codeface. Codeface is free software: you can
+## redistribute it and/or modify it under the terms of the GNU General Public
+## License as published by the Free Software Foundation, version 2.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+## FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+## details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+##
+## Copyright 2016 by Georg Berner <georgberner@gmx.net>
+## All Rights Reserved.
+
 import re
 import os.path
 import urllib2
@@ -88,12 +104,12 @@ class Crawler(object):
         print "################################################################################"
         print "Help output:"
         print "################################################################################"
-        print "crawler.py -output \"path\" -group \"groupname\" [-threads \"#threads\",\n -start \"DD.MM.YY\"]"
+        print "run_g3d.py -output \"path\" -group \"groupname\" [-threads \"#threads\",\n -start \"DD.MM.YY\"]"
         print "################################################################################"
         print "-output: output path for ggc"
         print "-group: name of the google group"
-        print "-threads: number of threads for simultaneous download (default = 1) (only for dl)"
-        print "-start: date from which all messages of a group will be downloaded, \"DD.MM.YY\" (only for dl)"
+        print "-threads: number of threads for simultaneous download (default = 1)"
+        print "-start: date from which all messages of a group will be downloaded, \"DD.MM.YY\""
         print "-v: verbose output"
         print "################################################################################"
 
