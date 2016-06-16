@@ -13,5 +13,4 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install r-base r-base-dev r-cra
 	r-cran-rjson r-cran-lsa r-cran-testthat r-cran-arules r-cran-data.table \
 	r-cran-ineq libx11-dev libssh2-1-dev r-bioc-biocinstaller
 
-sudo Rscript packages.R
-
+sudo Rscript packages.r
