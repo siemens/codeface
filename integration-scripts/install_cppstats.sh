@@ -1,14 +1,22 @@
-#!/bin/sh
+#!/bin/bash
+# NOTE: bash instead of sh is required for pushd/popd
 
 export CPPSTATS_VERSION=0.8.4
 
 echo "Providing cppstats $CPPSTATS_VERSION"
 
-mkdir -p vendor/
-cd vendor/
+pushd .
+TMPDIR=`mktemp -d` || exit 1
+cd ${TMPDIR}
 
-wget --quiet https://codeload.github.com/clhunsen/cppstats/tar.gz/v$CPPSTATS_VERSION -O /tmp/cppstats.tar.gz
-tar -xvf /tmp/cppstats.tar.gz
+CPPSTATS_URL="https://codeload.github.com/clhunsen/cppstats/tar.gz/v${CPPSTATS_VERSION}"
+wget --quiet ${CPPSTATS_URL} -O ${TMPDIR}/cppstats.tar.gz
+if [ ! -e ${TMPDIR}/cppstats.tar.gz ]
+then
+    echo "Could not download cppstats from ${CPPSTATS_URL}"
+    exit 1
+fi
+tar -xvf cppstats.tar.gz
 export CPPSTATS=$PWD/cppstats-$CPPSTATS_VERSION/
 echo '#!/bin/bash' > $CPPSTATS/cppstats
 echo "cd $CPPSTATS" >> $CPPSTATS/cppstats
@@ -28,4 +36,4 @@ cp -rf $PWD/srcML/* $CPPSTATS/lib/srcml/linux/
 
 sudo ln -sf $CPPSTATS/cppstats /usr/local/bin/cppstats
 
-cd ..
+popd
