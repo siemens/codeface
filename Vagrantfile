@@ -16,6 +16,9 @@ integration-scripts/install_codeface_python.sh
 integration-scripts/install_cppstats.sh
 
 integration-scripts/setup_database.sh
+
+# Ensure that logs can actually be written to the log directory
+sudo chmod a+rw log
 SCRIPT
 
 Vagrant.configure("2") do |config|
