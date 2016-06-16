@@ -1,6 +1,10 @@
 #!/bin/bash
 # NOTE: bash instead of sh is required for pushd/popd
 
+# Copyright Roger Meier <roger@bufferoverflow.ch>
+# Copyright Wolfgang Mauerer <wolfgang.mauerer@oth-regensburg.de>
+# SPDX-License-Identifier:	Apache-2.0 BSD-2-Clause GPL-2.0+ MIT WTFPL
+
 export CPPSTATS_VERSION=0.8.4
 
 echo "Providing cppstats $CPPSTATS_VERSION"
