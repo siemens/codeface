@@ -58,15 +58,19 @@ if(length(p) > 0) {
     biocLite(p)
 }
 
-p <- filter.installed.packages(c("statnet", "ggplot2", "tm", "optparse",
+p <- filter.installed.packages(c("statnet", "tm", "optparse",
                                  "igraph", "zoo", "xts", "lubridate", "xtable",
-                                 "reshape", "wordnet", "stringr", "yaml", "plyr",
+                                 "reshape", "wordnet", "stringr", "yaml",
                                  "scales", "gridExtra", "scales", "RMySQL",
                                  "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
                                  "corrgram", "logging", "png", "rjson", "lsa", "RJSONIO"))
 if(length(p) > 0) {
-    install.packages(p ,dependencies=T)
+    install.packages(p, dependencies=T)
 }
+
+## Ensure to install ggplot2 and plyr from source to avoid issues with
+## incompatible binary packages with recent R versions
+install.packages(c("ggplot2", "plyr"), dependencies=T, type="source")
 
 
 ## Install following packages from different sources
