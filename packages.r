@@ -58,16 +58,15 @@ if(length(p) > 0) {
     biocLite(p)
 }
 
-p <- filter.installed.packages(c("statnet", "ggplot2", "tm", "optparse",
-                                 "igraph", "zoo", "xts", "lubridate", "xtable",
-                                 "reshape", "wordnet", "stringr", "yaml", "plyr",
-                                 "scales", "gridExtra", "scales", "RMySQL",
+p <- filter.installed.packages(c("statnet", "tm", "optparse", "arules", "data.table", "plyr",
+                                 "igraph", "zoo", "xts", "lubridate", "xtable", "ggplot2",
+                                 "reshape", "wordnet", "stringr", "yaml", "ineq",
+                                 "scales", "gridExtra", "scales", "RMySQL", "svglite",
                                  "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
                                  "corrgram", "logging", "png", "rjson", "lsa", "RJSONIO"))
 if(length(p) > 0) {
-    install.packages(p ,dependencies=T)
+    install.packages(p, dependencies=T)
 }
-
 
 ## Install following packages from different sources
 ## and update existing installations, if needed

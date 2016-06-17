@@ -26,15 +26,15 @@ Vagrant.configure("2") do |config|
   # Ubuntu 12.04 LTS (Precise Pangolin)
 
  config.vm.provider :virtualbox do |vbox, override|
-    override.vm.box = "precise64"
-    override.vm.box_url = "http://files.vagrantup.com/precise64.box"
+    config.vm.box = "ubuntu/xenial64"
 
     vbox.customize ["modifyvm", :id, "--memory", "4096"]
     vbox.customize ["modifyvm", :id, "--cpus", "2"]
   end
 
   config.vm.provider :lxc do |lxc, override|
-     override.vm.box = "fgrehm/precise64-lxc"
+     override.vm.box = "vagrant-lxc-xenial-amd64.box"
+     override.vm.box_url = "http://terminal.lfd.sturhax.de/~wolfgang/vagrant-lxc-xenial-amd64.box"
   end
 
   # Forward main web ui (8081) and testing (8100) ports
