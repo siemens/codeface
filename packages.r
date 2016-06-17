@@ -1,3 +1,22 @@
+## This file is part of Codeface. Codeface is free software: you can
+## redistribute it and/or modify it under the terms of the GNU General Public
+## License as published by the Free Software Foundation, version 2.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+## FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+## details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+##
+## Copyright 2014 by Roger Meier <roger@bufferoverflow.ch>
+## Copyright 2015 by Andreas Ringlstetter <andreas.ringlstetter@gmail.com>
+## Copyright 2015 by Wolfgang Mauerer <wolfgang.mauerer@oth-regensburg.de>
+## Copyright 2015 by Claus Hunsen <hunsen@fim.uni-passau.de>
+## All Rights Reserved.
+
 filter.installed.packages <- function(packageList)  {
     if("-f" %in% commandArgs(trailingOnly = TRUE)) {
         return(packageList)
@@ -39,15 +58,19 @@ if(length(p) > 0) {
     biocLite(p)
 }
 
-p <- filter.installed.packages(c("statnet", "ggplot2", "tm", "optparse",
+p <- filter.installed.packages(c("statnet", "tm", "optparse",
                                  "igraph", "zoo", "xts", "lubridate", "xtable",
-                                 "reshape", "wordnet", "stringr", "yaml", "plyr",
+                                 "reshape", "wordnet", "stringr", "yaml",
                                  "scales", "gridExtra", "scales", "RMySQL",
                                  "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
                                  "corrgram", "logging", "png", "rjson", "lsa", "RJSONIO"))
 if(length(p) > 0) {
-    install.packages(p ,dependencies=T)
+    install.packages(p, dependencies=T)
 }
+
+## Ensure to install ggplot2 and plyr from source to avoid issues with
+## incompatible binary packages with recent R versions
+install.packages(c("ggplot2", "plyr"), dependencies=T, type="source")
 
 
 ## Install following packages from different sources
