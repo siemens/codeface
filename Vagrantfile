@@ -21,20 +21,24 @@ integration-scripts/setup_database.sh
 sudo chmod a+rw log
 SCRIPT
 
+# Uncomment the Ubuntu 16.04/Xenial lines, and comment out the trusty related
+# lines to base the installation on Ubuntu 16.04 (Xenial) instead of 14.04 (Trusty)
 Vagrant.configure("2") do |config|
   # Hmm... no Debian image available yet, let's use a derivate
   # Ubuntu 12.04 LTS (Precise Pangolin)
 
  config.vm.provider :virtualbox do |vbox, override|
-   config.vm.box = "ffuenf/ubuntu-16.04-server-amd64"
+   #config.vm.box = "ffuenf/ubuntu-16.04-server-amd64"
+   config.vm.box = "ubuntu/trusty64"
 
     vbox.customize ["modifyvm", :id, "--memory", "4096"]
     vbox.customize ["modifyvm", :id, "--cpus", "2"]
   end
 
   config.vm.provider :lxc do |lxc, override|
-     override.vm.box = "vagrant-lxc-xenial-amd64.box"
-     override.vm.box_url = "http://terminal.lfd.sturhax.de/~wolfgang/vagrant-lxc-xenial-amd64.box"
+    #override.vm.box = "vagrant-lxc-xenial-amd64.box"
+    #override.vm.box_url = "http://terminal.lfd.sturhax.de/~wolfgang/vagrant-lxc-xenial-amd64.box"
+    override.vm.box = "fgrehm/trusty64-lxc"
   end
 
   # Forward main web ui (8081) and testing (8100) ports
