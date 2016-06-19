@@ -49,7 +49,7 @@ reinstall.package.from.github <- function(package, url) {
     }
 
     ## Re-install packages
-    devtools::install_github(url)
+    devtools::install_github(url, quiet=T)
 }
 
 p <- filter.installed.packages(c("BiRewire", "graph", "Rgraphviz"))
@@ -65,7 +65,7 @@ p <- filter.installed.packages(c("statnet", "tm", "optparse", "arules", "data.ta
                                  "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
                                  "corrgram", "logging", "png", "rjson", "lsa", "RJSONIO"))
 if(length(p) > 0) {
-    install.packages(p, dependencies=T)
+    install.packages(p, dependencies=T, verbose=F, quiet=T)
 }
 
 ## Install following packages from different sources
