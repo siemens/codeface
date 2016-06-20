@@ -127,24 +127,31 @@ timezone.string <- function(date, timezone) {
 }
 
 do.update.timezone.information <- function(conf, project.id) {
-  ## Query all commits which have author timezones
-  res <- dbGetQuery(conf$con, str_c("SELECT id, authorDate, authorTimeOffset",
-                             " FROM commit WHERE (NOT authorTimeOffset IS ",
-                             " NULL) AND projectId=", project.id))
-  ## Process all commits and fill the list
-  logdevinfo(paste("Processing", nrow(res), "commits for time zone info..."))
+    ## Query all commits which have author timezones
+    res <- dbGetQuery(conf$con, str_c("SELECT id, authorDate, authorTimeOffset",
+                                      " FROM commit WHERE (NOT authorTimeOffset IS ",
+                                      " NULL) AND projectId=", project.id))
+    ## Process all commits and fill the unpopulated list
+    ## of time zones in the database
+    logdevinfo(paste("Processing", nrow(res), "commits for time zone info..."))
 
-  zones <- mclapply(1:nrow(res), function(i) {
-    val <- paste("(", res$id[[i]], ", '", timezone.string(res$authorDate[[i]],
-                                                          res$authorTimeOffset[[i]]),
-                 "')", sep="")
-    return(val)
-  })
+    ## Create a data frame that maps every id to a list of time zones
+    zones <- do.call(rbind, mclapply(1:nrow(res), function(i) {
+        data.frame(id=res$id[[i]],
+                   tz=timezone.string(res$authorDate[[i]], res$authorTimeOffset[[i]]))
+    }))
 
-  dbSendQuery(conf$con, str_c(
-    "INSERT INTO commit (id, authorTimezones) VALUES ",
-    do.call(paste, c(zones, list(sep=", "))),
-    " ON DUPLICATE KEY UPDATE authorTimezones=VALUES(authorTimezones);"))
+    ## Insert the inferred timezones into the database by batch-replacing
+    ## the data for all ids that are associated with one particular list
+    ## of time zones
+    tz.unique <- unique(zones$tz)
 
-  logdevinfo(paste("Updated", length(zones), "timezone entries"))
+    for (tz in tz.unique) {
+        dbSendQuery(conf$con, str_c(str_c("UPDATE commit SET authorTimezones='",
+                                          tz, "' WHERE", " id IN (",
+                                          paste(zones$id[zones$tz==tz],
+                                                collapse = ', '), ")")))
+    }
+
+    logdevinfo(paste("Updated", length(zones), "timezone entries"))
 }
