@@ -1,5 +1,5 @@
 #! /bin/bash
-# Simple script to measure prosoda ressource usage with collectl
+# Simple script to measure codeface ressource usage with collectl
 # Copyright Siemens AG 2013, Wolfgang Mauerer
 #
 # Copying and distribution of this file, with or without modification,
@@ -25,7 +25,7 @@ mkdir -p ${OUTDIR}
 
 echo "Analysing $PROJECT with $CORES cores (results are in ${OUTDIR})"
 
-codeface -j${CORES} run --recreate -c prosoda.conf -p conf/${PROJECT}.conf \
+codeface -j${CORES} run --recreate -c codeface.conf -p conf/${PROJECT}.conf \
          ${RESDIR} ${REPODIR} &>/dev/null &
 
 CODEFACE=$!
