@@ -26,7 +26,7 @@ Vagrant.configure("2") do |config|
   # Ubuntu 12.04 LTS (Precise Pangolin)
 
  config.vm.provider :virtualbox do |vbox, override|
-    config.vm.box = "ubuntu/xenial64"
+   config.vm.box = "ffuenf/ubuntu-16.04-server-amd64"
 
     vbox.customize ["modifyvm", :id, "--memory", "4096"]
     vbox.customize ["modifyvm", :id, "--cpus", "2"]
@@ -48,7 +48,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "local-mirror", type: "shell" do |s|
     s.privileged = true
-    s.inline = "sed -i 's|http://[a-z\.]*\.ubuntu\.com/ubuntu|mirror://mirrors\.ubuntu\.com/mirrors\.txt|' /etc/apt/sources.list"
+    s.inline = "sed -i 's|http://[a-z\.]*\.ubuntu\.com/ubuntu|mirror://mirrors\.ubuntu\.com/mirrors\.txt2|' /etc/apt/sources.list"
   end
 
   config.vm.provision "build", type: "shell" do |s|
