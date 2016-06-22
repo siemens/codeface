@@ -52,7 +52,7 @@ reinstall.package.from.github <- function(package, url) {
     devtools::install_github(url, quiet=T)
 }
 
-p <- filter.installed.packages(c("BiRewire", "graph", "Rgraphviz"))
+p <- filter.installed.packages(c("BiRewire", "graph"))
 if(length(p) > 0) {
     source("http://bioconductor.org/biocLite.R")
     biocLite(p)
