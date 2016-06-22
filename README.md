@@ -13,48 +13,37 @@ especially for I/O heavy tasks. You can /alternatively/ use
 	vagrant up --provider=lxc
 
 if you have the corresponding LXC provider for vagrant installed on
-your system. To access the machine in each case, use
+your system. To get shell access on the machine in each case, use
 
 	vagrant ssh
 
-## Analysis Setup
+If vagrant is not yet installed on your system, please consult
+the corresponding [wiki page] (https://github.com/siemens/codeface/wiki/Runnning-codeface-with-Vagrant).
 
-To get a `codeface` executable in your `$PATH`; go to `$CFDIR` and run:
+## Analysing Projects
+### Concept
+Conceptually, work with Codeface is split in two stages:
 
-        python setup.py develop --user
+1. Analyse projects using the batch-mode command line interface. See
+  `analysis.md` for further details. Note that this process involves
+  substantial amounts of git repo querying and data crunching, and can
+  require several hours for large projects like the Linux kernel.
+2. Inspect the results by visual analysis with the web frontend (see
+  `webserver.md` for setup details), or by querying the database
+  directly. See file `codeface/R/interactive.R` for exemplary instructions.
 
-To analyse a project:
+### Five Easy Steps
+To perform an analysis of project qemu (a machine emulation software)
+and inspect the results in the interactive web frontend, run the
+following steps:
 
-* Clone the desired git repositories into some directory
-* Download the desired mailing lists into some directory
-* Start the ID server: `cd $CFDIR/id_service/; nodejs id_service.js ../codeface.conf`
-* Run `codeface`, see the command line help for usage examples
-
-## Web server setup
-There are two options to set up an instance of the web frontend server:
-
-* Using a self-contained tarball prepared on a machine with proper
-  internet connection (to be deployed on machines without network
-  access or behind restrictive corporate firewalls):
-  Run `bash shiny-server-pack.sh`, copy the resulting
-  `shiny-server-pack.tar.gz` to the destination machine and unpack
-  it into $CFDIR. Start the server with `shiny-server.sh`.
-
-* Global installation: Run
-
-        sudo -E npm install -g \
-        https://github.com/JohannesEbke/shiny-server/archive/no-su.tar.gz
-
-  to install shiny server (respectively the customised version which
-  supports operation without root privileges) into the global
-  node package repo. Start with
-
-        shiny-server shiny-server.config
-
-  in `$CFDIR`.
-
-  In the default configuration, the web frontend is available
-  on http://localhost:8081/.
+1. After bringing up the vagrant instance, `vagrant ssh` into the
+   virtual machine
+2. Start the ID service with `/vagrant/id_service/start_id_service.sh&`
+3. Run an analysis of qemu with `/vagrant/analysis_example.sh` (this process
+   may take a while to complete)
+4. Start the webserver with `cd vagrant; ./shiny-server.sh`
+5. Point your webserver on the host at [http://localhost:8081](http://localhost:8081)
 
 ## Generate HTML Documentation
 
