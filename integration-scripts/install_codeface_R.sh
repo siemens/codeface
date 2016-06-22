@@ -9,6 +9,6 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install r-base r-base-dev \
 	r-cran-xtable r-cran-reshape r-cran-stringr r-cran-yaml r-cran-scales \
 	r-cran-scales r-cran-rmysql r-cran-rcurl r-cran-mgcv \
 	r-cran-httpuv r-cran-rjson r-cran-testthat \
-	libx11-dev libssl-dev libssh2-1-dev r-bioc-biocinstaller
+	libx11-dev libssl-dev libssh2-1-dev
 
 sudo Rscript packages.r
