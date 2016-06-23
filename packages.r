@@ -52,6 +52,12 @@ reinstall.package.from.github <- function(package, url) {
     devtools::install_github(url, quiet=T)
 }
 
+library(parallel)
+num.cores <- detectCores(logical=TRUE)
+if (is.na(num.cores)) {
+    num.cores <- 1
+}
+
 p <- filter.installed.packages(c("BiRewire", "graph"))
 if(length(p) > 0) {
     source("http://bioconductor.org/biocLite.R")
@@ -65,7 +71,7 @@ p <- filter.installed.packages(c("statnet", "tm", "optparse", "arules", "data.ta
                                  "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
                                  "corrgram", "logging", "png", "rjson", "lsa", "RJSONIO"))
 if(length(p) > 0) {
-    install.packages(p, dependencies=T, verbose=F, quiet=T)
+    install.packages(p, dependencies=T, verbose=F, quiet=T, Ncpus=num.cores)
 }
 
 ## Install following packages from different sources
