@@ -2,8 +2,6 @@ sudo: required
 dist: trusty
 
 before_install:
-  - sudo rm /usr/local/bin/pip
-  - sudo rm -rf /usr/local/lib/python2.7
   - sudo integration-scripts/install_repositories.sh
 install:
   - sudo integration-scripts/install_common.sh
