@@ -158,6 +158,7 @@ def cmd_test(args):
     config_file=os.path.abspath(args.config)
     del args
     test_path = os.path.join(os.path.dirname(__file__), 'test')
+
     print('\n===== running unittests =====\n')
     tests = unittest.TestLoader().discover(os.path.join(test_path, 'unit'),
         pattern='test_{}.py'.format(pattern), top_level_dir=test_path)
@@ -169,6 +170,7 @@ def cmd_test(args):
         else:
             print('\n===== unit tests failed :( =====')
         return 0 if unit_success else 1
+
     print('\n===== running integration tests =====\n')
     tests = unittest.TestLoader().discover(os.path.join(test_path, 'integration'),
         pattern='test_{}.py'.format(pattern), top_level_dir=test_path)
@@ -180,12 +182,25 @@ def cmd_test(args):
                 set_config(test)
         suite.config_file = config_file
     set_config(tests)
-    int_result = unittest.TextTestRunner(verbosity=2).run(tests)
+    int_result = unittest.TextTestRunner(verbosity=1).run(tests)
     int_success = not (int_result.failures or int_result.errors)
+
     if unit_success and int_success:
-            print('\n===== all tests succeeded :) =====')
+            print('\n===== All integration and unit tests succeeded :) =====')
     else:
-            print('\n===== some tests failed :( =====')
+            print('\n===== Some unit or integration tests failed :( =====')
+            for fail in unit_result.failures:
+                print("Failed unit test: {0}".format(fail[0]))
+                print("          Result: {0}\n\n".format(fail[1]))
+            for fail in unit_result.errors:
+                print("Error in unit test: {0}".format(fail[0]))
+                print("            Result: {0}\n\n".format(fail[1]))
+            for fail in int_result.failures:
+                print("Failed integration test: {0}".format(fail[0]))
+                print("                 Result: {0}\n\n".format(fail[1]))
+            for fail in int_result.errors:
+                print("Error in integration test: {0}".format(fail[0]))
+                print("                   Result: {0}\n\n".format(fail[1]))
     return 0 if unit_success and int_success else 1
 
 def run(argv):
