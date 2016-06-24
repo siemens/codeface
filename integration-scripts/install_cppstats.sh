@@ -35,6 +35,7 @@ then
     exit 1
 fi
 tar -xvf ${TMPDIR}/srcML.tar.gz
-sudo cp -rf $PWD/srcML/* $CPPSTATS/lib/srcml/linux/
+sudo cp -rf $PWD/srcML/srcml2src /usr/bin
+sudo cp -rf $PWD/srcML/src2srcml /usr/bin
 
 popd
