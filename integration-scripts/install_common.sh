@@ -9,7 +9,7 @@ echo "mysql-server mysql-server/root_password_again password" | sudo debconf-set
 
 sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install sinntp texlive default-jdk \
 	mysql-common mysql-client npm libgraphviz-dev libarchive13 libhunspell-dev\
-	mysql-server python-dev exuberant-ctags nodejs git subversion \
+	mysql-server python-dev exuberant-ctags nodejs git subversion libxslt1-dev \
 	sloccount graphviz doxygen libxml2-dev libcurl4-openssl-dev \
 	libmysqlclient-dev libcairo2-dev libxt-dev libcairo2-dev libmysqlclient-dev \
 	astyle xsltproc libxml2 libxml2-dev python build-essential libyaml-dev \

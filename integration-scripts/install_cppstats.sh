@@ -5,7 +5,7 @@
 # Copyright Wolfgang Mauerer <wolfgang.mauerer@oth-regensburg.de>
 # SPDX-License-Identifier:	Apache-2.0 BSD-2-Clause GPL-2.0+ MIT WTFPL
 
-export CPPSTATS_VERSION=0.8.4
+export CPPSTATS_VERSION=0.9.0
 
 echo "Providing cppstats $CPPSTATS_VERSION"
 
@@ -20,13 +20,11 @@ then
     echo "Could not download cppstats from ${CPPSTATS_URL}"
     exit 1
 fi
-(cd /opt; sudo tar -xvf ${TMPDIR}/cppstats.tar.gz)
-export CPPSTATS=/opt/cppstats-$CPPSTATS_VERSION/
-echo '#!/bin/bash' > ${TMPDIR}/cppstats
-echo "cd $CPPSTATS" >> ${TMPDIR}/cppstats
-echo "PYTHONPATH=\"\$PYTHONPATH:/opt/$CPPSTATS/lib\" ./cppstats.py \"\$@\"" >> ${TMPDIR}/cppstats
-chmod +x ${TMPDIR}/cppstats
-sudo cp ${TMPDIR}/cppstats /usr/local/bin/cppstats
+(cd ${TMPDIR} && tar -xvf ${TMPDIR}/cppstats.tar.gz &&
+	cd cppstats-${CPPSTATS_VERSION} && sed -i s/enum==0.4.4/enum/ setup.py &&
+	sed -i s/cppstats.version\(\)/\"0.9.0\"/ setup.py &&
+	sed -i s/"import cppstats"// setup.py &&
+	sudo python setup.py install)
 
 echo "Providing srcML"
 SRCML_URL="http://131.123.42.38/lmcrs/srcML-Ubuntu14.04-64.tar.gz"
