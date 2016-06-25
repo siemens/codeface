@@ -32,7 +32,7 @@ Conceptually, work with Codeface is split in two stages:
   `webserver.md` for setup details), or by querying the database
   directly. See file `codeface/R/interactive.R` for exemplary instructions.
 
-### Five Easy Steps
+### Five Easy Steps to your First Analysis
 To perform an analysis of project qemu (a machine emulation software)
 and inspect the results in the interactive web frontend, run the
 following steps:
