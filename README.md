@@ -1,4 +1,4 @@
-# Installation notes for Codeface
+# Installing and using Codeface
 
 ## Installing Codeface
 The recommended way to set up a Codeface instance is via
@@ -44,13 +44,3 @@ following steps:
    may take a while to complete)
 4. Start the webserver with `cd vagrant; ./shiny-server.sh`
 5. Point your webserver on the host at [http://localhost:8081](http://localhost:8081)
-
-## Generate HTML Documentation
-
-* To generate the Sphinx documentation for the codeface python classes, go
-  to $CFDIR and run:
-
-        python setup.py build_sphinx
-
-The resulting documentation is found in `$CFDIR/build/sphinx/html`
-* To generate the python HTML documentation, run `python setup.py`.
