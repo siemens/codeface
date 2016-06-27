@@ -20,9 +20,7 @@ from logging import getLogger; log = getLogger("codeface.test.unit.batchjob")
 from time import sleep
 from random import random
 from codeface.util import BatchJobPool
-from os import unlink
-
-TMPFILE="_codeface_test_tmpfile"
+from tempfile import NamedTemporaryFile
 
 def test_function(i):
     sleep(0.05*random())
@@ -44,7 +42,8 @@ def ioerror_function():
 def unpickleable_error_function():
     class MyEx(Exception):
         def __init__(self):
-            self.handle = open(TMPFILE, "wb")
+            print("HALLO")
+            self.handle = NamedTemporaryFile(delete=True)
     raise MyEx()
 
 class Testpool(unittest.TestCase):
@@ -112,4 +111,3 @@ class Testpool(unittest.TestCase):
             self.assertIn("MyEx", str(e))
             raised = True
         self.assertEqual(raised, True)
-        unlink(TMPFILE)
