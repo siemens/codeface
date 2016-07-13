@@ -168,6 +168,9 @@ class PersonInfo:
         #a given ID
         self.file_links_recieved_by_id = {}
 
+    def __str__(self):
+        return self.name + " " + self.email
+
     def setID(self, ID):
         self.ID = ID
     def getID(self):
