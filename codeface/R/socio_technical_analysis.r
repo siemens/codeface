@@ -89,21 +89,20 @@ con <- conf$con
 project.list <- list(
                      "flink",
                      "cassandra",
-#                     "thrift",
+#                    "thrift",
                      "storm",
                      "camel",
-                     "solr",
-                     "hbase",
-                     "lucene",
+                     #"solr",
+                     #"hbase",
+                     #"lucene",
                      "accumulo")
 
 for(project.name in  project.list) {
 
-project.name <- "storm"
 print(project.name)
 
-project.id <- list(flink=17, cassandra=22, thrift=15, storm=24, camel=20,
-                   solr=30,lucene=30, accumulo=26)[[project.name]]
+project.id <- list(flink=36, cassandra=35, storm=41, camel=20,
+                   solr=39,lucene=39, accumulo=38)[[project.name]]
 conf$pid <- project.id
 
 ## Analysis window
@@ -111,7 +110,7 @@ window.size <- 12 # months
 end.date <- list(flink="2015-11-22",
                  cassandra="2016-01-18",
                  thrift="2015-09-25",
-                 storm="2015-10-28",
+                 storm="2016-03-27",
                  camel="2012-10-10",
                  solr="2016-02-20",
                  hbase="2016-02-23",
@@ -121,46 +120,23 @@ start.date <- as.character(ymd(end.date) - months(window.size))
 
 ## Directories
 output.dir <- file.path("/home/mitchell/workspace/motif_results", project.name)
-data.base.dir <- "/home/mitchell/workspace/artifact_data"
+data.base.dir <- "/home/mitchell/workspace/conway_data"
 dir.create(output.dir, recursive=T, showWarnings=F)
+project.data.dir <- file.path(data.base.dir, project.name)
 
-dsm.filename <- list(flink="/home/mitchell/workspace/artifact_data/flink/dsm/flink-0.10.1-dsm.xlsx",
-                     cassandra="/home/mitchell/workspace/artifact_data/cassandra/dsm/cassandra-3.2.1-dsm.xlsx",
-                     thrift="/home/mitchell/workspace/artifact_data/thrift/dsm/thrift-0.9.3-dsm.xlsx",
-                     storm="/home/mitchell/workspace/artifact_data/storm/dsm/storm-0.9.6-dsm.xlsx",
-                     camel="/home/mitchell/workspace/artifact_data/camel/dsm/camel-2.14.0-dsm.xlsx",
-                     solr=file.path(data.base.dir, "solr/solr-5.5.0.xlsx"),
-                     hbase=file.path(data.base.dir, "hbase/hbase-1.2.0.xlsx"),
-                     lucene=file.path(data.base.dir, "lucene/lucene-5.5.0.xlsx"),
-                     accumulo=file.path(data.base.dir, "accumulo/accumulo-1.6.5.xlsx"))[[project.name]]
+dsm.filename <- file.path(project.data.dir, "dsm.xlsx")
 
 feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
 
-jira.filename <- list(flink="/home/mitchell/workspace/artifact_data/flink/jira/jira-comment-authors-with-email.csv",
-                      cassandra="/home/mitchell/workspace/artifact_data/cassandra/jira/jira-comment-authors-with-email.csv",
-                      thrift="/home/mitchell/workspace/artifact_data/thrift/jira/jira-comment-authors-with-email.csv",
-                      storm="/home/mitchell/workspace/artifact_data/storm/jira/jira-comment-authors-with-email.csv",
-                      camel="/home/mitchell/workspace/artifact_data/camel/jira/jira-comment-authors-with-email.csv",
-                      solr=file.path(data.base.dir, "solr/_jira-comment-authors-with-email.csv"),
-                      hbase=file.path(data.base.dir, "hbase/_jira-comment-authors-with-email.csv"),
-                      lucene=file.path(data.base.dir, "lucene/_jira-comment-authors-with-email.csv"),
-                      accumulo=file.path(data.base.dir, "accumulo/_jira-comment-authors-with-email.csv"))[[project.name]]
+jira.filename <- file.path(project.data.dir, "comments_email.csv")
 
-defect.filename <- list(flink="/home/mitchell/workspace/artifact_data/flink/metric/flink-0.10.1-report.csv",
-                        cassandra="/home/mitchell/workspace/artifact_data/cassandra/metric/cassandra-3.2.1-report.csv",
-                        thrift="/home/mitchell/workspace/artifact_data/thrift/metric/thrift-0.9.3-report.csv",
-                        storm="/home/mitchell/workspace/artifact_data/storm/metrics/storm-0.9.6-report.csv",
-                        camel="/home/mitchell/workspace/artifact_data/camel/metric/camel-2.14.0-report.csv",
-                        solr=file.path(data.base.dir, "solr/solr-5.5.0-report.csv"),
-                        hbase=file.path(data.base.dir, "hbase/hbase-1.2.0-report.csv"),
-                        lucene=file.path(data.base.dir, "lucene/lucene-5.5.0-report.csv"),
-                        accumulo=file.path(data.base.dir, "accumulo/accumulo-1.6.5-report.csv"))[[project.name]]
+defect.filename <- file.path(project.data.dir, "metrics.csv")
 
 
 ## Analysis
 motif.type <- list("triangle", "square")[[1]]
 artifact.type <- list("function", "file", "feature")[[2]]
-dependency.type <- list("co-change", "dsm", "feature_call", "none")[[2]]
+dependency.type <- list("co-change", "dsm", "feature_call", "none")[[1]]
 quality.type <- list("corrective", "defect")[[2]]
 communication.type <- list("mail", "jira")[[2]]
 
@@ -172,8 +148,8 @@ historical.limit <- ddays(365)
 ## Compute dev-artifact relations
 vcs.dat <- query.dependency(con, project.id, artifact.type, file.limit,
                             start.date, end.date, impl=FALSE, rmv.dups=FALSE)
-vcs.dat$entity <- sapply(vcs.dat$entity,
-    function(filename) filename <- gsub("/", ".", filename, fixed=T))
+#vcs.dat$entity <- sapply(vcs.dat$entity,
+#    function(filename) filename <- gsub("/", ".", filename, fixed=T))
 vcs.dat$author <- as.character(vcs.dat$author)
 
 ## Save to csv
@@ -358,7 +334,8 @@ plot.to.file(g, file.path(networks.dir, "socio_technical_network.png"))
 
 ## Perform quality analysis
 if (quality.type=="defect") {
-  quality.dat <- load.defect.data(defect.filename, relavent.entity.list)
+  quality.dat <- load.defect.data(defect.filename, relavent.entity.list,
+                                  start.date, end.date)
 } else {
   quality.dat <- get.corrective.count(con, project.id, start.date, end.date,
                                       artifact.type)
@@ -387,7 +364,7 @@ artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count - art
                                            (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
 artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count / artifacts.dat$motif.count
 artifacts.dat$motif.ratio[is.infinite(artifacts.dat$motif.ratio)] <- NA
-artifacts.dat$bug.density <- artifacts.dat$BugIssueCount / (artifacts.dat$CountLineCode+1)
+#artifacts.dat$bug.density <- artifacts.dat$BugIssueCount / (artifacts.dat$CountLineCode+1)
 artifacts.dat$motif.count.norm <- artifacts.dat$motif.count / artifacts.dat$dev.count
 artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count / artifacts.dat$dev.count
 
@@ -399,12 +376,12 @@ corr.cols <- c("motif.count",
     "motif.ratio",
     "motif.percent.diff",
     "dev.count",
-    "bug.density",
-    "BugIssueCount",
-    "BugIssueChurn",
-    "IssueChurn",
-    "IssueCommits",
-    "CountLineCode")
+#    "bug.density",
+    "BugIssueCount")
+#    "BugIssueChurn",
+#    "Churn",
+#    "IssueCommits",
+#    "CountLineCode")
 
 correlation.dat <- ggpairs(artifacts.dat,
                            columns=corr.cols,
