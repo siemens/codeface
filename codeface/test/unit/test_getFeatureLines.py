@@ -116,17 +116,17 @@ class TestFeatureLines(unittest.TestCase):
         feature_dict, fexpr_dict = \
             get_feature_lines([(3, 5, LineType.IF, ["A", "B"], "defined(A) && defined(B)")],
                               "unittest.c")
-        self.assertSetEqual(feature_dict.get_line_info(2), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(2), set(["Base_Feature"]))
         self.assertSetEqual(feature_dict.get_line_info(3), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(4), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(5), set(["A", "B"]))
-        self.assertSetEqual(feature_dict.get_line_info(6), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(6), set(["Base_Feature"]))
 
-        self.assertSetEqual(fexpr_dict.get_line_info(2), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(2), set(["Base_Feature"]))
         self.assertSetEqual(fexpr_dict.get_line_info(3), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(4), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(5), set(["defined(A) && defined(B)"]))
-        self.assertSetEqual(fexpr_dict.get_line_info(6), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(6), set(["Base_Feature"]))
 
         pass
 
@@ -137,23 +137,23 @@ class TestFeatureLines(unittest.TestCase):
                 [(3, 5, LineType.IF, ["A", "B"], "defined(A) && defined(B)"),
                  (6, 8, LineType.IF, ["C", "D"], "defined(C) && defined(D)")],
                 "unittest.c")
-        self.assertSetEqual(feature_dict.get_line_info(2), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(2), set(["Base_Feature"]))
         self.assertSetEqual(feature_dict.get_line_info(3), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(4), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(5), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(6), set(["C", "D"]))
         self.assertSetEqual(feature_dict.get_line_info(7), set(["C", "D"]))
         self.assertSetEqual(feature_dict.get_line_info(8), set(["C", "D"]))
-        self.assertSetEqual(feature_dict.get_line_info(9), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(9), set(["Base_Feature"]))
 
-        self.assertSetEqual(fexpr_dict.get_line_info(2), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(2), set(["Base_Feature"]))
         self.assertSetEqual(fexpr_dict.get_line_info(3), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(4), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(5), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(6), set(["defined(C) && defined(D)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(7), set(["defined(C) && defined(D)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(8), set(["defined(C) && defined(D)"]))
-        self.assertSetEqual(fexpr_dict.get_line_info(9), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(9), set(["Base_Feature"]))
         pass
 
     def testorderdoesntmatter(self):
@@ -163,23 +163,23 @@ class TestFeatureLines(unittest.TestCase):
                 [(6, 8, LineType.IF, ["C", "D"], "defined(C) && defined(D)"),
                  (3, 5, LineType.IF, ["A", "B"], "defined(A) && defined(B)")],
                 "unittest.c")
-        self.assertSetEqual(feature_dict.get_line_info(2), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(2), set(["Base_Feature"]))
         self.assertSetEqual(feature_dict.get_line_info(3), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(4), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(5), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(6), set(["C", "D"]))
         self.assertSetEqual(feature_dict.get_line_info(7), set(["C", "D"]))
         self.assertSetEqual(feature_dict.get_line_info(8), set(["C", "D"]))
-        self.assertSetEqual(feature_dict.get_line_info(9), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(9), set(["Base_Feature"]))
 
-        self.assertSetEqual(fexpr_dict.get_line_info(2), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(2), set(["Base_Feature"]))
         self.assertSetEqual(fexpr_dict.get_line_info(3), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(4), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(5), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(6), set(["defined(C) && defined(D)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(7), set(["defined(C) && defined(D)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(8), set(["defined(C) && defined(D)"]))
-        self.assertSetEqual(fexpr_dict.get_line_info(9), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(9), set(["Base_Feature"]))
 
         pass
 
@@ -191,7 +191,7 @@ class TestFeatureLines(unittest.TestCase):
                  (6, 8, LineType.IF, ["C", "D"],
                   "(defined(A) && defined(B)) && (defined(C) && defined(D))")],
                 "unittest.c")
-        self.assertSetEqual(feature_dict.get_line_info(2), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(2), set(["Base_Feature"]))
         self.assertSetEqual(feature_dict.get_line_info(3), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(4), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(5), set(["A", "B"]))
@@ -202,9 +202,9 @@ class TestFeatureLines(unittest.TestCase):
         self.assertSetEqual(feature_dict.get_line_info(8),
                             set(["A", "B", "C", "D"]))
         self.assertSetEqual(feature_dict.get_line_info(9), set(["A", "B"]))
-        self.assertSetEqual(feature_dict.get_line_info(10), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(10), set(["Base_Feature"]))
 
-        self.assertSetEqual(fexpr_dict.get_line_info(2), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(2), set(["Base_Feature"]))
         self.assertSetEqual(fexpr_dict.get_line_info(3), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(4), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(5), set(["defined(A) && defined(B)"]))
@@ -215,7 +215,7 @@ class TestFeatureLines(unittest.TestCase):
         self.assertSetEqual(fexpr_dict.get_line_info(8),
                             set(["(defined(A) && defined(B)) && (defined(C) && defined(D))"]))
         self.assertSetEqual(fexpr_dict.get_line_info(9), set(["defined(A) && defined(B)"]))
-        self.assertSetEqual(fexpr_dict.get_line_info(10), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(10), set(["Base_Feature"]))
         pass
 
     def testnestingwithsamefeatures(self):
@@ -227,8 +227,8 @@ class TestFeatureLines(unittest.TestCase):
                  (6, 8, LineType.IF, ["A", "D"],
                   "(defined(A) && defined(B)) && (defined(D))")],
                 "unittest.c")
-        self.assertSetEqual(feature_dict.get_line_info(2), set([]),
-                            "line 2 should be empty")
+        self.assertSetEqual(feature_dict.get_line_info(2), set(["Base_Feature"]),
+                            "line 2 should contain the Base_Feature")
         self.assertSetEqual(feature_dict.get_line_info(3), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(4), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(5), set(["A", "B"]))
@@ -239,10 +239,10 @@ class TestFeatureLines(unittest.TestCase):
         self.assertSetEqual(feature_dict.get_line_info(8),
                             set(["A", "B", "D"]))
         self.assertSetEqual(feature_dict.get_line_info(9), set(["A", "B"]))
-        self.assertSetEqual(feature_dict.get_line_info(10), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(10), set(["Base_Feature"]))
 
-        self.assertSetEqual(fexpr_dict.get_line_info(2), set([]),
-                            "line 2 should be empty")
+        self.assertSetEqual(fexpr_dict.get_line_info(2), set(["Base_Feature"]),
+                            "line 2 should contain the Base_Feature")
         self.assertSetEqual(fexpr_dict.get_line_info(3), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(4), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(5), set(["defined(A) && defined(B)"]))
@@ -253,7 +253,7 @@ class TestFeatureLines(unittest.TestCase):
         self.assertSetEqual(fexpr_dict.get_line_info(8),
                             set(["(defined(A) && defined(B)) && (defined(D))"]))
         self.assertSetEqual(fexpr_dict.get_line_info(9), set(["defined(A) && defined(B)"]))
-        self.assertSetEqual(fexpr_dict.get_line_info(10), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(10), set(["Base_Feature"]))
         pass
 
     def testinvalidstartend(self):
@@ -287,21 +287,21 @@ class TestFeatureLines(unittest.TestCase):
                 [(3, 5, LineType.IF, ["A", "B"], "defined(A) && defined(B)"),
                  (5, 6, LineType.ELIF, ["A", "B", "C"], "(!(defined(A)) && (!(defined(B)) && defined(C)")],
                 "unittest.c")
-        self.assertSetEqual(feature_dict.get_line_info(2), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(2), set(["Base_Feature"]))
         self.assertSetEqual(feature_dict.get_line_info(3), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(4), set(["A", "B"]))
         self.assertSetEqual(feature_dict.get_line_info(5),
                             set(["A", "B", "C"]))
         self.assertSetEqual(feature_dict.get_line_info(6),
                             set(["A", "B", "C"]))
-        self.assertSetEqual(feature_dict.get_line_info(7), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(7), set(["Base_Feature"]))
 
-        self.assertSetEqual(fexpr_dict.get_line_info(2), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(2), set(["Base_Feature"]))
         self.assertSetEqual(fexpr_dict.get_line_info(3), set(["defined(A) && defined(B)"]), fexpr_dict.get_line_info(3))
         self.assertSetEqual(fexpr_dict.get_line_info(4), set(["defined(A) && defined(B)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(5),
                             set(["(!(defined(A)) && (!(defined(B)) && defined(C)"]))
         self.assertSetEqual(fexpr_dict.get_line_info(6),
                             set(["(!(defined(A)) && (!(defined(B)) && defined(C)"]))
-        self.assertSetEqual(fexpr_dict.get_line_info(7), set([]))
+        self.assertSetEqual(fexpr_dict.get_line_info(7), set(["Base_Feature"]))
         pass
