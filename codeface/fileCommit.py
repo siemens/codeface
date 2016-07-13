@@ -78,6 +78,7 @@ class FileDict:
         if line_nr < self.lastItem:
             raise ValueError("can only incrementally add items")
         self.line_list.append(line_nr)
+        self.line_list.sort()  # make sure the lines are properly sorted
         self.line_dict[line_nr] = info
 
     def values(self):
