@@ -365,7 +365,7 @@ def group_feature_lines(file_commit, file_state, cmt_list):
 
     # boundary case for open code-blocks or a single line file_state.
     for feature in feature_blks:
-        if feature in curr_features:  # Close all open feature blocks
+        if feature in next_features:  # Close all open feature blocks
             feature_blks[feature].append(
                 codeBlock.codeBlock(
                     blk_start[feature], blk_end[feature],
