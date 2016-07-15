@@ -287,7 +287,7 @@ check.corpus.precon <- function(corp.base) {
 
       ## In some cases only an email is provided
       if (name=="") {
-        name <- gsub("\\.", " ",gsub("@.*", "", email))
+        name <- gsub("\\.", " ", gsub("@.*", "", email))
       }
 
       author <- paste(name, ' <', email, '>', sep="")
@@ -298,15 +298,46 @@ check.corpus.precon <- function(corp.base) {
 
       ## Get email and name parts
       r <- regexpr("<.+>", author, TRUE)
-      if(r[[1]] == 1) {
-        email <- substr(author, r, r + attr(r,"match.length")-1)
-        name <- sub(email, "", author, fixed=TRUE)
-        name <- fix.name(name)
+      ## email is at start
+      if(r == 1) {
+        ## Check if only an email is provided
+        if(attr(r, "match.length") == nchar(author)) {
+          ## Only an email like "<hans.huber@hubercorp.com>" is provided
+          email <- substr(author, r + 1, r + nchar(author) - 2)
+          name <- gsub("\\.", " ", gsub("@.*", "", email))
+        } else {
+          ## email and name both are provided
+          email <- substr(author, r, r + attr(r, "match.length") - 1)
+          name <- sub(email, "", author, fixed=TRUE)
+          name <- fix.name(name)
+        }
+
         email <- str_trim(email)
-        author <- paste(name,email)
+        author <- paste(name, ' <', email, '>', sep="")
       }
     }
 
+    ## Check if name looks like an email address (i.e., there are more than
+    ## one @ symbol in the author string): Since that causes parsing problems
+    ## in further steps of the analysis and the ID service, we use only the
+    ## local part of an email address as name.
+    ## E.g., "'hans.huber@hubercorp.com' <hans.huber@hubercorp.com>"
+    if (length(gregexpr(pattern = "@", author, fixed = TRUE)[[1]]) > 1) {
+      ## Get email and name parts first
+      r <- regexpr("<.+>", author, TRUE)
+      email <- substr(author, r, r + attr(r, "match.length") - 1)
+      name <- sub(email, "", author, fixed=TRUE)
+      name <- fix.name(name)
+
+      if(regexpr("\\S+@\\S+", name, TRUE) == 1) {
+        ## Name looks like an email address. Use only local part as name.
+        name <- gsub("\\.", " ", gsub("@.*", "", name))
+      }
+
+      author <- paste(name, email)
+    }
+
+    ## return new author string
     return(author)
   }
 
