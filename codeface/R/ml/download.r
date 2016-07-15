@@ -52,7 +52,11 @@ get.postings <- function(ml) {
 
 ## Select the number of messages from a given date until today
 num.messages.fromdate <- function(msglist, from.date) {
-  msglist <- msglist[msglist$date >= from.date,]
+
+  # Determine the last date before from.date at which a message was sent
+  date.before.from.date <- max(msglist[msglist$date < from.date,]$date)
+
+  msglist <- msglist[msglist$date >= date.before.from.date,]
   return(max(msglist$cumulative) - min(msglist$cumulative))
 }
 
