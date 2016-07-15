@@ -338,10 +338,37 @@ check.corpus.precon <- function(corp.base) {
     return(author)
   }
 
+  ## Condition #3: Date information should be present
+  fix.date <- function(doc) {
+    date.doc = meta(doc, tag = "datetimestamp")
+
+    ## a date is properly set
+    if (!is.na(date.doc)) {
+      return(date.doc)
+    }
+
+    ## if the date is not properly set, we need to re-parse it.
+    ## this may be the case if the date inside the mbox file does not
+    ## match the pattern "%a, %d %b %Y %H:%M:%S".
+    ## (see https://github.com/wolfgangmauerer/snatm/blob/master/pkg/R/makeforest.r#L47)
+
+    ## get the date header
+    headers = meta(doc, tag = "header")
+    date.header = grep("^Date:", headers, value = TRUE, useBytes = TRUE)
+
+    ## re-parse the header using adapted pattern
+    ## TODO: are there other potential pattern?
+    adapted.format = "%d %b %Y %H:%M:%S"  # missing weekday; e.g., "Date: 20 Feb 2009 20:24:54 +0100"
+    date.new = strptime(gsub("Date: ", "", date.header), format = adapted.format, tz = "GMT")
+
+    return(date.new)
+  }
+
   ## Apply checks of conditions to all documents
   fix.corpus.doc <- function(doc) {
     meta(doc, tag="header") <- rmv.multi.refs(doc)
     meta(doc, tag="author") <- fix.author(doc)
+    meta(doc, tag="datetimestamp") <- fix.date(doc)
     return(doc)
   }
 
