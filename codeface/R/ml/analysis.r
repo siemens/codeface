@@ -299,12 +299,40 @@ check.corpus.precon <- function(corp.base) {
       ## Get email and name parts
       r <- regexpr("<.+>", author, TRUE)
       if(r[[1]] == 1) {
-        email <- substr(author, r, r + attr(r,"match.length")-1)
-        name <- sub(email, "", author, fixed=TRUE)
-        name <- fix.name(name)
+
+        ## Check if only an email is provided
+        if(attr(r, "match.length") == nchar(author)) {
+          ## Only an email like "<hans.huber@hubercorp.com>" is provided
+          email <- substr(author, r+1, r + nchar(author)-2)
+          name <- gsub("\\.", " ",gsub("@.*", "", email))
+        } else {
+          ## email and name both are provided
+          email <- substr(author, r, r + attr(r,"match.length")-1)
+          name <- sub(email, "", author, fixed=TRUE)
+          name <- fix.name(name)
+        }
+
         email <- str_trim(email)
         author <- paste(name,email)
       }
+    }
+
+    ## Check if name looks like an email address.
+    ## Since that causes parsing problems, use only the local part of an
+    ## email address as name.
+
+    ## Get email and name parts first
+    r <- regexpr("<.+>", author, TRUE)
+    if(r[[1]] >= 1) {
+      email <- substr(author, r, r + attr(r,"match.length")-1)
+      name <- sub(email, "", author, fixed=TRUE)
+      name <- fix.name(name)
+
+      if(regexpr("\\S+@\\S+", author, TRUE)[1]==1) {
+        ## Name looks like an email address. Use only local part as name.
+        name <- gsub("\\.", " ",gsub("@.*", "", name))
+      }
+      author <- paste(name,email)
     }
 
     return(author)
