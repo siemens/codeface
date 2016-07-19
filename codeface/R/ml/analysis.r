@@ -356,10 +356,19 @@ check.corpus.precon <- function(corp.base) {
     headers = meta(doc, tag = "header")
     date.header = grep("^Date:", headers, value = TRUE, useBytes = TRUE)
 
-    ## re-parse the header using adapted pattern
-    ## TODO: are there other potential pattern?
-    adapted.format = "%d %b %Y %H:%M:%S"  # missing weekday; e.g., "Date: 20 Feb 2009 20:24:54 +0100"
-    date.new = strptime(gsub("Date: ", "", date.header), format = adapted.format, tz = "GMT")
+    ## try to re-parse the header using adapted patterns
+    date.formats = c(
+      "%d %b %Y %H:%M:%S",  # missing weekday; e.g., "Date: 20 Feb 2009 20:24:54 +0100"
+      "%a, %d %b %Y %H:%M"  #missing seconds; e.g. "Date: Wed, 21 Aug 2013 15:02 +0200"
+    )
+
+    for (date.format in date.formats) {
+      date.new = strptime(gsub("Date: ", "", date.header), format = date.format, tz = "GMT")
+      # if the date has been parsed correctly, break the loop
+      if (!is.na(date.new)) {
+        break()
+      }
+    }
 
     return(date.new)
   }
@@ -826,7 +835,7 @@ store.mail <- function(conf, forest, corp, ml.id ) {
   dat <- merge(dat, dates.df, by="ID")
   dat$ID <- NULL
   colnames(dat)[which(colnames(dat)=="threadID")] <- "threadId"
-  
+
   ## Re-order columns to match the order as defined in the database to
   ## improve the stability
   dat = dat[c("projectId", "threadId", "mlId", "author", "subject", "creationDate")]
