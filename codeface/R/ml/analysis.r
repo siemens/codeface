@@ -338,30 +338,32 @@ check.corpus.precon <- function(corp.base) {
     return(author)
   }
 
-  ## Condition #3: Date information should be present
+  ## Condition #3: Date information should incorporate time-zone information and should be present
   fix.date <- function(doc) {
-    date.doc = meta(doc, tag = "datetimestamp")
+    ## re-parse date headers to incorporate time-zone data.
+    ## this needs to be done, because the date inside the mbox file is initially parsed with
+    ## the pattern "%a, %d %b %Y %H:%M:%S" which does not incorporate time-zone data (%z) [1], which is,
+    ## on the other side, incorporated in the commit analysis.
+    ## [1] (see https://github.com/wolfgangmauerer/snatm/blob/master/pkg/R/makeforest.r#L47)
 
-    ## a date is properly set
-    if (!is.na(date.doc)) {
-      return(date.doc)
-    }
-
-    ## if the date is not properly set, we need to re-parse it.
-    ## this may be the case if the date inside the mbox file does not
-    ## match the pattern "%a, %d %b %Y %H:%M:%S".
-    ## (see https://github.com/wolfgangmauerer/snatm/blob/master/pkg/R/makeforest.r#L47)
-
-    ## get the date header
+    ## get the date header as inside the mbox file
     headers = meta(doc, tag = "header")
     date.header = grep("^Date:", headers, value = TRUE, useBytes = TRUE)
 
-    ## try to re-parse the header using adapted patterns
-    date.formats = c(
+    ## patterns without time-zone pattern
+    date.formats.without.tz = c(
+      "%a, %d %b %Y %H:%M:%S",  # initially used format; e.g., "Date: Tue, 20 Feb 2009 20:24:54 +0100"
       "%d %b %Y %H:%M:%S",  # missing weekday; e.g., "Date: 20 Feb 2009 20:24:54 +0100"
-      "%a, %d %b %Y %H:%M"  #missing seconds; e.g. "Date: Wed, 21 Aug 2013 15:02 +0200"
+      "%a, %d %b %Y %H:%M"  # missing seconds; e.g. "Date: Wed, 21 Aug 2013 15:02 +0200"
+    )
+    ## append time-zone part and incorporate pattern without time-zone indicator
+    date.formats = c(
+      paste(date.formats.without.tz, "%z", sep = " "),
+      date.formats.without.tz
     )
 
+    ## try to re-parse the header using adapted patterns:
+    ## parse date until any match with a pattern is found (date.new is not NA)
     for (date.format in date.formats) {
       date.new = strptime(gsub("Date: ", "", date.header), format = date.format, tz = "GMT")
       # if the date has been parsed correctly, break the loop
