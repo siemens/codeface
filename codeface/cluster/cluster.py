@@ -333,6 +333,7 @@ def group_feature_lines(file_commit, file_state, cmt_list):
         next_line = lines[0]
         next_cmt_id = file_state[str(next_line)]
         curr_features = file_commit.findFeatureList(curr_line)
+        open_features = []
 
     for i in range(0, len(file_state) - 1):
         curr_line = lines[i]
@@ -362,10 +363,12 @@ def group_feature_lines(file_commit, file_state, cmt_list):
                                 curr_cmt_id, feature))
                 blk_start[feature] = next_line
                 blk_end[feature] = next_line
+                # collect features that are still open
+                open_features = next_features
 
     # boundary case for open code-blocks or a single line file_state.
     for feature in feature_blks:
-        if feature in next_features:  # Close all open feature blocks
+        if feature in open_features:  # Close all open feature blocks
             feature_blks[feature].append(
                 codeBlock.codeBlock(
                     blk_start[feature], blk_end[feature],
