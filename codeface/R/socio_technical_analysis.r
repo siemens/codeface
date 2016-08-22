@@ -91,7 +91,7 @@ project.list <- list(
                      "cassandra",
 #                    "thrift",
                      "storm",
-                     "camel",
+#                     "camel",
                      #"solr",
                      #"hbase",
                      #"lucene",
@@ -364,7 +364,7 @@ artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count - art
                                            (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
 artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count / artifacts.dat$motif.count
 artifacts.dat$motif.ratio[is.infinite(artifacts.dat$motif.ratio)] <- NA
-#artifacts.dat$bug.density <- artifacts.dat$BugIssueCount / (artifacts.dat$CountLineCode+1)
+artifacts.dat$bug.density <- artifacts.dat$BugIssueCount / (artifacts.dat$CountLineCode+1)
 artifacts.dat$motif.count.norm <- artifacts.dat$motif.count / artifacts.dat$dev.count
 artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count / artifacts.dat$dev.count
 
@@ -376,13 +376,13 @@ corr.cols <- c("motif.count",
     "motif.ratio",
     "motif.percent.diff",
     "dev.count",
-#    "bug.density",
-    "BugIssueCount")
-#    "BugIssueChurn",
-#    "Churn",
-#    "IssueCommits",
-#    "CountLineCode")
-
+    "bug.density",
+    "BugIssueCount",
+    "BugIssueChurn",
+    "Churn",
+    "IssueCommits",
+    "CountLineCode")
+browser()
 correlation.dat <- ggpairs(artifacts.dat,
                            columns=corr.cols,
                            lower=list(continuous=wrap("points",
