@@ -348,7 +348,14 @@ check.corpus.precon <- function(corp.base) {
 
     ## get the date header as inside the mbox file
     headers = meta(doc, tag = "header")
-    date.header = grep("^Date:", headers, value = TRUE, useBytes = TRUE)
+    date.header = grep("^Date: ", headers, value = TRUE, useBytes = TRUE, ignore.case = TRUE)
+    date.header.plain = gsub("^Date: ", "", date.header, ignore.case = TRUE)
+
+    ## break early if 'Date' header is missing
+    if (length(date.header.plain) == 0) {
+      logwarn(paste("Mail is missing header 'Date':", meta(doc, tag = "id")))
+        return(NA)
+    }
 
     ## patterns without time-zone pattern
     date.formats.without.tz = c(
@@ -365,7 +372,8 @@ check.corpus.precon <- function(corp.base) {
     ## try to re-parse the header using adapted patterns:
     ## parse date until any match with a pattern is found (date.new is not NA)
     for (date.format in date.formats) {
-      date.new = strptime(gsub("Date: ", "", date.header), format = date.format, tz = "GMT")
+      date.new = strptime(date.header.plain, format = date.format, tz = "GMT")
+
       # if the date has been parsed correctly, break the loop
       if (!is.na(date.new)) {
         break()
