@@ -137,9 +137,11 @@ get.cycles.con <- function(con, pid, boundaries=FALSE, allow.empty.ranges=FALSE)
     column.selection <- c("range.id", "date.start", "date.end", "cycle")
   }
 
-  res <- res[, column.selection]
-  res$date.start <- ymd_hms(res$date.start, quiet=TRUE)
-  res$date.end <- ymd_hms(res$date.end, quiet=TRUE)
+  if (nrow(res) > 0) {
+    res <- res[, column.selection]
+    res$date.start <- ymd_hms(res$date.start, quiet=TRUE)
+    res$date.end <- ymd_hms(res$date.end, quiet=TRUE)
+  }
 
   return(res)
 }
