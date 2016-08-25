@@ -208,11 +208,12 @@ check.corpus.precon <- function(corp.base) {
                       header <- meta(doc, tag="header")
 
                       if(length(rmv.lines) != 0) {
-                        ## Log number of removed reference id lines
+                        ## Log number of removed reference id lines and message id
+                        message.id <- meta(doc, tag="id")
                         msg <- sprintf(paste("Removing %d id references",
                                              "from corpus due to precondition",
-                                             "violation(s)", sep=" "),
-                                       length(rmv.lines))
+                                             "violation(s) while checking message %s", sep=" "),
+                                       length(rmv.lines), message.id)
                         loginfo(msg, logger="ml.analysis")
                         header <- header[-rmv.lines]
                       }
