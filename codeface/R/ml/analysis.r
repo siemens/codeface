@@ -843,12 +843,12 @@ store.mail <- function(conf, forest, corp, ml.id ) {
   dates.df <- data.frame(ID=names(dates),
                          creationDate=sapply(dates, as.character))
   dat <- merge(dat, dates.df, by="ID")
-  dat$ID <- NULL
+  colnames(dat)[which(colnames(dat)=="ID")] <- "messageId"
   colnames(dat)[which(colnames(dat)=="threadID")] <- "threadId"
 
   ## Re-order columns to match the order as defined in the database to
   ## improve the stability
-  dat = dat[c("projectId", "threadId", "mlId", "author", "subject", "creationDate")]
+  dat = dat[c("projectId", "threadId", "mlId", "author", "subject", "creationDate", "messageId")]
 
   res <- dbWriteTable(conf$con, "mail", dat, append=TRUE, row.names=FALSE)
 
