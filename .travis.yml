@@ -2,6 +2,7 @@ sudo: required
 dist: trusty
 
 before_install:
+  - sudo rm -rf ~/.gnupg
   - sudo integration-scripts/install_repositories.sh
 install:
   - sudo integration-scripts/install_common.sh
