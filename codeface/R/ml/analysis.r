@@ -354,7 +354,7 @@ check.corpus.precon <- function(corp.base) {
     ## break early if 'Date' header is missing
     if (length(date.header.plain) == 0) {
       logwarn(paste("Mail is missing header 'Date':", meta(doc, tag = "id")))
-        return(NA)
+        return(list(NA, 0))
     }
 
     ## patterns without time-zone pattern
@@ -371,23 +371,37 @@ check.corpus.precon <- function(corp.base) {
 
     ## try to re-parse the header using adapted patterns:
     ## parse date until any match with a pattern is found (date.new is not NA)
+    date.format.matching = NA
     for (date.format in date.formats) {
       date.new = strptime(date.header.plain, format = date.format, tz = "GMT")
 
       # if the date has been parsed correctly, break the loop
       if (!is.na(date.new)) {
+        date.format.matching = date.format
         break()
       }
     }
 
-    return(date.new)
+    ## store time offset (i.e., time zone) away from GMT
+    if (!is.na(date.format.matching)) {
+      date.offset = format(strptime(date.header.plain, format = date.format.matching, tz = ""), format = "%z")
+      date.offset = as.integer(date.offset)
+    } else {
+      date.offset = 0
+    }
+
+    return(list(date.new, date.offset))
   }
 
   ## Apply checks of conditions to all documents
   fix.corpus.doc <- function(doc) {
     meta(doc, tag="header") <- rmv.multi.refs(doc)
     meta(doc, tag="author") <- fix.author(doc)
-    meta(doc, tag="datetimestamp") <- fix.date(doc)
+
+    fixed.date = fix.date(doc)
+    meta(doc, tag="datetimestamp") <- fixed.date[[1]]
+    meta(doc, tag="datetimestampOffset") <- fixed.date[[2]]
+
     return(doc)
   }
 
@@ -838,17 +852,26 @@ store.mail <- function(conf, forest, corp, ml.id ) {
   dat$mlId <- ml.id
   dat$projectId <- conf$pid
 
-  ##Extract dates from corpus and add them to the data frame
+  ## Extract dates from corpus and add them to the data frame
   dates <- meta(corp, "datetimestamp")
   dates.df <- data.frame(ID=names(dates),
                          creationDate=sapply(dates, as.character))
   dat <- merge(dat, dates.df, by="ID")
+
+  ## Extract date offsets from corpus and add them to the data frame
+  date.offsets <- meta(corp, "datetimestampOffset")
+  date.offsets.df <- data.frame(ID=names(date.offsets),
+                         creationDateOffset=sapply(date.offsets, as.character))
+  dat <- merge(dat, date.offsets.df, by="ID")
+
+  ## set proper column headings
   colnames(dat)[which(colnames(dat)=="ID")] <- "messageId"
   colnames(dat)[which(colnames(dat)=="threadID")] <- "threadId"
 
   ## Re-order columns to match the order as defined in the database to
   ## improve the stability
-  dat = dat[c("projectId", "threadId", "mlId", "author", "subject", "creationDate", "messageId")]
+  dat = dat[c("projectId", "threadId", "mlId", "author", "subject",
+              "creationDate", "creationDateOffset", "messageId")]
 
   res <- dbWriteTable(conf$con, "mail", dat, append=TRUE, row.names=FALSE)
 
