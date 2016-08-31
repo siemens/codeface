@@ -5,6 +5,7 @@ source("analysis.r")
 
 conf <- connect.db("../../../codeface_testing.conf")
 conf$listname <- "gmane.comp.emulators.qemu"
+conf$use_corpus <- FALSE
 
 path <- "test_data"
 res.dir <- "test_data"
