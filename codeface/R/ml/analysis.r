@@ -418,7 +418,7 @@ check.corpus.precon <- function(corp.base) {
 
 dispatch.all <- function(conf, repo.path, resdir) {
   loginfo("Starting mailinglist analysis", logger="ml.analysis")
-  corp.base <- gen.forest(conf, repo.path, resdir)
+  corp.base <- gen.forest(conf, repo.path, resdir, use.mbox = !conf$use_corpus)
   loginfo("corp.base finished", logger="ml.analysis")
   ## TODO: When we consider incremental updates, would it make sense
   ## to just update the corpus, and let all other operations run
