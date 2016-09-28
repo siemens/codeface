@@ -47,9 +47,7 @@ plot.to.file <- function(g, outfile) {
 }
 
 motif.generator <- function(type, person.role, artifact.type, vertex.coding, anti=FALSE) {
-    if (type != "square" && type != "triangle") {
-        stop("Internal error: Unsupported motif type")
-    }
+    ensure.supported.artifact.type(artifact.type)
 
     motif <- graph.empty(directed=FALSE)
     if (type=="square") {
@@ -108,6 +106,35 @@ cor.mtest <- function(mat, conf.level = 0.95) {
     return(list(p.mat, lowCI.mat, uppCI.mat))
 }
 
+## Some helper functions to ensure that functions receive correct
+## parameter values
+ensure.supported.artifact.type <- function(artifact.type) {
+    if(!(artifact.type %in% c("function", "file", "feature"))) {
+        stop(str_c("Internal error: Artifact type ", artifact.type,
+                   " is unsupported!"))
+    }
+}
+
+ensure.supported.dependency.type <- function(dependency.type) {
+    if(!(dependency.type %in% c("co-change", "dsm", "feature_call", "none"))) {
+        stop(str_c("Internal error: Dependency type ", dependency.type,
+                   " is unsupported!"))
+    }
+}
+
+ensure.supported.quality.type <- function(quality.type) {
+    if(!(quality.type %in% c("corrective", "defect"))) {
+        stop(str_c("Internal error: Quality type ", quality.type,
+                   " is unsupported!"))
+    }
+}
+
+ensure.supported.communication.type <- function(communication.type) {
+    if(!(communication.type %in% c("mail", "jira"))) {
+        stop(str_c("Internal error: Communication type ", communication.type,
+                   " is unsupported!"))
+    }
+}
 
 do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     project.name <- conf$project
