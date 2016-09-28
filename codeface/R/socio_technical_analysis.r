@@ -136,6 +136,22 @@ ensure.supported.communication.type <- function(communication.type) {
     }
 }
 
+## Compute communication relations between contributors
+compute.communication.relations <- function(conf, communication.type, jira.filename, start.date, end.date) {
+    ensure.supported.communication.type(communication.type)
+    if (communication.type=="mail") {
+        comm.dat <- query.mail.edgelist(conf$con, conf$pid, start.date, end.date)
+        colnames(comm.dat) <- c("V1", "V2", "weight")
+    } else if (communication.type=="jira") {
+        comm.dat <- load.jira.edgelist(conf, jira.filename, start.date, end.date)
+    }
+    comm.dat[, c(1,2)] <- sapply(comm.dat[, c(1,2)], as.character)
+
+    return(comm.dat)
+}
+
+
+
 do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     project.name <- conf$project
     project.id <- conf$pid
@@ -182,14 +198,8 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     ## Save to csv TODO: Why do we need to save that?
     write.csv(vcs.dat, file.path(resdir, "commit_data.csv"))
 
-    ## Compute communication relations
-    if (communication.type=="mail") {
-        comm.dat <- query.mail.edgelist(conf$con, project.id, start.date, end.date)
-        colnames(comm.dat) <- c("V1", "V2", "weight")
-    } else if (communication.type=="jira") {
-        comm.dat <- load.jira.edgelist(conf, jira.filename, start.date, end.date)
-    }
-    comm.dat[, c(1,2)] <- sapply(comm.dat[, c(1,2)], as.character)
+    comm.dat <- compute.communication.relations(conf, communication.type,
+                                                jira.filename, start.date, end.date)
 
     ## Compute entity-entity relations
     relevant.entity.list <- unique(vcs.dat$entity)
