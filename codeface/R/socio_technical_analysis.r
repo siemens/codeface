@@ -46,7 +46,8 @@ plot.to.file <- function(g, outfile) {
     dev.off()
 }
 
-motif.generator <- function(type, person.role, artifact.type, vertex.coding, anti=FALSE) {
+motif.generator <- function(type, person.role, artifact.type, vertex.coding,
+                            anti=FALSE) {
     ensure.supported.artifact.type(artifact.type)
 
     motif <- graph.empty(directed=FALSE)
@@ -54,7 +55,8 @@ motif.generator <- function(type, person.role, artifact.type, vertex.coding, ant
         motif <- add.vertices(motif, 4)
         motif <- add.edges(motif, c(1,2, 1,3, 2,4, 3,4))
         if (anti) motif <- delete.edges(motif, c(1))
-        V(motif)$kind <- c(person.role, person.role, artifact.type, artifact.type)
+        V(motif)$kind <- c(person.role, person.role, artifact.type,
+                           artifact.type)
         V(motif)$color <- vertex.coding[V(motif)$kind]
     }
     else if (type=="triangle") {
@@ -97,10 +99,11 @@ cor.mtest <- function(mat, conf.level = 0.95) {
     diag(lowCI.mat) <- diag(uppCI.mat) <- 1
     for (i in 1:(n - 1)) {
         for (j in (i + 1):n) {
-            tmp <- cor.test(mat[, i], mat[, j], conf.level = conf.level, method="spearman")
+            tmp <- cor.test(mat[, i], mat[, j], conf.level = conf.level,
+                            method="spearman")
             p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
-                                        #lowCI.mat[i, j] <- lowCI.mat[j, i] <- tmp$conf.int[1]
-                                        #uppCI.mat[i, j] <- uppCI.mat[j, i] <- tmp$conf.int[2]
+            ##lowCI.mat[i, j] <- lowCI.mat[j, i] <- tmp$conf.int[1]
+            ##uppCI.mat[i, j] <- uppCI.mat[j, i] <- tmp$conf.int[2]
         }
     }
     return(list(p.mat, lowCI.mat, uppCI.mat))
@@ -137,7 +140,8 @@ ensure.supported.communication.type <- function(communication.type) {
 }
 
 ## Compute communication relations between contributors
-compute.communication.relations <- function(conf, communication.type, jira.filename, start.date, end.date) {
+compute.communication.relations <- function(conf, communication.type,
+                                            jira.filename, start.date, end.date) {
     ensure.supported.communication.type(communication.type)
     if (communication.type=="mail") {
         comm.dat <- query.mail.edgelist(conf$con, conf$pid, start.date, end.date)
@@ -161,10 +165,12 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
         start.date.hist <- as.Date(start.date) - historical.limit
         end.date.hist <- start.date
 
-        commit.df.hist <- query.dependency(conf$con, conf$pid, artifact.type, file.limit,
-                                           start.date.hist, end.date.hist)
+        commit.df.hist <- query.dependency(conf$con, conf$pid, artifact.type,
+                                           file.limit, start.date.hist,
+                                           end.date.hist)
 
-        commit.df.hist <- commit.df.hist[commit.df.hist$entity %in% relevant.entity.list, ]
+        commit.df.hist <- commit.df.hist[commit.df.hist$entity %in%
+                                         relevant.entity.list,]
 
         ## Compute co-change relationship
         freq.item.sets <- compute.frequent.items(commit.df.hist)
@@ -176,14 +182,14 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
         dependency.dat <- load.sdsm(dsm.filename, relevant.entity.list)
         dependency.dat <-
             dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
-                           dependency.dat[, 2] %in% relevant.entity.list, ]
+                           dependency.dat[, 2] %in% relevant.entity.list,]
     } else if (dependency.type == "feature_call") {
         graph.dat <- read.graph(feature.call.filename, format="pajek")
         V(graph.dat)$name <- V(graph.dat)$id
         dependency.dat <- get.data.frame(graph.dat)
         dependency.dat <-
             dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
-                           dependency.dat[, 2] %in% relevant.entity.list, ]
+                           dependency.dat[, 2] %in% relevant.entity.list,]
         names(dependency.dat) <- c("V1", "V2")
     } else {
         dependency.dat <- data.frame()
@@ -289,19 +295,22 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     ## Save graph
     write.graph(g, file.path(resdir, "network_data.graphml"), format="graphml")
 
-    ## Define motif
-    motif <- motif.generator(motif.type, person.role, artifact.type, vertex.coding)
-    motif.anti <- motif.generator(motif.type, person.role, artifact.type, vertex.coding, anti=TRUE)
+    ## Generate motif and anti-motif that we want to find in the data
+    motif <- motif.generator(motif.type, person.role, artifact.type,
+                             vertex.coding)
+    motif.anti <- motif.generator(motif.type, person.role, artifact.type,
+                                  vertex.coding, anti=TRUE)
 
-    ## Count subgraph isomorphisms
+    ## Count subgraph isomorphisms in the collaboration graph with
+    ## the given motif (and anti-motif)
     motif.count <- count_subgraph_isomorphisms(motif, g, method="vf2")
     motif.anti.count <- count_subgraph_isomorphisms(motif.anti, g, method="vf2")
 
-    ## Extract subgraph isomorphisms
+    ## Extract the subgraph isomorphisms
     motif.subgraphs <- subgraph_isomorphisms(motif, g, method="vf2")
     motif.subgraphs.anti <- subgraph_isomorphisms(motif.anti, g, method="vf2")
 
-    ## Compute null model
+    ## Compute a null model
     niter <- 100
     motif.count.null <- c()
 
@@ -321,10 +330,6 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
                          g.null <- add.edges(g.null, dependency.edgelist)
                      }
 
-                     ## Test degree dist
-                                        #if(!all(sort(as.vector(degree(g.null))) ==
-                                        #        sort(as.vector(degree(g.bipartite))))) stop("Degree distribution not conserved")
-
                      ## Rewire dev-dev communication graph
                      g.comm <- graph.data.frame(comm.inter.dat)
                      g.comm.null <- birewire.rewire.undirected(simplify(g.comm),
@@ -332,7 +337,9 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
 
                      ## Test degree dist
                      if(!all(sort(as.vector(degree(g.comm.null))) ==
-                             sort(as.vector(degree(g.comm))))) stop("Degree distribution not conserved")
+                             sort(as.vector(degree(g.comm))))) {
+                         stop("Internal error: degree distribution not conserved!")
+                     }
 
                      g.null <- add.edges(g.null,
                                          as.character(with(get.data.frame(g.comm.null),
@@ -350,14 +357,16 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
                                        count=c(count.positive, count.negative))
 
                      return(res)}, mc.cores=2) # TODO: Use codefaces multiprocessing infrastructure!
-    print("...finished")
 
     null.model.dat <- do.call(rbind, motif.count.null)
-    null.model.dat[null.model.dat$count.type=="positive", "empirical.count"] <- motif.count
-    null.model.dat[null.model.dat$count.type=="negative", "empirical.count"] <- motif.anti.count
+    null.model.dat[null.model.dat$count.type=="positive", "empirical.count"] <-
+        motif.count
+    null.model.dat[null.model.dat$count.type=="negative", "empirical.count"] <-
+        motif.anti.count
 
-    ## Save plots
-    networks.dir <- file.path(resdir, "motif_analysis", motif.type, communication.type)
+    ## Visualise the results in some graphs
+    networks.dir <- file.path(resdir, "motif_analysis", motif.type,
+                              communication.type)
     dir.create(networks.dir, recursive=T, showWarnings=T)
 
     ## Null model
@@ -371,7 +380,8 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
            filename=file.path(networks.dir, "motif_null_model.png"))
 
     ## Communication degree distribution
-    p.comm <- ggplot(data=data.frame(degree=degree(graph.data.frame(comm.dat))), aes(x=degree)) +
+    p.comm <- ggplot(data=data.frame(degree=degree(graph.data.frame(comm.dat))),
+                     aes(x=degree)) +
         geom_histogram(aes(y=..density..), colour="black", fill="white") +
         geom_density(alpha=.2, fill="#AAD4FF")
 
@@ -387,8 +397,8 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
         quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
                                         start.date, end.date)
     } else {
-        quality.dat <- get.corrective.count(conf$con, project.id, start.date, end.date,
-                                            artifact.type)
+        quality.dat <- get.corrective.count(conf$con, project.id, start.date,
+                                            end.date, artifact.type)
     }
 
     artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs,
@@ -410,15 +420,21 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
 
     ## Add features
-    artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count - artifacts.dat$motif.count) /
+    artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count -
+                                                artifacts.dat$motif.count) /
         (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
-    artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count / artifacts.dat$motif.count
+    artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count /
+        artifacts.dat$motif.count
     artifacts.dat$motif.ratio[is.infinite(artifacts.dat$motif.ratio)] <- NA
-    artifacts.dat$bug.density <- artifacts.dat$BugIssueCount / (artifacts.dat$CountLineCode+1)
-    artifacts.dat$motif.count.norm <- artifacts.dat$motif.count / artifacts.dat$dev.count
-    artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count / artifacts.dat$dev.count
+    artifacts.dat$bug.density <- artifacts.dat$BugIssueCount /
+        (artifacts.dat$CountLineCode+1)
+    artifacts.dat$motif.count.norm <- artifacts.dat$motif.count /
+        artifacts.dat$dev.count
+    artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count /
+        artifacts.dat$dev.count
 
-    ## Generate correlation plot (omitted correlatipn quantitied: BugIsseChurn, IssueCommits)
+    ## Generate correlation plot (omitted correlation quantities: BugIsseChurn
+    ## and IssueCommits)
     corr.cols <- c("motif.count",      "motif.anti.count",
                    "motif.count.norm", "motif.anti.count.norm",
                    "motif.ratio",      "motif.percent.diff",
@@ -435,17 +451,20 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
                                                           method='spearman'))) +
         theme(axis.title.x = element_text(angle = 90, vjust = 1, color = "black"))
 
-    corr.mat <- cor(artifacts.dat[, corr.cols], use="pairwise.complete.obs", method="spearman")
+    corr.mat <- cor(artifacts.dat[, corr.cols], use="pairwise.complete.obs",
+                    method="spearman")
     corr.test <- cor.mtest(artifacts.dat[, corr.cols])
 
     ## Write correlations and raw data to file
-    corr.plot.path <- file.path(resdir, "quality_analysis", motif.type, communication.type)
+    corr.plot.path <- file.path(resdir, "quality_analysis", motif.type,
+                                communication.type)
     dir.create(corr.plot.path, recursive=T, showWarnings=T)
     png(file.path(corr.plot.path, "correlation_plot.png"), width=1200, height=1200)
     print(correlation.dat)
     dev.off()
 
-    png(file.path(corr.plot.path, "correlation_plot_color.png"), width=700, height=700)
+    png(file.path(corr.plot.path, "correlation_plot_color.png"),
+        width=700, height=700)
     corrplot(corr.mat, p.mat=corr.test[[1]],
              insig = "p-value", sig.level=0.05, method="color",
              type="upper")
@@ -462,7 +481,8 @@ config.script.run({
     srcdir <- file.path(conf$srcdir, conf$project)
     titandir <- file.path(srcdir, "titan")
 
-    logdevinfo(paste("Directory for storing conway results is", resdir), logger="conway")
+    logdevinfo(paste("Directory for storing conway results is", resdir),
+               logger="conway")
     dir.create(resdir, showWarnings=FALSE, recursive=TRUE)
 
     if (conf$profile) {
