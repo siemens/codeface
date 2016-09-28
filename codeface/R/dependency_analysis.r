@@ -1,8 +1,9 @@
-require(arules)
-require(plyr)
-require(parallel)
-require(ggplot2)
-require(reshape)
+s <- suppressPackageStartupMessages
+s(require(arules))
+s(require(plyr))
+s(require(parallel))
+s(require(ggplot2))
+s(require(reshape))
 
 source("db.r")
 source("config.r")

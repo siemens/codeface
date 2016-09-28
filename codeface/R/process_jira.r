@@ -1,4 +1,5 @@
-library(igraph)
+s <- suppressPackageStartupMessages
+s(library(igraph))
 
 load.jira.edgelist <- function(conf, jira.filename, start.date, end.date) {
   ## Load jira userId to IssueId mapping

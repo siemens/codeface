@@ -1,6 +1,7 @@
-library(XLConnect)
-library(readxl)
-library(igraph)
+s <- suppressPackageStartupMessages
+s(library(XLConnect))
+s(library(readxl))
+s(library(igraph))
 
 load.dsm.edgelist <- function(dsm.filname, relavent.files) {
   ## Load excel file
