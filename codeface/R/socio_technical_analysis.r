@@ -46,7 +46,11 @@ plot.to.file <- function(g, outfile) {
     dev.off()
 }
 
-motif.generator <- function(type, anti=FALSE) {
+motif.generator <- function(type, person.role, artifact.type, vertex.coding, anti=FALSE) {
+    if (type != "square" && type != "triangle") {
+        stop("Internal error: Unsupported motif type")
+    }
+
     motif <- graph.empty(directed=FALSE)
     if (type=="square") {
         motif <- add.vertices(motif, 4)
@@ -69,7 +73,7 @@ motif.generator <- function(type, anti=FALSE) {
     return(motif)
 }
 
-preprocess.graph <- function(g) {
+preprocess.graph <- function(g, person.role) {
     ## Remove loops and multiple edges
     g <- simplify(g, remove.multiple=TRUE, remove.loops=TRUE,
                   edge.attr.comb="first")
@@ -226,9 +230,9 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     }
 
     ## Apply filters
-    g <- preprocess.graph(g)
+    g <- preprocess.graph(g, person.role)
 
-    ## Apply vertex coding
+    ## Define a numeric encoding scheme for vertices
     vertex.coding <- c()
     vertex.coding[person.role] <- 1
     vertex.coding[artifact.type] <- 2
@@ -238,8 +242,8 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     write.graph(g, file.path(resdir, "network_data.graphml"), format="graphml")
 
     ## Define motif
-    motif <- motif.generator(motif.type)
-    motif.anti <- motif.generator(motif.type, anti=TRUE)
+    motif <- motif.generator(motif.type, person.role, artifact.type, vertex.coding)
+    motif.anti <- motif.generator(motif.type, person.role, artifact.type, vertex.coding, anti=TRUE)
 
     ## Count subgraph isomorphisms
     motif.count <- count_subgraph_isomorphisms(motif, g, method="vf2")
@@ -289,7 +293,7 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
                      ## Code and count motif
                      V(g.null)$color <- vertex.coding[V(g.null)$kind]
 
-                     g.null <- preprocess.graph(g.null)
+                     g.null <- preprocess.graph(g.null, person.role)
 
                      count.positive <- count_subgraph_isomorphisms(motif, g.null, method="vf2")
                      count.negative <- count_subgraph_isomorphisms(motif.anti, g.null, method="vf2")
