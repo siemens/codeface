@@ -198,6 +198,52 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
     return(dependency.dat)
 }
 
+do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
+                          dependency.edgelist, comm.inter.dat, vertex.coding,
+                          motif, motif.anti) {
+    ## Rewire dev-artifact bipartite
+    g.bipartite.rewired <- birewire.rewire.bipartite(simplify(g.bipartite),
+                                                     verbose=FALSE)
+
+    ## Add rewired edges
+    gbr.df <- get.data.frame(g.bipartite.rewired)
+    g.null <- add.edges(g.nodes,
+                        as.character(ggplot2:::interleave(gbr.df$from, gbr.df$to)))
+
+    ## Aritfact-artifact edges
+    if (nrow(dependency.dat) > 0) {
+        g.null <- add.edges(g.null, dependency.edgelist)
+    }
+
+    ## Rewire dev-dev communication graph
+    g.comm <- graph.data.frame(comm.inter.dat)
+    g.comm.null <- birewire.rewire.undirected(simplify(g.comm),
+                                              verbose=FALSE)
+
+    ## Test degree dist
+    if(!all(sort(as.vector(degree(g.comm.null))) ==
+            sort(as.vector(degree(g.comm))))) {
+        stop("Internal error: degree distribution not conserved!")
+    }
+
+    g.null <- add.edges(g.null,
+                        as.character(with(get.data.frame(g.comm.null),
+                                          ggplot2:::interleave(from, to))))
+
+    ## Code and count motif
+    V(g.null)$color <- vertex.coding[V(g.null)$kind]
+
+    g.null <- preprocess.graph(g.null, person.role)
+
+    count.positive <- count_subgraph_isomorphisms(motif, g.null, method="vf2")
+    count.negative <- count_subgraph_isomorphisms(motif.anti, g.null, method="vf2")
+
+    res <- data.frame(count.type=c("positive", "negative"),
+                      count=c(count.positive, count.negative))
+
+    return(res)
+}
+
 
 do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     project.name <- conf$project
@@ -332,49 +378,11 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     niter <- 100
     motif.count.null <- c()
 
-    motif.count.null <-
-        mclapply(seq(niter),
-                 function(i) {
-                     ## Rewire dev-artifact bipartite
-                     g.bipartite.rewired <- birewire.rewire.bipartite(simplify(g.bipartite), verbose=FALSE) #g.bipartite
-
-                     ## Add rewired edges
-                     g.null <- add.edges(g.nodes,
-                                         as.character(with(get.data.frame(g.bipartite.rewired),
-                                                           ggplot2:::interleave(from, to))))
-
-                     ## Aritfact-artifact edges
-                     if (nrow(dependency.dat) > 0) {
-                         g.null <- add.edges(g.null, dependency.edgelist)
-                     }
-
-                     ## Rewire dev-dev communication graph
-                     g.comm <- graph.data.frame(comm.inter.dat)
-                     g.comm.null <- birewire.rewire.undirected(simplify(g.comm),
-                                                               verbose=FALSE)
-
-                     ## Test degree dist
-                     if(!all(sort(as.vector(degree(g.comm.null))) ==
-                             sort(as.vector(degree(g.comm))))) {
-                         stop("Internal error: degree distribution not conserved!")
-                     }
-
-                     g.null <- add.edges(g.null,
-                                         as.character(with(get.data.frame(g.comm.null),
-                                                           ggplot2:::interleave(from, to))))
-
-                     ## Code and count motif
-                     V(g.null)$color <- vertex.coding[V(g.null)$kind]
-
-                     g.null <- preprocess.graph(g.null, person.role)
-
-                     count.positive <- count_subgraph_isomorphisms(motif, g.null, method="vf2")
-                     count.negative <- count_subgraph_isomorphisms(motif.anti, g.null, method="vf2")
-
-                     res <- data.frame(count.type=c("positive", "negative"),
-                                       count=c(count.positive, count.negative))
-
-                     return(res)}, mc.cores=2) # TODO: Use codefaces multiprocessing infrastructure!
+    motif.count.null <- mclapply(seq(niter), function(i) {
+        do.null.model(g.bipartite, g.nodes, person.role, dependency.dat,
+                      dependency.edgelist, comm.inter.dat, vertex.coding,
+                      motif, motif.anti)
+    }, mc.cores=2) ## TODO: Use the built-in multiprocessing framework
 
     null.model.dat <- do.call(rbind, motif.count.null)
     null.model.dat[null.model.dat$count.type=="positive", "empirical.count"] <-
