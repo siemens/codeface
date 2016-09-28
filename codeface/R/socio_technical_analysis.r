@@ -235,28 +235,36 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     file.limit <- 30
     historical.limit <- ddays(365)
 
-    ## Compute dev-artifact relations
+    ## Compute developer-artifact relationships that are obtained
+    ## from the revision control system
     vcs.dat <- query.dependency(conf$con, project.id, artifact.type, file.limit,
                                 start.date, end.date, impl=FALSE, rmv.dups=FALSE)
     vcs.dat$entity <- sapply(vcs.dat$entity,
                              function(filename) filename <- gsub("/", ".", filename, fixed=T))
     vcs.dat$author <- as.character(vcs.dat$author)
 
+    ## Determine which functions (node.function) and people (node.dev) contribute
+    ## to the developer-artifact relationships
+    node.function <- unique(vcs.dat$entity)
+    node.dev <- unique(c(vcs.dat$author))
+
     ## Save to csv TODO: Why do we need to save that?
     write.csv(vcs.dat, file.path(resdir, "commit_data.csv"))
 
-    ## Compute various relationships between contributors
+    ## Compute various other relationships between contributors and/or entities
     comm.dat <- compute.communication.relations(conf, communication.type,
                                                 jira.filename, start.date, end.date)
     dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date,
                                            dependency.type, artifact.type,
                                            dsm.filename, historical.limit)
 
-    ## Compute node sets
-    node.function <- unique(vcs.dat$entity)
-    node.dev <- unique(c(vcs.dat$author))
+    ## Generate a bipartite network that describes the socio-technical structure
+    ## of a development project. This data structure is the core of the Conway
+    ## analysis, and to make statements about relations between the technical
+    ## and the social structure of a project.
 
-    ## Generate bipartite network
+    ## g.nodes is the basis for the graph it contains all relevant nodes,
+    ## persons (developers) and artefacts. g.nodes has no edges.
     g.nodes <- graph.empty(directed=FALSE)
     g.nodes <- add.vertices(g.nodes, nv=length(node.dev),
                             attr=list(name=node.dev, kind=person.role,
@@ -265,36 +273,41 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
                              attr=list(name=node.function, kind=artifact.type,
                                        type=FALSE))
 
-    ## Add developer-entity edges
+    ## Graph g.bipartite based on g.nodes that contains developer-entity edges
     vcs.edgelist <- with(vcs.dat, ggplot2:::interleave(author, entity))
     g.bipartite <- add.edges(g.nodes, vcs.edgelist, attr=list(color="#00FF001A"))
 
-    ## Add developer-developer communication edges
+    ## Create a graph that describes developer-developer communication
     g <- graph.empty(directed=FALSE)
-    ## Remove persons that don't appear in VCS data
+    ## * First, remove persons that don't appear in VCS data
     comm.inter.dat <- comm.dat[comm.dat$V1 %in% node.dev & comm.dat$V2 %in% node.dev, ]
     comm.edgelist <- as.character(with(comm.inter.dat, ggplot2:::interleave(V1, V2)))
     g <- add.edges(g.bipartite, comm.edgelist, attr=list(color="#FF00001A"))
 
-    ## Add entity-entity edges
+    ## * Second, add entity-entity edges
     if(nrow(dependency.dat) > 0) {
         dependency.edgelist <- as.character(with(dependency.dat,
                                                  ggplot2:::interleave(V1, V2)))
         g <- add.edges(g, dependency.edgelist)
     }
 
-    ## Apply filters
+    ## * Third, remove some undesired outlier contributions of the graph
+    ##   that complicate further processing.
     g <- preprocess.graph(g, person.role)
 
-    ## Define a numeric encoding scheme for vertices
+    ## * Fourth, define a numeric encoding scheme for vertices, and color
+    ##   the different vertices
     vertex.coding <- c()
     vertex.coding[person.role] <- 1
     vertex.coding[artifact.type] <- 2
     V(g)$color <- vertex.coding[V(g)$kind]
 
-    ## Save graph
+    ## * Last, save the resulting graph for external processing
+    ## (TODO: This should go into the database)
     write.graph(g, file.path(resdir, "network_data.graphml"), format="graphml")
 
+    
+    ################# Analyse the socio-technical graph ##############
     ## Generate motif and anti-motif that we want to find in the data
     motif <- motif.generator(motif.type, person.role, artifact.type,
                              vertex.coding)
@@ -369,7 +382,7 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
                               communication.type)
     dir.create(networks.dir, recursive=T, showWarnings=T)
 
-    ## Null model
+    ## Visualise the null model
     p.null <- ggplot(data=null.model.dat, aes(x=count)) +
         geom_histogram(aes(y=..density..), colour="black", fill="white") +
         geom_point(aes(x=empirical.count), y=0, color="red", size=5) +
@@ -379,7 +392,7 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     ggsave(plot=p.null,
            filename=file.path(networks.dir, "motif_null_model.png"))
 
-    ## Communication degree distribution
+    ## Compute the communication degree distribution
     p.comm <- ggplot(data=data.frame(degree=degree(graph.data.frame(comm.dat))),
                      aes(x=degree)) +
         geom_histogram(aes(y=..density..), colour="black", fill="white") +
