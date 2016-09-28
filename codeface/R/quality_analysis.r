@@ -37,7 +37,7 @@ get.corrective.count <- function(con, project.id, start.date, end.date,
     return(dat)
 }
 
-load.defect.data <- function(filename, relavent.files, start.date, end.date) {
+load.defect.data <- function(filename, relevant.files, start.date, end.date) {
     defect.dat <- read.csv(filename, header=TRUE, stringsAsFactors=FALSE)
 
     ## Check if time resolved or not
@@ -69,7 +69,7 @@ load.defect.data <- function(filename, relavent.files, start.date, end.date) {
                                     return(filename)})
 
     defect.dat$file <- NULL
-    defect.dat <- defect.dat[defect.dat$entity %in% relavent.files, ]
+    defect.dat <- defect.dat[defect.dat$entity %in% relevant.files, ]
     colnames(defect.dat) <- c("BugIssueCount", "Churn", "CountLineCode", "entity")
     defect.dat$CountLineCode <- as.integer(defect.dat$CountLineCode)
 

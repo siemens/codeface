@@ -150,64 +150,18 @@ compute.communication.relations <- function(conf, communication.type, jira.filen
     return(comm.dat)
 }
 
-
-
-do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
-    project.name <- conf$project
-    project.id <- conf$pid
-
-    ## Analysis window
-    ## TODO: Select these automatically from the database
-    window.size <- 12 # months
-    end.date <- list(flink="2015-11-05",
-                     cassandra="2015-11-06",
-                     thrift="2015-09-25",
-                     storm="2015-11-20",
-                     camel="2015-11-08",
-                     solr="2016-02-20",
-                     hbase="2016-02-23",
-                     lucene="2016-02-20",
-                     accumulo="2015-12-03")[[project.name]]
-    start.date <- as.character(ymd(end.date) - months(window.size))
-
-    dsm.filename <- file.path(titandir, "sdsm", "project.sdsm")
-    feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
-    jira.filename <- file.path(srcdir, "jira-comment-authors-with-email.csv")
-    defect.filename <- file.path(srcdir, "file_metrics.csv")
-
-
-    ## Analysis
-    motif.type <- list("triangle", "square")[[2]]
-    artifact.type <- list("function", "file", "feature")[[2]]
-    dependency.type <- list("co-change", "dsm", "feature_call", "none")[[2]]
-    quality.type <- list("corrective", "defect")[[2]]
-    communication.type <- list("mail", "jira")[[2]]
-
-    ## Constants
-    person.role <- "developer"
-    file.limit <- 30
-    historical.limit <- ddays(365)
-
-    ## Compute dev-artifact relations
-    vcs.dat <- query.dependency(conf$con, project.id, artifact.type, file.limit,
-                                start.date, end.date, impl=FALSE, rmv.dups=FALSE)
-    vcs.dat$entity <- sapply(vcs.dat$entity,
-                             function(filename) filename <- gsub("/", ".", filename, fixed=T))
-    vcs.dat$author <- as.character(vcs.dat$author)
-
-    ## Save to csv TODO: Why do we need to save that?
-    write.csv(vcs.dat, file.path(resdir, "commit_data.csv"))
-
-    comm.dat <- compute.communication.relations(conf, communication.type,
-                                                jira.filename, start.date, end.date)
-
-    ## Compute entity-entity relations
+## Compute entity-entity relations
+compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
+                                 dependency.type, artifact.type,
+                                 dsm.filename, historical.limit) {
+    ensure.supported.dependency.type(dependency.type)
+    ensure.supported.artifact.type(artifact.type)
     relevant.entity.list <- unique(vcs.dat$entity)
     if (dependency.type == "co-change") {
         start.date.hist <- as.Date(start.date) - historical.limit
         end.date.hist <- start.date
 
-        commit.df.hist <- query.dependency(conf$con, project.id, artifact.type, file.limit,
+        commit.df.hist <- query.dependency(conf$con, conf$pid, artifact.type, file.limit,
                                            start.date.hist, end.date.hist)
 
         commit.df.hist <- commit.df.hist[commit.df.hist$entity %in% relevant.entity.list, ]
@@ -234,6 +188,63 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     } else {
         dependency.dat <- data.frame()
     }
+
+    return(dependency.dat)
+}
+
+
+do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
+    project.name <- conf$project
+    project.id <- conf$pid
+
+    ## Analysis window
+    ## TODO: Select these automatically from the database
+    window.size <- 12 # months
+    end.date <- list(flink="2015-11-05",
+                     cassandra="2015-11-06",
+                     thrift="2015-09-25",
+                     storm="2015-11-20",
+                     camel="2015-11-08",
+                     solr="2016-02-20",
+                     hbase="2016-02-23",
+                     lucene="2016-02-20",
+                     accumulo="2015-12-03")[[project.name]]
+    start.date <- as.character(ymd(end.date) - months(window.size))
+
+    dsm.filename <- file.path(titandir, "sdsm", "project.sdsm")
+    feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
+    jira.filename <- file.path(srcdir, "jira-comment-authors-with-email.csv")
+    defect.filename <- file.path(srcdir, "time_based_metrics.csv")
+
+
+    ## Analysis
+    motif.type <- list("triangle", "square")[[2]]
+    artifact.type <- list("function", "file", "feature")[[2]]
+    dependency.type <- list("co-change", "dsm", "feature_call", "none")[[2]]
+    quality.type <- list("corrective", "defect")[[2]]
+    communication.type <- list("mail", "jira")[[2]]
+
+    ## Constants
+    person.role <- "developer"
+    file.limit <- 30
+    historical.limit <- ddays(365)
+
+    ## Compute dev-artifact relations
+    vcs.dat <- query.dependency(conf$con, project.id, artifact.type, file.limit,
+                                start.date, end.date, impl=FALSE, rmv.dups=FALSE)
+    vcs.dat$entity <- sapply(vcs.dat$entity,
+                             function(filename) filename <- gsub("/", ".", filename, fixed=T))
+    vcs.dat$author <- as.character(vcs.dat$author)
+
+    ## Save to csv TODO: Why do we need to save that?
+    write.csv(vcs.dat, file.path(resdir, "commit_data.csv"))
+
+    ## Compute various relationships between contributors
+    comm.dat <- compute.communication.relations(conf, communication.type,
+                                                jira.filename, start.date, end.date)
+    dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date,
+                                           dependency.type, artifact.type,
+                                           dsm.filename, historical.limit)
 
     ## Compute node sets
     node.function <- unique(vcs.dat$entity)
@@ -367,10 +378,11 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     ggsave(plot=p.comm,
            filename=file.path(networks.dir, "communication_degree_dist.png"))
 
-    ## Complete network
+    ## Plot the complete network
     plot.to.file(g, file.path(networks.dir, "socio_technical_network.png"))
 
     ## Perform quality analysis
+    relevant.entity.list <- unique(vcs.dat$entity)
     if (quality.type=="defect") {
         quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
                                         start.date, end.date)
