@@ -105,26 +105,7 @@ cor.mtest <- function(mat, conf.level = 0.95) {
 }
 
 
-######################### Dispatcher ###################################
-config.script.run({
-    conf <- config.from.args(positional.args=list("resdir", "srcdir"),
-                             require.project=TRUE)
-    resdir <- file.path(conf$resdir, conf$project, "conway")
-    srcdir <- file.path(conf$srcdir, conf$project)
-    titandir <- file.path(srcdir, "titan")
-
-    logdevinfo(paste("Directory for storing conway results is", resdir), logger="conway")
-    dir.create(resdir, showWarnings=FALSE, recursive=TRUE)
-
-    if (conf$profile) {
-        ## R cannot store line number profiling information before version 3.
-        if (R.Version()$major >= 3) {
-            Rprof(filename="ts.rprof", line.profiling=TRUE)
-        } else {
-            Rprof(filename="ts.rprof")
-        }
-    }
-
+do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     project.name <- conf$project
     project.id <- conf$pid
 
@@ -161,35 +142,26 @@ config.script.run({
     historical.limit <- ddays(365)
 
     ## Compute dev-artifact relations
-    print("About to query dependencies...")
     vcs.dat <- query.dependency(conf$con, project.id, artifact.type, file.limit,
                                 start.date, end.date, impl=FALSE, rmv.dups=FALSE)
-    print("Finished")
     vcs.dat$entity <- sapply(vcs.dat$entity,
                              function(filename) filename <- gsub("/", ".", filename, fixed=T))
     vcs.dat$author <- as.character(vcs.dat$author)
 
-    ## Save to csv
-    print("Saving to CSV")
+    ## Save to csv TODO: Why do we need to save that?
     write.csv(vcs.dat, file.path(resdir, "commit_data.csv"))
-    print("..done")
 
     ## Compute communication relations
     if (communication.type=="mail") {
-        print("Querying mail edgelist")
         comm.dat <- query.mail.edgelist(conf$con, project.id, start.date, end.date)
-        print("...done")
         colnames(comm.dat) <- c("V1", "V2", "weight")
     } else if (communication.type=="jira") {
-        print("Loading jira edgelist")
         comm.dat <- load.jira.edgelist(conf, jira.filename, start.date, end.date)
-        print("... done")
     }
     comm.dat[, c(1,2)] <- sapply(comm.dat[, c(1,2)], as.character)
 
     ## Compute entity-entity relations
-    print("Computing entity-entity-relations")
-    relavent.entity.list <- unique(vcs.dat$entity)
+    relevant.entity.list <- unique(vcs.dat$entity)
     if (dependency.type == "co-change") {
         start.date.hist <- as.Date(start.date) - historical.limit
         end.date.hist <- start.date
@@ -197,7 +169,7 @@ config.script.run({
         commit.df.hist <- query.dependency(conf$con, project.id, artifact.type, file.limit,
                                            start.date.hist, end.date.hist)
 
-        commit.df.hist <- commit.df.hist[commit.df.hist$entity %in% relavent.entity.list, ]
+        commit.df.hist <- commit.df.hist[commit.df.hist$entity %in% relevant.entity.list, ]
 
         ## Compute co-change relationship
         freq.item.sets <- compute.frequent.items(commit.df.hist)
@@ -206,25 +178,23 @@ config.script.run({
         names(dependency.dat) <- c("V1", "V2")
 
     } else if (dependency.type == "dsm") {
-        dependency.dat <- load.sdsm(dsm.filename, relavent.entity.list)
+        dependency.dat <- load.sdsm(dsm.filename, relevant.entity.list)
         dependency.dat <-
-            dependency.dat[dependency.dat[, 1] %in% relavent.entity.list &
-                           dependency.dat[, 2] %in% relavent.entity.list, ]
+            dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
+                           dependency.dat[, 2] %in% relevant.entity.list, ]
     } else if (dependency.type == "feature_call") {
         graph.dat <- read.graph(feature.call.filename, format="pajek")
         V(graph.dat)$name <- V(graph.dat)$id
         dependency.dat <- get.data.frame(graph.dat)
         dependency.dat <-
-            dependency.dat[dependency.dat[, 1] %in% relavent.entity.list &
-                           dependency.dat[, 2] %in% relavent.entity.list, ]
+            dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
+                           dependency.dat[, 2] %in% relevant.entity.list, ]
         names(dependency.dat) <- c("V1", "V2")
     } else {
         dependency.dat <- data.frame()
     }
-    print("... finished")
 
     ## Compute node sets
-    print("Preparing graph")
     node.function <- unique(vcs.dat$entity)
     node.dev <- unique(c(vcs.dat$author))
 
@@ -263,13 +233,10 @@ config.script.run({
     vertex.coding[person.role] <- 1
     vertex.coding[artifact.type] <- 2
     V(g)$color <- vertex.coding[V(g)$kind]
-    print("...finished")
 
     ## Save graph
-    cat("Writing graph to ", resdir, "/network_data.graphml\n")
     write.graph(g, file.path(resdir, "network_data.graphml"), format="graphml")
 
-    print("Starting motif analysis preparation")
     ## Define motif
     motif <- motif.generator(motif.type)
     motif.anti <- motif.generator(motif.type, anti=TRUE)
@@ -281,9 +248,7 @@ config.script.run({
     ## Extract subgraph isomorphisms
     motif.subgraphs <- subgraph_isomorphisms(motif, g, method="vf2")
     motif.subgraphs.anti <- subgraph_isomorphisms(motif.anti, g, method="vf2")
-    print("...finished")
 
-    print("Computing null model")
     ## Compute null model
     niter <- 100
     motif.count.null <- c()
@@ -366,7 +331,7 @@ config.script.run({
 
     ## Perform quality analysis
     if (quality.type=="defect") {
-        quality.dat <- load.defect.data(defect.filename, relavent.entity.list,
+        quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
                                         start.date, end.date)
     } else {
         quality.dat <- get.corrective.count(conf$con, project.id, start.date, end.date,
@@ -434,4 +399,27 @@ config.script.run({
     dev.off()
 
     write.csv(artifacts.dat, file.path(corr.plot.path, "quality_data.csv"))
+}
+
+######################### Dispatcher ###################################
+config.script.run({
+    conf <- config.from.args(positional.args=list("resdir", "srcdir"),
+                             require.project=TRUE)
+    resdir <- file.path(conf$resdir, conf$project, "conway")
+    srcdir <- file.path(conf$srcdir, conf$project)
+    titandir <- file.path(srcdir, "titan")
+
+    logdevinfo(paste("Directory for storing conway results is", resdir), logger="conway")
+    dir.create(resdir, showWarnings=FALSE, recursive=TRUE)
+
+    if (conf$profile) {
+        ## R cannot store line number profiling information before version 3.
+        if (R.Version()$major >= 3) {
+            Rprof(filename="ts.rprof", line.profiling=TRUE)
+        } else {
+            Rprof(filename="ts.rprof")
+        }
+    }
+
+    do.conway.analysis(conf, resdir, srcdir, titandir)
 })
