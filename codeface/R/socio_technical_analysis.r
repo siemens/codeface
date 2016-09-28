@@ -1,9 +1,29 @@
-library(ggplot2)
-library(igraph)
-library(BiRewire)
-library(GGally)
-library(lubridate)
-library(corrplot)
+#! /usr/bin/env Rscript
+
+## This file is part of Codeface. Codeface is free software: you can
+## redistribute it and/or modify it under the terms of the GNU General Public
+## License as published by the Free Software Foundation, version 2.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+## FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+## details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+##
+## Copyright 2016 by Mitchell Joblin <mitchell.joblin.ext@siemens.com>
+## Copyright 2016 by Wolfgang Mauerer <wolfgang.mauerer@oth-regensburg.de>
+## All Rights Reserved.
+
+s <- suppressPackageStartupMessages
+s(library(ggplot2))
+s(library(igraph))
+s(library(BiRewire))
+s(library(GGally))
+s(library(lubridate))
+s(library(corrplot))
 
 source("query.r")
 source("config.r")
@@ -14,6 +34,7 @@ source("quality_analysis.r")
 source("ml/ml_utils.r", chdir=T)
 source("id_manager.r")
 
+#################################################################################
 plot.to.file <- function(g, outfile) {
   g <- simplify(g,edge.attr.comb="first")
   g <- delete.vertices(g, names(which(degree(g)<2)))
@@ -83,60 +104,57 @@ cor.mtest <- function(mat, conf.level = 0.95) {
   return(list(p.mat, lowCI.mat, uppCI.mat))
 }
 
-## Configuration
-if (!exists("conf")) conf <- connect.db("../../codeface.conf")
-con <- conf$con
-project.list <- list(
-                     "flink",
-                     "cassandra",
-#                    "thrift",
-                     "storm",
-#                     "camel",
-                     #"solr",
-                     #"hbase",
-                     #"lucene",
-                     "accumulo")
 
-for(project.name in  project.list) {
+######################### Dispatcher ###################################
+config.script.run({
+  conf <- config.from.args(positional.args=list("resdir", "srcdir"),
+                           require.project=TRUE)
+  resdir <- file.path(conf$resdir, conf$project, "conway")
+  srcdir <- file.path(conf$srcdir, conf$project)
+  titandir <- file.path(srcdir, "titan")
 
-print(project.name)
+  logdevinfo(paste("resdir for conway results is", resdir), logger="conway")
+  dir.create(resdir, showWarnings=FALSE, recursive=TRUE)
 
-project.id <- list(flink=36, cassandra=35, storm=41, camel=20,
-                   solr=39,lucene=39, accumulo=38)[[project.name]]
-conf$pid <- project.id
+  if (conf$profile) {
+    ## R cannot store line number profiling information before version 3.
+    if (R.Version()$major >= 3) {
+      Rprof(filename="ts.rprof", line.profiling=TRUE)
+    } else {
+      Rprof(filename="ts.rprof")
+    }
+  }
 
-## Analysis window
-window.size <- 12 # months
-end.date <- list(flink="2015-11-22",
-                 cassandra="2016-01-18",
-                 thrift="2015-09-25",
-                 storm="2016-03-27",
-                 camel="2012-10-10",
-                 solr="2016-02-20",
-                 hbase="2016-02-23",
-                 lucene="2016-02-20",
-                 accumulo="2016-02-16")[[project.name]]
-start.date <- as.character(ymd(end.date) - months(window.size))
+  project.name <- conf$project
+  project.id <- conf$pid
 
-## Directories
-output.dir <- file.path("/home/mitchell/workspace/motif_results", project.name)
-data.base.dir <- "/home/mitchell/workspace/conway_data"
-dir.create(output.dir, recursive=T, showWarnings=F)
-project.data.dir <- file.path(data.base.dir, project.name)
+  ## Analysis window
+  ## TODO: Select these automatically from the database
+  window.size <- 12 # months
+  end.date <- list(flink="2015-11-05",
+                   cassandra="2015-11-06",
+                   thrift="2015-09-25",
+                   storm="2015-11-20",
+                   camel="2015-11-08",
+                   solr="2016-02-20",
+                   hbase="2016-02-23",
+                   lucene="2016-02-20",
+                   accumulo="2015-12-03")[[project.name]]
+  start.date <- as.character(ymd(end.date) - months(window.size))
+  cat("src dir is ", srcdir, "\n")
+  cat("titan dir is ", titandir, "\n")
+  cat("resdir is ", resdir, "\n")
 
-dsm.filename <- file.path(project.data.dir, "dsm.xlsx")
-
-feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
-
-jira.filename <- file.path(project.data.dir, "comments_email.csv")
-
-defect.filename <- file.path(project.data.dir, "metrics.csv")
+  dsm.filename <- file.path(titandir, "sdsm", "project.sdsm") # used to be dsm.txt
+  feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
+  jira.filename <- file.path(srcdir, "jira-comment-authors-with-email.csv")
+  defect.filename <- file.path(srcdir, "file_metrics.csv")
 
 
 ## Analysis
-motif.type <- list("triangle", "square")[[1]]
+motif.type <- list("triangle", "square")[[2]]
 artifact.type <- list("function", "file", "feature")[[2]]
-dependency.type <- list("co-change", "dsm", "feature_call", "none")[[1]]
+dependency.type <- list("co-change", "dsm", "feature_call", "none")[[2]]
 quality.type <- list("corrective", "defect")[[2]]
 communication.type <- list("mail", "jira")[[2]]
 
@@ -146,31 +164,40 @@ file.limit <- 30
 historical.limit <- ddays(365)
 
 ## Compute dev-artifact relations
-vcs.dat <- query.dependency(con, project.id, artifact.type, file.limit,
+print("About to query dependencies...")
+vcs.dat <- query.dependency(conf$con, project.id, artifact.type, file.limit,
                             start.date, end.date, impl=FALSE, rmv.dups=FALSE)
-#vcs.dat$entity <- sapply(vcs.dat$entity,
-#    function(filename) filename <- gsub("/", ".", filename, fixed=T))
+print("Finished")
+vcs.dat$entity <- sapply(vcs.dat$entity,
+    function(filename) filename <- gsub("/", ".", filename, fixed=T))
 vcs.dat$author <- as.character(vcs.dat$author)
 
 ## Save to csv
-write.csv(vcs.dat, file.path(output.dir, "commit_data.csv"))
+print("Saving to CSV")
+write.csv(vcs.dat, file.path(resdir, "commit_data.csv"))
+print("..done")
 
 ## Compute communication relations
 if (communication.type=="mail") {
-  comm.dat <- query.mail.edgelist(con, project.id, start.date, end.date)
+  print("Querying mail edgelist")
+  comm.dat <- query.mail.edgelist(conf$con, project.id, start.date, end.date)
+  print("...done")
   colnames(comm.dat) <- c("V1", "V2", "weight")
 } else if (communication.type=="jira") {
+  print("Loading jira edgelist")
   comm.dat <- load.jira.edgelist(conf, jira.filename, start.date, end.date)
+  print("... done")
 }
 comm.dat[, c(1,2)] <- sapply(comm.dat[, c(1,2)], as.character)
 
 ## Compute entity-entity relations
+print("Computing entity-entity-relations")
 relavent.entity.list <- unique(vcs.dat$entity)
 if (dependency.type == "co-change") {
   start.date.hist <- as.Date(start.date) - historical.limit
   end.date.hist <- start.date
 
-  commit.df.hist <- query.dependency(con, project.id, artifact.type, file.limit,
+  commit.df.hist <- query.dependency(conf$con, project.id, artifact.type, file.limit,
                                      start.date.hist, end.date.hist)
 
   commit.df.hist <- commit.df.hist[commit.df.hist$entity %in% relavent.entity.list, ]
@@ -182,7 +209,7 @@ if (dependency.type == "co-change") {
   names(dependency.dat) <- c("V1", "V2")
 
 } else if (dependency.type == "dsm") {
-  dependency.dat <- load.dsm.edgelist(dsm.filename, relavent.entity.list)
+  dependency.dat <- load.sdsm(dsm.filename, relavent.entity.list)
   dependency.dat <-
     dependency.dat[dependency.dat[, 1] %in% relavent.entity.list &
                    dependency.dat[, 2] %in% relavent.entity.list, ]
@@ -197,8 +224,10 @@ if (dependency.type == "co-change") {
 } else {
   dependency.dat <- data.frame()
 }
+print("... finished")
 
 ## Compute node sets
+print("Preparing graph")
 node.function <- unique(vcs.dat$entity)
 node.dev <- unique(c(vcs.dat$author))
 
@@ -237,10 +266,13 @@ vertex.coding <- c()
 vertex.coding[person.role] <- 1
 vertex.coding[artifact.type] <- 2
 V(g)$color <- vertex.coding[V(g)$kind]
+print("...finished")
 
 ## Save graph
-write.graph(g, file.path(output.dir, "network_data.graphml"), format="graphml")
+cat("Writing graph to ", resdir, "/network_data.graphml\n")
+write.graph(g, file.path(resdir, "network_data.graphml"), format="graphml")
 
+print("Starting motif analysis preparation")
 ## Define motif
 motif <- motif.generator(motif.type)
 motif.anti <- motif.generator(motif.type, anti=TRUE)
@@ -252,9 +284,11 @@ motif.anti.count <- count_subgraph_isomorphisms(motif.anti, g, method="vf2")
 ## Extract subgraph isomorphisms
 motif.subgraphs <- subgraph_isomorphisms(motif, g, method="vf2")
 motif.subgraphs.anti <- subgraph_isomorphisms(motif.anti, g, method="vf2")
+print("...finished")
 
+print("Computing null model")
 ## Compute null model
-niter <- 500
+niter <- 100
 motif.count.null <- c()
 
 motif.count.null <-
@@ -301,14 +335,15 @@ motif.count.null <-
       res <- data.frame(count.type=c("positive", "negative"),
                         count=c(count.positive, count.negative))
 
-      return(res)}, mc.cores=2)
+      return(res)}, mc.cores=2) # TODO: Use codefaces multiprocessing infrastructure!
+print("...finished")
 
 null.model.dat <- do.call(rbind, motif.count.null)
 null.model.dat[null.model.dat$count.type=="positive", "empirical.count"] <- motif.count
 null.model.dat[null.model.dat$count.type=="negative", "empirical.count"] <- motif.anti.count
 
 ## Save plots
-networks.dir <- file.path(output.dir, "motif_analysis", motif.type, communication.type)
+networks.dir <- file.path(resdir, "motif_analysis", motif.type, communication.type)
 dir.create(networks.dir, recursive=T, showWarnings=T)
 
 ## Null model
@@ -337,7 +372,7 @@ if (quality.type=="defect") {
   quality.dat <- load.defect.data(defect.filename, relavent.entity.list,
                                   start.date, end.date)
 } else {
-  quality.dat <- get.corrective.count(con, project.id, start.date, end.date,
+  quality.dat <- get.corrective.count(conf$con, project.id, start.date, end.date,
                                       artifact.type)
 }
 
@@ -378,11 +413,11 @@ corr.cols <- c("motif.count",
     "dev.count",
     "bug.density",
     "BugIssueCount",
-    "BugIssueChurn",
+#    "BugIssueChurn",
     "Churn",
-    "IssueCommits",
+#    "IssueCommits",
     "CountLineCode")
-browser()
+
 correlation.dat <- ggpairs(artifacts.dat,
                            columns=corr.cols,
                            lower=list(continuous=wrap("points",
@@ -396,7 +431,7 @@ corr.mat <- cor(artifacts.dat[, corr.cols], use="pairwise.complete.obs", method=
 corr.test <- cor.mtest(artifacts.dat[, corr.cols])
 
 ## Write correlations and raw data to file
-corr.plot.path <- file.path(output.dir, "quality_analysis", motif.type, communication.type)
+corr.plot.path <- file.path(resdir, "quality_analysis", motif.type, communication.type)
 dir.create(corr.plot.path, recursive=T, showWarnings=T)
 png(file.path(corr.plot.path, "correlation_plot.png"), width=1200, height=1200)
 print(correlation.dat)
@@ -409,4 +444,4 @@ corrplot(corr.mat, p.mat=corr.test[[1]],
 dev.off()
 
 write.csv(artifacts.dat, file.path(corr.plot.path, "quality_data.csv"))
-}
+})
