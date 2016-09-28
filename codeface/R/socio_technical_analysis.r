@@ -150,6 +150,47 @@ compute.communication.relations <- function(conf, communication.type, jira.filen
     return(comm.dat)
 }
 
+## Compute entity-entity relations
+compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
+                                 dependency.type, artifact.type,
+                                 dsm.filename, historical.limit) {
+    ensure.supported.dependency.type(dependency.type)
+    ensure.supported.artifact.type(artifact.type)
+    relevant.entity.list <- unique(vcs.dat$entity)
+    if (dependency.type == "co-change") {
+        start.date.hist <- as.Date(start.date) - historical.limit
+        end.date.hist <- start.date
+
+        commit.df.hist <- query.dependency(conf$con, conf$pid, artifact.type, file.limit,
+                                           start.date.hist, end.date.hist)
+
+        commit.df.hist <- commit.df.hist[commit.df.hist$entity %in% relevant.entity.list, ]
+
+        ## Compute co-change relationship
+        freq.item.sets <- compute.frequent.items(commit.df.hist)
+        ## Compute an edgelist
+        dependency.dat <- compute.item.sets.edgelist(freq.item.sets)
+        names(dependency.dat) <- c("V1", "V2")
+
+    } else if (dependency.type == "dsm") {
+        dependency.dat <- load.sdsm(dsm.filename, relevant.entity.list)
+        dependency.dat <-
+            dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
+                           dependency.dat[, 2] %in% relevant.entity.list, ]
+    } else if (dependency.type == "feature_call") {
+        graph.dat <- read.graph(feature.call.filename, format="pajek")
+        V(graph.dat)$name <- V(graph.dat)$id
+        dependency.dat <- get.data.frame(graph.dat)
+        dependency.dat <-
+            dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
+                           dependency.dat[, 2] %in% relevant.entity.list, ]
+        names(dependency.dat) <- c("V1", "V2")
+    } else {
+        dependency.dat <- data.frame()
+    }
+
+    return(dependency.dat)
+}
 
 
 do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
@@ -198,42 +239,12 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     ## Save to csv TODO: Why do we need to save that?
     write.csv(vcs.dat, file.path(resdir, "commit_data.csv"))
 
+    ## Compute various relationships between contributors
     comm.dat <- compute.communication.relations(conf, communication.type,
                                                 jira.filename, start.date, end.date)
-
-    ## Compute entity-entity relations
-    relevant.entity.list <- unique(vcs.dat$entity)
-    if (dependency.type == "co-change") {
-        start.date.hist <- as.Date(start.date) - historical.limit
-        end.date.hist <- start.date
-
-        commit.df.hist <- query.dependency(conf$con, project.id, artifact.type, file.limit,
-                                           start.date.hist, end.date.hist)
-
-        commit.df.hist <- commit.df.hist[commit.df.hist$entity %in% relevant.entity.list, ]
-
-        ## Compute co-change relationship
-        freq.item.sets <- compute.frequent.items(commit.df.hist)
-        ## Compute an edgelist
-        dependency.dat <- compute.item.sets.edgelist(freq.item.sets)
-        names(dependency.dat) <- c("V1", "V2")
-
-    } else if (dependency.type == "dsm") {
-        dependency.dat <- load.sdsm(dsm.filename, relevant.entity.list)
-        dependency.dat <-
-            dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
-                           dependency.dat[, 2] %in% relevant.entity.list, ]
-    } else if (dependency.type == "feature_call") {
-        graph.dat <- read.graph(feature.call.filename, format="pajek")
-        V(graph.dat)$name <- V(graph.dat)$id
-        dependency.dat <- get.data.frame(graph.dat)
-        dependency.dat <-
-            dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
-                           dependency.dat[, 2] %in% relevant.entity.list, ]
-        names(dependency.dat) <- c("V1", "V2")
-    } else {
-        dependency.dat <- data.frame()
-    }
+    dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date,
+                                           dependency.type, artifact.type,
+                                           dsm.filename, historical.limit)
 
     ## Compute node sets
     node.function <- unique(vcs.dat$entity)
@@ -367,10 +378,11 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     ggsave(plot=p.comm,
            filename=file.path(networks.dir, "communication_degree_dist.png"))
 
-    ## Complete network
+    ## Plot the complete network
     plot.to.file(g, file.path(networks.dir, "socio_technical_network.png"))
 
     ## Perform quality analysis
+    relevant.entity.list <- unique(vcs.dat$entity)
     if (quality.type=="defect") {
         quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
                                         start.date, end.date)
