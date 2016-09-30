@@ -29,7 +29,7 @@ from glob import glob
 from codeface.logger import set_log_level, start_logfile, log
 from codeface.configuration import Configuration
 from codeface.util import execute_command
-from codeface.project import project_analyse, mailinglist_analyse
+from codeface.project import project_analyse, mailinglist_analyse, conway_analyse
 
 def get_parser():
     parser = argparse.ArgumentParser(prog='codeface',
@@ -94,6 +94,16 @@ def get_parser():
     ml_parser.add_argument('mldir',
                         help="Directory for mailing lists")
 
+    conway_parser = sub_parser.add_parser('conway', help='Run conway (socio-technical) analysis')
+    conway_parser.set_defaults(func=cmd_conway)
+    conway_parser.add_argument('-c', '--config', help="Codeface configuration file",
+                default='codeface.conf')
+    conway_parser.add_argument('-p', '--project', help="Project configuration file",
+                required=True)
+    conway_parser.add_argument('resdir', help="Directory to store analysis results in")
+    conway_parser.add_argument('gitdir', help="Directory for git repositories")
+    conway_parser.add_argument('titandir', help="Directory that contains Titan jar files")
+
     dyn_parser = sub_parser.add_parser('dynamic', help='Start R server for a dynamic graph')
     dyn_parser.set_defaults(func=cmd_dynamic)
     dyn_parser.add_argument('-c', '--config', help="Codeface configuration file",
@@ -127,6 +137,18 @@ def cmd_ml(args):
         logfile = os.path.abspath(logfile)
     mailinglist_analyse(resdir, mldir, codeface_conf, project_conf,
                         args.loglevel, logfile, args.jobs, args.mailinglist)
+    return 0
+
+def cmd_conway(args):
+    '''Dispatch the ``conway`` command.'''
+    # First make all the args absolute
+    resdir, gitdir, titandir = map(os.path.abspath, (args.resdir, args.gitdir, args.titandir))
+    codeface_conf, project_conf = map(os.path.abspath, (args.config, args.project))
+    logfile = args.logfile
+    if logfile:
+        logfile = os.path.abspath(logfile)
+    conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
+                   args.loglevel, logfile, args.jobs)
     return 0
 
 def cmd_dynamic(args):
