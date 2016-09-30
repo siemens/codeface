@@ -266,7 +266,7 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     dsm.filename <- file.path(titandir, "sdsm", "project.sdsm")
     feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
     jira.filename <- file.path(srcdir, "jira-comment-authors-with-email.csv")
-    defect.filename <- file.path(srcdir, "file_metrics.csv")
+    defect.filename <- file.path(srcdir, "time_based_metrics.csv")
 
 
     ## Analysis
