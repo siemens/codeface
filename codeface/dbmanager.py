@@ -198,6 +198,23 @@ class DBManager:
                     format(r=revisionIDs, c=self.cur.rowcount))
         return self.doFetchAll()[0][0]
 
+    def getProjectTimeRange(self, pid):
+        """Given a project ID, determine the start and end date of available VCS data.
+           Returns a tuple with start end end date in the form YYYY-MM-DD"""
+        self.doExec("SELECT MIN(date_start) FROM revisions_view "
+                    "WHERE projectId={}".format(pid))
+        if self.cur.rowcount == 0:
+            raise Exception("No start date for pid {} found!".format(pid))
+        date_start = self.doFetchAll()[0][0].strftime("%Y-%m-%d")
+
+        self.doExec("SELECT MAX(date_end) FROM revisions_view "
+                    "WHERE projectId={}".format(pid))
+        if self.cur.rowcount == 0:
+            raise Exception("No end date for pid {} found!".format(pid))
+        date_end = self.doFetchAll()[0][0].strftime("%Y-%m-%d")
+
+        return (date_start, date_end)
+
     def get_release_range(self, project_id, range_id):
         self.doExec(
             "SELECT st.tag, nd.tag, rc.tag FROM release_range "

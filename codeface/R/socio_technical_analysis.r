@@ -245,7 +245,7 @@ do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
 }
 
 
-do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
+do.conway.analysis <- function(conf, resdir, titandir) {
     project.name <- conf$project
     project.id <- conf$pid
 
@@ -265,8 +265,8 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
 
     dsm.filename <- file.path(titandir, "sdsm", "project.sdsm")
     feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
-    jira.filename <- file.path(srcdir, "jira-comment-authors-with-email.csv")
-    defect.filename <- file.path(srcdir, "time_based_metrics.csv")
+    jira.filename <- file.path(resdir, "jira-comment-authors-with-email.csv")
+    defect.filename <- file.path(resdir, "time_based_metrics.csv")
 
 
     ## Analysis
@@ -501,11 +501,10 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
 
 ######################### Dispatcher ###################################
 config.script.run({
-    conf <- config.from.args(positional.args=list("resdir", "srcdir"),
+    conf <- config.from.args(positional.args=list("resdir"),
                              require.project=TRUE)
     resdir <- file.path(conf$resdir, conf$project, "conway")
-    srcdir <- file.path(conf$srcdir, conf$project)
-    titandir <- file.path(srcdir, "titan")
+    titandir <- file.path(resdir, "titan")
 
     logdevinfo(paste("Directory for storing conway results is", resdir),
                logger="conway")
@@ -520,5 +519,5 @@ config.script.run({
         }
     }
 
-    do.conway.analysis(conf, resdir, srcdir, titandir)
+    do.conway.analysis(conf, resdir, titandir)
 })
