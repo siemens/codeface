@@ -270,7 +270,7 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
 
 
     ## Analysis
-    motif.type <- list("triangle", "square")[[2]]
+    motif.type <- list("triangle", "square")[[1]]
     artifact.type <- list("function", "file", "feature")[[2]]
     dependency.type <- list("co-change", "dsm", "feature_call", "none")[[2]]
     quality.type <- list("corrective", "defect")[[2]]
@@ -323,11 +323,16 @@ do.conway.analysis <- function(conf, resdir, srcdir, titandir) {
     vcs.edgelist <- with(vcs.dat, ggplot2:::interleave(author, entity))
     g.bipartite <- add.edges(g.nodes, vcs.edgelist, attr=list(color="#00FF001A"))
 
-    ## Create a graph that describes developer-developer communication
+    ## Create a graph g that is based on g.bipartite and that additionally
+    ## captures developer-developer communication
+
+    ## * First, remove persons that don't appear in VCS data, and transfer
+    ## to remaining edges of g.bipartite into g
     g <- graph.empty(directed=FALSE)
-    ## * First, remove persons that don't appear in VCS data
-    comm.inter.dat <- comm.dat[comm.dat$V1 %in% node.dev & comm.dat$V2 %in% node.dev, ]
-    comm.edgelist <- as.character(with(comm.inter.dat, ggplot2:::interleave(V1, V2)))
+    comm.inter.dat <- comm.dat[comm.dat$V1 %in% node.dev &
+                               comm.dat$V2 %in% node.dev,]
+    comm.edgelist <- as.character(with(comm.inter.dat,
+                                       ggplot2:::interleave(V1, V2)))
     g <- add.edges(g.bipartite, comm.edgelist, attr=list(color="#FF00001A"))
 
     ## * Second, add entity-entity edges
