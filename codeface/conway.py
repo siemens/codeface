@@ -94,7 +94,8 @@ def parse_jira_issues(xmldir, resdir, jira_url, jira_user, jira_password):
                                  issue_list.append(issue)
 
     comment_authors_df = pd.DataFrame(issue_list,
-                                      columns=("IssueID", "IssueType", "AuthorID", "CommentTimestamp"))
+                                      columns=("IssueID", "IssueType",
+                                               "AuthorID", "CommentTimestamp"))
     user_ids = comment_authors_df['AuthorID'].unique()
     jira = JIRA(server=jira_url, basic_auth=(jira_user, jira_password))
 
@@ -137,7 +138,8 @@ def dispatch_jira_processing(resdir, titandir, conf):
     (date_start, date_end) = dbm.getProjectTimeRange(projectID)
 
     if (os.path.exists(xmldir)):
-        log.info("Jira issues already present in directory {}, skipping download".format(xmldir))
+        log.info("Jira issues already present in directory {}, "\
+                 "skipping download".format(xmldir))
     else:
         try:
             os.makedirs(xmldir)
@@ -155,7 +157,6 @@ def dispatch_jira_processing(resdir, titandir, conf):
         cmd.append(date_start)
         cmd.append(date_end)
         cmd.append(xmldir)
-        log.info("Executing command {}".format(" ".join(cmd)))
         # TODO: This raises an error when $DISPLAY is set since it tries to open a GUI windo
         execute_command(cmd)
 
@@ -166,12 +167,97 @@ def dispatch_jira_processing(resdir, titandir, conf):
                           conf["issueTrackerPassword"])
     return
 
+
+def parseGitLogOutput(dat, outfile):
+    commitFileLOC = []
+    fileHash = {} # Store LoC after each commit and identify if it is
+                  # the first ocurrence of the file
+    commit = None
+    for i, log_line in enumerate(dat):
+        line = log_line.split()
+        if len(line) == 7:
+            # Lines of length 7 have format
+            # "97e131d5a2d4140fec02aa3a05b5554b6fc289f4 2016-04-15 11:50:40 +0900 2016-04-15 11:50:40 +0900"
+            commitHash = line[0]
+            committerDate = line[1]
+            committerHour = line[2]
+            comitterZone = line[3]
+            authorDate = line[4]
+            authorHour = line[5]
+            authorZone = line[6]
+
+            # Prepare output line for the files associated to the commit
+            commit = [None, None, None, None, commitHash, committerDate,
+                      committerHour, comitterZone, authorDate, authorHour,
+                      authorZone]
+        elif len(line) == 3:
+            # Lines of length three have the format
+            # <added> <deleted> <filename>, for instance
+            #"3	13	path/to/file.java"
+            linesAdded = line[0]
+            linesRemoved = line[1]
+            filePath = line[2]
+
+            # If file can't be parsed by git (usually binary files), a
+            # "-" is used as prefix. We skip these files.
+            if linesAdded == "-":
+                continue
+
+            # Complete output line for the files associated to the commit
+            commit[0] = filePath
+            commit[1] = linesAdded
+            commit[2] = linesRemoved
+
+            # If first ocurrence of file, then linesAdded == LoC
+            if filePath not in fileHash:
+                fileHash[filePath] = linesAdded
+                commit[3] = linesAdded
+            else:
+                # We need to just linesAdded and linesRemoved to know the
+                # file LOC after the commit
+                fileHash[filePath] = str(int(fileHash[filePath]) +
+                                         int(linesAdded) - int(linesRemoved))
+                commit[3] = fileHash[filePath]
+
+            commitFileLOC.append(tuple(commit))
+        # All other lines in the output are blank lines, and are ignored
+
+    log.devinfo("Storing git log output in {}".format(outfile))
+    with open(outfile, 'w') as out:
+        csv_out = csv.writer(out)
+        csv_out.writerow(['filePath', 'linesAdded', 'linesRemoved',
+                          'totalFileLines', 'commitHash', 'committerDate',
+                          'comitterHour', 'comitterZone', 'authorDate',
+                          'authorHour', 'authorZone'])
+        for row in commitFileLOC:
+            csv_out.writerow(row)
+
+def parseCommitLoC(conf, start_rev, end_rev, outdir, repo):
+    """Given a release range by its boundaries, compute the amount
+    of changes for each file"""
+    if not os.path.exists(outdir):
+        try:
+            os.makedirs(outdir)
+        except os.error as e:
+            log.exception("Could not create output dir {0}: {1}".
+                    format(outdir, e.strerror))
+            raise
+
+    cmd_git = "git --git-dir={0} log --numstat --reverse --no-merges ".format(repo).split()
+    cmd_git.append("--pretty=format:%H% ci %ai")
+    cmd_git.append("{0}..{1}".format(start_rev, end_rev))
+    dat = execute_command(cmd_git).splitlines()
+
+    parseGitLogOutput(dat, os.path.join(outdir, "file_metrics.csv"))
+
+
 if __name__ == "__main__":
     # NOTE: When the script is executed manually via command line, we
     # assume that the issues are already present as XML files.
     # We just perform the postprocessing step in this case
     if len(sys.argv) < 5:
-        sys.exit('Usage: %s jira-bug-xml-dir jira-user jira-password jira_url output-dir' % sys.argv[0])
+        sys.exit("Usage: %s jira-bug-xml-dir jira-user jira-password " \
+                 "jira_url output-dir" % sys.argv[0])
 
     xml_dir = sys.argv[1]
     jira_user = sys.argv[2]
