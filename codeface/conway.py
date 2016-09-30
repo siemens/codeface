@@ -232,7 +232,17 @@ def parseGitLogOutput(dat, outfile):
         for row in commitFileLOC:
             csv_out.writerow(row)
 
-def parseCommitLoC(conf, start_rev, end_rev, outdir, repo):
+def createFileDevTable(dbm, project_id, range_id, outfile):
+    dat = dbm.get_file_dev(project_id, range_id)
+
+    with open(outfile, 'w') as out:
+        csv_out = csv.writer(out, delimiter="\t")
+        csv_out.writerow(['id', 'commitHash', 'commitDate', 'author', 'description',
+                          'file', 'commitId', 'fileSize'])
+        for row in dat:
+            csv_out.writerow(row)
+
+def parseCommitLoC(conf, dbm, project_id, range_id, start_rev, end_rev, outdir, repo):
     """Given a release range by its boundaries, compute the amount
     of changes for each file"""
     if not os.path.exists(outdir):
@@ -249,7 +259,7 @@ def parseCommitLoC(conf, start_rev, end_rev, outdir, repo):
     dat = execute_command(cmd_git).splitlines()
 
     parseGitLogOutput(dat, os.path.join(outdir, "file_metrics.csv"))
-
+    createFileDevTable(dbm, project_id, range_id, os.path.join(outdir, "file_dev.csv"))
 
 if __name__ == "__main__":
     # NOTE: When the script is executed manually via command line, we
