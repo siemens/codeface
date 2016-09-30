@@ -24,6 +24,7 @@ suppressPackageStartupMessages(library(reshape))
 source("config.r")
 source("db.r")
 source("query.r")
+source("utils.r")
 source("system.r")
 source("mc_helpers.r")
 source("sloccount.r")
@@ -67,15 +68,6 @@ sample.commits <- function(conf, range.id) {
   return(commits[commits.sampled.idx,])
 }
 
-
-perform.git.checkout <- function(repodir, commit.hash, code.dir, archive.file) {
-  args <- str_c(" --git-dir=", repodir, " archive -o ", archive.file,
-                " --format=tar --prefix='code/' ", commit.hash)
-  do.system("git", args)
-
-  args <- str_c("-C ", code.dir, " -xf ", archive.file)
-  do.system("tar", args)
-}
 
 do.understand.analysis <- function(code.dir, results.file) {
   ## TODO: This should be overwriteable by the local configuration files

@@ -107,3 +107,13 @@ get.num.cores <- function() {
 
   return(n.cores)
 }
+
+
+perform.git.checkout <- function(repodir, commit.hash, code.dir, archive.file) {
+  args <- str_c(" --git-dir=", repodir, " archive -o ", archive.file,
+                " --format=tar --prefix='code/' ", commit.hash)
+  do.system("git", args)
+
+  args <- str_c("-C ", code.dir, " -xf ", archive.file)
+  do.system("tar", args)
+}
