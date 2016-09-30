@@ -43,7 +43,9 @@ class Configuration(Mapping):
     OPTIONAL_KEYS = ('description', 'ml', 'mailinglists', 'sleepTime',
                      'proxyHost', 'proxyPort', 'bugsProjectName',
                      'productAsProject', 'issueTrackerType',
-                     'issueTrackerURL', 'understand', 'sloccount')
+                     'issueTrackerURL', 'issueTrackerProject',
+                     'issueTrackerUser', 'issueTrackerPassword',
+                     'understand', 'sloccount')
     ALL_KEYS = set(GLOBAL_KEYS + GLOBAL_OPTIONAL_KEYS + PROJECT_KEYS +
                    OPTIONAL_KEYS)
 

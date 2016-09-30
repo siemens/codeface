@@ -70,6 +70,10 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
             tagging = tagging_type
             conf["tagging"] = tagging
 
+    if conf["issueTrackerType"] != "jira":
+        log.info("Conway analysis requires jira bugtracking information, exiting")
+        return
+
     project = conf["project"]
     repo = pathjoin(gitdir, conf["repo"], ".git")
     project_resdir = pathjoin(resdir, project, tagging)
@@ -259,13 +263,13 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
         conf["rcs"] = rcs[-num_window-1:]
         range_by_date = True
 
-    project_id, dbm, all_range_ids = project_setup(conf, FALSE)
+    project_id, dbm, all_range_ids = project_setup(conf, False)
 
     ## Save modified configuration file to a temporary location
     conf.write()
     project_conf = conf.get_conf_file_loc()
 
-    # Global stage: Download and process JIRA issues (downloadJiraIssues.jar, process_jira_issue.py)
+    # Global stage: Download and process JIRA issues
     log.info("=> Downloading and processing JIRA issues")
     #dispatch_jira_analysis(project_resdir, conf)
 
@@ -344,4 +348,6 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
                 endmsg=prefix + "Socio-technical analysis done."
             )
 
+    # Wait until all batch jobs are finished
+    pool.join()
     log.info("=> Codeface conway analysis complete!")
