@@ -1380,10 +1380,14 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
                 (LinkType.proximity, LinkType.committer2author,
                  LinkType.file, LinkType.feature, LinkType.feature_file):
             #create person for committer
-            ID = id_mgr.getPersonID(cmt.getCommitterName())
-            pi = id_mgr.getPI(ID)
-            cmt.setCommitterPI(pi)
-            pi.addCommit(cmt)
+            ID_c = id_mgr.getPersonID(cmt.getCommitterName())
+            pi_c = id_mgr.getPI(ID_c)
+            cmt.setCommitterPI(pi_c)
+            if ID_c != ID:
+                # Only add the commit to the committer's person instance
+                # if committer and author differ, otherwise contributions
+                # will be counted twice.
+                pi_c.addCommit(cmt)
 
     return None
 

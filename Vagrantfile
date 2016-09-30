@@ -16,22 +16,29 @@ integration-scripts/install_codeface_python.sh
 integration-scripts/install_cppstats.sh
 
 integration-scripts/setup_database.sh
+
+# Ensure that logs can actually be written to the log directory
+sudo chmod a+rw log
 SCRIPT
 
+# Uncomment the Ubuntu 16.04/Xenial lines, and comment out the trusty related
+# lines to base the installation on Ubuntu 16.04 (Xenial) instead of 14.04 (Trusty)
 Vagrant.configure("2") do |config|
   # Hmm... no Debian image available yet, let's use a derivate
   # Ubuntu 12.04 LTS (Precise Pangolin)
 
- config.vm.provider :virtualbox do |vbox|
-    config.vm.box = "precise64"
-    config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+ config.vm.provider :virtualbox do |vbox, override|
+   #config.vm.box = "ffuenf/ubuntu-16.04-server-amd64"
+   config.vm.box = "ubuntu/trusty64"
 
     vbox.customize ["modifyvm", :id, "--memory", "4096"]
     vbox.customize ["modifyvm", :id, "--cpus", "2"]
   end
 
-  config.vm.provider :lxc do |lxc|
-     config.vm.box = "fgrehm/precise64-lxc"
+  config.vm.provider :lxc do |lxc, override|
+    #override.vm.box = "vagrant-lxc-xenial-amd64.box"
+    #override.vm.box_url = "http://terminal.lfd.sturhax.de/~wolfgang/vagrant-lxc-xenial-amd64.box"
+    override.vm.box = "fgrehm/trusty64-lxc"
   end
 
   # Forward main web ui (8081) and testing (8100) ports
@@ -41,11 +48,6 @@ Vagrant.configure("2") do |config|
   config.vm.provision "fix-no-tty", type: "shell" do |s|
     s.privileged = true
     s.inline = "sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
-  end
-
-  config.vm.provision "local-mirror", type: "shell" do |s|
-    s.privileged = true
-    s.inline = "sed -i 's|http://[a-z\.]*\.ubuntu\.com/ubuntu|mirror://mirrors\.ubuntu\.com/mirrors\.txt|' /etc/apt/sources.list"
   end
 
   config.vm.provision "build", type: "shell" do |s|

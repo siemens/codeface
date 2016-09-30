@@ -43,8 +43,8 @@ important.community.nodes <- function(comm, rank) {
   community.ids <- sort(unique(comm$membership))
   important.nodes <- sapply(community.ids,
       function(comm.id) {
-        which(rank ==
-              max(rank[which(comm$membership == comm.id)]))[1]
+        node.ids.in.comm.id <- which(comm$membership == comm.id)
+        node.ids.in.comm.id[which.max(rank[node.ids.in.comm.id])]
       })
   return (important.nodes)
 }
@@ -167,8 +167,8 @@ computeVertCommFrac <- function (graph, comm) {
   ##					   	percentages are captured.
   verts.frac <- list()
   for (i in V(graph)) {
-	## Get neighbors of vertex i, mode=all will return both in and out 
-	## directions, multiple edges are listed multiple times however we want 
+	## Get neighbors of vertex i, mode=all will return both in and out
+	## directions, multiple edges are listed multiple times however we want
 	## the unique vertex index
 	total           <- 0
 	comm.frac  <- list()
@@ -183,7 +183,7 @@ computeVertCommFrac <- function (graph, comm) {
         if(length(comm.frac[[key]]) == 0) {
           comm.frac[[key]] <- 0
 	    }
-        ## get edge weight and sum directions (in weight + out weight) 
+        ## get edge weight and sum directions (in weight + out weight)
         edge.weight <- sum(E(graph)[i %--% vert.neigh[j]]$weight)
         comm.frac[[key]] <- comm.frac[[key]] + edge.weight
 	    }
@@ -304,7 +304,7 @@ compute.subgraph.list <- function (g, comm){
   community.id <- sort(unique(comm$membership))
   subgraphL <- list()
   subgraphL <- lapply(community.id,
-    function(x) { 
+    function(x) {
       return(list(graph=subGraph(as.character(which(comm$membership==x)), g)))
 	})
 	return(subgraphL)
@@ -316,14 +316,14 @@ format.color.weight <- function(colorL, weightL) {
   ## for the pie chart style node. The graphviz library demands the following
   ## color format WC:WC:WC:WC where WC = color;weight
   color.weight.list <- mapply(
-    function(colors, weights) paste(paste(colors, as.character(weights), sep=";"), 
+    function(colors, weights) paste(paste(colors, as.character(weights), sep=";"),
                                                      collapse=":"),
     colorL, weightL, SIMPLIFY=FALSE)
-  
+
   ## Add ":" to the end of every string, for some reason if the weight is 1
   ## and there is no ":" after, graphviz will not fill the node with color
   color.weight.vec <- paste(unlist(color.weight.list), ":", sep="")
-  
+
   return(color.weight.vec)
 }
 
@@ -425,7 +425,7 @@ save.graph.graphviz <- function(con, pid, range.id, cluster.method, filename,
   To      <- as.character(get.edgelist(g.min.simp)[,2])
   edge.df <- data.frame(From=From, To=To)
   weights <- E(g.min.simp)$weight
-  g.NEL <- ftM2graphNEL(as.matrix(edge.df), W=weights, V=V(g.min.simp)$name, 
+  g.NEL <- ftM2graphNEL(as.matrix(edge.df), W=weights, V=V(g.min.simp)$name,
                         edgemode="directed")
   subgraph.list <- compute.subgraph.list(g.NEL, comm)
   g.viz <- agopen(g.NEL, "pieGraph", subGList=subgraph.list)

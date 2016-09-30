@@ -22,13 +22,5 @@ class TestRCode(unittest.TestCase):
     '''Execute R tests as part of the test suite'''
     def testThat_cluster_dir(self):
         path = resource_filename("codeface", "R")
-        Rcode = 'library(testthat); if (all(data.frame(test_dir("cluster"))[, "failed"])) stop("Some tests failed.")'
-        cmd = ["Rscript", "-e", Rcode]
-        execute_command(cmd, direct_io=True, cwd=path)
-
-
-    def testTest_R_dir(self):
-        path = resource_filename("codeface", "R")
-        Rcode = 'library(testthat); if (all(data.frame(test_dir("."))[, "failed"])) stop("Some tests failed.")'
-        cmd = ["Rscript", "-e", Rcode]
+        cmd = ["Rscript", "do_test.r"]
         execute_command(cmd, direct_io=True, cwd=path)
