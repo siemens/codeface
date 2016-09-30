@@ -136,6 +136,19 @@ class DBManager:
             raise Exception("Cluster id {} not found!".format(cid))
         return self.doFetchAll()
 
+    def get_file_dev(self, project_id, range_id):
+        self.doExec("SELECT * FROM (SELECT id, commitHash, commitDate, author, description " \
+                    "FROM commit WHERE projectId={} AND releaseRangeId={}) AS Commits " \
+                    "INNER JOIN (SELECT file, commitId, SUM(size) AS fileSize " \
+                    "FROM commit_dependency GROUP BY commitId, file) AS commitFileLOC " \
+                    "ON Commits.id=commitFileLOC.commitId ORDER BY " \
+                    "commitFileLOC.file, commitFileLOC.commitId".format(project_id, range_id))
+
+        if self.cur.rowcount == 0:
+            raise Exception("Could not obtain file-dev information for project {} "\
+                            "(release range {}!".format(project_id, range_id))
+        return self.doFetchAll()
+
     def get_release_ranges(self, project_id):
         self.doExec("SELECT id FROM release_range \
                     WHERE projectId={}".format(project_id))
