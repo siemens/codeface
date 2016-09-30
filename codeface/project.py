@@ -22,6 +22,7 @@ from .dbmanager import DBManager
 from .configuration import Configuration, ConfigurationError
 from .cluster.cluster import doProjectAnalysis, LinkType
 from .ts import dispatch_ts_analysis
+from .conway import dispatch_jira_processing
 from .util import (execute_command, generate_reports, layout_graph,
                    check4ctags, check4cppstats, BatchJobPool, generate_analysis_windows)
 
@@ -232,3 +233,115 @@ def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
         execute_command([exe] + logargs + cmd + [ml["name"]],
                 direct_io=True, cwd=cwd)
     log.info("=> Codeface mailing list analysis complete!")
+
+
+def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
+                   loglevel, logfile, jobs):
+    conf = Configuration.load(codeface_conf, project_conf)
+
+    log.info("Performing conway analysis")
+
+    pool = BatchJobPool(int(jobs))
+    conf = Configuration.load(codeface_conf, project_conf)
+    project = conf["project"]
+    repo = pathjoin(gitdir, conf["repo"], ".git")
+    project_resdir = pathjoin(resdir, project, "conway")
+    range_by_date = False
+
+    # When revisions are not provided by the configuration file
+    # generate the analysis window automatically
+    if len(conf["revisions"]) < 2:
+        window_size_months = 3 # Window size in months
+        num_window = -1  # Number of ranges to analyse, -1 captures all ranges
+
+        revs, rcs = generate_analysis_windows(repo, window_size_months)
+        conf["revisions"] = revs[-num_window-1:]
+        conf["rcs"] = rcs[-num_window-1:]
+        range_by_date = True
+
+    project_id, dbm, all_range_ids = project_setup(conf, FALSE)
+
+    ## Save modified configuration file to a temporary location
+    conf.write()
+    project_conf = conf.get_conf_file_loc()
+
+    # Global stage: Download and process JIRA issues (downloadJiraIssues.jar, process_jira_issue.py)
+    log.info("=> Downloading and processing JIRA issues")
+    #dispatch_jira_analysis(project_resdir, conf)
+
+    # Revision range specific analysis
+    for i, range_id in enumerate(all_range_ids):
+        start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
+        range_resdir = pathjoin(project_resdir, "{0}-{1}".
+                                format(start_rev, end_rev))
+        prefix = "  -> Revision range {0}..{1}: ".format(start_rev, end_rev)
+
+        continue # Do nothing yet, since the following steps are not yet operational
+
+        #######
+        # STAGE 1: Download and process jira issues
+        s1 = pool.add(
+                doConwayCommitsIssues,
+                (conf, start_rev, end_rev, rc_rev, range_resdir, repo,
+                    reuse_db, True, range_by_date),
+                startmsg=prefix + "Downloading and processing jira issues...",
+                endmsg=prefix + "Downloading and processing jira issues done."
+            )
+
+        #########
+        # STAGE 2: Connect commits and issues
+        exe = abspath(resource_filename(__name__, "R/conway/metrics.r"))
+        cwd, _ = pathsplit(exe)
+        cmd = []
+        cmd.append(exe)
+        cmd.extend(("--loglevel", loglevel))
+        if logfile:
+            cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
+        cmd.extend(("-c", codeface_conf))
+        cmd.extend(("-p", project_conf))
+        cmd.append(range_resdir)
+        cmd.append(str(range_id))
+
+        s2 = pool.add(
+                execute_command,
+                (cmd,),
+                {"direct_io":True, "cwd":cwd},
+                deps=[s1],
+                startmsg=prefix + "Connecting commits and issues...",
+                endmsg=prefix + "Commecting commits and issues done."
+            )
+
+        #######
+        # STAGE 3: Obtain SDSM using Titan
+        s3 = pool.add(
+                doConwayTitan,
+                (conf, start_rev, end_rev, rc_rev, range_resdir, repo,
+                    reuse_db, True, range_by_date),
+                startmsg=prefix + "Computing SDSM using Titan...",
+                endmsg=prefix + "Computing SDSM using Titan done."
+            )
+
+        #########
+        # STAGE 4: Perform socio-technical analysis
+        exe = abspath(resource_filename(__name__, "R/conway/socio_technical_analysis.r"))
+        cwd, _ = pathsplit(exe)
+        cmd = []
+        cmd.append(exe)
+        cmd.extend(("--loglevel", loglevel))
+        if logfile:
+            cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
+        cmd.extend(("-c", codeface_conf))
+        cmd.extend(("-p", project_conf))
+        cmd.append(range_resdir)
+        cmd.append(str(range_id))
+
+        s2 = pool.add(
+                execute_command,
+                (cmd,),
+                {"direct_io":True, "cwd":cwd},
+                deps=[s1],
+                startmsg=prefix + "Performing socio-technical analysis...",
+                endmsg=prefix + "Socio-technical analysis done."
+            )
+
+    log.info("=> Codeface conway analysis complete!")
