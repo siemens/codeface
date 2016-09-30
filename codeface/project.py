@@ -58,7 +58,6 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     conf = Configuration.load(codeface_conf, project_conf)
     tagging = conf["tagging"]
     if tagging_type is not "default":
-
         if not tagging_type in LinkType.get_all_link_types():
             log.critical('Unsupported tagging mechanism specified!')
             raise ConfigurationError('Unsupported tagging mechanism.')
@@ -106,7 +105,8 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
         range_resdir = pathjoin(project_resdir, "{0}-{1}".
                 format(start_rev, end_rev))
-        prefix = "  -> Revision range {0}..{1}: ".format(start_rev, end_rev)
+        prefix = "  -> Revision range {0}/{1} ({2}..{3}): ".format(i+1, len(all_range_ids),
+                                                                   start_rev, end_rev)
 
         #######
         # STAGE 1: Commit analysis
@@ -271,15 +271,16 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
 
     # Global stage: Download and process JIRA issues
     log.info("=> Downloading and processing JIRA issues")
-    #dispatch_jira_analysis(project_resdir, conf)
+    dispatch_jira_processing(project_resdir, titandir, conf)
 
     # Revision range specific analysis
     for i, range_id in enumerate(all_range_ids):
         start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
         range_resdir = pathjoin(project_resdir, "{0}-{1}".
                                 format(start_rev, end_rev))
-        prefix = "  -> Revision range {0}..{1}: ".format(start_rev, end_rev)
-
+        prefix = "  -> Revision range {0}/{1} ({2}..{3}): ".format(i+1, len(all_range_ids),
+                                                                   start_rev, end_rev)
+        print(prefix)
         continue # Do nothing yet, since the following steps are not yet operational
 
         #######
