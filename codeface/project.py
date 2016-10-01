@@ -80,7 +80,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     if len(conf["revisions"]) < 2:
         window_size_months = 3 # Window size in months
         num_window = -1  # Number of ranges to analyse, -1 captures all ranges
-        revs, rcs = generate_analysis_windows(repo, window_size_months)
+        revs, rcs, dates = generate_analysis_windows(repo, window_size_months)
         conf["revisions"] = revs[-num_window-1:]
         conf["rcs"] = rcs[-num_window-1:]
         range_by_date = True
@@ -258,7 +258,7 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
         window_size_months = 3 # Window size in months
         num_window = -1  # Number of ranges to analyse, -1 captures all ranges
 
-        revs, rcs = generate_analysis_windows(repo, window_size_months)
+        revs, rcs, dates = generate_analysis_windows(repo, window_size_months)
         conf["revisions"] = revs[-num_window-1:]
         conf["rcs"] = rcs[-num_window-1:]
         range_by_date = True
