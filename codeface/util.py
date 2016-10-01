@@ -445,6 +445,18 @@ def parse_iso_git_date(date_string):
     parsed_date -= delta
     return parsed_date
 
+# Determine settings for the size and amount of analysis windows. If nothing
+# specific is provided, use default settings
+def get_analysis_windows(conf):
+    window_size_months = 3
+    num_window = -1
+
+    if "windowSize" in conf.keys():
+        window_size_months = conf["windowSize"]
+    if "numWindows" in conf.keys():
+        num_window = conf["numWindows"]
+
+    return window_size_months, num_window
 
 def generate_analysis_windows(repo, window_size_months):
     """
