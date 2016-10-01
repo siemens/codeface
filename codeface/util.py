@@ -19,6 +19,7 @@ Utility functions for running external commands
 
 import logging; log = logging.getLogger(__name__)
 import os
+import os.path
 import re
 import shutil
 import signal
@@ -365,8 +366,7 @@ def generate_report(start_rev, end_rev, resdir):
 
 def generate_reports(start_rev, end_rev, range_resdir):
     files = glob(os.path.join(range_resdir, "*.dot"))
-    log.info("  -> Analysing revision range {0}..{1}: Generating Reports...".
-        format(start_rev, end_rev))
+    log.info("  -> Generating Reports...")
     for file in files:
         layout_graph(file)
     generate_report(start_rev, end_rev, range_resdir)
@@ -406,6 +406,24 @@ def check4cppstats():
                   .format(error_message))
         raise Exception("no working cppstats found ({0})"
                         .format(error_message))
+
+
+def gen_prefix(i, num_ranges, start_rev, end_rev):
+    if (len(start_rev) == 40):
+        # When revisions are given by commit hashes, shorten them since
+        # they don't carry any meaning
+        start_rev = start_rev[0:6]
+        end_rev = end_rev[0:6]
+    return("  -> Revision range {0}/{1} ({2}..{3}): ".format(i, num_ranges,
+                                                             start_rev, end_rev))
+
+def gen_range_path(base_path, i, start_rev, end_rev):
+    if (len(start_rev) == 40):
+        # Same logic as above, but construct a file system path
+        start_rev = start_rev[0:6]
+        end_rev = end_rev[0:6]
+    return(os.path.join(base_path, "{0}--{1}-{2}".
+                        format(str(i).zfill(3), start_rev, end_rev)))
 
 
 def parse_iso_git_date(date_string):

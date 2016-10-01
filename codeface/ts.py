@@ -29,6 +29,7 @@ from .VCS import gitVCS
 from .commit_analysis import createCumulativeSeries, createSeries, \
     writeToFile, getSeriesDuration
 from .dbmanager import DBManager, tstamp_to_sql
+from .util import gen_range_path
 
 def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
     pkl_file = open(dbfilename, 'rb')
@@ -67,8 +68,8 @@ def dispatch_ts_analysis(resdir, conf):
     # not rely on the content of tstamps before that is done.
     tstamps = []
     for i in range(1, len(conf["revisions"])):
-        dbfilename = os.path.join(dbpath, "{0}-{1}".format(conf["revisions"][i-1],
-                                                           conf["revisions"][i]),
+        dbfilename = os.path.join(gen_range_path(dbpath, i, conf["revisions"][i-1],
+                                                 conf["revisions"][i]),
                                   "vcs_analysis.db")
 
         ts = doAnalysis(dbfilename, destdir,
