@@ -329,23 +329,10 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
     write.csv(artifacts.dat, file.path(corr.plot.path, "quality_data.csv"))
 }
 
-do.conway.analysis <- function(conf, global.resdir, range.resdir, titandir) {
+do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, end.date,
+                               titandir) {
     project.name <- conf$project
     project.id <- conf$pid
-
-    ## Analysis window
-    ## TODO: Select these automatically from the database
-    window.size <- 12 # months
-    end.date <- list(flink="2015-11-05",
-                     cassandra="2015-11-06",
-                     thrift="2015-09-25",
-                     storm="2015-11-20",
-                     camel="2015-11-08",
-                     solr="2016-02-20",
-                     hbase="2016-02-23",
-                     lucene="2016-02-20",
-                     accumulo="2015-12-03")[[project.name]]
-    start.date <- as.character(ymd(end.date) - months(window.size))
 
     dsm.filename <- file.path(titandir, "sdsm", "project.sdsm")
     feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
@@ -502,16 +489,19 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, titandir) {
     plot.to.file(g, file.path(networks.dir, "socio_technical_network.png"))
 
     do.quality.analysis(conf, vcs.dat, quality.type, artifact.type, defect.filename,
-                        start.date, end.date, communication.type, motif.type, motif.subgraphs,
-                        motif.subgraphs.anti, df, range.resdir)
+                        start.date, end.date, communication.type, motif.type,
+                        motif.subgraphs, motif.subgraphs.anti, df, range.resdir)
 }
 
 ######################### Dispatcher ###################################
 config.script.run({
-    conf <- config.from.args(positional.args=list("project_resdir", "range_resdir"),
+    conf <- config.from.args(positional.args=list("project_resdir", "range_resdir",
+                                                  "start_date", "end_date"),
                              require.project=TRUE)
     global.resdir <- conf$project_resdir
     range.resdir <- conf$range_resdir
+    start.date <- conf$start_date
+    end.date <- conf$end_date
     titandir <- file.path(range.resdir, "titan")
 
     logdevinfo(paste("Directory for storing conway results is", range.resdir),
@@ -528,5 +518,6 @@ config.script.run({
         }
     }
 
-    do.conway.analysis(conf, global.resdir, range.resdir, titandir)
+    do.conway.analysis(conf, global.resdir, range.resdir,
+                       start.date, end.date, titandir)
 })
