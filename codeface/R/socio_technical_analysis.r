@@ -245,7 +245,7 @@ do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
 }
 
 
-do.conway.analysis <- function(conf, resdir, titandir) {
+do.conway.analysis <- function(conf, global.resdir, range.resdir, titandir) {
     project.name <- conf$project
     project.id <- conf$pid
 
@@ -265,8 +265,8 @@ do.conway.analysis <- function(conf, resdir, titandir) {
 
     dsm.filename <- file.path(titandir, "sdsm", "project.sdsm")
     feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
-    jira.filename <- file.path(resdir, "jira-comment-authors-with-email.csv")
-    defect.filename <- file.path(resdir, "time_based_metrics.csv")
+    jira.filename <- file.path(global.resdir, "jira-comment-authors-with-email.csv")
+    defect.filename <- file.path(range.resdir, "time_based_metrics.csv")
 
 
     ## Analysis
@@ -295,7 +295,7 @@ do.conway.analysis <- function(conf, resdir, titandir) {
     node.dev <- unique(c(vcs.dat$author))
 
     ## Save to csv TODO: Why do we need to save that?
-    write.csv(vcs.dat, file.path(resdir, "commit_data.csv"))
+    write.csv(vcs.dat, file.path(range.resdir, "commit_data.csv"))
 
     ## Compute various other relationships between contributors and/or entities
     comm.dat <- compute.communication.relations(conf, communication.type,
@@ -355,7 +355,7 @@ do.conway.analysis <- function(conf, resdir, titandir) {
 
     ## * Last, save the resulting graph for external processing
     ## (TODO: This should go into the database)
-    write.graph(g, file.path(resdir, "network_data.graphml"), format="graphml")
+    write.graph(g, file.path(range.resdir, "network_data.graphml"), format="graphml")
 
     
     ################# Analyse the socio-technical graph ##############
@@ -391,9 +391,9 @@ do.conway.analysis <- function(conf, resdir, titandir) {
         motif.anti.count
 
     ## Visualise the results in some graphs
-    networks.dir <- file.path(resdir, "motif_analysis", motif.type,
+    networks.dir <- file.path(range.resdir, "motif_analysis", motif.type,
                               communication.type)
-    dir.create(networks.dir, recursive=T, showWarnings=T)
+    dir.create(networks.dir, recursive=TRUE, showWarnings=TRUE)
 
     ## Visualise the null model
     p.null <- ggplot(data=null.model.dat, aes(x=count)) +
@@ -482,7 +482,7 @@ do.conway.analysis <- function(conf, resdir, titandir) {
     corr.test <- cor.mtest(artifacts.dat[, corr.cols])
 
     ## Write correlations and raw data to file
-    corr.plot.path <- file.path(resdir, "quality_analysis", motif.type,
+    corr.plot.path <- file.path(range.resdir, "quality_analysis", motif.type,
                                 communication.type)
     dir.create(corr.plot.path, recursive=T, showWarnings=T)
     png(file.path(corr.plot.path, "correlation_plot.png"), width=1200, height=1200)
@@ -501,14 +501,16 @@ do.conway.analysis <- function(conf, resdir, titandir) {
 
 ######################### Dispatcher ###################################
 config.script.run({
-    conf <- config.from.args(positional.args=list("resdir"),
+    conf <- config.from.args(positional.args=list("project_resdir", "range_resdir"),
                              require.project=TRUE)
-    resdir <- file.path(conf$resdir, conf$project, "conway")
-    titandir <- file.path(resdir, "titan")
+    global.resdir <- conf$project_resdir
+    range.resdir <- conf$range_resdir
+    titandir <- file.path(range.resdir, "titan")
 
-    logdevinfo(paste("Directory for storing conway results is", resdir),
+    logdevinfo(paste("Directory for storing conway results is", range.resdir),
                logger="conway")
-    dir.create(resdir, showWarnings=FALSE, recursive=TRUE)
+    dir.create(global.resdir, showWarnings=FALSE, recursive=TRUE)
+    dir.create(range.resdir, showWarnings=FALSE, recursive=TRUE)
 
     if (conf$profile) {
         ## R cannot store line number profiling information before version 3.
@@ -519,5 +521,5 @@ config.script.run({
         }
     }
 
-    do.conway.analysis(conf, resdir, titandir)
+    do.conway.analysis(conf, global.resdir, range.resdir, titandir)
 })

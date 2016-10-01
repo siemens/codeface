@@ -311,24 +311,13 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
                 {"direct_io":True, "cwd":cwd},
                 deps=[s1],
                 startmsg=prefix + "Connecting commits and issues...",
-                endmsg=prefix + "Commecting commits and issues done."
+                endmsg=prefix + "Connecting commits and issues done."
             )
 
-        continue # The following steps are not yet operational
 
         #######
         # STAGE 3: Obtain SDSM using Titan
-        s3 = pool.add(
-                doConwayTitan,
-                (conf, start_rev, end_rev, rc_rev, range_resdir, repo,
-                    reuse_db, True, range_by_date),
-                startmsg=prefix + "Computing SDSM using Titan...",
-                endmsg=prefix + "Computing SDSM using Titan done."
-            )
-
-        #########
-        # STAGE 4: Perform socio-technical analysis
-        exe = abspath(resource_filename(__name__, "R/conway/socio_technical_analysis.r"))
+        exe = abspath(resource_filename(__name__, "R/titan.r"))
         cwd, _ = pathsplit(exe)
         cmd = []
         cmd.append(exe)
@@ -337,14 +326,39 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
             cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
         cmd.extend(("-c", codeface_conf))
         cmd.extend(("-p", project_conf))
+        cmd.append(repo)
         cmd.append(range_resdir)
-        cmd.append(str(range_id))
+        cmd.append(titandir)
+        cmd.append(end_rev)
 
-        s2 = pool.add(
+        s3 = pool.add(
                 execute_command,
                 (cmd,),
                 {"direct_io":True, "cwd":cwd},
-                deps=[s1],
+                deps=[s2],
+                startmsg=prefix + "Inferring architectural metrics with Titan...",
+                endmsg=prefix + "Titan run done."
+            )
+
+        #########
+        # STAGE 4: Perform socio-technical analysis
+        exe = abspath(resource_filename(__name__, "R/socio_technical_analysis.r"))
+        cwd, _ = pathsplit(exe)
+        cmd = []
+        cmd.append(exe)
+        cmd.extend(("--loglevel", loglevel))
+        if logfile:
+            cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
+        cmd.extend(("-c", codeface_conf))
+        cmd.extend(("-p", project_conf))
+        cmd.append(project_resdir)
+        cmd.append(range_resdir)
+
+        s4 = pool.add(
+                execute_command,
+                (cmd,),
+                {"direct_io":True, "cwd":cwd},
+                deps=[s3],
                 startmsg=prefix + "Performing socio-technical analysis...",
                 endmsg=prefix + "Socio-technical analysis done."
             )
