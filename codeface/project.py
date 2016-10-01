@@ -25,7 +25,7 @@ from .ts import dispatch_ts_analysis
 from .conway import dispatch_jira_processing, parseCommitLoC
 from .util import (execute_command, generate_reports, layout_graph, gen_range_path,
                    check4ctags, check4cppstats, BatchJobPool, generate_analysis_windows,
-                   gen_prefix)
+                   gen_prefix, get_analysis_windows)
 
 def loginfo(msg):
     ''' Pickleable function for multiprocessing '''
@@ -78,8 +78,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     # When revisions are not provided by the configuration file
     # generate the analysis window automatically
     if len(conf["revisions"]) < 2:
-        window_size_months = 3 # Window size in months
-        num_window = -1  # Number of ranges to analyse, -1 captures all ranges
+        window_size_months, num_window = get_analysis_windows(conf)
         revs, rcs, dates = generate_analysis_windows(repo, window_size_months)
         conf["revisions"] = revs[-num_window-1:]
         conf["rcs"] = rcs[-num_window-1:]
@@ -255,9 +254,7 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
     # When revisions are not provided by the configuration file
     # generate the analysis window automatically
     if len(conf["revisions"]) < 2:
-        window_size_months = 3 # Window size in months
-        num_window = -1  # Number of ranges to analyse, -1 captures all ranges
-
+        window_size_months, num_window = get_analysis_windows(conf)
         revs, rcs, dates = generate_analysis_windows(repo, window_size_months)
         conf["revisions"] = revs[-num_window-1:]
         conf["rcs"] = rcs[-num_window-1:]
