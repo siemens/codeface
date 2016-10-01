@@ -23,8 +23,9 @@ from .configuration import Configuration, ConfigurationError
 from .cluster.cluster import doProjectAnalysis, LinkType
 from .ts import dispatch_ts_analysis
 from .conway import dispatch_jira_processing, parseCommitLoC
-from .util import (execute_command, generate_reports, layout_graph,
-                   check4ctags, check4cppstats, BatchJobPool, generate_analysis_windows)
+from .util import (execute_command, generate_reports, layout_graph, gen_range_path,
+                   check4ctags, check4cppstats, BatchJobPool, generate_analysis_windows,
+                   gen_prefix)
 
 def loginfo(msg):
     ''' Pickleable function for multiprocessing '''
@@ -69,10 +70,6 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
             tagging = tagging_type
             conf["tagging"] = tagging
 
-    if conf["issueTrackerType"] != "jira":
-        log.info("Conway analysis requires jira bugtracking information, exiting")
-        return
-
     project = conf["project"]
     repo = pathjoin(gitdir, conf["repo"], ".git")
     project_resdir = pathjoin(resdir, project, tagging)
@@ -103,10 +100,8 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     # Analyse new revision ranges
     for i, range_id in enumerate(all_range_ids):
         start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
-        range_resdir = pathjoin(project_resdir, "{0}-{1}".
-                format(start_rev, end_rev))
-        prefix = "  -> Revision range {0}/{1} ({2}..{3}): ".format(i+1, len(all_range_ids),
-                                                                   start_rev, end_rev)
+        range_resdir = gen_range_path(project_resdir, i+1, start_rev, end_rev)
+        prefix = gen_prefix(i+1, len(all_range_ids), start_rev, end_rev)
 
         #######
         # STAGE 1: Commit analysis
@@ -252,6 +247,11 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
     project_resdir = pathjoin(resdir, project, "conway")
     range_by_date = False
 
+    if ("issueTrackerType" in conf.keys() and conf["issueTrackerType"] != "jira") or \
+       not("issueTrackerType" in conf.keys()):
+        log.info("Conway analysis requires jira bugtracking information, exiting")
+        return
+
     # When revisions are not provided by the configuration file
     # generate the analysis window automatically
     if len(conf["revisions"]) < 2:
@@ -276,10 +276,8 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
     # Revision range specific analysis
     for i, range_id in enumerate(all_range_ids):
         start_rev, end_rev, rc_rev = dbm.get_release_range(project_id, range_id)
-        range_resdir = pathjoin(project_resdir, "{0}-{1}".
-                                format(start_rev, end_rev))
-        prefix = "  -> Revision range {0}/{1} ({2}..{3}): ".format(i+1, len(all_range_ids),
-                                                                   start_rev, end_rev)
+        range_resdir = gen_range_path(project_resdir, i+1, start_rev, end_rev)
+        prefix = gen_prefix(i+1, len(all_range_ids), start_rev, end_rev)
 
         #######
         # STAGE 1:
