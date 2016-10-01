@@ -291,10 +291,9 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
                 endmsg=prefix + "Downloading and processing jira issues done."
             )
 
-        continue # The following steps are not yet operational
         #########
         # STAGE 2: Connect commits and issues
-        exe = abspath(resource_filename(__name__, "R/conway/metrics.r"))
+        exe = abspath(resource_filename(__name__, "R/conway_metrics.r"))
         cwd, _ = pathsplit(exe)
         cmd = []
         cmd.append(exe)
@@ -303,8 +302,8 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
             cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
         cmd.extend(("-c", codeface_conf))
         cmd.extend(("-p", project_conf))
+        cmd.append(project_resdir)
         cmd.append(range_resdir)
-        cmd.append(str(range_id))
 
         s2 = pool.add(
                 execute_command,
@@ -314,6 +313,8 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
                 startmsg=prefix + "Connecting commits and issues...",
                 endmsg=prefix + "Commecting commits and issues done."
             )
+
+        continue # The following steps are not yet operational
 
         #######
         # STAGE 3: Obtain SDSM using Titan
