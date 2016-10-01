@@ -228,6 +228,17 @@ class DBManager:
 
         return (date_start, date_end)
 
+    def get_commit_cdate(self, pid, hash):
+        """Given a project ID and a commit hash, obtain the commit date
+           in format YYYY-MM-DD"""
+        self.doExec("SELECT commitDate FROM commit "
+                    "WHERE projectId={} and commitHash='{}'".format(pid, hash))
+        if self.cur.rowcount == 0:
+            raise Exception("No date found for commit {} (pid {}) found!".format(hash, pid))
+        date = self.doFetchAll()[0][0].strftime("%Y-%m-%d")
+
+        return (date)
+
     def get_release_range(self, project_id, range_id):
         self.doExec(
             "SELECT st.tag, nd.tag, rc.tag FROM release_range "
