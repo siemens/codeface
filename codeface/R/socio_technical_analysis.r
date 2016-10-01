@@ -244,6 +244,90 @@ do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
     return(res)
 }
 
+do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defect.filename,
+                                start.date, end.date, communication.type, motif.type,
+                                motif.subgraphs, motif.subgraphs.anti, df, range.resdir) {
+    ## Perform quality analysis
+    relevant.entity.list <- unique(vcs.dat$entity)
+    if (quality.type=="defect") {
+        quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
+                                        start.date, end.date)
+    } else {
+        quality.dat <- get.corrective.count(conf$con, project.id, start.date,
+                                            end.date, artifact.type)
+    }
+
+    artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs,
+                                                       function(i) i[[3]]$name))))
+    anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs.anti,
+                                                            function(i) i[[3]]$name))))
+
+    ## Get file developer count
+    file.dev.count.df <- ddply(vcs.dat, .(entity),
+                               function(df) data.frame(entity=unique(df$entity),
+                                                       dev.count=length(unique(df$id))))
+
+    compare.motifs <- merge(artifacts, anti.artifacts, by='entity', all=TRUE)
+
+    compare.motifs[is.na(compare.motifs)] <- 0
+    names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
+
+    artifacts.dat <- merge(quality.dat, compare.motifs, by="entity")
+    artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
+
+    ## Add features
+    artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count -
+                                                artifacts.dat$motif.count) /
+        (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
+    artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count /
+        artifacts.dat$motif.count
+    artifacts.dat$motif.ratio[is.infinite(artifacts.dat$motif.ratio)] <- NA
+    artifacts.dat$bug.density <- artifacts.dat$BugIssueCount /
+        (artifacts.dat$CountLineCode+1)
+    artifacts.dat$motif.count.norm <- artifacts.dat$motif.count /
+        artifacts.dat$dev.count
+    artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count /
+        artifacts.dat$dev.count
+
+    ## Generate correlation plot (omitted correlation quantities: BugIsseChurn
+    ## and IssueCommits)
+    corr.cols <- c("motif.count",      "motif.anti.count",
+                   "motif.count.norm", "motif.anti.count.norm",
+                   "motif.ratio",      "motif.percent.diff",
+                   "dev.count",        "bug.density",
+                   "BugIssueCount",    "Churn",
+                   "CountLineCode")
+
+    correlation.dat <- ggpairs(artifacts.dat,
+                               columns=corr.cols,
+                               lower=list(continuous=wrap("points",
+                                                          alpha=0.33,
+                                                          size=0.5)),
+                               upper=list(continuous=wrap('cor',
+                                                          method='spearman'))) +
+        theme(axis.title.x = element_text(angle = 90, vjust = 1, color = "black"))
+
+    corr.mat <- cor(artifacts.dat[, corr.cols], use="pairwise.complete.obs",
+                    method="spearman")
+    corr.test <- cor.mtest(artifacts.dat[, corr.cols])
+
+    ## Write correlations and raw data to file
+    corr.plot.path <- file.path(range.resdir, "quality_analysis", motif.type,
+                                communication.type)
+    dir.create(corr.plot.path, recursive=T, showWarnings=T)
+    png(file.path(corr.plot.path, "correlation_plot.png"), width=1200, height=1200)
+    print(correlation.dat)
+    dev.off()
+
+    png(file.path(corr.plot.path, "correlation_plot_color.png"),
+        width=700, height=700)
+    corrplot(corr.mat, p.mat=corr.test[[1]],
+             insig = "p-value", sig.level=0.05, method="color",
+             type="upper")
+    dev.off()
+
+    write.csv(artifacts.dat, file.path(corr.plot.path, "quality_data.csv"))
+}
 
 do.conway.analysis <- function(conf, global.resdir, range.resdir, titandir) {
     project.name <- conf$project
@@ -417,86 +501,9 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, titandir) {
     ## Plot the complete network
     plot.to.file(g, file.path(networks.dir, "socio_technical_network.png"))
 
-    ## Perform quality analysis
-    relevant.entity.list <- unique(vcs.dat$entity)
-    if (quality.type=="defect") {
-        quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
-                                        start.date, end.date)
-    } else {
-        quality.dat <- get.corrective.count(conf$con, project.id, start.date,
-                                            end.date, artifact.type)
-    }
-
-    artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs,
-                                                       function(i) i[[3]]$name))))
-    anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs.anti,
-                                                            function(i) i[[3]]$name))))
-
-    ## Get file developer count
-    file.dev.count.df <- ddply(vcs.dat, .(entity),
-                               function(df) data.frame(entity=unique(df$entity),
-                                                       dev.count=length(unique(df$id))))
-
-    compare.motifs <- merge(artifacts, anti.artifacts, by='entity', all=TRUE)
-
-    compare.motifs[is.na(compare.motifs)] <- 0
-    names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
-
-    artifacts.dat <- merge(quality.dat, compare.motifs, by="entity")
-    artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
-
-    ## Add features
-    artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count -
-                                                artifacts.dat$motif.count) /
-        (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
-    artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count /
-        artifacts.dat$motif.count
-    artifacts.dat$motif.ratio[is.infinite(artifacts.dat$motif.ratio)] <- NA
-    artifacts.dat$bug.density <- artifacts.dat$BugIssueCount /
-        (artifacts.dat$CountLineCode+1)
-    artifacts.dat$motif.count.norm <- artifacts.dat$motif.count /
-        artifacts.dat$dev.count
-    artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count /
-        artifacts.dat$dev.count
-
-    ## Generate correlation plot (omitted correlation quantities: BugIsseChurn
-    ## and IssueCommits)
-    corr.cols <- c("motif.count",      "motif.anti.count",
-                   "motif.count.norm", "motif.anti.count.norm",
-                   "motif.ratio",      "motif.percent.diff",
-                   "dev.count",        "bug.density",
-                   "BugIssueCount",    "Churn",
-                   "CountLineCode")
-
-    correlation.dat <- ggpairs(artifacts.dat,
-                               columns=corr.cols,
-                               lower=list(continuous=wrap("points",
-                                                          alpha=0.33,
-                                                          size=0.5)),
-                               upper=list(continuous=wrap('cor',
-                                                          method='spearman'))) +
-        theme(axis.title.x = element_text(angle = 90, vjust = 1, color = "black"))
-
-    corr.mat <- cor(artifacts.dat[, corr.cols], use="pairwise.complete.obs",
-                    method="spearman")
-    corr.test <- cor.mtest(artifacts.dat[, corr.cols])
-
-    ## Write correlations and raw data to file
-    corr.plot.path <- file.path(range.resdir, "quality_analysis", motif.type,
-                                communication.type)
-    dir.create(corr.plot.path, recursive=T, showWarnings=T)
-    png(file.path(corr.plot.path, "correlation_plot.png"), width=1200, height=1200)
-    print(correlation.dat)
-    dev.off()
-
-    png(file.path(corr.plot.path, "correlation_plot_color.png"),
-        width=700, height=700)
-    corrplot(corr.mat, p.mat=corr.test[[1]],
-             insig = "p-value", sig.level=0.05, method="color",
-             type="upper")
-    dev.off()
-
-    write.csv(artifacts.dat, file.path(corr.plot.path, "quality_data.csv"))
+    do.quality.analysis(conf, vcs.dat, quality.type, artifact.type, defect.filename,
+                        start.date, end.date, communication.type, motif.type, motif.subgraphs,
+                        motif.subgraphs.anti, df, range.resdir)
 }
 
 ######################### Dispatcher ###################################
