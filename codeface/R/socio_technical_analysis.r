@@ -149,6 +149,10 @@ compute.communication.relations <- function(conf, communication.type,
     } else if (communication.type=="jira") {
         comm.dat <- load.jira.edgelist(conf, jira.filename, start.date, end.date)
     }
+
+    if (is.null(comm.dat)) {
+        return(NULL)
+    }
     comm.dat[, c(1,2)] <- sapply(comm.dat[, c(1,2)], as.character)
 
     return(comm.dat)
@@ -371,6 +375,13 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     ## Compute various other relationships between contributors and/or entities
     comm.dat <- compute.communication.relations(conf, communication.type,
                                                 jira.filename, start.date, end.date)
+
+    if (is.null(comm.dat)) {
+        loginfo(str_c("Conway analysis: No usable communication relationships available ",
+                "for time interval ", start.date, "--", end.date, ", exiting early", sep=""),
+                startlogger="conway")
+        return(NULL)
+    }
     dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date,
                                            dependency.type, artifact.type,
                                            dsm.filename, historical.limit)
