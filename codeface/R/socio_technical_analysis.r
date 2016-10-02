@@ -252,6 +252,11 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
                                 start.date, end.date, communication.type, motif.type,
                                 motif.subgraphs, motif.subgraphs.anti, df, range.resdir) {
     ## Perform quality analysis
+    if (length(motif.subgraphs) == 0 || length(motif.subgraphs.anti) == 0) {
+        loginfo("Quality analysis lacks motifs or anti-motifs, exiting early")
+        return(NULL)
+    }
+
     relevant.entity.list <- unique(vcs.dat$entity)
     if (quality.type=="defect") {
         quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
