@@ -18,6 +18,11 @@ load.jira.edgelist <- function(conf, jira.filename, start.date, end.date) {
     keep.row <- date$V1 >= start.date & date$V1 <= end.date
     jira.dat <- jira.dat[keep.row, ]
 
+    ## If there are no issues within the desired range, exit early
+    if (dim(jira.dat)[1] == 0) {
+        return(NULL)
+    }
+
     ## Map user emails to codeface Ids
     jira.dat$personId <- sapply(jira.dat$userEmail,
                                 function(author.email) {
@@ -27,6 +32,10 @@ load.jira.edgelist <- function(conf, jira.filename, start.date, end.date) {
     ## Remove Ids that could not be generated
     jira.dat <- jira.dat[!is.na(jira.dat$personId), ]
     jira.dat <- jira.dat[, c("IssueID", "personId")]
+
+    if (dim(jira.dat)[1] == 0) {
+        return(NULL)
+    }
 
     ## Perform bipartite projection
     g.bi <- graph.data.frame(jira.dat)
