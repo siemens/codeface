@@ -39,7 +39,7 @@ plot.to.file <- function(g, outfile) {
     g <- simplify(g,edge.attr.comb="first")
     g <- delete.vertices(g, names(which(degree(g)<2)))
     E(g)[is.na(E(g)$color)]$color <- "#0000001A"
-    png(file=outfile, width=10, height=10, units="in", res=300)
+    pdf(file=outfile, width=10, height=10)
     plot(g, layout=layout.kamada.kawai, vertex.size=2,
          vertex.label.dist=0.5, edge.arrow.size=0.5,
          vertex.label=NA)
@@ -342,12 +342,12 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
     corr.plot.path <- file.path(range.resdir, "quality_analysis", motif.type,
                                 communication.type)
     dir.create(corr.plot.path, recursive=T, showWarnings=T)
-    png(file.path(corr.plot.path, "correlation_plot.png"), width=1200, height=1200)
+    pdf(file.path(corr.plot.path, "correlation_plot.png"), width=10, height=10)
     print(correlation.dat)
     dev.off()
 
-    png(file.path(corr.plot.path, "correlation_plot_color.png"),
-        width=700, height=700)
+    pdf(file.path(corr.plot.path, "correlation_plot_color.pdf"),
+        width=7, height=7)
     corrplot(corr.mat, p.mat=corr.test[[1]],
              insig = "p-value", sig.level=0.05, method="color",
              type="upper")
@@ -506,7 +506,8 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     facet_wrap(~count.type, scales="free")
 
     ggsave(plot=p.null,
-           filename=file.path(networks.dir, "motif_null_model.png"))
+           filename=file.path(networks.dir, "motif_null_model.pdf"),
+           width=7, height=7)
 
     ## Compute the communication degree distribution
     p.comm <- ggplot(data=data.frame(degree=degree(graph.data.frame(comm.dat))),
@@ -515,10 +516,11 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
         geom_density(alpha=.2, fill="#AAD4FF")
 
     ggsave(plot=p.comm,
-           filename=file.path(networks.dir, "communication_degree_dist.png"))
+           filename=file.path(networks.dir, "communication_degree_dist.pdf"),
+           width=7, height=8)
 
     ## Plot the complete network
-    plot.to.file(g, file.path(networks.dir, "socio_technical_network.png"))
+    plot.to.file(g, file.path(networks.dir, "socio_technical_network.pdf"))
 
     do.quality.analysis(conf, vcs.dat, quality.type, artifact.type, defect.filename,
                         start.date, end.date, communication.type, motif.type,
