@@ -236,11 +236,17 @@ do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
 
     ## Code and count motif
     V(g.null)$color <- vertex.coding[V(g.null)$kind]
-
     g.null <- preprocess.graph(g.null, person.role)
 
-    count.positive <- count_subgraph_isomorphisms(motif, g.null, method="vf2")
-    count.negative <- count_subgraph_isomorphisms(motif.anti, g.null, method="vf2")
+    ## Compute matching domain, that is, which vertices in the motif may be
+    ## matched with which vertices in the graph
+    dom <- lapply(V(motif)$color, function(col) { V(g.null)[V(g.null)$color==col] })
+    dom.anti <- lapply(V(motif.anti)$color, function(col) { V(g.null)[V(g.null)$color==col] })
+
+    count.positive <- count_subgraph_isomorphisms(motif, g.null, method="lad", domain=dom,
+                                                  induced=TRUE)
+    count.negative <- count_subgraph_isomorphisms(motif.anti, g.null, method="lad",
+                                                  domain=dom.anti, induced=TRUE)
 
     res <- data.frame(count.type=c("positive", "negative"),
                       count=c(count.positive, count.negative))
@@ -452,24 +458,33 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     motif.anti <- motif.generator(motif.type, person.role, artifact.type,
                                   vertex.coding, anti=TRUE)
 
+    ## Compute the matching domains (i.e., which vertices in the pattern may
+    ## be matched with which vertices in the larger graph)
+    dom <- lapply(V(motif)$color, function(col) { V(g)[V(g)$color==col] })
+    dom.anti <- lapply(V(motif.anti)$color, function(col) { V(g)[V(g)$color==col] })
+
     ## Count subgraph isomorphisms in the collaboration graph with
     ## the given motif (and anti-motif)
-    motif.count <- count_subgraph_isomorphisms(motif, g, method="vf2")
-    motif.anti.count <- count_subgraph_isomorphisms(motif.anti, g, method="vf2")
+    motif.count <- count_subgraph_isomorphisms(motif, g, method="lad", domain=dom,
+                                               induced=TRUE)
+    motif.anti.count <- count_subgraph_isomorphisms(motif.anti, g, method="lad",
+                                                    domain=dom.anti, induced=TRUE)
 
     ## Extract the subgraph isomorphisms
-    motif.subgraphs <- subgraph_isomorphisms(motif, g, method="vf2")
-    motif.subgraphs.anti <- subgraph_isomorphisms(motif.anti, g, method="vf2")
+    ## TODO: Why don't we do this first, and then just count list lengths?
+    motif.subgraphs <- subgraph_isomorphisms(motif, g, method="lad", domain=dom,
+                                             induced=TRUE)
+    motif.subgraphs.anti <- subgraph_isomorphisms(motif.anti, g, method="lad", domain=dom.anti,
+                                                  induced=TRUE)
 
     ## Compute a null model
     niter <- 100
-    motif.count.null <- c()
 
-    motif.count.null <- mclapply(seq(niter), function(i) {
+    motif.count.null <- lapply(seq(niter), function(i) {
         do.null.model(g.bipartite, g.nodes, person.role, dependency.dat,
                       dependency.edgelist, comm.inter.dat, vertex.coding,
                       motif, motif.anti)
-    }, mc.cores=2) ## TODO: Use the built-in multiprocessing framework
+    })
 
     null.model.dat <- do.call(rbind, motif.count.null)
     null.model.dat[null.model.dat$count.type=="positive", "empirical.count"] <-
