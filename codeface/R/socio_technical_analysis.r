@@ -308,8 +308,7 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
                                                 artifacts.dat$motif.count) /
         (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
     artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count /
-        artifacts.dat$motif.count
-    artifacts.dat$motif.ratio[is.infinite(artifacts.dat$motif.ratio)] <- NA
+        (artifacts.dat$motif.count + artifacts.dat$motif.anti.count)
     artifacts.dat$bug.density <- artifacts.dat$BugIssueCount /
         (artifacts.dat$CountLineCode+1)
     artifacts.dat$motif.count.norm <- artifacts.dat$motif.count /
