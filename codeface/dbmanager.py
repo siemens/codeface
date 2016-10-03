@@ -136,6 +136,19 @@ class DBManager:
             raise Exception("Cluster id {} not found!".format(cid))
         return self.doFetchAll()
 
+    def get_file_dev(self, project_id, range_id):
+        self.doExec("SELECT * FROM (SELECT id, commitHash, commitDate, author, description " \
+                    "FROM commit WHERE projectId={} AND releaseRangeId={}) AS Commits " \
+                    "INNER JOIN (SELECT file, commitId, SUM(size) AS fileSize " \
+                    "FROM commit_dependency GROUP BY commitId, file) AS commitFileLOC " \
+                    "ON Commits.id=commitFileLOC.commitId ORDER BY " \
+                    "commitFileLOC.file, commitFileLOC.commitId".format(project_id, range_id))
+
+        if self.cur.rowcount == 0:
+            raise Exception("Could not obtain file-dev information for project {} "\
+                            "(release range {}!".format(project_id, range_id))
+        return self.doFetchAll()
+
     def get_release_ranges(self, project_id):
         self.doExec("SELECT id FROM release_range \
                     WHERE projectId={}".format(project_id))
@@ -197,6 +210,34 @@ class DBManager:
                     "times in the DB!".
                     format(r=revisionIDs, c=self.cur.rowcount))
         return self.doFetchAll()[0][0]
+
+    def getProjectTimeRange(self, pid):
+        """Given a project ID, determine the start and end date of available VCS data.
+           Returns a tuple with start end end date in the form YYYY-MM-DD"""
+        self.doExec("SELECT MIN(date_start) FROM revisions_view "
+                    "WHERE projectId={}".format(pid))
+        if self.cur.rowcount == 0:
+            raise Exception("No start date for pid {} found!".format(pid))
+        date_start = self.doFetchAll()[0][0].strftime("%Y-%m-%d")
+
+        self.doExec("SELECT MAX(date_end) FROM revisions_view "
+                    "WHERE projectId={}".format(pid))
+        if self.cur.rowcount == 0:
+            raise Exception("No end date for pid {} found!".format(pid))
+        date_end = self.doFetchAll()[0][0].strftime("%Y-%m-%d")
+
+        return (date_start, date_end)
+
+    def get_commit_cdate(self, pid, hash):
+        """Given a project ID and a commit hash, obtain the commit date
+           in format YYYY-MM-DD"""
+        self.doExec("SELECT commitDate FROM commit "
+                    "WHERE projectId={} and commitHash='{}'".format(pid, hash))
+        if self.cur.rowcount == 0:
+            raise Exception("No date found for commit {} (pid {}) found!".format(hash, pid))
+        date = self.doFetchAll()[0][0].strftime("%Y-%m-%d")
+
+        return (date)
 
     def get_release_range(self, project_id, range_id):
         self.doExec(

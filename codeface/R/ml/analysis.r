@@ -50,7 +50,11 @@ gen.forest <- function(conf, repo.path, resdir, use.mbox=TRUE) {
                               encoding="UTF-8",
                               preprocess=linux.kernel.preprocess)
     save(file=corp.file, corp.base)
+<<<<<<< HEAD
   } else if (!use.mbox & file.exists(corp.file)) {
+=======
+  } else {
+>>>>>>> conway-forreview
     loginfo("Loading mail data from precomputed corpus instead of mbox file")
     load(file=corp.file)
   } else {
@@ -229,7 +233,11 @@ check.corpus.precon <- function(corp.base) {
     }
 
     ## Remove problematic punctuation characters
+<<<<<<< HEAD
     problem.characters <- c("\"", ",", ";", "\\(", "\\)")
+=======
+    problem.characters <- c("\"", ",", "\\(", "\\)")
+>>>>>>> conway-forreview
     for (p.char in problem.characters) {
       author <- gsub(p.char, " ", author)
     }
@@ -237,11 +245,14 @@ check.corpus.precon <- function(corp.base) {
     ## Trim trailing and leading whitespace
     author <- str_trim(author)
 
+<<<<<<< HEAD
     ## Replace textual ' at  ' with @, sometimes
     ## we can recover an email
     author <- sub(' at ', '@', author)
     author <- sub(' AT ', '@', author)
 
+=======
+>>>>>>> conway-forreview
     ## Handle case where author is like
     ## Adrian Prantl via llvm-dev <llvm-dev@lists.llvm.org>
     pattern <- " via [[:print:]]*"
@@ -290,6 +301,8 @@ check.corpus.precon <- function(corp.base) {
         name <- gsub("\\.", " ",gsub("@.*", "", email))
       }
 
+      ## Name and author are now given in both cases, construct
+      ## a valid auhor/email string
       author <- paste(name, ' <', email, '>', sep="")
     }
     else {
@@ -774,7 +787,8 @@ store.mail <- function(conf, forest, corp, ml.id ) {
   
   ## Re-order columns to match the order as defined in the database to
   ## improve the stability
-  dat = dat[c("projectId", "threadId", "mlId", "author", "subject", "creationDate")]
+  dat = dat[c("projectId", "threadId", "mlId", "author", "subject",
+              "creationDate")]
 
   res <- dbWriteTable(conf$con, "mail", dat, append=TRUE, row.names=FALSE)
 

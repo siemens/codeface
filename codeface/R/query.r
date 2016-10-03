@@ -88,6 +88,12 @@ query.project.name <- function(con, pid) {
   return(dat$name)
 }
 
+query.project.analysis.method <- function(con, pid) {
+  dat <- dbGetQuery(con, str_c("SELECT analysisMethod FROM project WHERE id=", sq(pid)))
+
+  return(dat$analysisMethod)
+}
+
 query.projects <- function(con, analysis.method=NULL) {
   if(is.null(analysis.method)){
     query.str <-  str_c("SELECT id, name FROM project")
@@ -182,16 +188,22 @@ get.commits.by.ranges <- function(conf, subset=NULL, FUN=NULL) {
 }
 
 get.commits.by.date.con <- function(con, pid, start.date, end.date,
-                                    commit.date=TRUE, commit.count=FALSE) {
+                                    commit.date=TRUE, count.type="none") {
   if (commit.date==TRUE) {
     date.type <- "commitDate"
   } else {
     date.type <- "authorDate"
   }
 
-  if (commit.count==TRUE) {
+  if (count.type=="commit") {
     query <- "SELECT author, COUNT(*) as freq"
     group.by <- " GROUP BY author"
+  } else if (count.type=="loc") {
+    query <- "SELECT author, SUM(DiffSize) as freq"
+    group.by <- " GROUP BY author"
+  } else if (count.type!="none") {
+    logerror("Incorrect count.type parameter")
+    stop()
   } else {
     query <- "SELECT *"
     group.by <- NULL
@@ -552,6 +564,21 @@ query.mail.edgelist <- function(con, pid, start.date, end.date) {
                  "AND mail_to.creationDate >=", sq(start.date),
                  "AND mail_to.creationDate <", sq(end.date),
                  "GROUP BY mail_from.author, mail_to.author", sep=" ")
+  dat <- dbGetQuery(con, query)
+
+  return(dat)
+}
+
+## Compute the number messages each author generated across all mailing lists
+## for a single project
+query.author.mail.count <- function(con, pid, start.date, end.date) {
+  query <- str_c("SELECT author, COUNT(*) as freq",
+                 "FROM mail",
+                 "WHERE projectId=", pid,
+                 "AND creationDate >=", sq(start.date),
+                 "AND creationDate <", sq(end.date),
+                 "GROUP BY author", sep=" ")
+
   dat <- dbGetQuery(con, query)
 
   return(dat)

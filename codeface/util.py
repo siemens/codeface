@@ -19,6 +19,7 @@ Utility functions for running external commands
 
 import logging; log = logging.getLogger(__name__)
 import os
+import os.path
 import re
 import shutil
 import signal
@@ -365,8 +366,7 @@ def generate_report(start_rev, end_rev, resdir):
 
 def generate_reports(start_rev, end_rev, range_resdir):
     files = glob(os.path.join(range_resdir, "*.dot"))
-    log.info("  -> Analysing revision range {0}..{1}: Generating Reports...".
-        format(start_rev, end_rev))
+    log.info("  -> Generating Reports...")
     for file in files:
         layout_graph(file)
     generate_report(start_rev, end_rev, range_resdir)
@@ -408,6 +408,24 @@ def check4cppstats():
                         .format(error_message))
 
 
+def gen_prefix(i, num_ranges, start_rev, end_rev):
+    if (len(start_rev) == 40):
+        # When revisions are given by commit hashes, shorten them since
+        # they don't carry any meaning
+        start_rev = start_rev[0:6]
+        end_rev = end_rev[0:6]
+    return("  -> Revision range {0}/{1} ({2}..{3}): ".format(i, num_ranges,
+                                                             start_rev, end_rev))
+
+def gen_range_path(base_path, i, start_rev, end_rev):
+    if (len(start_rev) == 40):
+        # Same logic as above, but construct a file system path
+        start_rev = start_rev[0:6]
+        end_rev = end_rev[0:6]
+    return(os.path.join(base_path, "{0}--{1}-{2}".
+                        format(str(i).zfill(3), start_rev, end_rev)))
+
+
 def parse_iso_git_date(date_string):
     # from http://stackoverflow.com/questions/526406/python-time-to-age-part-2-timezones
     try:
@@ -427,6 +445,18 @@ def parse_iso_git_date(date_string):
     parsed_date -= delta
     return parsed_date
 
+# Determine settings for the size and amount of analysis windows. If nothing
+# specific is provided, use default settings
+def get_analysis_windows(conf):
+    window_size_months = 3
+    num_window = -1
+
+    if "windowSize" in conf.keys():
+        window_size_months = conf["windowSize"]
+    if "numWindows" in conf.keys():
+        num_window = conf["numWindows"]
+
+    return window_size_months, num_window
 
 def generate_analysis_windows(repo, window_size_months):
     """
@@ -450,7 +480,7 @@ def generate_analysis_windows(repo, window_size_months):
     revs = []
     start = window_size_months  # Window size time ago
     end = 0  # Present time
-    cmd_base = 'git --git-dir={0} log --no-merges --format=%H,%ct'\
+    cmd_base = 'git --git-dir={0} log --no-merges --format=%H,%ct,%ci'\
         .format(repo).split()
     cmd_base_max1 = cmd_base + ['--max-count=1']
     cmd = cmd_base_max1 + [get_before_arg(end)]
@@ -483,9 +513,12 @@ def generate_analysis_windows(repo, window_size_months):
     if int(revs[0][1]) > int(revs[1][1]):
       del revs[0]
 
-    # Extract hash
-    revs = [rev[0] for rev in revs]
+    # Extract hash values and dates intro seperate lists
+    revs_hash = [rev[0] for rev in revs]
+    revs_date = [rev[2].split(" ")[0] for rev in revs]
 
+    # We cannot detect release canndidate tags in this analysis mode,
+    # so provide a list with None entries
     rcs = [None for x in range(len(revs))]
 
-    return revs, rcs
+    return revs_hash, rcs, revs_date

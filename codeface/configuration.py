@@ -43,7 +43,9 @@ class Configuration(Mapping):
     OPTIONAL_KEYS = ('description', 'ml', 'mailinglists', 'sleepTime',
                      'proxyHost', 'proxyPort', 'bugsProjectName',
                      'productAsProject', 'issueTrackerType',
-                     'issueTrackerURL', 'understand', 'sloccount')
+                     'issueTrackerURL', 'issueTrackerProject',
+                     'issueTrackerUser', 'issueTrackerPassword',
+                     'understand', 'sloccount', 'windowSize', 'numWindows')
     ALL_KEYS = set(GLOBAL_KEYS + GLOBAL_OPTIONAL_KEYS + PROJECT_KEYS +
                    OPTIONAL_KEYS)
 
@@ -134,8 +136,7 @@ class Configuration(Mapping):
             raise ConfigurationError('Unsupported tagging mechanism.')
 
         if len(self["revisions"]) < 2:
-            log.info("No revision range specified in configuration, analyzing history "
-                     "in 3 month increments")
+            log.info("No revision range specified in configuration, using auto-generated windows")
 
         if len(self["revisions"]) != len(self["rcs"]):
             log.critical("Malformed configuration: revision and rcs list "

@@ -76,7 +76,12 @@ query.decompose.user.id.cached <- function(host, port, pid, name.str) {
 }
 
 query.decompose.user.id <- function(conf, name.str) {
-    return(query.decompose.user.id.cached(conf$idServiceHostname,
-                                          conf$idServicePort,
-                                          conf$pid, name.str))
+  res <- query.decompose.user.id.cached(conf$idServiceHostname,
+                                        conf$idServicePort,
+                                        conf$pid, name.str)
+  if (is.na(res)) {
+    logwarn(sprintf("Id service returning NA for %s", name.str))
+  }
+
+  return(res)
 }
