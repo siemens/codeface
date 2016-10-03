@@ -26,6 +26,7 @@ s(library(lubridate))
 s(library(corrplot))
 
 source("query.r")
+source("utils.r")
 source("config.r")
 source("dependency_analysis.r")
 source("process_dsm.r")
@@ -231,7 +232,7 @@ do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
     ## Add rewired edges
     gbr.df <- get.data.frame(g.bipartite.rewired)
     g.null <- add.edges(g.nodes,
-                        as.character(ggplot2:::interleave(gbr.df$from, gbr.df$to)))
+                        as.character(do.interleave(gbr.df$from, gbr.df$to)))
 
     ## Aritfact-artifact edges
     if (nrow(dependency.dat) > 0) {
@@ -251,7 +252,7 @@ do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
 
     g.null <- add.edges(g.null,
                         as.character(with(get.data.frame(g.comm.null),
-                                          ggplot2:::interleave(from, to))))
+                                          do.interleave(from, to))))
 
     ## Code and count motif
     V(g.null)$color <- vertex.coding[V(g.null)$kind]
@@ -426,7 +427,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
                                        type=FALSE))
 
     ## Graph g.bipartite based on g.nodes that contains developer-entity edges
-    vcs.edgelist <- with(vcs.dat, ggplot2:::interleave(author, entity))
+    vcs.edgelist <- with(vcs.dat, do.interleave(author, entity))
     g.bipartite <- add.edges(g.nodes, vcs.edgelist, attr=list(color="#00FF001A"))
 
     ## Create a graph g that is based on g.bipartite and that additionally
@@ -445,13 +446,13 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     }
 
     comm.edgelist <- as.character(with(comm.inter.dat,
-                                       ggplot2:::interleave(V1, V2)))
+                                       do.interleave(V1, V2)))
     g <- add.edges(g.bipartite, comm.edgelist, attr=list(color="#FF00001A"))
 
     ## * Second, add entity-entity edges
     if(nrow(dependency.dat) > 0) {
         dependency.edgelist <- as.character(with(dependency.dat,
-                                                 ggplot2:::interleave(V1, V2)))
+                                                 do.interleave(V1, V2)))
         g <- add.edges(g, dependency.edgelist)
     }
 
