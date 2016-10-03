@@ -437,6 +437,13 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     g <- graph.empty(directed=FALSE)
     comm.inter.dat <- comm.dat[comm.dat$V1 %in% node.dev &
                                comm.dat$V2 %in% node.dev,]
+
+    if (dim(comm.inter.dat)[1] == 0) {
+        loginfo("No overlap between VCS and communication data, exiting analysis early!",
+                logger="conway")
+        return(NULL)
+    }
+
     comm.edgelist <- as.character(with(comm.inter.dat,
                                        ggplot2:::interleave(V1, V2)))
     g <- add.edges(g.bipartite, comm.edgelist, attr=list(color="#FF00001A"))
