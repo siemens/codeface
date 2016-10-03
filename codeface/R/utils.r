@@ -43,6 +43,16 @@ scale.data <- function(dat, .min=0, .max=1) {
   return(dat)
 }
 
+## Given two lists from and to, create an interleaved list.
+## interleave.lists(c(1,2,3), c(4,5,6)), for instance, delivers
+## c(1,4,2,5,3,6).
+do.interleave <- function(from, to) {
+    if (length(from) != length(to)) {
+        print("Warning: Length is lists to be interleaved differ, recycling will happen.")
+    }
+    return(c(rbind(from, to)))
+}
+
 ## Given an igraph edge list (data frame with columns toId and fromId), create
 ## a weighted edge list, where the weight is the number of parallel edges.
 gen.weighted.edgelist <- function(edges) {
