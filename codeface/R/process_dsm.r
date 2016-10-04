@@ -1,4 +1,3 @@
-#! /usr/bin/env Rscript
 ## This file is part of Codeface. Codeface is free software: you can
 ## redistribute it and/or modify it under the terms of the GNU General Public
 ## License as published by the Free Software Foundation, version 2.
@@ -21,7 +20,16 @@ s <- suppressPackageStartupMessages
 s(library(igraph))
 
 load.sdsm <- function(sdsm.filename, relavent.files) {
-    sdsm.size <- read.table(sdsm.filename, skip=1, nrows=1)[[1]]
+    sdsm.size <- NULL
+    tryCatch({
+        sdsm.size <- read.table(sdsm.filename, skip=1, nrows=1)[[1]]
+    }, error=function(e) {
+        ## If the file only has content "null", then Titan did not
+        ## produce valid data
+        sdsm.size <<- NULL
+    })
+    if (is.null(sdsm.size)) { return(NULL) }
+
     sdsm.filenames <- read.table(sdsm.filename, skip=2+sdsm.size)
     sdsm.binary <- read.table(sdsm.filename, skip=2, nrows=sdsm.size)
     sdsm.binary[sdsm.binary > 0] <- 1

@@ -165,6 +165,9 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
                                  dsm.filename, historical.limit) {
     ensure.supported.dependency.type(dependency.type)
     ensure.supported.artifact.type(artifact.type)
+
+    ## Compute a list of relevant files (i.e., all files touched in the release
+    ## range)
     relevant.entity.list <- unique(vcs.dat$entity)
     if (dependency.type == "co-change") {
         start.date.hist <- as.Date(start.date) - historical.limit
@@ -182,9 +185,15 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
         ## Compute an edgelist
         dependency.dat <- compute.item.sets.edgelist(freq.item.sets)
         names(dependency.dat) <- c("V1", "V2")
-
     } else if (dependency.type == "dsm") {
-        dependency.dat <- load.sdsm(dsm.filename, relevant.entity.list)
+        dependency.dat <- load.sdsm(dsm.filename)
+        if (is.null(dependency.dat)) {
+            logwarning(str_c("Could not obtain any dependencies from the SDSM! ",
+                             "Trying to continue without dependencies.\n",
+                             "Is the implementation language supported?"), logger="conway")
+            return(data.frame())
+        }
+
         dependency.dat <-
             dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
                            dependency.dat[, 2] %in% relevant.entity.list,]
