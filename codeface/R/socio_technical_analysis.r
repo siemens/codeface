@@ -203,6 +203,7 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
     return(dependency.dat)
 }
 
+MOTIF.SEARCH.LIMIT=10*60 # Allow for trying up to 10 minutes of motif searching
 do.motif.search <- function(motif, g, count.only=TRUE) {
     ## Compute the matching domains (i.e., which vertices in the pattern are
     ## allowed to be matched with which vertices in the larger graph)
@@ -212,12 +213,12 @@ do.motif.search <- function(motif, g, count.only=TRUE) {
         ## Count subgraph isomorphisms in the collaboration graph with
         ## the given motif (this is faster than actually computing the subgraphs)
         motif.count <- count_subgraph_isomorphisms(motif, g, method="lad", domain=dom,
-                                                   induced=TRUE)
+                                                   induced=TRUE, time.limit=MOTIF.SEARCH.LIMIT)
         return(motif.count)
     }
 
     motif.subgraphs <- subgraph_isomorphisms(motif, g, method="lad", domain=dom,
-                                             induced=TRUE)
+                                             induced=TRUE, time.limit=MOTIF.SEARCH.LIMIT)
     return(motif.subgraphs)
 }
 
@@ -479,6 +480,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
                                   vertex.coding, anti=TRUE)
 
     ## Find motif and anti-motifs in the collaboration graph
+    logdevinfo("Searching for motif and anti-motif", logger="conway")
     motif.subgraphs <- do.motif.search(motif, g, count.only=FALSE)
     motif.count <- length(motif.subgraphs)
 
@@ -488,6 +490,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     ## Compute a null model
     niter <- 100
 
+    logdevinfo("Computing null models", logger="conway")
     motif.count.null <- mclapply(seq(niter), function(i) {
         do.null.model(g.bipartite, g.nodes, person.role, dependency.dat,
                       dependency.edgelist, comm.inter.dat, vertex.coding,
