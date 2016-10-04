@@ -261,18 +261,28 @@ do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
 
     count.positive <- do.motif.search(motif, g.null)
     count.negative <- do.motif.search(motif.anti, g.null)
+    ratio <- count.positive/(count.positive+count.negative)
 
-    res <- data.frame(count.type=c("positive", "negative"),
-                      count=c(count.positive, count.negative))
+    res <- data.frame(count.type=c("positive", "negative", "ratio"),
+                      count=c(count.positive, count.negative, ratio))
 
     return(res)
 }
 
+## Generate a text string with some information about the range under analysis
+gen.plot.info <- function(stats) {
+    return(str_c(stats$project, " (", stats$start.date, "--", stats$end.date,
+                 ")\n", "Devs: ", stats$num.devs,
+                 " Funs: ", stats$num.functions,
+                 " M: ", stats$num.motifs,
+                 " A-M: ", stats$num.motifs.anti, sep=""))
+}
+
 do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defect.filename,
                                 start.date, end.date, communication.type, motif.type,
-                                motif.subgraphs, motif.subgraphs.anti, df, range.resdir) {
+                                motif.subgraphs, motif.anti.subgraphs, df, stats, range.resdir) {
     ## Perform quality analysis
-    if (length(motif.subgraphs) == 0 || length(motif.subgraphs.anti) == 0) {
+    if (length(motif.subgraphs) == 0 || length(motif.anti.subgraphs) == 0) {
         loginfo("Quality analysis lacks motifs or anti-motifs, exiting early")
         return(NULL)
     }
@@ -288,7 +298,7 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
 
     artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs,
                                                        function(i) i[[3]]$name))))
-    anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs.anti,
+    anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.anti.subgraphs,
                                                             function(i) i[[3]]$name))))
 
     ## Get file developer count
@@ -317,41 +327,47 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
     artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count /
         artifacts.dat$dev.count
 
-    ## Generate correlation plot (omitted correlation quantities: BugIsseChurn
-    ## and IssueCommits)
-    corr.cols <- c("motif.count",      "motif.anti.count",
-                   "motif.count.norm", "motif.anti.count.norm",
-                   "motif.ratio",      "motif.percent.diff",
+    ## Generate correlation plot (omitted correlation quantities: BugIsseChurn,
+    ## IssueCommits,  motif.count.norm, motif.anti.count.norm, motif.ratio, motif.percent.diff
+    corr.cols <- c("motif.ratio",      "motif.percent.diff",
                    "dev.count",        "bug.density",
                    "BugIssueCount",    "Churn",
                    "CountLineCode")
+    corr.cols.labels <- c("M/A-M", "MDiff", "Devs", "BugDens",
+                          "Bugs", "Churn", "LoC")
 
-    correlation.dat <- ggpairs(artifacts.dat,
-                               columns=corr.cols,
-                               lower=list(continuous=wrap("points",
-                                                          alpha=0.33,
-                                                          size=0.5)),
-                               upper=list(continuous=wrap('cor',
-                                                          method='spearman'))) +
-        theme(axis.title.x = element_text(angle = 90, vjust = 1, color = "black"))
+    ## Do not plot correlations for all quantities, but only for combinations
+    ## that are of particular interest.
+    artifacts.subset <- artifacts.dat[, corr.cols]
+    colnames(artifacts.subset) <- corr.cols.labels
 
-    corr.mat <- cor(artifacts.dat[, corr.cols], use="pairwise.complete.obs",
+    correlation.plot <- ggpairs(artifacts.dat,
+                                columns=corr.cols,
+                                lower=list(continuous=wrap("points",
+                                               alpha=0.33, size=0.5)),
+                                upper=list(continuous=wrap('cor',
+                                               method='spearman')),
+                               title=gen.plot.info(stats)) + theme_bw() +
+                  theme(axis.title.x = element_text(angle = 90, vjust = 1,
+                            color = "black"))
+
+    corr.mat <- cor(artifacts.subset, use="pairwise.complete.obs",
                     method="spearman")
-    corr.test <- cor.mtest(artifacts.dat[, corr.cols])
+    corr.test <- cor.mtest(artifacts.subset)
 
     ## Write correlations and raw data to file
     corr.plot.path <- file.path(range.resdir, "quality_analysis", motif.type,
                                 communication.type)
     dir.create(corr.plot.path, recursive=T, showWarnings=T)
-    pdf(file.path(corr.plot.path, "correlation_plot.png"), width=10, height=10)
-    print(correlation.dat)
+    pdf(file.path(corr.plot.path, "correlation_plot.pdf"), width=10, height=10)
+    print(correlation.plot)
     dev.off()
 
     pdf(file.path(corr.plot.path, "correlation_plot_color.pdf"),
         width=7, height=7)
     corrplot(corr.mat, p.mat=corr.test[[1]],
-             insig = "p-value", sig.level=0.05, method="color",
-             type="upper")
+             insig = "p-value", sig.level=0.05, method="pie", type="lower")
+    title(gen.plot.info(stats))
     dev.off()
 
     write.csv(artifacts.dat, file.path(corr.plot.path, "quality_data.csv"))
@@ -502,6 +518,12 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
         motif.count
     null.model.dat[null.model.dat$count.type=="negative", "empirical.count"] <-
         motif.anti.count
+    null.model.dat[null.model.dat$count.type=="ratio", "empirical.count"] <-
+        motif.count/(motif.count+motif.anti.count)
+
+    stats <- list(num.devs=length(node.dev), num.functions=length(node.function),
+                  num.motifs=motif.count, num.motifs.anti=motif.anti.count,
+                  start.date=start.date, end.date=end.date, project=conf$project)
 
     ## Visualise the results in some graphs
     networks.dir <- file.path(range.resdir, "motif_analysis", motif.type,
@@ -509,21 +531,24 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     dir.create(networks.dir, recursive=TRUE, showWarnings=TRUE)
 
     ## Visualise the null model
+    labels <- c(negative = "Anti-Motif", positive = "Motif", ratio = "Ratio")
     p.null <- ggplot(data=null.model.dat, aes(x=count)) +
-        geom_histogram(aes(y=..density..), colour="black", fill="white") +
+        geom_histogram(aes(y=..density..), colour="black", fill="white", bins=30) +
         geom_point(aes(x=empirical.count), y=0, color="red", size=5) +
         geom_density(alpha=.2, fill="#AAD4FF") +
-    facet_wrap(~count.type, scales="free")
+        facet_wrap(~count.type, scales="free", labeller=labeller(count.type=labels)) +
+        xlab("Count") + ylab("Density [a.u.]") + ggtitle(gen.plot.info(stats))
 
     ggsave(plot=p.null,
            filename=file.path(networks.dir, "motif_null_model.pdf"),
-           width=7, height=7)
+           width=8, height=4)
 
     ## Compute the communication degree distribution
     p.comm <- ggplot(data=data.frame(degree=degree(graph.data.frame(comm.dat))),
                      aes(x=degree)) +
-        geom_histogram(aes(y=..density..), colour="black", fill="white") +
-        geom_density(alpha=.2, fill="#AAD4FF")
+        geom_histogram(aes(y=..density..), colour="black", fill="white", bins=30) +
+        geom_density(alpha=.2, fill="#AAD4FF") + xlab("Node degree") + ylab("Density [a.u.]") +
+        ggtitle(gen.plot.info(stats))
 
     ggsave(plot=p.comm,
            filename=file.path(networks.dir, "communication_degree_dist.pdf"),
@@ -534,7 +559,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
 
     do.quality.analysis(conf, vcs.dat, quality.type, artifact.type, defect.filename,
                         start.date, end.date, communication.type, motif.type,
-                        motif.subgraphs, motif.anti.subgraphs, df, range.resdir)
+                        motif.subgraphs, motif.anti.subgraphs, df, stats, range.resdir)
 }
 
 ######################### Dispatcher ###################################
