@@ -530,6 +530,12 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     null.model.dat[null.model.dat$count.type=="ratio", "empirical.count"] <-
         motif.count/(motif.count+motif.anti.count)
 
+    ## When we did neither found motifs nor anti-motifs, set the fraction
+    ## M/(M+A-M) to one (instead of NaN), since there are exactly as many motifs as
+    ## anti-motifs. NaNs would also break the plotting code below.
+    null.model.dat[is.nan(null.model.dat$count),]$count <- 1
+    null.model.dat[is.nan(null.model.dat$empirical.count),]$empirical.count <- 1
+
     stats <- list(num.devs=length(node.dev), num.functions=length(node.function),
                   num.motifs=motif.count, num.motifs.anti=motif.anti.count,
                   start.date=start.date, end.date=end.date, project=conf$project)
