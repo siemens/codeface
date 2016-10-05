@@ -26,6 +26,7 @@ auto/
 db/
 rep/
 res/
+tmp/
 testdat/
 performance/results/
 *.tar.gz
