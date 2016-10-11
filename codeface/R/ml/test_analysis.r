@@ -5,14 +5,29 @@ source("analysis.r")
 
 conf <- connect.db("../../../codeface_testing.conf")
 conf$listname <- "gmane.comp.emulators.qemu"
+conf$use_corpus <- FALSE
 
 path <- "test_data"
 res.dir <- "test_data"
 
+fixed.timestamps = list(
+  "<20150129233351.GD32706@tesla.redhat.com>" = strptime("2015-01-01 23:30:51 GMT", format = "%Y-%m-%d %H:%M:%S", tz = "GMT"),
+  "<54CAC5C3.4080706@redhat.com>" = strptime("2015-01-29 23:44:03 GMT", format = "%Y-%m-%d %H:%M:%S", tz = "GMT"),
+  "<201501ef29233351.GD32706@tesla.redhat.com>" = strptime("2015-02-23 23:44:03 GMT", format = "%Y-%m-%d %H:%M:%S", tz = "GMT"),
+  "<54CAC5C3.4080745506@redhat.com>" = strptime("2015-01-30 23:44:03 GMT", format = "%Y-%m-%d %H:%M:%S", tz = "GMT")
+)
+
+fixed.timestamps.offsets = list(
+  "<20150129233351.GD32706@tesla.redhat.com>" = 100,
+  "<54CAC5C3.4080706@redhat.com>" = -700,
+  "<201501ef29233351.GD32706@tesla.redhat.com>" = -700,
+  "<54CAC5C3.4080745506@redhat.com>" = -700
+)
+
 test.genforest <- function() {
   corp <- gen.forest(conf, path, res.dir)
   file.remove(file.path(res.dir, paste("corp.base", conf$listname, sep=".")))
-  check.eq <- unlist(meta(corp$corp.orig, tag="datetimestamp")) == unlist(meta(corp$corp, tag="datetimestamp"))  
+  check.eq <- unlist(meta(corp$corp.orig, tag="datetimestamp")) == unlist(meta(corp$corp, tag="datetimestamp"))
   return(all(check.eq))
 }
 
@@ -20,8 +35,9 @@ test.check.corpus.precon <- function() {
   corp <- gen.forest(conf, path, res.dir)
   file.remove(file.path(res.dir, paste("corp.base", conf$listname, sep=".")))
   corp <- check.corpus.precon(corp)
-  check.eq <- unlist(meta(corp$corp.orig, tag="datetimestamp")) == unlist(meta(corp$corp, tag="datetimestamp"))
-  return(all(check.eq))
+  check.eq <- unlist(meta(corp$corp, tag="datetimestamp")) == unlist(fixed.timestamps)
+  check.eq.offsets <- unlist(meta(corp$corp, tag="datetimestampOffset")) == unlist(fixed.timestamps.offsets)
+  return(all(check.eq, check.eq.offsets))
 }
 
 test.global.analysis <- function () {
@@ -39,10 +55,15 @@ test.global.analysis <- function () {
 
   ## Get author id to name mapping
   id.to.name <- sapply(unique(unlist(edgelist[,c(1,2)])),
-                        function(id) query.person.name(conf$con, id))
+                        function(id) {
+                            name = query.person.name(conf$con, id)
+                            attr(name, "names") = id
+                            return(name)
+                          }
+                       )
   ## The edge list is composed of character type global person ids and
   ## this will return a named vector to map the global ids to person names
-  edgelist[,c(1,2)] <- sapply(edgelist[,c(1,2)], function(id) id.to.name[id])
+  edgelist[,c(1,2)] <- sapply(edgelist[,c(1,2)], function(id) id.to.name[as.character(id)])
 
   ## Generate graph from database data
   g.db <- graph.data.frame(edgelist)

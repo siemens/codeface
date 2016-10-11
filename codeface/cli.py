@@ -89,6 +89,8 @@ def get_parser():
     ml_parser.add_argument('-m', '--mailinglist', help="Only run on the "
                 "specified mailing list (can be specified multiple times)",
                 default=[], action="append")
+    ml_parser.add_argument('--use-corpus', action="store_true",
+                        help="Re-use the corpus file that have been generated before")
     ml_parser.add_argument('resdir',
                         help="Directory to store analysis results in")
     ml_parser.add_argument('mldir',
@@ -136,7 +138,8 @@ def cmd_ml(args):
     if logfile:
         logfile = os.path.abspath(logfile)
     mailinglist_analyse(resdir, mldir, codeface_conf, project_conf,
-                        args.loglevel, logfile, args.jobs, args.mailinglist)
+                        args.loglevel, logfile, args.jobs, args.mailinglist,
+                        args.use_corpus)
     return 0
 
 def cmd_conway(args):

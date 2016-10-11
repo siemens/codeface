@@ -69,20 +69,20 @@ class TestCppStatsWorks(unittest.TestCase):
         d = self._get_file_layout(file)
         feature_dict, fexpr_lines = get_feature_lines_from_file(d, "unittest.c")
 
-        self.assertSetEqual(feature_dict.get_line_info(1), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(1), set(["Base_Feature"]))
         self.assertSetEqual(feature_dict.get_line_info(2), set(["Test"]))
         self.assertSetEqual(feature_dict.get_line_info(3), set(["Test"]))
         self.assertSetEqual(feature_dict.get_line_info(4), set(["Test"]))
         self.assertSetEqual(feature_dict.get_line_info(5), set(["Test"]))
         self.assertSetEqual(feature_dict.get_line_info(6), set(["Test"]))
-        self.assertSetEqual(feature_dict.get_line_info(7), set([]))
+        self.assertSetEqual(feature_dict.get_line_info(7), set(["Base_Feature"]))
 
-        self.assertSetEqual(fexpr_lines.get_line_info(1), set([]))
+        self.assertSetEqual(fexpr_lines.get_line_info(1), set(["Base_Feature"]))
         self.assertSetEqual(fexpr_lines.get_line_info(2), set(["Test"]))
         self.assertSetEqual(fexpr_lines.get_line_info(3), set(["Test"]))
         self.assertSetEqual(fexpr_lines.get_line_info(4), set(["!(Test)"]))
         self.assertSetEqual(fexpr_lines.get_line_info(5), set(["!(Test)"]))
         self.assertSetEqual(fexpr_lines.get_line_info(6), set(["!(Test)"]))
-        self.assertSetEqual(fexpr_lines.get_line_info(7), set([]))
+        self.assertSetEqual(fexpr_lines.get_line_info(7), set(["Base_Feature"]))
 
         pass
