@@ -54,7 +54,7 @@ gen.forest <- function(conf, repo.path, resdir, use.mbox=TRUE) {
     loginfo("Loading mail data from precomputed corpus instead of mbox file")
     load(file=corp.file)
   } else {
-    logerror("Corpus file not found")
+    logerror(sprintf("Corpus file not found: %s", corp.file))
     stop()
   }
 
