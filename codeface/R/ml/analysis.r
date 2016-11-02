@@ -402,6 +402,17 @@ check.corpus.precon <- function(corp.base) {
     return(list(date.new, date.offset))
   }
 
+  ## Fix subject (remove problematic characters)
+  fix.subject <- function(doc) {
+    ## get subject from headers
+    subject = meta(doc, tag = "heading")
+
+    ## Remove TABS -- dbWriteTable cannot handle these properly
+    subject <- gsub("\t", " ", subject, fixed=TRUE, useBytes=TRUE)
+
+    return(subject)
+  }
+
   ## Apply checks of conditions to all documents
   fix.corpus.doc <- function(doc) {
     meta(doc, tag="header") <- rmv.multi.refs(doc)
@@ -410,6 +421,8 @@ check.corpus.precon <- function(corp.base) {
     fixed.date = fix.date(doc)
     meta(doc, tag="datetimestamp") <- fixed.date[[1]]
     meta(doc, tag="datetimestampOffset") <- fixed.date[[2]]
+
+    meta(doc, tag="heading") <- fix.subject(doc)
 
     return(doc)
   }
@@ -771,10 +784,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
                     creationDate=creationDates,
                     numberOfAuthors=thread.info$authors,
                     numberOfMessages=thread.info$messages)
-
-  ## Remove tabs in subjects -- dbWriteTable cannot handle this properly
-  dat$subject <- as.character(dat$subject)
-  dat$subject <- gsub("\t", " ", dat$subject, fixed=TRUE, useBytes=TRUE)
 
   res <- dbWriteTable(conf$con, "mail_thread", dat, append=TRUE, row.names=FALSE)
   if (!res) {
