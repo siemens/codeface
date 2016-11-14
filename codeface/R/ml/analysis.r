@@ -471,8 +471,8 @@ dispatch.all <- function(conf, repo.path, resdir) {
     ## are coerced to numeric by the conversion to a data frame.
     release.intervals <- list(dim(cycles)[1])
     for (i in 1:(dim(cycles)[1])) {
-      release.intervals[[i]] <- new_interval(cycles$date.start[[i]],
-                                             cycles$date.end[[i]])
+      release.intervals[[i]] <- interval(cycles$date.start[[i]],
+                                         cycles$date.end[[i]])
     }
 
     release.labels <- as.list(cycles$cycle)
