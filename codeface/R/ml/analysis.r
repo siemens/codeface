@@ -360,6 +360,11 @@ check.corpus.precon <- function(corp.base) {
       return(NA)
     }
 
+    ## only consider first date header in document if more are given
+    if (length(date.header) > 1) {
+      date.header = date.header[1]
+    }
+
     ## patterns without time-zone pattern
     date.formats.without.tz = c(
       "%a, %d %b %Y %H:%M:%S",  # initially used format; e.g., "Date: Tue, 20 Feb 2009 20:24:54 +0100"
