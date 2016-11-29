@@ -42,14 +42,18 @@ test.check.corpus.precon <- function() {
 test.global.analysis <- function () {
   project.name <- "test_mail"
   analysis.method <- "none"
+  start.date <- "2000-01-01"
+  end.date <- "2020-01-01"
+
   conf$pid <- gen.clear.project.id.con(conf$con, project.name, analysis.method)
+  start.id <- gen.revision.id(conf, "v1.0", start.date)
+  end.id <- gen.revision.id(conf, "v1.1", end.date)
+  range <- gen.range.id(conf, start.id, end.id)
 
   ## Run analysis
   dispatch.all(conf, path, res.dir)
 
   ## Query for edgelist
-  start.date <- "2000-01-01"
-  end.date <- "2020-01-01"
   edgelist <- query.mail.edgelist(conf$con, conf$pid, start.date, end.date)
 
   ## Get author id to name mapping
