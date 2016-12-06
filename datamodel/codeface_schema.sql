@@ -353,7 +353,7 @@ CREATE TABLE IF NOT EXISTS `codeface`.`commit` (
   `AuthorTaggersSimilarity` FLOAT NULL DEFAULT NULL COMMENT '',
   `TaggersSubsysSimilarity` FLOAT NULL DEFAULT NULL COMMENT '',
   `releaseRangeId` BIGINT NULL DEFAULT NULL COMMENT '',
-  `description` TEXT NULL COMMENT '',
+  `description` MEDIUMTEXT NULL COMMENT '',
   `corrective` TINYINT(1) NULL COMMENT '',
   PRIMARY KEY (`id`)  COMMENT '',
   CONSTRAINT `commit_person`
