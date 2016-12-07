@@ -78,6 +78,11 @@ class FileDict:
         if line_nr < self.lastItem:
             raise ValueError("can only incrementally add items")
         self.line_list.append(line_nr)
+
+        # to ensure reliability for the 'bisect_right' call in the function
+        # 'get_line_info_raw', make sure the lines in the line_list are sorted
+        self.line_list.sort()
+
         self.line_dict[line_nr] = info
 
     def values(self):

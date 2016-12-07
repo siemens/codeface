@@ -200,6 +200,24 @@ class TestEndToEndOnlyTaggingExample3Feature(
     c9b59046 (Adam Awkward    2013-01-16 12:30:42 +0100 13)  int d = 0; // Adam
     c9b59046 (Adam Awkward    2013-01-16 12:30:42 +0100 14)  return 1; // Adam
     c9b59046 (Adam Awkward    2013-01-16 12:30:42 +0100 15) }; // Adam
+
+    Additionally, the order of commits occurring in the test project is the following:
+
+    release 1
+    - f95b8047236f75641d6d7a2b5790b9e1db869ccd
+    - 458c1a53c8adb5b09268546a035235cf9a8b034d
+    - 4be60ac55e29d769a40fe11f41f33e88ba7f059b // filtered due to date
+    - 3b7cc950b4446fa4a3e06a6cf0992ded1a5fe923
+    - 3fe9884f98487cce4603d2bd5578e94944412d3c
+    - 7b16cf10845bc64e2589fa63822f3ddc49aedd4d
+
+    release 2
+    - c9b59046b6eb473b97a97cb31aded2deced29dc6
+    - 29b9c8bc6955df51263201dff7a1d935f8cd6049
+    - c52343ac0d17ce9a30866d296da0deb23f1567a7
+    - 55eec10019857e44d80e4bec3e81d1cffb785592
+    - 2d29196c16dd5a2d4bed292f055a83d1b44a58e1
+
     '''
     commit_dependency =\
         [
@@ -211,12 +229,10 @@ class TestEndToEndOnlyTaggingExample3Feature(
             ('f95b8047236f75641d6d7a2b5790b9e1db869ccd', 'src/carp.c',
             '(defined(A) || defined(B))', 'FeatureExpression', 1, None),
 
-            ('7b16cf10845bc64e2589fa63822f3ddc49aedd4d', 'src/carp.c',
-             'A', 'Feature', 1, None),
-            ('7b16cf10845bc64e2589fa63822f3ddc49aedd4d', 'src/carp.c',
-             'B', 'Feature', 1, None),
-            ('7b16cf10845bc64e2589fa63822f3ddc49aedd4d', 'src/carp.c',
-            '(defined(A) || defined(B))', 'FeatureExpression', 1, None),
+            ('3b7cc950b4446fa4a3e06a6cf0992ded1a5fe923', 'src/carp.c',
+             'Base_Feature', 'Feature', 1, None),
+            ('3b7cc950b4446fa4a3e06a6cf0992ded1a5fe923', 'src/carp.c',
+             'Base_Feature', 'FeatureExpression', 1, None),
 
             ('3fe9884f98487cce4603d2bd5578e94944412d3c', 'src/carp.c',
              'A', 'Feature', 1, None),
@@ -224,6 +240,13 @@ class TestEndToEndOnlyTaggingExample3Feature(
              'B', 'Feature', 1, None),
             ('3fe9884f98487cce4603d2bd5578e94944412d3c', 'src/carp.c',
             '(defined(A) || defined(B))', 'FeatureExpression', 1, None),
+
+            ('7b16cf10845bc64e2589fa63822f3ddc49aedd4d', 'src/carp.c',
+             'A', 'Feature', 1, None),
+            ('7b16cf10845bc64e2589fa63822f3ddc49aedd4d', 'src/carp.c',
+             'B', 'Feature', 1, None),
+            ('7b16cf10845bc64e2589fa63822f3ddc49aedd4d', 'src/carp.c',
+             '(defined(A) || defined(B))', 'FeatureExpression', 1, None),
 
             # Release 2 (see blame data above)
             ('c9b59046b6eb473b97a97cb31aded2deced29dc6', 'src/code.c',
@@ -233,6 +256,8 @@ class TestEndToEndOnlyTaggingExample3Feature(
             ('c9b59046b6eb473b97a97cb31aded2deced29dc6', 'src/code.c',
              'C', 'Feature', 2, None),
             ('c9b59046b6eb473b97a97cb31aded2deced29dc6', 'src/code.c',
+             'Base_Feature', 'Feature', 5, None),
+            ('c9b59046b6eb473b97a97cb31aded2deced29dc6', 'src/code.c',
             '(defined(C))', 'FeatureExpression', 2, None),
             ('c9b59046b6eb473b97a97cb31aded2deced29dc6', 'src/code.c',
             '(defined(A))', 'FeatureExpression', 1, None),
@@ -240,6 +265,8 @@ class TestEndToEndOnlyTaggingExample3Feature(
             '(!((defined(A)))) && ((defined(B)))', 'FeatureExpression', 1, None),
             ('c9b59046b6eb473b97a97cb31aded2deced29dc6', 'src/code.c',
             '(!((defined(A)))) && (!((defined(B))))', 'FeatureExpression', 2, None),
+            ('c9b59046b6eb473b97a97cb31aded2deced29dc6', 'src/code.c',
+             'Base_Feature', 'FeatureExpression', 5, None),
 
             ('29b9c8bc6955df51263201dff7a1d935f8cd6049', 'src/code.c',
              'C', 'Feature', 1, None),
@@ -262,7 +289,12 @@ class TestEndToEndOnlyTaggingExample3Feature(
             ('55eec10019857e44d80e4bec3e81d1cffb785592', 'src/carp.c',
              'B', 'Feature', 1, None),
             ('55eec10019857e44d80e4bec3e81d1cffb785592', 'src/carp.c',
-            '(defined(A) || defined(B))', 'FeatureExpression', 1, None)
+            '(defined(A) || defined(B))', 'FeatureExpression', 1, None),
+
+            ('2d29196c16dd5a2d4bed292f055a83d1b44a58e1', 'src/carp.c',
+             'Base_Feature', 'Feature', 1, None),
+            ('2d29196c16dd5a2d4bed292f055a83d1b44a58e1', 'src/carp.c',
+             'Base_Feature', 'FeatureExpression', 1, None)
         ]
 
 
