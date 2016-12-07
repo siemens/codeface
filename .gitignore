@@ -33,6 +33,7 @@ performance/results/
 id_service/node_modules/
 *.Rproj
 .Rproj.user/
+.Rproj.user
 build/
 dist/
 vendor/
