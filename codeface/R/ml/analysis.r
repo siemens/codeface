@@ -536,6 +536,12 @@ dispatch.all <- function(conf, repo.path, resdir) {
   do.normalise.bound <- function(authors) {
     return(do.normalise(conf, authors))
   }
+
+  ## sort corpus by date
+  dates.vector = do.call(c, meta(corp, "datetimestamp"))
+  dates.order = order(dates.vector)
+  corp = corp[dates.order]
+
   forest.corp <- list(forest=make.forest(corp, do.normalise.bound),
                       corp=corp,
                       corp.orig=corp.base$corp.orig)
