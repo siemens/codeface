@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 # Copyright Siemens AG 2013
 #
