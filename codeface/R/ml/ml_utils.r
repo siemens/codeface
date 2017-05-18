@@ -433,3 +433,22 @@ ml.thread.loc.to.glob <- function(ml.id.map, loc.id) {
 
   return(global.id)
 }
+
+## Convert a list of datetime stamps extracted from a mail corpus into
+## a vector of strings. Take into account that some messages do not
+## have correct dates set.
+mail.dates.to.vector <- function(dates) {
+    if(class(dates) != "list") {
+        stop("Internal error: mail.dates.to.vector requires a list as input")
+    }
+
+    ## Note: length(.) returns 1 if the string is non-empty, and 0
+    ## if the string is character(0), which is the case when the date time
+    ## stamp is not present
+    dates <- lapply(dates, as.character)
+    names(dates) <- NULL # Simplify diagnostic output; we don't need names here.
+    idx.nodate <- which(sapply(dates, length)==0)
+    dates[idx.nodate] <- NA
+
+    return(unlist(dates))
+}
