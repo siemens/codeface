@@ -661,10 +661,11 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
   authorIDs <- as.numeric(mailID.to.authorID[thread.info$start.email.id])
 
   ## Obtaining the creation dates of thread initiator emails works similarly
-  creationDates <- sapply(thread.info$start.email.id,
+  creationDates <- lapply(thread.info$start.email.id,
                           function(mail.id) {
                             return(as.character(get.timestamp(mail.id)))
                           })
+  creationDates <- mail.dates.to.vector(creationDates)
 
   dat <- data.frame(subject=thread.info$subject, createdBy=authorIDs,
                     projectId=conf$pid, releaseRangeId=cycle$range.id,
@@ -764,8 +765,9 @@ store.mail <- function(conf, forest, corp, ml.id ) {
 
   ##Extract dates from corpus and add them to the data frame
   dates <- meta(corp, "datetimestamp")
+
   dates.df <- data.frame(ID=names(dates),
-                         creationDate=sapply(dates, as.character))
+                         creationDate=mail.dates.to.vector(dates))
   dat <- merge(dat, dates.df, by="ID")
   dat$ID <- NULL
   colnames(dat)[which(colnames(dat)=="threadID")] <- "threadId"
