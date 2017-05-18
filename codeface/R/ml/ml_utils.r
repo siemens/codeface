@@ -339,7 +339,7 @@ compute.initiate.respond <- function(forest, network.red, cty.list) {
 
   ## TODO: Why does snatm want to construct an outlier here?!
 ##  cent[dim(cent)[1],] <- c(max(cent[,1])+40, max(cent[,2])+100, 0)
-  cent$deg <- normalize(cent$deg)
+  cent$deg <- snatm::normalize(cent$deg)
   cent$col[cent$deg > DEG.THRESHOLD] <- "High deg"
 
   return(cent)
