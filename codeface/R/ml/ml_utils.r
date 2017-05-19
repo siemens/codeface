@@ -445,10 +445,10 @@ mail.dates.to.vector <- function(dates) {
     ## Note: length(.) returns 1 if the string is non-empty, and 0
     ## if the string is character(0), which is the case when the date time
     ## stamp is not present
-    dates <- sapply(dates, as.character)
+    dates <- lapply(dates, as.character)
+    names(dates) <- NULL # Simplify diagnostic output; we don't need names here.
     idx.nodate <- which(sapply(dates, length)==0)
     dates[idx.nodate] <- NA
-    dates <- do.call(c, dates)
 
-    return(dates)
+    return(unlist(dates))
 }

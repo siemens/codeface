@@ -284,8 +284,8 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
                 parseCommitLoC,
                 (conf, dbm, project_id, range_id, start_rev, end_rev,
                  range_resdir, repo),
-                startmsg=prefix + "Downloading and processing jira issues...",
-                endmsg=prefix + "Downloading and processing jira issues done."
+                startmsg=prefix + "Computing file/developer relations...",
+                endmsg=prefix + "Computing file/developer relations done."
             )
 
         #########
