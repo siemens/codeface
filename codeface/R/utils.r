@@ -127,3 +127,34 @@ perform.git.checkout <- function(repodir, commit.hash, code.dir, archive.file) {
   args <- str_c("-C ", code.dir, " -xf ", archive.file)
   do.system("tar", args)
 }
+
+## Some helper functions to ensure that functions (and the
+## configuration parser) receive correct parameter values in the
+## conway analysis
+ensure.supported.artifact.type <- function(artifact.type) {
+    if(!(artifact.type %in% c("function", "file", "feature"))) {
+        stop(str_c("Internal error: Artifact type ", artifact.type,
+                   " is unsupported!"))
+    }
+}
+
+ensure.supported.dependency.type <- function(dependency.type) {
+    if(!(dependency.type %in% c("co-change", "dsm", "feature_call", "none"))) {
+        stop(str_c("Internal error: Dependency type ", dependency.type,
+                   " is unsupported!"))
+    }
+}
+
+ensure.supported.quality.type <- function(quality.type) {
+    if(!(quality.type %in% c("corrective", "defect"))) {
+        stop(str_c("Internal error: Quality type ", quality.type,
+                   " is unsupported!"))
+    }
+}
+
+ensure.supported.communication.type <- function(communication.type) {
+    if(!(communication.type %in% c("mail", "jira"))) {
+        stop(str_c("Internal error: Communication type ", communication.type,
+                   " is unsupported!"))
+    }
+}

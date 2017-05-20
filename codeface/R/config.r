@@ -21,6 +21,7 @@ suppressPackageStartupMessages(library(logging))
 basicConfig()
 
 source("db.r")
+source("utils.r")
 
 logdebug.config <- function(conf) {
   ## Log the contents of a conf object to the debug stream
@@ -108,6 +109,22 @@ load.config <- function(global.file, project.file=NULL) {
 
   if (length(conf$rcs) > 0 && (length(conf$revisions) != length(conf$rcs))) {
     stop("Malformed configuration: Revision and rcs lists must have same length!")
+  }
+
+  if (!is.null(conf$artifactType)) {
+      ensure.supported.artifact.type(conf$artifactType)
+  }
+
+  if (!is.null(conf$dependencyType)) {
+      ensure.supported.dependency.type(conf$dependencyType)
+  }
+
+  if (!is.null(conf$qualityType)) {
+      ensure.supported.quality.type(conf$qualityType)
+  }
+
+  if (!is.null(conf$communicationType)) {
+      ensure.supported.communication.type(conf$communicationType)
   }
 
   return(conf)
