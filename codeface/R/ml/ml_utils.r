@@ -192,16 +192,19 @@ do.normalise <- function(conf, authors) {
 gen.networks.df <- function(networks) {
   ## For each centrality measure, compute a mapping from centrality to
   ## correlation: Given a desired centrality c, select only the adjacency
-  ## matrix entrie that exceed c from the interest and communication
+  ## matrix entries that exceed c from the interest and communication
   ## networks. Then, re-arrange the numbers into a vector and compute the
   ## correlation between the vectors. If the correlation is large, then the
-  ## same authors appear in both facedes of the networks
+  ## same authors appear in both facets of the networks
   interest.net <- networks$interest
   communication.net <- networks$communication
   centrality.list <- networks$centrality
   ret <- NULL
 
   for (cty.idx in seq_along(centrality.list)) {
+    if (is.nan(max(centrality.list[[cty.idx]]))) {
+        next
+    }
     centrality.values <- seq(0, max(centrality.list[[cty.idx]]), length.out=100)
 
     ## NOTE: The paper by Bohn et al. uses correlation as distance measure;
@@ -282,11 +285,13 @@ gen.combined.network <- function(interest.network, commnet) {
   ## TODO: In general, the complete approach to network selection seems clumsy
   ## and should be refactored.
   network.red <- commnet[is.element(rownames(commnet), rownames(interestnet)),
-                         is.element(rownames(commnet), rownames(interestnet))]
+                         is.element(rownames(commnet), rownames(interestnet)),
+                         drop=FALSE]
 
   ## Same operation with the roles of both networks reversed
   interestnet <- interestnet[is.element(rownames(interestnet), rownames(commnet)),
-                             is.element(rownames(interestnet), rownames(commnet))]
+                             is.element(rownames(interestnet), rownames(commnet)),
+                             drop=FALSE]
 
   ## Permute the communication network such that the order
   ## of elements is identical to the interest network
