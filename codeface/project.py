@@ -246,9 +246,28 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
     project_resdir = pathjoin(resdir, project, "conway")
     range_by_date = False
 
-    if ("issueTrackerType" in conf.keys() and conf["issueTrackerType"] != "jira") or \
-       not("issueTrackerType" in conf.keys()):
-        log.info("Conway analysis requires jira bugtracking information, exiting")
+    # Set defaults for the various analysis choices if they are not explicitly
+    # given in the configuration file
+    if "artifactType" not in conf.keys():
+        conf["artifactType"] = "file"
+        log.info("Conway analysis: No artefact type given, defaulting to 'file'")
+
+    if "dependencyType" not in conf.keys():
+        conf["dependencyType"] = "none"
+        log.info("Conway analysis: No dependency type given, defaulting to 'none'")
+
+    if "qualityType" not in conf.keys():
+        conf["qualityType"] = "corrective"
+        log.info("Conway analysis: No quality type given, defaulting to 'corrective'")
+
+    if "communicationType" not in conf.keys():
+        conf["communicationType"] = "mail"
+        log.info("Conway analysis: No communication type given, defaulting to 'mail'")
+
+    if conf["communicationType"] == "jira" and \
+        (("issueTrackerType" in conf.keys() and conf["issueTrackerType"] != "jira") or \
+        not("issueTrackerType" in conf.keys())):
+        log.info("Conway analysis configuration requires jira bugtracking information, exiting")
         return
 
     # When revisions are not provided by the configuration file
