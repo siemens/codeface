@@ -267,8 +267,9 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
     project_conf = conf.get_conf_file_loc()
 
     # Global stage: Download and process JIRA issues
-    log.info("=> Downloading and processing JIRA issues")
-    dispatch_jira_processing(project_resdir, titandir, conf)
+    if conf["communicationType"] == "jira":
+        log.info("=> Downloading and processing JIRA issues")
+        dispatch_jira_processing(project_resdir, titandir, conf)
 
     # Revision range specific analysis
     for i, range_id in enumerate(all_range_ids):
@@ -289,53 +290,55 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
             )
 
         #########
-        # STAGE 2: Connect commits and issues
-        exe = abspath(resource_filename(__name__, "R/conway_metrics.r"))
-        cwd, _ = pathsplit(exe)
-        cmd = []
-        cmd.append(exe)
-        cmd.extend(("--loglevel", loglevel))
-        if logfile:
-            cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
-        cmd.extend(("-c", codeface_conf))
-        cmd.extend(("-p", project_conf))
-        cmd.append(project_resdir)
-        cmd.append(range_resdir)
+        # STAGE 2: Connect commits and jira issues
+        if "communicationType" in conf.keys() and conf["communicationType"] == "jira":
+            exe = abspath(resource_filename(__name__, "R/conway_metrics.r"))
+            cwd, _ = pathsplit(exe)
+            cmd = []
+            cmd.append(exe)
+            cmd.extend(("--loglevel", loglevel))
+            if logfile:
+                cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
+            cmd.extend(("-c", codeface_conf))
+            cmd.extend(("-p", project_conf))
+            cmd.append(project_resdir)
+            cmd.append(range_resdir)
 
-        s2 = pool.add(
+            s2 = pool.add(
                 execute_command,
                 (cmd,),
                 {"direct_io":True, "cwd":cwd},
                 deps=[s1],
                 startmsg=prefix + "Connecting commits and issues...",
                 endmsg=prefix + "Connecting commits and issues done."
-            )
+                )
 
 
         #######
         # STAGE 3: Obtain SDSM using Titan
-        exe = abspath(resource_filename(__name__, "R/titan.r"))
-        cwd, _ = pathsplit(exe)
-        cmd = []
-        cmd.append(exe)
-        cmd.extend(("--loglevel", loglevel))
-        if logfile:
-            cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
-        cmd.extend(("-c", codeface_conf))
-        cmd.extend(("-p", project_conf))
-        cmd.append(repo)
-        cmd.append(range_resdir)
-        cmd.append(titandir)
-        cmd.append(end_rev)
+        if "dependencyType" in conf.keys() and conf["dependencyType"] == "dsm":
+            exe = abspath(resource_filename(__name__, "R/titan.r"))
+            cwd, _ = pathsplit(exe)
+            cmd = []
+            cmd.append(exe)
+            cmd.extend(("--loglevel", loglevel))
+            if logfile:
+                cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
+            cmd.extend(("-c", codeface_conf))
+            cmd.extend(("-p", project_conf))
+            cmd.append(repo)
+            cmd.append(range_resdir)
+            cmd.append(titandir)
+            cmd.append(end_rev)
 
-        s3 = pool.add(
+            s3 = pool.add(
                 execute_command,
                 (cmd,),
                 {"direct_io":True, "cwd":cwd},
                 deps=[],
                 startmsg=prefix + "Inferring architectural metrics with Titan...",
                 endmsg=prefix + "Titan run done."
-            )
+                )
 
         #########
         # STAGE 4: Perform socio-technical analysis
@@ -352,12 +355,16 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
         cmd.append(range_resdir)
         cmd.append(start_date)
         cmd.append(end_date)
+        if "dependencyType" in conf.keys() and conf["dependencyType"] == "dsm":
+            deps=[s3]
+        else:
+            deps=[]
 
         s4 = pool.add(
                 execute_command,
                 (cmd,),
                 {"direct_io":True, "cwd":cwd},
-                deps=[s3],
+                deps=deps,
                 startmsg=prefix + "Performing socio-technical analysis...",
                 endmsg=prefix + "Socio-technical analysis done."
             )
