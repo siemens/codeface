@@ -110,36 +110,6 @@ cor.mtest <- function(mat, conf.level = 0.95) {
     return(list(p.mat, lowCI.mat, uppCI.mat))
 }
 
-## Some helper functions to ensure that functions receive correct
-## parameter values
-ensure.supported.artifact.type <- function(artifact.type) {
-    if(!(artifact.type %in% c("function", "file", "feature"))) {
-        stop(str_c("Internal error: Artifact type ", artifact.type,
-                   " is unsupported!"))
-    }
-}
-
-ensure.supported.dependency.type <- function(dependency.type) {
-    if(!(dependency.type %in% c("co-change", "dsm", "feature_call", "none"))) {
-        stop(str_c("Internal error: Dependency type ", dependency.type,
-                   " is unsupported!"))
-    }
-}
-
-ensure.supported.quality.type <- function(quality.type) {
-    if(!(quality.type %in% c("corrective", "defect"))) {
-        stop(str_c("Internal error: Quality type ", quality.type,
-                   " is unsupported!"))
-    }
-}
-
-ensure.supported.communication.type <- function(communication.type) {
-    if(!(communication.type %in% c("mail", "jira"))) {
-        stop(str_c("Internal error: Communication type ", communication.type,
-                   " is unsupported!"))
-    }
-}
-
 ## Compute communication relations between contributors
 compute.communication.relations <- function(conf, communication.type,
                                             jira.filename, start.date, end.date) {
@@ -413,15 +383,20 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     jira.filename <- file.path(global.resdir, "jira-comment-authors-with-email.csv")
     defect.filename <- file.path(range.resdir, "time_based_metrics.csv")
 
-
-    ## Analysis
+    ## motif.type defines the collaboration pattern that is searched for in the graph
     motif.type <- list("triangle", "square")[[1]]
-    artifact.type <- list("function", "file", "feature")[[2]]
-    dependency.type <- list("co-change", "dsm", "feature_call", "none")[[2]]
 
-    ## Standard: defect, jira
-    quality.type <- list("corrective", "defect")[[1]]
-    communication.type <- list("mail", "jira")[[2]]
+    ## Possible artefacts: function file feature
+    artifact.type <- conf$artifactType
+
+    ## Possible dependency types: co-change, dsm, feature_call, none
+    dependency.type <- conf$dependencyType
+
+    ## Possible quality types: corrective, defect
+    quality.type <- conf$qualityType
+
+    ## Possible communication types: mail, jira
+    communication.type <- conf$communicationType
 
     ## Constants
     person.role <- "developer"

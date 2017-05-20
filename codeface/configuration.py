@@ -45,7 +45,8 @@ class Configuration(Mapping):
                      'productAsProject', 'issueTrackerType',
                      'issueTrackerURL', 'issueTrackerProject',
                      'issueTrackerUser', 'issueTrackerPassword',
-                     'understand', 'sloccount', 'windowSize', 'numWindows')
+                     'understand', 'sloccount', 'windowSize', 'numWindows',
+                     'qualityType', 'communicationType', 'artifactType', 'dependencyType')
     ALL_KEYS = set(GLOBAL_KEYS + GLOBAL_OPTIONAL_KEYS + PROJECT_KEYS +
                    OPTIONAL_KEYS)
 
