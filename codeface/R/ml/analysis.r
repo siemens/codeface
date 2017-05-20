@@ -165,6 +165,14 @@ compute.interest.networks <- function(termfreq, NUM.NET.SUBJECT, NUM.NET.CONTENT
 analyse.networks <- function(forest, interest.networks, communication.network) {
   ######### Analyse interest and communication (ICC) networks #######
   ## (very fast, no persistent storing necessary)
+
+  ## Corner case: communication network with a single participant. Since
+  ## most graph measures fail on such networks/do not make any sense, skip
+  ## further analysis
+  if (all(dim(communication.network) == 1)) {
+      return(NULL)
+  }
+
   networks.subj <- gen.combined.network(interest.networks$subject,
                                         communication.network)
   networks.cont <- gen.combined.network(interest.networks$content,
@@ -806,7 +814,9 @@ store.communication.graph <- function(conf, communication.network, range.id) {
 
 ## Dispatcher for all data storing functions above
 store.data <- function(conf, res, range.id, ml.id) {
-  store.initiate.response(conf, res$networks.dat$ir, ml.id, range.id)
+  if (!is.null(res$networks.dat)) {
+    store.initiate.response(conf, res$networks.dat$ir, ml.id, range.id)
+  }
   store.twomode.graphs(conf, res$twomode.graphs, ml.id, range.id)
   store.communication.graph(conf, res$communication.network, range.id)
 }
@@ -820,6 +830,9 @@ create.network.plots <- function(conf, plots.path, res) {
 
   ## Visualise the correlation between communication network and interests
   ## (not sure if this is really the most useful piece of information)
+  if (is.null(res$networks.dat)) {
+      return()
+  }
   g <- ggplot(res$networks.dat$icc, aes(x=centrality, y=dist, colour=type)) +
     geom_line() +
       geom_point() + facet_grid(source~.)
