@@ -332,7 +332,7 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
                 execute_command,
                 (cmd,),
                 {"direct_io":True, "cwd":cwd},
-                deps=[s2],
+                deps=[],
                 startmsg=prefix + "Inferring architectural metrics with Titan...",
                 endmsg=prefix + "Titan run done."
             )
