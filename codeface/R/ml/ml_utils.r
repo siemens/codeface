@@ -168,7 +168,7 @@ gen.net <- function(type, termfreq, data.path, max.terms) {
 fixup.network <- function(.net) {
   idx <- !is.na(colnames(.net))
 
-  return(.net[idx, idx])
+  return(.net[idx, idx, drop=FALSE])
 }
 
 ## Author name normalisation. Replace the name/email pairs found in
@@ -448,7 +448,8 @@ mail.dates.to.vector <- function(dates) {
     dates <- lapply(dates, as.character)
     names(dates) <- NULL # Simplify diagnostic output; we don't need names here.
     idx.nodate <- which(sapply(dates, length)==0)
-    dates[idx.nodate] <- NA
+    dates[idx.nodate] <- "1970-01-01 00:00:00"
+#    dates[idx.nodate] <- NA
 
     return(unlist(dates))
 }
