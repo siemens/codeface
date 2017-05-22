@@ -4,7 +4,7 @@
 
 echo "Providing id_service"
 
+sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install npm
 cd id_service
 npm install --no-bin-links
 cd ..
-
