@@ -573,6 +573,9 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
                               communication.type)
     dir.create(networks.dir, recursive=TRUE, showWarnings=TRUE)
 
+    logdevinfo("Writing null model data", logger="conway")
+    write.table(null.model.dat, file=file.path(networks.dir, "raw_motif_results.txt"))
+
     ## Visualise the null model
     labels <- c(negative = "Anti-Motif", positive = "Motif", ratio = "Ratio")
     p.null <- ggplot(data=null.model.dat, aes(x=count)) +
