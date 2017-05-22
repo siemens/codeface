@@ -146,8 +146,16 @@ compute.communication.relations <- function(conf, communication.type,
     ensure.supported.communication.type(communication.type)
     if (communication.type=="mail") {
         comm.dat <- query.mail.edgelist(conf$con, conf$pid, start.date, end.date)
-        colnames(comm.dat) <- c("V1", "V2", "weight")
+
+        ## If there are no usable communication relationships within the
+        ## analysed time range, make sure to exit the analysis early)
+        if (nrow(comm.dat) == 0) {
+            comm.dat <- NULL
+        } else {
+            colnames(comm.dat) <- c("V1", "V2", "weight")
+        }
     } else if (communication.type=="jira") {
+        ## If there are no jira data, load.jira.edgelist will return NULL
         comm.dat <- load.jira.edgelist(conf, jira.filename, start.date, end.date)
     }
 
