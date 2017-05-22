@@ -229,8 +229,24 @@ do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
 
     ## Rewire dev-dev communication graph
     g.comm <- graph.data.frame(comm.inter.dat)
-    g.comm.null <- birewire.rewire.undirected(simplify(g.comm),
-                                              verbose=FALSE)
+
+    ## birewire.rewire.undirected goes into an infinite loop
+    ## if |E|/(|V|^{2}/2)=1 (see the calculation in birewire.rewire.sparse)
+    ## We would not need to perform any computations in this case anyway since
+    ## no reasonable patterns can be found in graph with so few edges.
+    ## However, we deliberately continue the calculation to get diagnostic
+    ## images (graphs) that allow users to see that the considered graphs
+    ## are tiny.
+    g.simplified <- simplify(g.comm)
+
+    n <- as.numeric(length(V(g.simplified)))
+    e <- as.numeric(length(E(g.simplified)))
+    if (e/(n^2/2) == 1) {
+        g.comm.null <- birewire.rewire.undirected(g.simplified, max.iter=1,
+                                                  verbose=FALSE)
+    } else {
+        g.comm.null <- birewire.rewire.undirected(g.simplified, verbose=FALSE)
+    }
 
     ## Ensure degree distribution is identical for graph and null model
     if(!all(sort(as.vector(degree(g.comm.null))) ==
@@ -513,11 +529,11 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     niter <- 100
 
     logdevinfo("Computing null models", logger="conway")
-    motif.count.null <- mclapply(seq(niter), function(i) {
+    motif.count.null <- lapply(seq(niter), function(i) {
         do.null.model(g.bipartite, g.nodes, person.role, dependency.dat,
                       dependency.edgelist, comm.inter.dat, vertex.coding,
                       motif, motif.anti)
-    }, mc.cores=2)
+    })
 
     null.model.dat <- do.call(rbind, motif.count.null)
     null.model.dat[null.model.dat$count.type=="positive", "empirical.count"] <-
