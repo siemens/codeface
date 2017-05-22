@@ -5,7 +5,7 @@
 # Copyright Wolfgang Mauerer <wolfgang.mauerer@oth-regensburg.de>
 # SPDX-License-Identifier:	Apache-2.0 BSD-2-Clause GPL-2.0+ MIT WTFPL
 
-export CPPSTATS_VERSION=0.9.2
+export CPPSTATS_VERSION=0.9.3
 
 echo "Providing cppstats $CPPSTATS_VERSION"
 
@@ -21,20 +21,18 @@ then
     exit 1
 fi
 (cd ${TMPDIR} &&
-        tar -xvf ${TMPDIR}/cppstats.tar.gz &&
-	cd cppstats-${CPPSTATS_VERSION} &&
-	sudo python setup.py install)
+    tar -xvf ${TMPDIR}/cppstats.tar.gz &&
+    cd cppstats-${CPPSTATS_VERSION} &&
+    sudo python setup.py install)
 
 echo "Providing srcML"
-SRCML_URL="http://131.123.42.38/lmcrs/srcML-Ubuntu14.04-64.tar.gz"
-wget --quiet ${SRCML_URL} -O ${TMPDIR}/srcML.tar.gz
-if [ ! -e ${TMPDIR}/srcML.tar.gz ]
+SRCML_URL="http://131.123.42.38/lmcrs/beta/srcML-Ubuntu14.04-64.deb"
+wget --quiet ${SRCML_URL} -O ${TMPDIR}/srcML.deb
+if [ ! -e ${TMPDIR}/srcML.deb ]
 then
     echo "Could not download srcML from ${SRCML_URL}"
     exit 1
 fi
-tar -xvf ${TMPDIR}/srcML.tar.gz
-sudo cp -rf $PWD/srcML/srcml2src /usr/bin
-sudo cp -rf $PWD/srcML/src2srcml /usr/bin
+sudo dpkg -i ${TMPDIR}/srcML.deb
 
 popd
