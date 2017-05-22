@@ -1315,7 +1315,7 @@ class gitVCS (VCS):
         try:
             file_analysis.run_analysis()
         except Exception, e:
-            log.critical("doxygen analysis error{0} - defaulting to Ctags".format(e))
+            log.warning("doxygen analysis error '{0}' - returning empty result".format(e))
             return {}, []
 
         # Delete tmp directory storing doxygen files
