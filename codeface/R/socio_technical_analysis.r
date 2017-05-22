@@ -309,7 +309,7 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
         quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
                                         start.date, end.date)
     } else {
-        quality.dat <- get.corrective.count(conf$con, project.id, start.date,
+        quality.dat <- get.corrective.count(conf$con, conf$pid, start.date,
                                             end.date, artifact.type)
     }
 
@@ -328,6 +328,11 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
     compare.motifs[is.na(compare.motifs)] <- 0
     names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
 
+    ## For whatever braindead reason, the names of all file ressources
+    ## in compare.motifs contain "." instead of "/". Perform the same
+    ## transformation on quality.dat (in case it comes from the database)
+    quality.dat$entity <- sub("/", ".", quality.dat$entity)
+
     artifacts.dat <- merge(quality.dat, compare.motifs, by="entity")
     artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
 
@@ -337,21 +342,28 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
         (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
     artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count /
         (artifacts.dat$motif.count + artifacts.dat$motif.anti.count)
-    artifacts.dat$bug.density <- artifacts.dat$BugIssueCount /
-        (artifacts.dat$CountLineCode+1)
     artifacts.dat$motif.count.norm <- artifacts.dat$motif.count /
         artifacts.dat$dev.count
     artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count /
         artifacts.dat$dev.count
 
+    if (quality.type=="defect") {
+        artifacts.dat$bug.density <- artifacts.dat$BugIssueCount /
+            (artifacts.dat$CountLineCode+1)
+    }
+
     ## Generate correlation plot (omitted correlation quantities: BugIsseChurn,
     ## IssueCommits,  motif.count.norm, motif.anti.count.norm, motif.ratio, motif.percent.diff
-    corr.cols <- c("motif.ratio",      "motif.percent.diff",
-                   "dev.count",        "bug.density",
-                   "BugIssueCount",    "Churn",
-                   "CountLineCode")
-    corr.cols.labels <- c("M/A-M", "MDiff", "Devs", "BugDens",
-                          "Bugs", "Churn", "LoC")
+    corr.cols <- c("motif.ratio", "motif.percent.diff", "dev.count")
+    corr.cols.labels <- c("M/A-M", "MDiff", "Devs")
+
+    if (quality.type=="defect") {
+        corr.cols <- c(corr.cols, c("bug.density", "BugIssueCount", "Churn", "CountLineCode"))
+        corr.cols.labels <- c(corr.cols.labels, c("BugDens", "Bugs", "Churn", "LoC"))
+    } else {
+        corr.cols <- c(corr.cols, "corrective")
+        corr.cols.labels <- c(corr.cols.labels, "Correct")
+    }
 
     ## Do not plot correlations for all quantities, but only for combinations
     ## that are of particular interest.
@@ -406,7 +418,9 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     motif.type <- list("triangle", "square")[[1]]
     artifact.type <- list("function", "file", "feature")[[2]]
     dependency.type <- list("co-change", "dsm", "feature_call", "none")[[2]]
-    quality.type <- list("corrective", "defect")[[2]]
+
+    ## Standard: defect, jira
+    quality.type <- list("corrective", "defect")[[1]]
     communication.type <- list("mail", "jira")[[2]]
 
     ## Constants
