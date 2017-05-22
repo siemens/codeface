@@ -580,8 +580,8 @@ do.ts.analysis <- function(resdir, graphdir, conf) {
 
   dummy <- sapply(seq(min.year, max.year), function(year) {
     logdevinfo(paste("Creating annual time series for", year), logger="analyse_ts")
-    g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=TRUE),
-                       dmy(paste("31-12-", year, sep=""), quiet=TRUE)) +
+    g.year <- g + xlim(dmy(paste("1-1-", year, sep=""), quiet=TRUE, tz = "UTC"),
+                       dmy(paste("31-12-", year, sep=""), quiet=TRUE, tz = "UTC")) +
               ggtitle(paste("Code changes in ", year, " for project '",
                             conf$description, "'", sep=""))
 
@@ -606,12 +606,14 @@ do.release.analysis <- function(resdir, graphdir, conf) {
   plot.id <- get.clear.plot.id(conf, plot.name)
 
   dat <- compute.release.distance(series.merged, conf)
-  dat <- data.frame(time=as.character(conf$boundaries$date.end[-1]), value=dat,
-                    value_scaled=dat, plotId=plot.id)
+  if (!is.na(dat)) { # if too few revisions are present, skip further analysis
+    dat <- data.frame(time=as.character(conf$boundaries$date.end[-1]), value=dat,
+                      value_scaled=dat, plotId=plot.id)
 
-  res <- dbWriteTable(conf$con, "timeseries", dat, append=TRUE, row.names=FALSE)
-  if (!res) {
-    stop("Internal error: Could not write release distance TS into database!")
+    res <- dbWriteTable(conf$con, "timeseries", dat, append=TRUE, row.names=FALSE)
+    if (!res) {
+      stop("Internal error: Could not write release distance TS into database!")
+    }
   }
 
   ## TODO: Compute the difference between release cycles and a

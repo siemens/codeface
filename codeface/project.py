@@ -193,7 +193,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     log.info("=> Codeface run complete!")
 
 def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
-                        logfile, jobs, mailinglists):
+                        logfile, jobs, mailinglists, use_corpus):
     conf = Configuration.load(codeface_conf, project_conf)
     ml_resdir = pathjoin(resdir, conf["project"], "ml")
 
@@ -204,6 +204,8 @@ def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
     cmd.extend(("-c", codeface_conf))
     cmd.extend(("-p", project_conf))
     cmd.extend(("-j", str(jobs)))
+    if (use_corpus):
+        cmd.append("--use-corpus")
     cmd.append(ml_resdir)
     cmd.append(mldir)
     if not mailinglists:

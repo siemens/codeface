@@ -1,5 +1,5 @@
 #! /bin/bash
-# Test the scalability of prosoda
+# Test the scalability of codeface
 # Copyright Siemens AG 2013, Wolfgang Mauerer
 #
 # Copying and distribution of this file, with or without modification,

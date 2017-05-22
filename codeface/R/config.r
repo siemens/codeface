@@ -153,7 +153,9 @@ config.from.args <- function(positional.args=list(), extra.args=list(),
     make_option(c("-j", "--jobs"), type="integer", default=1,
                 help="Number of parallel jobs for analysis"),
     make_option("--profile", help="Measure and store profiling data",
-                action="store_true", default=FALSE)
+                action="store_true", default=FALSE),
+    make_option("--use-corpus", help="Re-use the corpus file that have been generated before",
+                dest="use_corpus", action="store_true", default=FALSE)
   ), extra.args)
 
   ## Note that positional_arguments=TRUE even if no positional arguments are
@@ -195,6 +197,7 @@ config.from.args <- function(positional.args=list(), extra.args=list(),
   ## Store other options that need to be propagated upwards
   conf$profile <- opts$profile
   conf$jobs <- opts$jobs
+  conf$use_corpus <- opts$use_corpus
 
   logdebug.config(conf)
   return(conf)

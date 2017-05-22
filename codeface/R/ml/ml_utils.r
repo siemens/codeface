@@ -439,6 +439,18 @@ ml.thread.loc.to.glob <- function(ml.id.map, loc.id) {
   return(global.id)
 }
 
+## Given a name with leading and pending whitespace that is possibly
+## surrounded by braces, return the name proper.
+fix.name <- function(name) {
+    name <- str_trim(name)
+    if (substr(name, 1, 1) == "(" && substr(name, str_length(name),
+                                            str_length(name)) == ")") {
+        name <- substr(name, 2, str_length(name)-1)
+    }
+
+    return (name)
+}
+
 ## Convert a list of datetime stamps extracted from a mail corpus into
 ## a vector of strings. Take into account that some messages do not
 ## have correct dates set.
@@ -453,8 +465,11 @@ mail.dates.to.vector <- function(dates) {
     dates <- lapply(dates, as.character)
     names(dates) <- NULL # Simplify diagnostic output; we don't need names here.
     idx.nodate <- which(sapply(dates, length)==0)
+
+    ## NOTE: We should use NA here, but the DB scheme
+    ## does not support this yet. Use a known invalid,
+    ## but formally correct date.
     dates[idx.nodate] <- "1970-01-01 00:00:00"
-#    dates[idx.nodate] <- NA
 
     return(unlist(dates))
 }

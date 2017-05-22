@@ -445,8 +445,20 @@ def get_feature_lines(parsed_lines, filename):
             # otherwise, add empty list
             fexpr_lines.add_line(line, [])
 
+    # Replace an empty list of features or an empty feature expression with
+    # the 'Base_Feature' constant
+    feature_lines_with_base = FileDict()
+    for line_nr in feature_lines:
+        features = feature_lines.get_line_info_raw(line_nr)
+        feature_lines_with_base.add_line(line_nr, features if bool(features) else ['Base_Feature'])
+
+    fexpr_lines_with_base = FileDict()
+    for line_nr in fexpr_lines:
+        fexpr = fexpr_lines.get_line_info_raw(line_nr)
+        fexpr_lines_with_base.add_line(line_nr, fexpr if bool(fexpr) else ['Base_Feature'])
+
     # return feature lines and feature-expression lines
-    return (feature_lines, fexpr_lines)
+    return (feature_lines_with_base, fexpr_lines_with_base)
 
 
 def get_feature_lines_from_file(file_layout_src, filename):

@@ -374,7 +374,7 @@ app.getUserFromDB = function(name, email, projectID, response) {
                 } else if (rows.length == 0) {
                     if (!email) {
                         logger.log('error', 'name ' + name + ' (no email ' + email + ') not found in database!');
-                        response.end(JSON.stringify({"error": "name not found"}));
+                        response.end(JSON.stringify({"error": "name \"" + name + "\" not found in the database (no e-mail given)"}));
                     } else {
                         app.getOrUpdateUserInDB(name, email, projectID, response)
                     }

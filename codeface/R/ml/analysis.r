@@ -29,13 +29,12 @@ source("../mc_helpers.r")
 source("project.spec.r")
 source("ml_utils.r")
 
-gen.forest <- function(conf, repo.path, resdir) {
+gen.forest <- function(conf, repo.path, resdir, use.mbox=TRUE) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
   ## lkml variant
   corp.file <- file.path(resdir, paste("corp.base", conf$listname, sep="."))
-  doCompute <- !(file.exists(corp.file))
 
-  if (doCompute) {
+  if (use.mbox) {
     corp.base <- gen.corpus(conf$listname, repo.path, suffix=".mbox",
                             marks=c("^_{10,}", "^-{10,}", "^[*]{10,},",
                                    # Also remove inline diffs. TODO: Better
@@ -51,9 +50,12 @@ gen.forest <- function(conf, repo.path, resdir) {
                               encoding="UTF-8",
                               preprocess=linux.kernel.preprocess)
     save(file=corp.file, corp.base)
-  } else {
+  } else if (!use.mbox & file.exists(corp.file)) {
     loginfo("Loading mail data from precomputed corpus instead of mbox file")
     load(file=corp.file)
+  } else {
+    logerror(sprintf("Corpus file not found: %s", corp.file))
+    stop()
   }
 
   return(corp.base)
@@ -214,11 +216,12 @@ check.corpus.precon <- function(corp.base) {
                       header <- meta(doc, tag="header")
 
                       if(length(rmv.lines) != 0) {
-                        ## Log number of removed reference id lines
+                        ## Log number of removed reference id lines and message id
+                        message.id <- meta(doc, tag="id")
                         msg <- sprintf(paste("Removing %d id references",
                                              "from corpus due to precondition",
-                                             "violation(s)", sep=" "),
-                                       length(rmv.lines))
+                                             "violation(s) while checking message %s", sep=" "),
+                                       length(rmv.lines), message.id)
                         loginfo(msg, logger="ml.analysis")
                         header <- header[-rmv.lines]
                       }
@@ -235,13 +238,18 @@ check.corpus.precon <- function(corp.base) {
     }
 
     ## Remove problematic punctuation characters
-    problem.characters <- c("\"", ",", "\\(", "\\)")
+    problem.characters <- c("\"", ",", ";", "\\(", "\\)")
     for (p.char in problem.characters) {
       author <- gsub(p.char, " ", author)
     }
 
     ## Trim trailing and leading whitespace
     author <- str_trim(author)
+
+    ## Replace textual ' at  ' with @, sometimes
+    ## we can recover an email
+    author <- sub(' at ', '@', author)
+    author <- sub(' AT ', '@', author)
 
     ## Handle case where author is like
     ## Adrian Prantl via llvm-dev <llvm-dev@lists.llvm.org>
@@ -264,11 +272,6 @@ check.corpus.precon <- function(corp.base) {
                    "<xxxyyy@abc.tld>); attempting to recover from: ", author)
       logdevinfo(msg, logger="ml.analysis")
 
-      ## Replace textual ' at  ' with @, sometimes
-      ## we can recover an email
-      author <- sub(' at ', '@', author)
-      author <- sub(' AT ', '@', author)
-
       ## Check for @ symbol
       r <- regexpr("\\S+@\\S+", author, TRUE)
       email <- substr(author, r, r + attr(r,"match.length")-1)
@@ -283,17 +286,17 @@ check.corpus.precon <- function(corp.base) {
         ## replacement
         email <- "could.not.resolve@unknown.tld"
         name <- author
-    } else {
+      } else {
         ## If an email address was detected, use the author
         ## string minus the new email part as name, and construct
         ## a valid name/email combination
         name <- sub(email, "", author, fixed=TRUE)
-        name <- str_trim(name)
+        name <- fix.name(name)
       }
 
       ## In some cases only an email is provided
       if (name=="") {
-        name <- gsub("\\.", " ",gsub("@.*", "", email))
+        name <- gsub("\\.", " ", gsub("@.*", "", email))
       }
 
       ## Name and author are now given in both cases, construct
@@ -301,25 +304,136 @@ check.corpus.precon <- function(corp.base) {
       author <- paste(name, ' <', email, '>', sep="")
     }
     else {
-      ## Verify that the order is correct
+      ## There is a correct email address. Ensure that the order is correct
+      ## and fix cases like "<hans.huber@hubercorp.com> Hans Huber"
+
       ## Get email and name parts
       r <- regexpr("<.+>", author, TRUE)
-      if(r[[1]] == 1) {
-        email <- substr(author, r, r + attr(r,"match.length")-1)
-        name <- sub(email, "", author, fixed=TRUE)
-        name <- str_trim(name)
+      ## email is at start
+      if(r == 1) {
+        ## Check if only an email is provided
+        if(attr(r, "match.length") == nchar(author)) {
+          ## Only an email like "<hans.huber@hubercorp.com>" is provided
+          email <- substr(author, r + 1, r + nchar(author) - 2)
+          name <- gsub("\\.", " ", gsub("@.*", "", email))
+        } else {
+          ## email and name both are provided
+          email <- substr(author, r, r + attr(r, "match.length") - 1)
+          name <- sub(email, "", author, fixed=TRUE)
+          name <- fix.name(name)
+        }
+
         email <- str_trim(email)
-        author <- paste(name,email)
+        author <- paste(name, ' <', email, '>', sep="")
       }
     }
 
+    ## Check if name looks like an email address (i.e., there are more than
+    ## one @ symbol in the author string): Since that causes parsing problems
+    ## in further steps of the analysis and the ID service, we use only the
+    ## local part of an email address as name.
+    ## E.g., "'hans.huber@hubercorp.com' <hans.huber@hubercorp.com>"
+    if (length(gregexpr(pattern = "@", author, fixed = TRUE)[[1]]) > 1) {
+      ## Get email and name parts first
+      r <- regexpr("<.+>", author, TRUE)
+      email <- substr(author, r, r + attr(r, "match.length") - 1)
+      name <- sub(email, "", author, fixed=TRUE)
+      name <- fix.name(name)
+
+      if(regexpr("\\S+@\\S+", name, TRUE) == 1) {
+        ## Name looks like an email address. Use only local part as name.
+        name <- gsub("\\.", " ", gsub("@.*", "", name))
+      }
+
+      author <- paste(name, email)
+    }
+
+    ## return new author string
     return(author)
+  }
+
+  ## Condition #3: Date information should incorporate time-zone information and should be present
+  fix.date <- function(doc) {
+    ## re-parse date headers to incorporate time-zone data.
+    ## this needs to be done, because the date inside the mbox file is initially parsed with
+    ## the pattern "%a, %d %b %Y %H:%M:%S" which does not incorporate time-zone data (%z) [1], which is,
+    ## on the other side, incorporated in the commit analysis.
+    ## [1] (see https://github.com/wolfgangmauerer/snatm/blob/master/pkg/R/makeforest.r#L47)
+
+    ## get the date header as inside the mbox file
+    headers = meta(doc, tag = "header")
+    date.header = grep("^Date: ", headers, value = TRUE, useBytes = TRUE, ignore.case = TRUE)
+    date.header = gsub("^Date: ", "", date.header, ignore.case = TRUE)
+
+    ## break early if 'Date' header is missing
+    if (length(date.header) == 0) {
+      logwarn(paste("Mail is missing header 'Date':", meta(doc, tag = "id")))
+      return(list(NA, 0))
+    }
+
+    ## only consider first date header in document if more are given
+    if (length(date.header) > 1) {
+      date.header = date.header[1]
+    }
+
+    ## patterns without time-zone pattern
+    date.formats.without.tz = c(
+      "%a, %d %b %Y %H:%M:%S",  # initially used format; e.g., "Date: Tue, 20 Feb 2009 20:24:54 +0100"
+      "%d %b %Y %H:%M:%S",  # missing weekday; e.g., "Date: 20 Feb 2009 20:24:54 +0100"
+      "%a, %d %b %Y %H:%M"  # missing seconds; e.g. "Date: Wed, 21 Aug 2013 15:02 +0200"
+    )
+    ## append time-zone part and incorporate pattern without time-zone indicator
+    date.formats = c(
+      paste(date.formats.without.tz, "%z", sep = " "),
+      date.formats.without.tz
+    )
+
+    ## try to re-parse the header using adapted patterns:
+    ## parse date until any match with a pattern is found (date.new is not NA)
+    date.format.matching = NA
+    for (date.format in date.formats) {
+      date.new = strptime(date.header, format = date.format, tz = "GMT")
+
+      # if the date has been parsed correctly, break the loop
+      if (!is.na(date.new)) {
+        date.format.matching = date.format
+        break()
+      }
+    }
+
+    ## store time offset (i.e., time zone) away from GMT
+    if (!is.na(date.format.matching)) {
+      date.offset = format(strptime(date.header, format = date.format.matching, tz = ""), format = "%z")
+      date.offset = as.integer(date.offset)
+    } else {
+      date.offset = 0
+    }
+
+    return(list(date.new, date.offset))
+  }
+
+  ## Fix subject (remove problematic characters)
+  fix.subject <- function(doc) {
+    ## get subject from headers
+    subject = meta(doc, tag = "heading")
+
+    ## Remove TABS -- dbWriteTable cannot handle these properly
+    subject <- gsub("\t", " ", subject, fixed=TRUE, useBytes=TRUE)
+
+    return(subject)
   }
 
   ## Apply checks of conditions to all documents
   fix.corpus.doc <- function(doc) {
     meta(doc, tag="header") <- rmv.multi.refs(doc)
     meta(doc, tag="author") <- fix.author(doc)
+
+    fixed.date = fix.date(doc)
+    meta(doc, tag="datetimestamp") <- fixed.date[[1]]
+    meta(doc, tag="datetimestampOffset") <- fixed.date[[2]]
+
+    meta(doc, tag="heading") <- fix.subject(doc)
+
     return(doc)
   }
 
@@ -335,7 +449,7 @@ check.corpus.precon <- function(corp.base) {
 
 dispatch.all <- function(conf, repo.path, resdir) {
   loginfo("Starting mailinglist analysis", logger="ml.analysis")
-  corp.base <- gen.forest(conf, repo.path, resdir)
+  corp.base <- gen.forest(conf, repo.path, resdir, use.mbox = !conf$use_corpus)
   loginfo("corp.base finished", logger="ml.analysis")
   ## TODO: When we consider incremental updates, would it make sense
   ## to just update the corpus, and let all other operations run
@@ -367,8 +481,8 @@ dispatch.all <- function(conf, repo.path, resdir) {
     ## are coerced to numeric by the conversion to a data frame.
     release.intervals <- list(dim(cycles)[1])
     for (i in 1:(dim(cycles)[1])) {
-      release.intervals[[i]] <- new_interval(cycles$date.start[[i]],
-                                             cycles$date.end[[i]])
+      release.intervals[[i]] <- interval(cycles$date.start[[i]],
+                                         cycles$date.end[[i]])
     }
 
     release.labels <- as.list(cycles$cycle)
@@ -453,7 +567,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 
   timestamps <- do.call(c, lapply(seq_along(corp.base$corp),
                                   function(i) meta(corp.base$corp[[i]], tag="datetimestamp")))
-  
+
   loginfo(paste(length(corp.base$corp), "messages in corpus"), logger="ml.analysis")
   loginfo(paste("Date range is", as.character(int_start(iter[[1]])), "to",
       as.character(int_end(iter[[length(iter)]]))), logger="ml.analysis")
@@ -771,14 +885,27 @@ store.mail <- function(conf, forest, corp, ml.id ) {
   dat$mlId <- ml.id
   dat$projectId <- conf$pid
 
-  ##Extract dates from corpus and add them to the data frame
+  ## Extract dates from corpus and add them to the data frame
   dates <- meta(corp, "datetimestamp")
 
   dates.df <- data.frame(ID=names(dates),
                          creationDate=mail.dates.to.vector(dates))
   dat <- merge(dat, dates.df, by="ID")
-  dat$ID <- NULL
+
+  ## Extract date offsets from corpus and add them to the data frame
+  date.offsets <- meta(corp, "datetimestampOffset")
+  date.offsets.df <- data.frame(ID=names(date.offsets),
+                         creationDateOffset=sapply(date.offsets, as.character))
+  dat <- merge(dat, date.offsets.df, by="ID")
+
+  ## set proper column headings
+  colnames(dat)[which(colnames(dat)=="ID")] <- "messageId"
   colnames(dat)[which(colnames(dat)=="threadID")] <- "threadId"
+
+  ## Re-order columns to match the order as defined in the database to
+  ## improve the stability
+  dat = dat[c("projectId", "threadId", "mlId", "author", "subject",
+              "creationDate", "creationDateOffset", "messageId")]
 
   res <- dbWriteTable(conf$con, "mail", dat, append=TRUE, row.names=FALSE)
 

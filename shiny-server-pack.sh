@@ -16,7 +16,7 @@
 
 # This script must be run on a server where HTTP and HTTPS connections
 # to the internet are possible. For installation on other systems,
-# copy the shiny-server-pack.tar.gz and untar it in the prosoda project
+# copy the shiny-server-pack.tar.gz and untar it in the codeface project
 # directory.
 
 export ARCH=x64

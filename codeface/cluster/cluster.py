@@ -333,6 +333,7 @@ def group_feature_lines(file_commit, file_state, cmt_list):
         next_line = lines[0]
         next_cmt_id = file_state[str(next_line)]
         curr_features = file_commit.findFeatureList(curr_line)
+        open_features = []
 
     for i in range(0, len(file_state) - 1):
         curr_line = lines[i]
@@ -362,10 +363,12 @@ def group_feature_lines(file_commit, file_state, cmt_list):
                                 curr_cmt_id, feature))
                 blk_start[feature] = next_line
                 blk_end[feature] = next_line
+                # collect features that are still open
+                open_features = next_features
 
     # boundary case for open code-blocks or a single line file_state.
     for feature in feature_blks:
-        if feature in curr_features:  # Close all open feature blocks
+        if feature in open_features:  # Close all open feature blocks
             feature_blks[feature].append(
                 codeBlock.codeBlock(
                     blk_start[feature], blk_end[feature],
@@ -1380,10 +1383,14 @@ def populatePersonDB(cmtlist, id_mgr, link_type=None):
                 (LinkType.proximity, LinkType.committer2author,
                  LinkType.file, LinkType.feature, LinkType.feature_file):
             #create person for committer
-            ID = id_mgr.getPersonID(cmt.getCommitterName())
-            pi = id_mgr.getPI(ID)
-            cmt.setCommitterPI(pi)
-            pi.addCommit(cmt)
+            ID_c = id_mgr.getPersonID(cmt.getCommitterName())
+            pi_c = id_mgr.getPI(ID_c)
+            cmt.setCommitterPI(pi_c)
+            if ID_c != ID:
+                # Only add the commit to the committer's person instance
+                # if committer and author differ, otherwise contributions
+                # will be counted twice.
+                pi_c.addCommit(cmt)
 
     return None
 
