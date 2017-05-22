@@ -246,6 +246,10 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
     project_resdir = pathjoin(resdir, project, "conway")
     range_by_date = False
 
+    if conf["tagging"] != "proximity":
+        log.error("Conway analysis requires analysis in proximity mode!")
+        return
+
     # Set defaults for the various analysis choices if they are not explicitly
     # given in the configuration file
     if "artifactType" not in conf.keys():
