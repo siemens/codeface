@@ -967,7 +967,7 @@ CREATE TABLE IF NOT EXISTS `codeface`.`commit_dependency` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '',
   `commitId` BIGINT NOT NULL COMMENT '',
   `file` VARCHAR(255) NOT NULL COMMENT '',
-  `entityId` VARCHAR(255) NOT NULL COMMENT '',
+  `entityId` TEXT NOT NULL COMMENT '',
   `entityType` VARCHAR(100) NOT NULL COMMENT '',
   `size` INT NULL COMMENT '',
   `impl` MEDIUMTEXT NULL COMMENT '',

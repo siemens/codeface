@@ -24,7 +24,7 @@ before_install:
   - mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'travis'@'localhost'"
 install:
   - sudo integration-scripts/install_common.sh
-  - travis_wait 30 sudo integration-scripts/install_codeface_R.sh
+  - travis_wait 40 sudo integration-scripts/install_codeface_R.sh
   - sudo integration-scripts/install_codeface_python.sh
   - sudo integration-scripts/install_cppstats.sh
   - sudo integration-scripts/setup_database.sh

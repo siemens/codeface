@@ -27,3 +27,9 @@ if [ "${version}" = "16.04" ]; then
     sudo service mysql restart # Deleted /var/run/mysqld, so restart before creating the link
     sudo ln -s /tmp/mysql.sock /var/run/mysqld/mysqld.sock
 fi
+
+## Make sure that the nodejs binary exists.
+## HACK: Make a symlink from the node binary.
+if ! type "nodejs" &> /dev/null; then
+    sudo ln -s /usr/bin/node /usr/bin/nodejs
+fi
