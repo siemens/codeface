@@ -13,11 +13,12 @@ if(length(p) > 0) {
 }
 
 p <- filter.installed.packages(c("statnet", "ggplot2", "tm", "optparse",
-                   "igraph", "zoo", "xts", "lubridate", "xtable",
+                   "igraph", "zoo", "xts", "lubridate", "xtable", "GGally",
                    "reshape", "wordnet", "stringr", "yaml", "plyr",
                    "scales", "gridExtra", "scales", "RMySQL", "psych", "markovchain",
                    "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
-                   "corrgram", "logging", "png", "rjson", "lsa", "RJSONIO"))
+                   "corrgram", "logging", "png", "rjson", "lsa", "RJSONIO",
+                   "corrplot"))
 if(length(p) > 0) {
     install.packages(p, dependencies=T)
 }
