@@ -28,7 +28,7 @@ Vagrant.configure("2") do |config|
   # Ubuntu 12.04 LTS (Precise Pangolin)
 
  config.vm.provider :virtualbox do |vbox, override|
-   #config.vm.box = "ffuenf/ubuntu-16.04-server-amd64"
+   #config.vm.box = "ffuenf/ubuntu-16.04.2-server-amd64"
    config.vm.box = "ubuntu/trusty64"
 
     vbox.customize ["modifyvm", :id, "--memory", "4096"]
