@@ -98,6 +98,13 @@ cor.mtest <- function(mat, conf.level = 0.95) {
     p.mat <- lowCI.mat <- uppCI.mat <- matrix(NA, n, n)
     diag(p.mat) <- 0
     diag(lowCI.mat) <- diag(uppCI.mat) <- 1
+
+    ## cor.test needs at least three observations. Exit early if there
+    ## are not sufficiently many.
+    if (length(mat[, 1]) < 3) {
+        return(NULL)
+    }
+
     for (i in 1:(n - 1)) {
         for (j in (i + 1):n) {
             tmp <- cor.test(mat[, i], mat[, j], conf.level = conf.level,
@@ -378,12 +385,14 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
     print(correlation.plot)
     dev.off()
 
-    pdf(file.path(corr.plot.path, "correlation_plot_color.pdf"),
-        width=7, height=7)
-    corrplot(corr.mat, p.mat=corr.test[[1]],
-             insig = "p-value", sig.level=0.05, method="pie", type="lower")
-    title(gen.plot.info(stats))
-    dev.off()
+    if (!is.null(corr.test)) {
+        pdf(file.path(corr.plot.path, "correlation_plot_color.pdf"),
+            width=7, height=7)
+        corrplot(corr.mat, p.mat=corr.test[[1]],
+                 insig = "p-value", sig.level=0.05, method="pie", type="lower")
+        title(gen.plot.info(stats))
+        dev.off()
+    }
 
     write.csv(artifacts.dat, file.path(corr.plot.path, "quality_data.csv"))
 }
