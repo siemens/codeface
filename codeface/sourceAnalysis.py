@@ -1,9 +1,14 @@
 #! /usr/bin/env python
 
 import xml.etree.ElementTree as ET
-from subprocess import Popen, PIPE
-from os import path
+import os
 import sys
+if os.name == 'posix' and sys.version_info[0] < 3:
+    from subprocess32 import Popen, PIPE, TimeoutExpired
+else:
+    from subprocess import Popen, PIPE, TimeoutExpired
+from logging import getLogger
+log = getLogger(__name__)
 
 class FileAnalysis:
 
@@ -30,13 +35,19 @@ class FileAnalysis:
         cmd_2 = cmd.split()
         p2 = Popen(cmd_2, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         p2.stdin.write(doxy_conf)
-        p2.communicate()
+        # On rare occasions, doxygen may 'hang' on input files, not delivering
+        # any result. Use a timeout to work around such situations
+        try:
+            p2.communicate(timeout=5*60) # Stop trying after 5 minutes
+        except TimeoutExpired:
+            log.warning("Doxygen got stuck, cancelling analysis run")
+            p2.kill()
 
     def _parse_XML_index(self):
         # Parse index file generate by deoxygen that contains the compound
         # elements
         comp_list = []
-        index_file = path.join(self.outdir, 'xml', 'index.xml')
+        index_file = os.path.join(self.outdir, 'xml', 'index.xml')
         tree = ET.parse(index_file)
         root = tree.getroot()
         comp_elements = root.findall('compound')
@@ -55,7 +66,7 @@ class FileAnalysis:
 
     def _parse_XML_compound(self, comp_list):
         for comp_elem in comp_list:
-            comp_file = path.join(self.outdir, 'xml', comp_elem['refid'] + '.xml')
+            comp_file = os.path.join(self.outdir, 'xml', comp_elem['refid'] + '.xml')
             xml_string = self._prepare_clean_xml(comp_file)
             root = ET.fromstring(xml_string)
 
