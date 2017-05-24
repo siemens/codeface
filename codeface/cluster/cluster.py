@@ -1243,9 +1243,26 @@ def writeDependsToDB(
                 cmt_depend_rows.extend(rows)
 
     # Perform batch insert
-    dbm.doExecCommit("INSERT INTO commit_dependency (commitId, file, entityId, entityType, size, impl)" +
-                     " VALUES (%s,%s,%s,%s,%s,%s)", cmt_depend_rows)
+    try:
+        dbm.doExecCommit("INSERT INTO commit_dependency " +
+                         "(commitId, file, entityId, entityType, size, impl)" +
+                        " VALUES (%s,%s,%s,%s,%s,%s)", cmt_depend_rows)
+    except:
+        log.warning("Could not batch insert commit dependencies, " +
+                    "falling back to individual inserts")
 
+        print("key, file, entityId, entity_type_current, count, impl")
+        for row in cmt_depend_rows:
+            print("{0}\t{1}\t{2}\t{3}\t{4}".format(row[0], row[1], row[2], row[3], row[4]))
+
+        # Try to insert the rows individually to save what can be saved
+        try:
+            for row in cmt_depend_rows:
+                dbm.doExecCommit("INSERT INTO commit_dependency " +
+                                "(commitId, file, entityId, entityType, size, impl)" +
+                                " VALUES (%s,%s,%s,%s,%s,%s)", row)
+        except:
+            log.warning("Inserting commit dependencies failed for {}".format(row))
 
 def writeAdjMatrix2File(id_mgr, outdir, conf):
     '''
