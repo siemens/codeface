@@ -62,6 +62,11 @@ query.sloccount.ts <- function(con, plot.id) {
                  "WHERE plotId=", plot.id)
 
   dat <- dbGetQuery(con, query)
+  if (nrow(dat) == 0) {
+      logwarn(str_c("query.sloccount.ts returned empty result set for plot id ", plot.id),
+              logger="query")
+      return(NULL)
+  }
   colnames(dat) <-  c("time", "person.months", "total.cost", "schedule.months",
                       "avg.devel")
   dat$time <- ymd_hms(dat$time, quiet=TRUE)
