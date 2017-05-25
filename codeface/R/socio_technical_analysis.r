@@ -375,6 +375,11 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
 
     corr.mat <- cor(artifacts.subset, use="pairwise.complete.obs",
                     method="spearman")
+    if (nrow(corr.mat) == 0) {
+        loginfo(str_c("Conway analysis: No correlation data for time interval ",
+                      start.date, "--", end.date, ", exiting early", sep=""),
+                startlogger="conway")
+    }
     corr.test <- cor.mtest(artifacts.subset)
 
     ## Write correlations and raw data to file
