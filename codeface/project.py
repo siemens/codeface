@@ -396,4 +396,20 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
 
     # Wait until all batch jobs are finished
     pool.join()
+
+    #########
+    # Global conway analysis
+    log.info("=> Performing global conway analysis")
+    exe = abspath(resource_filename(__name__, "R/conway_global.r"))
+    cwd, _ = pathsplit(exe)
+    cmd = [exe]
+    if logfile:
+        cmd.extend(("--logfile", "{}.R.ts".format(logfile)))
+    cmd.extend(("--loglevel", loglevel))
+    cmd.extend(("-c", codeface_conf))
+    cmd.extend(("-p", project_conf))
+    cmd.extend(("-j", str(n_jobs)))
+    cmd.append(project_resdir)
+    execute_command(cmd, direct_io=True, cwd=cwd)
+
     log.info("=> Codeface conway analysis complete!")
