@@ -92,31 +92,6 @@ preprocess.graph <- function(g, person.role) {
     return(g)
 }
 
-cor.mtest <- function(mat, conf.level = 0.95) {
-    mat <- as.matrix(mat)
-    n <- ncol(mat)
-    p.mat <- lowCI.mat <- uppCI.mat <- matrix(NA, n, n)
-    diag(p.mat) <- 0
-    diag(lowCI.mat) <- diag(uppCI.mat) <- 1
-
-    ## cor.test needs at least three observations. Exit early if there
-    ## are not sufficiently many.
-    if (length(mat[, 1]) < 3) {
-        return(NULL)
-    }
-
-    for (i in 1:(n - 1)) {
-        for (j in (i + 1):n) {
-            tmp <- cor.test(mat[, i], mat[, j], conf.level = conf.level,
-                            method="spearman")
-            p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
-            ##lowCI.mat[i, j] <- lowCI.mat[j, i] <- tmp$conf.int[1]
-            ##uppCI.mat[i, j] <- uppCI.mat[j, i] <- tmp$conf.int[2]
-        }
-    }
-    return(list(p.mat, lowCI.mat, uppCI.mat))
-}
-
 ## Compute communication relations between contributors
 compute.communication.relations <- function(conf, communication.type,
                                             jira.filename, start.date, end.date) {
