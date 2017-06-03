@@ -345,26 +345,18 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
             (artifacts.dat$CountLineCode+1)
     }
 
-    ## Generate correlation plot (omitted correlation quantities: BugIsseChurn,
-    ## IssueCommits,  motif.count.norm, motif.anti.count.norm, motif.ratio, motif.percent.diff
-    corr.cols <- c("motif.ratio", "motif.percent.diff", "dev.count")
-    corr.cols.labels <- c("M/A-M", "MDiff", "Devs")
-
-    if (quality.type=="defect") {
-        corr.cols <- c(corr.cols, c("bug.density", "BugIssueCount", "Churn", "CountLineCode"))
-        corr.cols.labels <- c(corr.cols.labels, c("BugDens", "Bugs", "Churn", "LoC"))
-    } else {
-        corr.cols <- c(corr.cols, "corrective")
-        corr.cols.labels <- c(corr.cols.labels, "Correct")
-    }
+    corr.elements <- gen.correlation.columns(quality.type)
 
     ## Do not plot correlations for all quantities, but only for combinations
     ## that are of particular interest.
-    artifacts.subset <- artifacts.dat[, corr.cols]
-    colnames(artifacts.subset) <- corr.cols.labels
+    artifacts.subset <- artifacts.dat[, corr.elements$names]
+    colnames(artifacts.subset) <- corr.elements$labels
 
+    ## NOTE: We deliberately use artifacts.dat and then subset the columns because
+    ## working directly with artifacts.subset does not work -- the column names
+    ## are not in a suitable format for ggpairs()
     correlation.plot <- ggpairs(artifacts.dat,
-                                columns=corr.cols,
+                                columns=corr.elements$names,
                                 lower=list(continuous=wrap("points",
                                                alpha=0.33, size=0.5)),
                                 upper=list(continuous=wrap('cor',
@@ -375,11 +367,14 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
 
     corr.mat <- cor(artifacts.subset, use="pairwise.complete.obs",
                     method="spearman")
-    if (nrow(corr.mat) == 0) {
+    if (nrow(artifacts.subset) == 0) {
         loginfo(str_c("Conway analysis: No correlation data for time interval ",
                       start.date, "--", end.date, ", exiting early", sep=""),
                 startlogger="conway")
+        return()
     }
+
+    ## Compute the p values for each correlation tests
     corr.test <- cor.mtest(artifacts.subset)
 
     ## Write correlations and raw data to file

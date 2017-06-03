@@ -75,3 +75,19 @@ load.defect.data <- function(filename, relevant.files, start.date, end.date) {
 
     return(defect.dat)
 }
+
+gen.correlation.columns <- function(quality.type) {
+    ## Generate correlation plot (omitted correlation quantities: BugIsseChurn,
+    ## IssueCommits,  motif.count.norm, motif.anti.count.norm, motif.ratio, motif.percent.diff
+    corr.cols <- c("motif.ratio", "motif.percent.diff", "dev.count")
+    corr.cols.labels <- c("M/A-M", "MDiff", "Devs")
+
+    if (quality.type=="defect") {
+        corr.cols <- c(corr.cols, c("bug.density", "BugIssueCount", "Churn", "CountLineCode"))
+        corr.cols.labels <- c(corr.cols.labels, c("BugDens", "Bugs", "Churn", "LoC"))
+    } else {
+        corr.cols <- c(corr.cols, "corrective")
+        corr.cols.labels <- c(corr.cols.labels, "Correct")
+    }
+    return(list(names=corr.cols, labels=corr.cols.labels))
+}
