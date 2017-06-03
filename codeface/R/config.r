@@ -113,18 +113,26 @@ load.config <- function(global.file, project.file=NULL) {
 
   if (!is.null(conf$artifactType)) {
       ensure.supported.artifact.type(conf$artifactType)
+  } else {
+      conf$artifactType <- "file"
   }
 
   if (!is.null(conf$dependencyType)) {
       ensure.supported.dependency.type(conf$dependencyType)
+  } else {
+      conf$dependencyType <- "none"
   }
 
   if (!is.null(conf$qualityType)) {
       ensure.supported.quality.type(conf$qualityType)
+  } else {
+      conf$qualityType <- "corrective"
   }
 
   if (!is.null(conf$communicationType)) {
       ensure.supported.communication.type(conf$communicationType)
+  } else {
+      conf$communicationType <- "mail"
   }
 
   return(conf)
