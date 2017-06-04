@@ -4,7 +4,6 @@ get.corrective.count <- function(con, project.id, start.date, end.date,
                                  entity.type) {
     entity.type <- tolower(entity.type)
     if (entity.type=="file") {
-        entity.type.db <- "function"
         group.by <- "GROUP BY file"
     } else if (entity.type=="function") {
         group.by <- "GROUP BY file, entityId"
@@ -15,10 +14,10 @@ get.corrective.count <- function(con, project.id, start.date, end.date,
                   "FROM commit_dependency, commit",
                   "WHERE commit.id = commit_dependency.commitId",
                   "AND commit.projectId=", project.id,
-                  "AND commit_dependency.entityType=", sq(entity.type.db),
+                  "AND commit_dependency.entityType='Function'",
                   "AND commit.commitDate >=", sq(start.date),
                   "AND commit.commitDate <", sq(end.date),
-                  "GROUP BY file, entityId", sep=" ")
+                  group.by, sep=" ")
 
     dat <- dbGetQuery(con, query)
     dat$norm.corrective <- dat$corrective / dat$total
