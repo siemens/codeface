@@ -123,28 +123,51 @@ dispatch.all <- function(conf, resdir) {
         return(res)
     })
     res <- do.call(rbind, res)
+    res$date <- as.Date(res$date)
 
     plot.file <- file.path(resdir, str_c("abs_ts_", motif.type, "_",
-                                        conf$communicationType, ".pdf"))
+                                         conf$communicationType, ".pdf"))
+    labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs", motif.ratio="Motifs/Anti-Motifs")
+    dat <- res[,c("motif.count", "motif.anti.count", "motif.ratio", "dev.count", "date", "range")]
+    dat.molten <- melt(dat, measure.vars=c("motif.count", "motif.anti.count", "motif.ratio"))
 
-    labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs")
-    corr.dat$date <- as.Date(corr.dat$date)
-    if (conf$communicationType=="mail") {
-        res <- res[,c("corrective", "motif.count", "motif.anti.count", "dev.count", "date", "range")]
-        res$date <- as.Date(res$date)
-        res.molten <- melt(res, measure.vars=c("motif.count", "motif.anti.count"))
-
-        g <- ggplot(res.molten, aes(x=dev.count, y=value)) + geom_point(size=0.5) +
-            facet_grid(variable~date, labeller=labeller(variable=labels)) +
+    g <- ggplot(dat.molten, aes(x=dev.count, y=value)) + geom_point(size=0.5) +
+        facet_grid(variable~date, labeller=labeller(variable=labels), scale="free_y") +
             scale_x_sqrt("# Devs contributing to artifact [sqrt]") +
-            scale_y_sqrt("Count [sqrt]") + geom_smooth(method=lm) + theme_bw() +
-            ggtitle(make.title(conf, motif.type))
-        logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
-        ggsave(plot.file, g, width=8, height=5)
-    }
-    else if (conf$communicationType=="jira") {
-        ## TODO: Provide the plot for jira
-    }
+    scale_y_sqrt("Count or Ratio [sqrt]") + geom_smooth(method=lm) + theme_bw() +
+        ggtitle(make.title(conf, motif.type))
+    logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
+    ggsave(plot.file, g, width=8, height=5)
+
+    ## ############
+
+    plot.file <- file.path(resdir, str_c("norm_ts_", motif.type, "_",
+                                         conf$communicationType, ".pdf"))
+    labels.norm <- c(motif.count.norm = "Motifs", motif.anti.count.norm = "Anti-Motifs",
+                     motif.ratio="Motifs/Anti-Motifs")
+    dat <- res[,c("motif.count.norm", "motif.anti.count.norm", "motif.ratio", "dev.count", "date", "range")]
+    dat.molten <- melt(dat, measure.vars=c("motif.count.norm", "motif.anti.count.norm", "motif.ratio"))
+
+    g <- ggplot(dat.molten, aes(x=dev.count, y=value)) + geom_point(size=0.5) +
+        facet_grid(variable~date, labeller=labeller(variable=labels.norm), scale="free_y") +
+            scale_x_sqrt("# Devs contributing to artifact [sqrt]") +
+    scale_y_continuous("Normalised count or ratio") + geom_smooth(method=lm) + theme_bw() +
+        ggtitle(make.title(conf, motif.type))
+    logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
+    ggsave(plot.file, g, width=8, height=5)
+
+
+    plot.file <- file.path(resdir, str_c("motif_ts_", motif.type, "_",
+                                         conf$communicationType, ".pdf"))
+    labels.norm <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs")
+    dat <- res[,c("motif.count", "motif.anti.count", "dev.count", "date", "range")]
+
+    g <- ggplot(dat, aes(x=motif.count, y=motif.anti.count)) +
+        geom_point(size=0.75) + facet_grid(~date) + scale_x_continuous("# Motifs") +
+    scale_y_continuous("# Anti-Motifs") + geom_smooth(method=lm) + theme_bw() +
+        ggtitle(make.title(conf, motif.type))
+    logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
+    ggsave(plot.file, g, width=8, height=4)
 
     ## ###########################################################
     ## Prepare a global "timeseries" plot of the null model tests
