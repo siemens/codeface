@@ -139,6 +139,35 @@ dispatch.all <- function(conf, resdir) {
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
     ggsave(plot.file, g, width=8, height=5)
 
+
+    ## ######################################
+    ## Compute a time series with absolute data counts for the previous correlation computations
+    if (conf$communicationType == "jira") {
+        labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs", motif.ratio="Motifs/Anti-Motifs")
+        dat <- res[,c("motif.count", "motif.anti.count", "motif.ratio", "Churn", "BugIssueCount", "date", "range")]
+        dat.molten <- melt(dat, measure.vars=c("motif.count", "motif.anti.count", "motif.ratio"))
+
+        plot.file <- file.path(resdir, str_c("abs_bug_ts1_", motif.type, "_",
+                                             conf$communicationType, ".pdf"))
+        g <- ggplot(dat.molten, aes(x=Churn, y=value)) + geom_point(size=0.5) +
+            facet_grid(variable~date, labeller=labeller(variable=labels), scale="free_y") +
+                scale_x_log10("Churn [log]") +
+        scale_y_continuous("Count or Ratio") + geom_smooth(method=lm) + theme_bw() +
+            ggtitle(make.title(conf, motif.type))
+        logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
+        ggsave(plot.file, g, width=8, height=5)
+
+        plot.file <- file.path(resdir, str_c("abs_bug_ts2_", motif.type, "_",
+                                             conf$communicationType, ".pdf"))
+        g <- ggplot(dat.molten, aes(x=BugIssueCount, y=value)) + geom_point(size=0.5) +
+            facet_grid(variable~date, labeller=labeller(variable=labels), scale="free_y") +
+                scale_x_continuous("Bug Issue Count") +
+        scale_y_continuous("Count or Ratio") + geom_smooth(method=lm) + theme_bw() +
+            ggtitle(make.title(conf, motif.type))
+        logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
+        ggsave(plot.file, g, width=8, height=5)
+    }
+
     ## ############
 
     plot.file <- file.path(resdir, str_c("norm_ts_", motif.type, "_",
