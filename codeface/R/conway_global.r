@@ -137,7 +137,7 @@ dispatch.all <- function(conf, resdir) {
     scale_y_sqrt("Count or Ratio [sqrt]") + geom_smooth(method=lm) + theme_bw() +
         ggtitle(make.title(conf, motif.type))
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
-    ggsave(plot.file, g, width=8, height=5)
+    ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5)
 
 
     ## ######################################
@@ -155,7 +155,7 @@ dispatch.all <- function(conf, resdir) {
         scale_y_continuous("Count or Ratio") + geom_smooth(method=lm) + theme_bw() +
             ggtitle(make.title(conf, motif.type))
         logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
-        ggsave(plot.file, g, width=8, height=5)
+        ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5)
 
         plot.file <- file.path(resdir, str_c("abs_bug_ts2_", motif.type, "_",
                                              conf$communicationType, ".pdf"))
@@ -165,7 +165,7 @@ dispatch.all <- function(conf, resdir) {
         scale_y_continuous("Count or Ratio") + geom_smooth(method=lm) + theme_bw() +
             ggtitle(make.title(conf, motif.type))
         logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
-        ggsave(plot.file, g, width=8, height=5)
+        ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5)
     }
 
     ## ############
@@ -183,7 +183,7 @@ dispatch.all <- function(conf, resdir) {
     scale_y_continuous("Normalised count or ratio") + geom_smooth(method=lm) + theme_bw() +
         ggtitle(make.title(conf, motif.type))
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
-    ggsave(plot.file, g, width=8, height=5)
+    ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5)
 
 
     plot.file <- file.path(resdir, str_c("motif_ts_", motif.type, "_",
@@ -196,7 +196,7 @@ dispatch.all <- function(conf, resdir) {
     scale_y_continuous("# Anti-Motifs") + geom_smooth(method=lm) + theme_bw() +
         ggtitle(make.title(conf, motif.type))
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
-    ggsave(plot.file, g, width=8, height=4)
+    ggsave(plot.file, g, width=2*length(unique(dat$date)), height=4)
 
     ## ###########################################################
     ## Prepare a global "timeseries" plot of the null model tests
