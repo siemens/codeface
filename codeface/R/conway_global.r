@@ -236,7 +236,7 @@ dispatch.all <- function(conf, resdir) {
                                          conf$communicationType, ".pdf"))
     g <- ggplot(res, aes(x=as.Date(date), y=empirical.count)) + geom_point() + geom_line() +
         facet_grid(count.type~., scales="free_y", labeller=labeller(count.type=labels)) +
-        scale_x_date("Date", date_labels="%m-%Y") +
+        scale_x_date("Date", date_labels="%m-%Y") + expand_limits(y=0) +
         ylab("Count or Ratio") + theme_bw() + ggtitle(make.title(conf, motif.type))
 
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
