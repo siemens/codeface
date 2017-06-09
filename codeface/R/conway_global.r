@@ -141,11 +141,14 @@ dispatch.all <- function(conf, resdir) {
 
 
     ## ######################################
-    ## Compute a time series with absolute data counts for the previous correlation computations
+    ## Plot time series with absolute data counts for the previous correlation computations
     if (conf$communicationType == "jira") {
-        labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs", motif.ratio="Motifs/Anti-Motifs")
-        dat <- res[,c("motif.count", "motif.anti.count", "motif.ratio", "Churn", "BugIssueCount", "date", "range")]
-        dat.molten <- melt(dat, measure.vars=c("motif.count", "motif.anti.count", "motif.ratio"))
+        labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs",
+                    motif.ratio="Motifs/Anti-Motifs")
+        dat <- res[,c("motif.count", "motif.anti.count", "motif.ratio",
+                      "Churn", "BugIssueCount", "date", "range")]
+        dat.molten <- melt(dat, measure.vars=c("motif.count", "motif.anti.count",
+                                    "motif.ratio"))
 
         plot.file <- file.path(resdir, str_c("abs_bug_ts1_", motif.type, "_",
                                              conf$communicationType, ".pdf"))
@@ -157,6 +160,7 @@ dispatch.all <- function(conf, resdir) {
         logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
         ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5)
 
+        ## #################################################################
         plot.file <- file.path(resdir, str_c("abs_bug_ts2_", motif.type, "_",
                                              conf$communicationType, ".pdf"))
         g <- ggplot(dat.molten, aes(x=BugIssueCount, y=value)) + geom_point(size=0.5) +
@@ -166,6 +170,26 @@ dispatch.all <- function(conf, resdir) {
             ggtitle(make.title(conf, motif.type))
         logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
         ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5)
+
+
+        ## #################################################################
+        plot.file <- file.path(resdir, str_c("jira_ts_abs_", motif.type, "_",
+                                             conf$communicationType, ".pdf"))
+        dat <- res[,c("CountLineCode", "bug.density", "Churn",
+                      "BugIssueCount", "date", "range")]
+        dat$Churn <- log(dat$Churn+1)
+        dat$CountLineCode <- log(dat$CountLineCode+1)
+        labels <- c(CountLineCode="LoC [log]", BugIssueCount="Bug Issue Count",
+                    Churn="Code Churn [log]", bug.density="Bug Density")
+
+        dat.molten <- melt(dat, id.vars=c("date", "range"))
+        g <- ggplot(dat.molten, aes(x=date, y=value)) + geom_boxplot(aes(x=date, group=date)) +
+            facet_grid(variable~., scales="free_y", labeller=labeller(variable=labels)) +
+            scale_x_date("Date", date_labels="%m-%Y") + expand_limits(y=0) +
+            ylab("") + theme_bw() + ggtitle(make.title(conf, motif.type))
+
+        logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
+        ggsave(plot.file, g, width=7, height=8)
     }
 
     ## ############
@@ -174,8 +198,10 @@ dispatch.all <- function(conf, resdir) {
                                          conf$communicationType, ".pdf"))
     labels.norm <- c(motif.count.norm = "Motifs", motif.anti.count.norm = "Anti-Motifs",
                      motif.ratio="Motifs/Anti-Motifs")
-    dat <- res[,c("motif.count.norm", "motif.anti.count.norm", "motif.ratio", "dev.count", "date", "range")]
-    dat.molten <- melt(dat, measure.vars=c("motif.count.norm", "motif.anti.count.norm", "motif.ratio"))
+    dat <- res[,c("motif.count.norm", "motif.anti.count.norm", "motif.ratio",
+                  "dev.count", "date", "range")]
+    dat.molten <- melt(dat, measure.vars=c("motif.count.norm", "motif.anti.count.norm",
+                                           "motif.ratio"))
 
     g <- ggplot(dat.molten, aes(x=dev.count, y=value)) + geom_point(size=0.5) +
         facet_grid(variable~date, labeller=labeller(variable=labels.norm), scale="free_y") +
@@ -197,6 +223,7 @@ dispatch.all <- function(conf, resdir) {
         ggtitle(make.title(conf, motif.type))
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
     ggsave(plot.file, g, width=2*length(unique(dat$date)), height=4)
+
 
     ## ###########################################################
     ## Prepare a global "timeseries" plot of the null model tests
