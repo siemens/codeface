@@ -69,6 +69,11 @@ load.jira.edgelist <- function(conf, jira.filename, start.date, end.date) {
     ## Select the vertices for which type==TRUE, that is, all persons
     g <- bipartite.projection(g.bi, which=TRUE)
     edgelist <- as.data.frame(get.edgelist(g))
+
+    ## If no edges (connections between persons) remain, exit early
+    if (nrow(edgelist) == 0) {
+        return(NULL)
+    }
     edgelist$weight <- 1
 
     return(edgelist)
