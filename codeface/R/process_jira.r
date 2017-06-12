@@ -38,7 +38,7 @@ load.jira.edgelist <- function(conf, jira.filename, start.date, end.date) {
     jira.dat <- jira.dat[keep.row, ]
 
     ## If there are no issues within the desired range, exit early
-    if (dim(jira.dat)[1] == 0) {
+    if (nrow(jira.dat) == 0) {
         return(NULL)
     }
 
@@ -50,19 +50,23 @@ load.jira.edgelist <- function(conf, jira.filename, start.date, end.date) {
 
     ## Remove jira ids that could not be mapped to persons known to codeface
     ## (we cannot make socio-techncical statements about such persons).
-    ## Only keep the connection between jira issue and persion ID in the
+    ## Only keep the connection between jira issue and person ID in the
     ## data frame.
     jira.dat <- jira.dat[!is.na(jira.dat$personId), ]
     jira.dat <- jira.dat[, c("IssueID", "personId")]
 
     ## If no person remains, exit early
-    if (dim(jira.dat)[1] == 0) {
+    if (nrow(jira.dat) == 0) {
         return(NULL)
     }
 
-    ## Perform bipartite projection
+    ## Perform bipartite projection, that is, create a one-mode network
+    ## from the existing two-mode network
     g.bi <- graph.data.frame(jira.dat)
-    V(g.bi)$type <- V(g.bi)$name %in% jira.dat[,2]
+    ## Every vertex represents either a person or a bug; construct the type
+    ## attribute to indicate which
+    V(g.bi)$type <- V(g.bi)$name %in% jira.dat$personId
+    ## Select the vertices for which type==TRUE, that is, all persons
     g <- bipartite.projection(g.bi, which=TRUE)
     edgelist <- as.data.frame(get.edgelist(g))
     edgelist$weight <- 1
