@@ -259,6 +259,12 @@ class DBManager:
             raise Exception("Range id {} not found!".format(project_id))
         return ranges[0]
 
+    def get_num_commits_in_range(self, range_id):
+        self.doExec("SELECT COUNT(*) FROM commit WHERE releaseRangeId={}".format(range_id))
+        if self.cur.rowcount == 0:
+            raise Exception("Range id {} not found in get_num_commits_in_range!".format(range_id))
+        return self.doFetchAll()[0][0]
+
     def update_release_timeline(self, project, tagging, revs, rcs,
                                 recreate_project=False):
         '''
