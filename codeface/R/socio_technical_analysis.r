@@ -213,18 +213,23 @@ do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
     g.comm <- graph.data.frame(comm.inter.dat)
 
     ## birewire.rewire.undirected goes into an infinite loop
-    ## if |E|/(|V|^{2}/2)=1 (see the calculation in birewire.rewire.sparse)
-    ## We would not need to perform any computations in this case anyway since
-    ## no reasonable patterns can be found in graph with so few edges.
-    ## However, we deliberately continue the calculation to get diagnostic
-    ## images (graphs) that allow users to see that the considered graphs
-    ## are tiny.
+    ## if |E|/(|V|^{2}/2)=1 (see the calculation in birewire.rewire.sparse),
+    ## and more generally if (1-|E|/(|V|^{2}/2)) <= 0.
+    ## This condition can arise when a graph with very few edges is considered,
+    ## but also for non-pathological inputs.
+    ## Bound the maximal number of iterations to a (large) value to avoid the
+    ## infinite loop that arises in the rewiring code in these cases.
     g.simplified <- simplify(g.comm)
 
+    ## The following quantities are required to reproduce calculations from the
+    ## birewiring code
     n <- as.numeric(length(V(g.simplified)))
     e <- as.numeric(length(E(g.simplified)))
-    if (e/(n^2/2) == 1) {
-        g.comm.null <- birewire.rewire.undirected(g.simplified, max.iter=1,
+
+    if (1-e/(n^2/2) <= 0) {
+        logwarning("Warning: Preventing infinite birewiring loop by bounding the maximal iteration count",
+                   logger="conway")
+        g.comm.null <- birewire.rewire.undirected(g.simplified, max.iter=50000,
                                                   verbose=FALSE)
     } else {
         g.comm.null <- birewire.rewire.undirected(g.simplified, verbose=FALSE)
