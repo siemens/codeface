@@ -31,6 +31,14 @@ load.sdsm <- function(sdsm.filename) {
     if (is.null(sdsm.size)) { return(NULL) }
 
     sdsm.filenames <- read.table(sdsm.filename, skip=2+sdsm.size)
+
+    ## Titan stores absolute filenames, and also replaces slashes (/) with dots (.).
+    ## Since we run Titan on a checked out state of the repository in the
+    ## temporary location /tmp/Rtmpxxxxxx/code/, this gives prefixes like
+    ## .tmp.RtmpZ11Ycl.code. that need to be eliminated from the filename
+    sdsm.filenames$V1 <- gsub("\\.tmp\\.Rtmp\\w\\w\\w\\w\\w\\w\\.code\\.", "",
+                              sdsm.filenames$V1, perl=TRUE)
+
     sdsm.binary <- read.table(sdsm.filename, skip=2, nrows=sdsm.size)
     sdsm.binary[sdsm.binary > 0] <- 1
     sdsm.binary <- as.matrix(sdsm.binary)
