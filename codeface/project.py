@@ -304,6 +304,10 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
         range_resdir = gen_range_path(project_resdir, i+1, start_rev, end_rev)
         prefix = gen_prefix(i+1, len(all_range_ids), start_rev, end_rev)
 
+        if (dbm.get_num_commits_in_range(range_id) < 5):
+            log.info("=> Release range contains less than 5 commits, skipping")
+            continue
+
         #######
         # STAGE 1:
         s1 = pool.add(
