@@ -19,7 +19,7 @@
 s <- suppressPackageStartupMessages
 s(library(igraph))
 
-load.sdsm <- function(sdsm.filename, relavent.files) {
+load.sdsm <- function(sdsm.filename) {
     sdsm.size <- NULL
     tryCatch({
         sdsm.size <- read.table(sdsm.filename, skip=1, nrows=1)[[1]]
