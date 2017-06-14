@@ -212,7 +212,7 @@ dispatch.all <- function(conf, resdir) {
     ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5)
 
 
-    plot.file <- file.path(resdir, str_c("motif_ts_", motif.type, "_",
+    plot.file <- file.path(resdir, str_c("motif_count_ts_", motif.type, "_",
                                          conf$communicationType, ".pdf"))
     labels.norm <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs")
     dat <- res[,c("motif.count", "motif.anti.count", "dev.count", "date", "range")]
@@ -252,10 +252,10 @@ dispatch.all <- function(conf, resdir) {
         xlab("Count or Ratio") + ylab("Density [a.u.]") +
         ggtitle(make.title(conf, motif.type)) + theme_bw()
 
-    plot.file <- file.path(resdir, str_c("motif_ts_", motif.type, "_",
+    plot.file <- file.path(resdir, str_c("motif_null_model_ts_", motif.type, "_",
                                          conf$communicationType, ".pdf"))
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
-    ggsave(plot.file, g, width=9, height=6)
+    ggsave(plot.file, g, width=2*length(unique(dat$date)), height=6)
 
     ## #####################################################
     ## Plot a time series with absolute empirical motif counts
