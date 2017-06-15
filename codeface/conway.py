@@ -167,12 +167,28 @@ def dispatch_jira_processing(resdir, titandir, conf):
                           conf["issueTrackerPassword"])
     return
 
+def getLoC(repo, gitHash, filePath):
+    cmd_git = "git --git-dir={0} show {1}:{2}".format(repo, gitHash, filePath).split()
+    try:
+        lines = execute_command(cmd_git, silent_errors=True).splitlines()
+    except:
+        ## When the git query fails, assume that the file is size 0 (this happens
+        ## when a commit deletes a file). We don't check for other errors because
+        ## if there are other issues with git, these would have already been caught
+        ## in a previous pass.
+        return(0)
 
-def parseGitLogOutput(dat, outfile):
+    return(len(lines))
+
+def parseGitLogOutput(dat, dat_hashes, repo, outfile):
     commitFileLOC = []
-    fileHash = {} # Store LoC after each commit and identify if it is
+    fileSizeHash = {} # Store LoC after each commit and identify if it is
                   # the first ocurrence of the file
     commit = None
+
+    # Create a hash table that maps commits hashes to commit subjects
+    commit_map = dict([(h, subject) for (h, subject) in [line.split(' ', 1) for line in dat_hashes]])
+
     for i, log_line in enumerate(dat):
         line = log_line.split()
         if len(line) == 7:
@@ -185,11 +201,12 @@ def parseGitLogOutput(dat, outfile):
             authorDate = line[4]
             authorHour = line[5]
             authorZone = line[6]
+            description = commit_map[commitHash]
 
             # Prepare output line for the files associated to the commit
             commit = [None, None, None, None, commitHash, committerDate,
                       committerHour, comitterZone, authorDate, authorHour,
-                      authorZone]
+                      authorZone, description]
         elif len(line) == 3:
             # Lines of length three have the format
             # <added> <deleted> <filename>, for instance
@@ -208,16 +225,18 @@ def parseGitLogOutput(dat, outfile):
             commit[1] = linesAdded
             commit[2] = linesRemoved
 
-            # If first ocurrence of file, then linesAdded == LoC
-            if filePath not in fileHash:
-                fileHash[filePath] = linesAdded
-                commit[3] = linesAdded
+            # If first ocurrence of file, then determine LoC of the file
+            # by inspecting the raw content
+            if filePath not in fileSizeHash:
+                loc = getLoC(repo, commit[4], filePath)
+                fileSizeHash[filePath] = loc
+                commit[3] = loc
             else:
                 # We need to just linesAdded and linesRemoved to know the
                 # file LOC after the commit
-                fileHash[filePath] = str(int(fileHash[filePath]) +
+                fileSizeHash[filePath] = str(int(fileSizeHash[filePath]) +
                                          int(linesAdded) - int(linesRemoved))
-                commit[3] = fileHash[filePath]
+                commit[3] = fileSizeHash[filePath]
 
             commitFileLOC.append(tuple(commit))
         # All other lines in the output are blank lines, and are ignored
@@ -226,9 +245,9 @@ def parseGitLogOutput(dat, outfile):
     with open(outfile, 'w') as out:
         csv_out = csv.writer(out)
         csv_out.writerow(['filePath', 'linesAdded', 'linesRemoved',
-                          'totalFileLines', 'commitHash', 'committerDate',
+                          'CountLineCode', 'commitHash', 'committerDate',
                           'comitterHour', 'comitterZone', 'authorDate',
-                          'authorHour', 'authorZone'])
+                          'authorHour', 'authorZone', 'description'])
         for row in commitFileLOC:
             csv_out.writerow(row)
 
@@ -258,8 +277,12 @@ def parseCommitLoC(conf, dbm, project_id, range_id, start_rev, end_rev, outdir, 
     cmd_git.append("{0}..{1}".format(start_rev, end_rev))
     dat = execute_command(cmd_git).splitlines()
 
-    parseGitLogOutput(dat, os.path.join(outdir, "file_metrics.csv"))
-    createFileDevTable(dbm, project_id, range_id, os.path.join(outdir, "file_dev.csv"))
+    cmd_git = "git --git-dir={0} log --reverse --no-merges ".format(repo).split()
+    cmd_git.append("--pretty=format:%H %s")
+    cmd_git.append("{0}..{1}".format(start_rev, end_rev))
+    dat_hashes = execute_command(cmd_git).splitlines()
+
+    parseGitLogOutput(dat, dat_hashes, repo, os.path.join(outdir, "file_metrics.csv"))
 
 if __name__ == "__main__":
     # NOTE: When the script is executed manually via command line, we

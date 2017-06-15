@@ -1,4 +1,7 @@
 source("db.r")
+s <- suppressPackageStartupMessages
+s(library(stringr))
+s(library(plyr))
 
 get.corrective.count <- function(con, project.id, start.date, end.date,
                                  entity.type) {
@@ -39,27 +42,29 @@ get.corrective.count <- function(con, project.id, start.date, end.date,
 load.defect.data <- function(filename, relevant.files, start.date, end.date) {
     defect.dat <- read.csv(filename, header=TRUE, stringsAsFactors=FALSE)
 
-    ## Check if time resolved or not
-    if ("commitDate" %in% names(defect.dat)) {
-        defect.dat <- subset(defect.dat, commitDate >= start.date &
-                                         commitDate < end.date)
-        file.size <- ddply(defect.dat, .(file),
+    defect.dat$commitDate <- str_c(defect.dat$committerDate, " ", defect.dat$committeHour)
+    defect.dat <- defect.dat[defect.dat$commitDate >= start.date & defect.dat$commitDate < end.date,]
+
+    ## Determine the LoC of each file when it was last modified during the
+    ## range. This value is used to represent LoC for the range.
+    file.loc.max <- ddply(defect.dat, .(filePath),
                            function(df) {
                                df[which.max(as.Date(df$commitDate)),
-                                  c("file", "fileSize")]
+                                  c("filePath", "CountLineCode")]
                            })
 
-        colnames(file.size) <- c("file", "CountLineCode")
-        defect.dat$churn <- defect.dat$linesAdded + defect.dat$linesRemoved
-        defect.dat <- defect.dat[, c("file", "isBug", "churn")]
-        defect.dat[is.na(defect.dat)] <- 0
-        defect.dat <- ddply(defect.dat[, c("file", "isBug", "churn")],
-                            .(file), colwise(sum))
+    defect.dat$churn <- defect.dat$linesAdded + defect.dat$linesRemoved
+    defect.dat.sub <- defect.dat[, c("filePath", "isBug", "churn")]
+    defect.dat.sub[is.na(defect.dat.sub)] <- 0
+    ## Sum up the total number of bug commits on each file, and compute the
+    ## total size of all changes (line added+removed) on each file during the
+    ## release range
+    defect.dat.sub <- ddply(defect.dat.sub[, c("filePath", "isBug", "churn")],
+                        .(filePath), colwise(sum))
 
-        defect.dat <- merge(defect.dat, file.size, by="file")
-    }
+    defect.dat <- merge(defect.dat.sub, file.loc.max, by="filePath")
 
-    ## Normalize filenames
+    ## "Normalize" filenames to the oddball Titan convention
     defect.dat$entity <- sapply(defect.dat$file,
                                 function(filename) {
                                         #filename <- sprintf("src.java.%s_java", filename)
@@ -67,7 +72,7 @@ load.defect.data <- function(filename, relevant.files, start.date, end.date) {
                                         #filename <- gsub("_", ".", filename, fixed=T)
                                     return(filename)})
 
-    defect.dat$file <- NULL
+    defect.dat$filePath <- NULL
     defect.dat <- defect.dat[defect.dat$entity %in% relevant.files, ]
     colnames(defect.dat) <- c("BugIssueCount", "Churn", "CountLineCode", "entity")
     defect.dat$CountLineCode <- as.integer(defect.dat$CountLineCode)

@@ -26,13 +26,18 @@ source("query.r")
 source("config.r")
 
 do.generate.conway.metrics <- function(global.resdir, range.resdir) {
-    commitFiles <- fread(file.path(range.resdir, "file_dev.csv"))
+    gitlog.dat <- fread(file.path(range.resdir, "file_metrics.csv"))
+
+    commitFiles <- gitlog.dat[,c("commitHash", "filePath", "description")]
 
     ## Extract issue IDs
+    ## TODO: This searches for the identifier in the whole commit message, not just
+    ## in the subject. Is this what we want? Besides, we should adapt this per
+    ## project because they use different conventions to refer to bugs.
     commitFiles$issueId <- str_match(commitFiles$description,'[A-Z]+-[0-9]+')
 
     ## The data in jira-comment-authors-with-email.csv deliver a list of jira
-    ## issued for the project, and a connection between authors (ids and emails
+    ## issues for the project, and a connection between authors (ids and emails
     ## addresses) and issues.
     jiraIssues <- fread(file.path(global.resdir, "jira-comment-authors-with-email.csv"))
 
@@ -50,9 +55,8 @@ do.generate.conway.metrics <- function(global.resdir, range.resdir) {
     dt$isBug <- ifelse(dt$IssueType=="Bug", 1, 0)
 
     ## Combine the data with information from the git log, especially lines added/removed.
-    gitlog.dat <- fread(file.path(range.resdir, "file_metrics.csv"))
-    dt.final <- merge(dt, gitlog.dat, by.x = c("commitHash","file"),
-                      by.y=c("commitHash","filePath"), all.x=TRUE)
+    dt.final <- merge(dt, gitlog.dat, by.x = c("commitHash","filePath", "description"),
+                      by.y=c("commitHash","filePath", "description"), all.x=TRUE)
     write.csv(dt.final, file=file.path(range.resdir, "time_based_metrics.csv"),
               row.names=FALSE)
 }
