@@ -180,6 +180,19 @@ def getLoC(repo, gitHash, filePath):
 
     return(len(lines))
 
+def prepare_base(l, commit_map):
+    line = l.split()
+
+    commitHash = line[0]
+    commitDate = " ".join(line[1:4])
+    authorDate = " " .join(line[4:7])
+    description = commit_map[commitHash]
+
+    # Prepare output line for the files associated to the commit
+    commit = [None, None, None, None, commitHash,
+              commitDate, authorDate, description]
+    return(commit)
+
 def parseGitLogOutput(dat, dat_hashes, repo, outfile):
     commitFileLOC = []
     fileSizeHash = {} # Store current LoC after each commit, and identify if it is
@@ -194,25 +207,16 @@ def parseGitLogOutput(dat, dat_hashes, repo, outfile):
 
         # Line 0 has format
         # "97e131d5a2d4140fec02aa3a05b5554b6fc289f4 2016-04-15 11:50:40 +0900 2016-04-15 11:50:40 +0900"
-        line = change_lines[0].split()
-        commitHash = line[0]
-        committerDate = line[1]
-        committerHour = line[2]
-        comitterZone = line[3]
-        authorDate = line[4]
-        authorHour = line[5]
-        authorZone = line[6]
-        description = commit_map[commitHash]
-
-        # Prepare output line for the files associated to the commit
-        commit = [None, None, None, None, commitHash, committerDate,
-                  committerHour, comitterZone, authorDate, authorHour,
-                  authorZone, description]
+        commit = prepare_base(change_lines[0], commit_map)
 
         # All other lines have format
         # <added> <deleted> <filename>, for instance
         #"3	13	path/to/file.java"
         for change in change_lines[1:]:
+            if change.count('\t') != 2:
+                commit = prepare_base(change, commit_map)
+                continue
+
             line = change.split()
 
             linesAdded = line[0]
@@ -249,9 +253,8 @@ def parseGitLogOutput(dat, dat_hashes, repo, outfile):
     with open(outfile, 'w') as out:
         csv_out = csv.writer(out)
         csv_out.writerow(['filePath', 'linesAdded', 'linesRemoved',
-                          'CountLineCode', 'commitHash', 'committerDate',
-                          'comitterHour', 'comitterZone', 'authorDate',
-                          'authorHour', 'authorZone', 'description'])
+                          'CountLineCode', 'commitHash', 'commitDate',
+                          'authorDate', 'description'])
         for row in commitFileLOC:
             csv_out.writerow(row)
 

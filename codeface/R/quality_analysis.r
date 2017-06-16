@@ -2,6 +2,7 @@ source("db.r")
 s <- suppressPackageStartupMessages
 s(library(stringr))
 s(library(plyr))
+s(library(lubridate))
 
 get.corrective.count <- function(con, project.id, start.date, end.date,
                                  entity.type) {
@@ -42,15 +43,18 @@ get.corrective.count <- function(con, project.id, start.date, end.date,
 load.defect.data <- function(filename, relevant.files, start.date, end.date) {
     defect.dat <- read.csv(filename, header=TRUE, stringsAsFactors=FALSE)
 
-    defect.dat$commitDate <- str_c(defect.dat$committerDate, " ", defect.dat$committeHour)
+    defect.dat$commitDate <- ymd_hms(defect.dat$commitDate)
+    start.date <- ymd(start.date)
+    end.date <- ymd(end.date)
+
     defect.dat <- defect.dat[defect.dat$commitDate >= start.date & defect.dat$commitDate < end.date,]
 
     ## Determine the LoC of each file when it was last modified during the
     ## range. This value is used to represent LoC for the range.
     file.loc.max <- ddply(defect.dat, .(filePath),
-                           function(df) {
-                               df[which.max(as.Date(df$commitDate)),
-                                  c("filePath", "CountLineCode")]
+                          function(df) {
+                              return(df[which.max(df$commitDate),
+                                  c("filePath", "CountLineCode")])
                            })
 
     defect.dat$churn <- defect.dat$linesAdded + defect.dat$linesRemoved
