@@ -241,12 +241,13 @@ signal.signal(signal.SIGTERM, handle_sigterm)
 # Also dump on sigusr1, but do not terminate
 signal.signal(signal.SIGUSR1, handle_sigusr1)
 
-def execute_command(cmd, ignore_errors=False, direct_io=False, cwd=None):
+def execute_command(cmd, ignore_errors=False, direct_io=False, cwd=None, silent_errors=False):
     '''
     Execute the command `cmd` specified as a list of ['program', 'arg', ...]
-    If ignore_errors is true, a non-zero exit code will be ignored, otherwise
-    an exception is raised.
-    If direct_io is True, do not capture the stdin and stdout of the command
+    If ignore_errors is true, a non-zero exit code will be ignored (and a warning
+    messages will be issued), otherwise an exception is raised. If silent_errors is True,
+    no messages will be emitted even in case of an error (but exceptions will still be raised).
+    If direct_io is True, do not capture the stdin and stdout of the command.
     Returns the stdout of the command.
     '''
     jcmd = " ".join(cmd)
@@ -263,10 +264,11 @@ def execute_command(cmd, ignore_errors=False, direct_io=False, cwd=None):
 
     if pipe.returncode != 0:
         if ignore_errors:
-            log.warning("Command '{}' failed with exit code {}. Ignored.".
-                    format(jcmd, pipe.returncode))
+            if not(silent_errors):
+                log.warning("Command '{}' failed with exit code {}. Ignored.".
+                            format(jcmd, pipe.returncode))
         else:
-            if not direct_io:
+            if not(direct_io) and not(silent_errors):
                 log.info("Command '{}' stdout:".format(jcmd))
                 for line in stdout.splitlines():
                     log.info(line)
@@ -276,7 +278,8 @@ def execute_command(cmd, ignore_errors=False, direct_io=False, cwd=None):
             msg = "Command '{}' failed with exit code {}. \n" \
                   "(stdout: {}\nstderr: {})"\
                   .format(jcmd, pipe.returncode, stdout, stderr)
-            log.error(msg)
+            if not(silent_errors):
+                log.error(msg)
             raise Exception(msg)
     return stdout
 
