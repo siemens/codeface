@@ -182,35 +182,39 @@ def getLoC(repo, gitHash, filePath):
 
 def parseGitLogOutput(dat, dat_hashes, repo, outfile):
     commitFileLOC = []
-    fileSizeHash = {} # Store LoC after each commit and identify if it is
-                  # the first ocurrence of the file
+    fileSizeHash = {} # Store current LoC after each commit, and identify if it is
+                      # the first ocurrence of the file (when there is no hash entry yet)
     commit = None
 
     # Create a hash table that maps commits hashes to commit subjects
     commit_map = dict([(h, subject) for (h, subject) in [line.split(' ', 1) for line in dat_hashes]])
 
-    for i, log_line in enumerate(dat):
-        line = log_line.split()
-        if len(line) == 7:
-            # Lines of length 7 have format
-            # "97e131d5a2d4140fec02aa3a05b5554b6fc289f4 2016-04-15 11:50:40 +0900 2016-04-15 11:50:40 +0900"
-            commitHash = line[0]
-            committerDate = line[1]
-            committerHour = line[2]
-            comitterZone = line[3]
-            authorDate = line[4]
-            authorHour = line[5]
-            authorZone = line[6]
-            description = commit_map[commitHash]
+    for change_block in dat:
+        change_lines = change_block.splitlines()
 
-            # Prepare output line for the files associated to the commit
-            commit = [None, None, None, None, commitHash, committerDate,
-                      committerHour, comitterZone, authorDate, authorHour,
-                      authorZone, description]
-        elif len(line) == 3:
-            # Lines of length three have the format
-            # <added> <deleted> <filename>, for instance
-            #"3	13	path/to/file.java"
+        # Line 0 has format
+        # "97e131d5a2d4140fec02aa3a05b5554b6fc289f4 2016-04-15 11:50:40 +0900 2016-04-15 11:50:40 +0900"
+        line = change_lines[0].split()
+        commitHash = line[0]
+        committerDate = line[1]
+        committerHour = line[2]
+        comitterZone = line[3]
+        authorDate = line[4]
+        authorHour = line[5]
+        authorZone = line[6]
+        description = commit_map[commitHash]
+
+        # Prepare output line for the files associated to the commit
+        commit = [None, None, None, None, commitHash, committerDate,
+                  committerHour, comitterZone, authorDate, authorHour,
+                  authorZone, description]
+
+        # All other lines have format
+        # <added> <deleted> <filename>, for instance
+        #"3	13	path/to/file.java"
+        for change in change_lines[1:]:
+            line = change.split()
+
             linesAdded = line[0]
             linesRemoved = line[1]
             filePath = line[2]
@@ -239,7 +243,6 @@ def parseGitLogOutput(dat, dat_hashes, repo, outfile):
                 commit[3] = fileSizeHash[filePath]
 
             commitFileLOC.append(tuple(commit))
-        # All other lines in the output are blank lines, and are ignored
 
     log.devinfo("Storing git log output in {}".format(outfile))
     with open(outfile, 'w') as out:
@@ -275,14 +278,14 @@ def parseCommitLoC(conf, dbm, project_id, range_id, start_rev, end_rev, outdir, 
     cmd_git = "git --git-dir={0} log --numstat --reverse --no-merges ".format(repo).split()
     cmd_git.append("--pretty=format:%H% ci %ai")
     cmd_git.append("{0}..{1}".format(start_rev, end_rev))
-    dat = execute_command(cmd_git).splitlines()
+    change_blocks = execute_command(cmd_git).split("\n\n")
 
     cmd_git = "git --git-dir={0} log --reverse --no-merges ".format(repo).split()
     cmd_git.append("--pretty=format:%H %s")
     cmd_git.append("{0}..{1}".format(start_rev, end_rev))
-    dat_hashes = execute_command(cmd_git).splitlines()
+    hash_description = execute_command(cmd_git).splitlines()
 
-    parseGitLogOutput(dat, dat_hashes, repo, os.path.join(outdir, "file_metrics.csv"))
+    parseGitLogOutput(change_blocks, hash_description, repo, os.path.join(outdir, "file_metrics.csv"))
 
 if __name__ == "__main__":
     # NOTE: When the script is executed manually via command line, we
