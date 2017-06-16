@@ -217,7 +217,8 @@ def parseGitLogOutput(dat, dat_hashes, repo, outfile):
 
             linesAdded = line[0]
             linesRemoved = line[1]
-            filePath = line[2]
+            filePath = " ".join(line[2:]) # Note: line[2] is not sufficient because the file name
+                                          # can contain spaces
 
             # If file can't be parsed by git (usually binary files), a
             # "-" is used as prefix. We skip these files.
