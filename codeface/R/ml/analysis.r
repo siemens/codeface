@@ -175,6 +175,12 @@ analyse.networks <- function(forest, interest.networks, communication.network) {
       return(NULL)
   }
 
+  if (is.null(interest.networks$subject) || is.null(interest.networks$content)) {
+      ## If any of the analysed networks contains no data, don't even try to
+      ## handle only the other one to simplify the analysis code.
+      return(NULL)
+  }
+
   networks.subj <- gen.combined.network(interest.networks$subject,
                                         communication.network)
   networks.cont <- gen.combined.network(interest.networks$content,
@@ -866,6 +872,11 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
 compute.twomode.graphs <- function(conf, interest.networks) {
   ## TODO: Should max.persons be made configurable? Better would
   ## be to find a heuristic to compute a good value
+  if (is.null(interest.networks$subject) ||
+      is.null(interest.networks$content)) {
+      return(NULL)
+  }
+
   g.subj <- construct.twomode.graph(interest.networks$subject$edgelist,
                                     interest.networks$subject$adj.matrix,
                                     NA, max.persons=30)
@@ -950,7 +961,9 @@ store.data <- function(conf, res, range.id, ml.id) {
   if (!is.null(res$networks.dat)) {
     store.initiate.response(conf, res$networks.dat$ir, ml.id, range.id)
   }
-  store.twomode.graphs(conf, res$twomode.graphs, ml.id, range.id)
+  if (!is.null(res$twomode.graphs)) {
+      store.twomode.graphs(conf, res$twomode.graphs, ml.id, range.id)
+  }
   store.communication.graph(conf, res$communication.network, range.id)
 }
 

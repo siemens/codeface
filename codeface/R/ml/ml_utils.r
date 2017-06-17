@@ -156,10 +156,13 @@ gen.net <- function(type, termfreq, data.path, max.terms) {
   }
 
   res <- centrality.edgelist(termfreq, type, data.path, max.terms)
-  adj.matrix <- adjacency(res$edgelist, mode="addvalues", directed=FALSE)
-
-#  print(ggplot(data.frame(x=res[[2]]), aes(x=x)) + geom_histogram(binwidth=1))
-  return(list(edgelist=res$edgelist, adj.matrix=adj.matrix))
+  if (!is.null(res$edgelist)) {
+      adj.matrix <- adjacency(res$edgelist, mode="addvalues", directed=FALSE)
+      return(list(edgelist=res$edgelist, adj.matrix=adj.matrix))
+  } else {
+      logwarn(paste("Edgelist for ", type, " network is empty!", sep=""))
+      return(NULL)
+  }
 }
 
 ## When a mail without properly specified author is encountered, the
