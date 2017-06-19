@@ -20,6 +20,7 @@ s <- suppressPackageStartupMessages
 s(library(ggplot2))
 s(library(lubridate))
 s(library(dplyr))
+s(library(gtable))
 
 source("query.r")
 source("utils.r")
@@ -93,7 +94,7 @@ dispatch.all <- function(conf, resdir) {
 
     corr.dat <- do.call(rbind, res)
     if (is.null(res)) {
-        logerror(str_c("No conway results available, exitting early "
+        logerror(str_c("No conway results available, exitting early ",
                        "(did no range contain communication relations?)", sep=""), logger="conway")
         stop()
     }
@@ -103,13 +104,39 @@ dispatch.all <- function(conf, resdir) {
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
 
     corr.dat$date <- as.Date(corr.dat$date)
-    corr.label <- "Correlated\nQuantities"
-    g <- ggplot(corr.dat, aes(x=date, y=value, colour=combination, shape=combination)) +
-        geom_point() + geom_line() +  scale_x_date("Date", date_labels="%m-%Y") + ylab("Correlation") +
-        ggtitle(make.title(conf, motif.type)) + scale_colour_discrete(corr.label) +
-        scale_shape_discrete(corr.label) + theme_bw()
-    ggsave(plot.file, g, width=7, height=3)
+    corr.label <- "Correlation"
+    ## To avoid plotting too many lines into a single graph, split
+    ## the available correlation data in chunks of 6 lines per panel.
+    series.per.panel <- 6    # This is the maximal is symbols in ggplot2
+    num.panels <- ceiling(length(unique(corr.dat$combination))/series.per.panel)
+    map.panels <- data.frame(combination=unique(corr.dat$combination),
+                             panel=ceiling(seq_along(unique(corr.dat$combination))/series.per.panel))
+    corr.dat$panel <- corr.dat$combination
+    corr.dat$panel <- mapvalues(corr.dat$panel, map.panels$combination, map.panels$panel)
+    plots <- lapply(1:num.panels, function(i) {
+        g <- ggplot(corr.dat[corr.dat$panel==i,], aes(x=date, y=value,
+                                                      colour=combination, shape=combination)) +
+             geom_point() + geom_line() + scale_x_date("", date_labels="%m-%Y") +
+             ylab("Correlation") +  theme_bw() +
+             expand_limits(y=c(-1,1))
 
+        shape.colour.label <- ""
+        if (i==1) {
+            g <- g + ggtitle(make.title(conf, motif.type))
+            shape.colour.label <- corr.label
+        } else if (i==num.panels) {
+            g <- g + xlab("Date")
+        }
+
+        g <- g + scale_colour_discrete(shape.colour.label) +
+                 scale_shape_discrete(shape.colour.label)
+        return(g)
+    })
+
+    ## Combine all plots into a column panel with some ggplot2 and gtable magic
+    grobs <- lapply(plots, ggplotGrob)
+    g <- gtable_col("plots",grobs, unit(7, "in"), unit(rep(3, num.panels), c("in")))
+    ggsave(plot.file, g, width=7, height=3*num.panels)
 
     ## ###############################################################
     ## Compute a time series with absolute data counts for the previous correlation computations
