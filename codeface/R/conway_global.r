@@ -92,6 +92,12 @@ dispatch.all <- function(conf, resdir) {
     })
 
     corr.dat <- do.call(rbind, res)
+    if (is.null(res)) {
+        logerror(str_c("No conway results available, exitting early "
+                       "(did no range contain communication relations?)", sep=""), logger="conway")
+        stop()
+    }
+
     plot.file <- file.path(resdir, str_c("correlations_ts_", motif.type, "_",
                                         conf$communicationType, ".pdf"))
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
