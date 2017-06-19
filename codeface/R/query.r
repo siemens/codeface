@@ -262,6 +262,12 @@ get.commit.hashes.by.range <- function(conf, range.id) {
   return(get.commit.hashes.by.range.con(conf$con, conf$pid, range.id))
 }
 
+get.commit.message <- function(conf, cmt.hash) {
+  dat <- dbGetQuery(conf$con, str_c("SELECT description FROM commit ",
+                               "WHERE commitHash='", cmt.hash, "'", sep=""))
+  return(dat$description)
+}
+
 ## Get scaled commit infos for all cycles of pid
 ## This is similar to get.commits.by.ranges, but does not require
 ## a full conf object
