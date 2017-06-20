@@ -454,9 +454,9 @@ check.corpus.precon <- function(corp.base) {
 ## ################### Let the above rip ########################
 
 dispatch.all <- function(conf, repo.path, resdir) {
-  loginfo("Starting mailinglist analysis", logger="ml.analysis")
+  logdevinfo("Starting mailinglist analysis", logger="ml.analysis")
   corp.base <- gen.forest(conf, repo.path, resdir, use.mbox = !conf$use_corpus)
-  loginfo("corp.base finished", logger="ml.analysis")
+  logdevinfo("corp.base finished", logger="ml.analysis")
   ## TODO: When we consider incremental updates, would it make sense
   ## to just update the corpus, and let all other operations run
   ## from scratch then? This would likely be the technically easiest
@@ -503,6 +503,12 @@ dispatch.all <- function(conf, repo.path, resdir) {
     nonempty.release.intervals <- NULL
   }
 
+  ## Make release labels easier to read when automatically constructed
+  ## ranges are used
+  release.labels <- lapply(1:length(release.labels), function(i) {
+      return(gen.range.path(i, release.labels[[i]]))
+  })
+
   ## Obtain a unique numerical ID for the mailing list (and clear
   ## any existing results on the way)
   ml.id <- gen.clear.ml.id.con(conf$con, conf$listname, conf$pid)
@@ -511,7 +517,7 @@ dispatch.all <- function(conf, repo.path, resdir) {
     loginfo("Mailing list does not cover any release range.")
   }
   else {
-    loginfo("Analysing subsequences", logger="ml.analysis")
+    logdevinfo("Analysing subsequences", logger="ml.analysis")
 
     ## Also obtain a clear plot for the mailing list activity
     activity.plot.name <- str_c(conf$listname, " activity")
@@ -523,7 +529,7 @@ dispatch.all <- function(conf, repo.path, resdir) {
 
   ## #######
   ## Global analysis
-  loginfo("Global analysis", logger="ml.analysis")
+  loginfo("Performing global mailing list analysis", logger="ml.analysis")
   ## NOTE: We only compute the forest for the complete interval to allow for creating
   ## descriptive statistics.
   corp <- corp.base$corp
@@ -563,9 +569,9 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
                                   function(i) meta(corp.base$corp[[i]], tag="datetimestamp")))
 
   loginfo(paste(length(corp.base$corp), "messages in corpus"), logger="ml.analysis")
-  loginfo(paste("Date range is", as.character(int_start(iter[[1]])), "to",
+  logdevinfo(paste("Date range is", as.character(int_start(iter[[1]])), "to",
       as.character(int_end(iter[[length(iter)]]))), logger="ml.analysis")
-  loginfo(paste("=> Analysing ", conf$listname, "in", length(iter), "subsets"),
+  logdevinfo(paste("=> Analysing ", conf$listname, "in", length(iter), "subsets"),
           logger="ml.analysis")
 
   ## NOTE: Everything that is supposed to be computed in parallel needs to
@@ -573,8 +579,9 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
   res <- mclapply.db(conf, 1:length(iter), function(conf, i) {
     ## Determine the corpus subset for the interval
     ## under consideration
-    loginfo(paste("Processing interval ", i, ": ", labels[[i]]),
-            logger="ml.analysis")
+      loginfo(paste("Processing interval ", i, "/", length(labels), " (",
+                    labels[[i]], ")", sep=""),
+              logger="ml.analysis")
 
     ## Prepare a single-parameter version of do.normalise that does
     ## not expose the conf object -- the concept is not known to snatm
@@ -605,7 +612,7 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
       loginfo(paste("Failed to process interval ", i, ": ", labels[[i]]),
               logger="ml.analysis")
     } else {
-      loginfo(paste(" -> Finished interval ", i, ": ", labels[[i]]),
+      logdevinfo(paste(" -> Finished interval ", i, "/", length(labels), sep=""),
               logger="ml.analysis")
     }
   })
