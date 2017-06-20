@@ -511,24 +511,6 @@ dispatch.all <- function(conf, repo.path, resdir) {
     loginfo("Mailing list does not cover any release range.")
   }
   else {
-    ## TODO: Find some measure (likely depending on the number of messages per
-    ## time) to select suitable time intervals of interest. For many projects,
-    ## weekly (and monthly) are much too short, and longer intervals need to
-    ## be considered.
-    periodic.analysis <- FALSE
-    if (periodic.analysis) {
-      loginfo("Periodic analysis", logger="ml.analysis")
-      ## Select weekly and monthly intervals (TODO: With the new flexible
-      ## intervals in place, we could select proper monthly intervals)
-      iter.weekly <- gen.iter.intervals(dates, 1)
-      iter.4weekly <- gen.iter.intervals(dates, 4)
-
-      analyse.sub.sequences(conf, corp.base, iter.weekly, repo.path, resdir,
-                            paste("weekly", 1:length(iter.weekly), sep=""))
-      analyse.sub.sequences(conf, corp.base, iter.4weekly, repo.path, resdir,
-                            paste("4weekly", 1:length(iter.4weekly), sep=""))
-    }
-
     loginfo("Analysing subsequences", logger="ml.analysis")
 
     ## Also obtain a clear plot for the mailing list activity
