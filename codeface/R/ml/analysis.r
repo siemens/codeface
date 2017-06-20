@@ -627,11 +627,6 @@ analyse.sub.sequences <- function(conf, corp.base, iter, repo.path,
 
 dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
                            ml.id, activity.plot.id) {
-  ## TODO: Check how we can speed up prepare.text. And think about if the
-  ## function is really neccessary. With stemming activated, I doubt
-  ## that it really pays off.
-###prep <- prepare.text(forest, progress=TRUE)
-####save(file=file.path(data.path, paste("prep", ml, sep=".")), prep)
   communication.network <- compute.commnet(forest.corp, data.path)
   if (!is.matrix(communication.network)) {
     ## We could not create a communication network, so
