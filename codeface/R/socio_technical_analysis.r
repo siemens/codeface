@@ -119,7 +119,8 @@ compute.communication.relations <- function(conf, communication.type,
     return(comm.dat)
 }
 
-## Compute entity-entity relations
+## Compute entity-entity relations, that is, couplings between non-person
+## artefacts (functions with functions, files with files, etc.)
 compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
                                  dependency.type, artifact.type,
                                  dsm.filename, historical.limit) {
@@ -467,7 +468,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     comm.inter.dat <- comm.dat[comm.dat$V1 %in% node.dev &
                                comm.dat$V2 %in% node.dev,]
 
-    if (dim(comm.inter.dat)[1] == 0) {
+    if (nrow(comm.inter.dat) == 0) {
         loginfo("No overlap between VCS and communication data, exiting analysis early!",
                 logger="conway")
         return(NULL)

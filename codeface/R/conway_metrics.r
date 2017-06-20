@@ -31,10 +31,12 @@ do.generate.conway.metrics <- function(global.resdir, range.resdir) {
     commitFiles <- gitlog.dat[,c("commitHash", "filePath", "description")]
 
     ## Extract issue IDs
-    ## TODO: This searches for the identifier in the whole commit message, not just
-    ## in the subject. Is this what we want? Besides, we should adapt this per
-    ## project because they use different conventions to refer to bugs.
-    commitFiles$issueId <- str_match(commitFiles$description,'[A-Z]+-[0-9]+')
+    ## The method should be adapted per project because they use
+    ## different conventions to refer to bugs.
+    ## Other projects might store this information in the commit description,
+    ## so we should also include this information somewhere
+    ## TODO: A commit can also refer to multiple issues
+    commitFiles$issueId <- str_match(commitFiles$description, '[A-Z]+-[0-9]+')
 
     ## The data in jira-comment-authors-with-email.csv deliver a list of jira
     ## issues for the project, and a connection between authors (ids and emails
