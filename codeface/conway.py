@@ -126,7 +126,13 @@ def parse_jira_issues(xmldir, resdir, jira_url, jira_user, jira_password):
     merged = pd.merge(comment_authors_df, email_df, on='AuthorID')
 
     # ... and store the results as CSV file (TODO: Place this in the codeface DB)
-    merged.to_csv(os.path.join(resdir, "jira-comment-authors-with-email.csv"), index=False)
+    # Contains the columns
+    # IssueID (e.g., HIVE-1937)
+    # IssueType (e.g., Bug, New Feature, ...)
+    # AuthorID (alphanumeric jira id, e.g., cwstein)
+    # CommentTimestamp (format: Tue, 1 Feb 2011 01:47:11 +0000)
+    # userEmail (pure address without name, e.g., abc@apache.org)
+    merged.to_csv(os.path.join(resdir, "jira_issue_comments.csv"), index=False)
 
 
 def dispatch_jira_processing(resdir, titandir, conf):
@@ -160,7 +166,7 @@ def dispatch_jira_processing(resdir, titandir, conf):
         # TODO: This raises an error when $DISPLAY is set since it tries to open a GUI windo
         execute_command(cmd)
 
-    if (os.path.isfile(os.path.join(resdir, "jira-comment-authors-with-email.csv"))):
+    if (os.path.isfile(os.path.join(resdir, "jira_issue_comments.csv"))):
         log.info("Jira result file already exists, skipping generation")
     else:
         parse_jira_issues(xmldir, resdir, conf["issueTrackerURL"], conf["issueTrackerUser"],
@@ -289,7 +295,18 @@ def parseCommitLoC(conf, dbm, project_id, range_id, start_rev, end_rev, outdir, 
     cmd_git.append("{0}..{1}".format(start_rev, end_rev))
     hash_description = execute_command(cmd_git).splitlines()
 
-    parseGitLogOutput(change_blocks, hash_description, repo, os.path.join(outdir, "file_metrics.csv"))
+    # file_metrics.csv contains information about changes to individual files
+    # over time. One line describes the action of one commit acting on the file.
+    # It contains the following columns:
+    # filePath: full relative path of the file (e.g., core/sched/deadline.c)
+    # linesAdded,linesRemoved: # of code lines added/removed by the commit, numeric
+    # CountLineCode: LoC (raw lines of code at the current state)
+    # commitHash: id of the commit introducing the change
+    # commitDate, authorDate (format: e.g., 2015-12-22 19:58:02 -0800)
+    # description: Commit subject line
+    # The file is created for each release range
+    parseGitLogOutput(change_blocks, hash_description, repo,
+                      os.path.join(outdir, "file_metrics.csv"))
 
 if __name__ == "__main__":
     # NOTE: When the script is executed manually via command line, we

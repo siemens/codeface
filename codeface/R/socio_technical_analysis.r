@@ -387,8 +387,8 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
 
     dsm.filename <- file.path(titandir, "sdsm", "project.sdsm")
     feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
-    jira.filename <- file.path(global.resdir, "jira-comment-authors-with-email.csv")
-    defect.filename <- file.path(range.resdir, "time_based_metrics.csv")
+    jira.filename <- file.path(global.resdir, "jira_issue_comments.csv")
+    defect.filename <- file.path(range.resdir, "changes_and_issues_per_file.csv")
 
     ## motif.type defines the collaboration pattern that is searched for in the graph
     motif.type <- list("triangle", "square")[[1]]
@@ -422,9 +422,6 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     ## to the developer-artifact relationships
     node.function <- unique(vcs.dat$entity)
     node.dev <- unique(c(vcs.dat$author))
-
-    ## Save to csv TODO: Why do we need to save that?
-    write.csv(vcs.dat, file.path(range.resdir, "commit_data.csv"))
 
     ## Compute various other relationships between contributors and/or entities
     comm.dat <- compute.communication.relations(conf, communication.type,

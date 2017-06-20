@@ -38,10 +38,9 @@ do.generate.conway.metrics <- function(global.resdir, range.resdir) {
     ## TODO: A commit can also refer to multiple issues
     commitFiles$issueId <- str_match(commitFiles$description, '[A-Z]+-[0-9]+')
 
-    ## The data in jira-comment-authors-with-email.csv deliver a list of jira
-    ## issues for the project, and a connection between authors (ids and emails
-    ## addresses) and issues.
-    jiraIssues <- fread(file.path(global.resdir, "jira-comment-authors-with-email.csv"))
+    ## The data in jira_issue_comments.csv deliver a list of comments on jira
+    ## issues, together with authors (id and email) information.
+    jiraIssues <- fread(file.path(global.resdir, "jira_issue_comments.csv"))
 
     ## Group table to only contain the issues. We don't need the comments to identify
     ## the issue type.
@@ -59,7 +58,20 @@ do.generate.conway.metrics <- function(global.resdir, range.resdir) {
     ## Combine the data with information from the git log, especially lines added/removed.
     dt.final <- merge(dt, gitlog.dat, by.x = c("commitHash","filePath", "description"),
                       by.y=c("commitHash","filePath", "description"), all.x=TRUE)
-    write.csv(dt.final, file=file.path(range.resdir, "time_based_metrics.csv"),
+
+    ## The results are stored for every release range, and contains an entry
+    ## for every change to a file in every commit
+    ## commitHash: id of the commit introducing the change
+    ## filePath: full relative path of the file (e.g., core/sched/deadline.c)
+    ## description: Commit subject line
+    ## issueId: JIRA issue ID (e.g., HIVE-1937)
+    ## IssueType (e.g., Bug, New Feature, ...) NOTE: Braindead upper/lower
+    ##                                         case convention for these fields...
+    ## isBug: Binary indicator if a change is linked to a bug issue (0/1/NA)
+    ## linesAdded,linesRemoved: # of code lines added/removed by the commit (numeric)
+    ## CountLineCode: LoC (raw lines of code at the current state)
+    ## commitDate, authorDate (format: e.g., 2015-12-22 19:58:02 -0800)
+    write.csv(dt.final, file=file.path(range.resdir, "changes_and_issues_per_file.csv"),
               row.names=FALSE)
 }
 
