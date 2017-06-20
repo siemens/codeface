@@ -367,9 +367,10 @@ check.corpus.precon <- function(corp.base) {
     ## [1] (see https://github.com/wolfgangmauerer/snatm/blob/master/pkg/R/makeforest.r#L47)
 
     ## get the date header as inside the mbox file
-    headers = meta(doc, tag = "header")
-    date.header = grep("^Date: ", headers, value = TRUE, useBytes = TRUE, ignore.case = TRUE)
-    date.header = gsub("^Date: ", "", date.header, ignore.case = TRUE)
+    headers <- meta(doc, tag = "header")
+    date.header <- grep("^Date: ", headers, value = TRUE, useBytes = TRUE,
+                        ignore.case = TRUE)
+    date.header <- gsub("^Date: ", "", date.header, ignore.case = TRUE)
 
     ## break early if 'Date' header is missing
     if (length(date.header) == 0) {
@@ -379,40 +380,41 @@ check.corpus.precon <- function(corp.base) {
 
     ## only consider first date header in document if more are given
     if (length(date.header) > 1) {
-      date.header = date.header[1]
+      date.header <- date.header[1]
     }
 
     ## patterns without time-zone pattern
-    date.formats.without.tz = c(
+    date.formats.without.tz <- c(
       "%a, %d %b %Y %H:%M:%S",  # initially used format; e.g., "Date: Tue, 20 Feb 2009 20:24:54 +0100"
       "%d %b %Y %H:%M:%S",  # missing weekday; e.g., "Date: 20 Feb 2009 20:24:54 +0100"
       "%a, %d %b %Y %H:%M"  # missing seconds; e.g. "Date: Wed, 21 Aug 2013 15:02 +0200"
     )
     ## append time-zone part and incorporate pattern without time-zone indicator
-    date.formats = c(
+    date.formats <- c(
       paste(date.formats.without.tz, "%z", sep = " "),
       date.formats.without.tz
     )
 
     ## try to re-parse the header using adapted patterns:
     ## parse date until any match with a pattern is found (date.new is not NA)
-    date.format.matching = NA
+    date.format.matching <- NA
     for (date.format in date.formats) {
-      date.new = strptime(date.header, format = date.format, tz = "GMT")
+      date.new <- strptime(date.header, format = date.format, tz = "GMT")
 
       # if the date has been parsed correctly, break the loop
       if (!is.na(date.new)) {
-        date.format.matching = date.format
+        date.format.matching <- date.format
         break()
       }
     }
 
     ## store time offset (i.e., time zone) away from GMT
     if (!is.na(date.format.matching)) {
-      date.offset = format(strptime(date.header, format = date.format.matching, tz = ""), format = "%z")
-      date.offset = as.integer(date.offset)
+        date.offset <- format(strptime(date.header, format = date.format.matching,
+                                       tz = ""), format = "%z")
+        date.offset <- as.integer(date.offset)
     } else {
-      date.offset = 0
+        date.offset <- 0
     }
 
     return(list(date.new, date.offset))
@@ -421,7 +423,7 @@ check.corpus.precon <- function(corp.base) {
   ## Fix subject (remove problematic characters)
   fix.subject <- function(doc) {
     ## get subject from headers
-    subject = meta(doc, tag = "heading")
+    subject <- meta(doc, tag = "heading")
 
     ## Remove TABS -- dbWriteTable cannot handle these properly
     subject <- gsub("\t", " ", subject, fixed=TRUE, useBytes=TRUE)
@@ -434,7 +436,7 @@ check.corpus.precon <- function(corp.base) {
     meta(doc, tag="header") <- rmv.multi.refs(doc)
     meta(doc, tag="author") <- fix.author(doc)
 
-    fixed.date = fix.date(doc)
+    fixed.date <- fix.date(doc)
     meta(doc, tag="datetimestamp") <- fixed.date[[1]]
     meta(doc, tag="datetimestampOffset") <- fixed.date[[2]]
 
@@ -524,7 +526,6 @@ dispatch.all <- function(conf, repo.path, resdir) {
     activity.plot.id <- get.clear.plot.id(conf, activity.plot.name)
     analyse.sub.sequences(conf, corp.base, release.intervals, repo.path, resdir,
                           release.labels, ml.id, activity.plot.id)
-
   }
 
   ## #######
@@ -541,14 +542,13 @@ dispatch.all <- function(conf, repo.path, resdir) {
     return(do.normalise(conf, authors))
   }
 
-  ## sort corpus by date
-  dates.vector = do.call(c, meta(corp, "datetimestamp"))
-  dates.order = order(dates.vector)
-  corp = corp[dates.order]
+  ## Sort corpus by date
+  dates.vector <- do.call(c, meta(corp, "datetimestamp"))
+  dates.order <- order(dates.vector)
+  corp <- corp[dates.order]
 
   forest.corp <- list(forest=make.forest(corp, do.normalise.bound),
-                      corp=corp,
-                      corp.orig=corp.base$corp.orig)
+                      corp=corp, corp.orig=corp.base$corp.orig)
 
   ## Store all mails to database
   store.mail(conf, forest.corp$forest, corp, ml.id)
@@ -674,7 +674,8 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
 
 
   ## Compute base data for time series analysis
-  msgs <- lapply(forest.corp$corp, function(x) { as.POSIXct(meta(x, tag="datetimestamp")) })
+  msgs <- lapply(forest.corp$corp, function(x) {
+      as.POSIXct(meta(x, tag="datetimestamp")) })
   msgs <- do.call(c, msgs)
 
   series <- xts(rep(1,length(msgs)), order.by=msgs)
@@ -754,8 +755,8 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
   ## be a problem of gmane -- identical messages are already present in
   ## the data source (for instance, 01075 13718 16269 for openssl are identical,
   ## only the time stamps differ slightly)
-  if (dim(thread.info)[1] > MAX.SUBJECTS) {
-    thread.info.cut <- thread.info[1:200,]
+  if (nrow(thread.info) > MAX.SUBJECTS) {
+    thread.info.cut <- thread.info[1:MAX.SUBJECTS,]
   } else {
     thread.info.cut <- thread.info
   }
@@ -910,7 +911,7 @@ store.mail <- function(conf, forest, corp, ml.id ) {
 
   ## Re-order columns to match the order as defined in the database to
   ## improve the stability
-  dat = dat[c("projectId", "threadId", "mlId", "author", "subject",
+  dat <- dat[c("projectId", "threadId", "mlId", "author", "subject",
               "creationDate", "creationDateOffset", "messageId")]
 
   res <- dbWriteTable(conf$con, "mail", dat, append=TRUE, row.names=FALSE)
