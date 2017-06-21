@@ -237,8 +237,6 @@ def mailinglist_analyse(resdir, mldir, codeface_conf, project_conf, loglevel,
 
 def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
                    loglevel, logfile, n_jobs):
-    conf = Configuration.load(codeface_conf, project_conf)
-
     log.info("Performing conway analysis")
 
     pool = BatchJobPool(int(n_jobs))
