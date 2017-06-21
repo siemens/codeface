@@ -1,3 +1,5 @@
+#! /usr/bin/env Rscript
+
 ## This file is part of Codeface. Codeface is free software: you can
 ## redistribute it and/or modify it under the terms of the GNU General Public
 ## License as published by the Free Software Foundation, version 2.
@@ -20,11 +22,12 @@
 ## are then used to identify collaboration challenges by identifying
 ## strong coupling between functions with different owners
 
-source("db.r")
-source("config.r")
-source('dependency_analysis.r')
-
-require(igraph)
+source("../db.r", chdir=TRUE)
+source("../query.r", chdir=TRUE)
+source("../config.r", chdir=TRUE)
+source("../dependency_analysis.r", chdir=TRUE)
+library(igraph)
+library(lubridate)
 
 query.max.owner <- function(con, start.date, end.date) {
   query <- str_c('SELECT name, file, entityId, size ',
@@ -52,14 +55,11 @@ query.max.owner <- function(con, start.date, end.date) {
 }
 
 
-run.analysis <- function(project.id, start.date, end.date) {
-  if(!exists('dbcon')) {
-    con <- connect.db("../../codeface.conf")$con
-    dbcon <- TRUE
-  }
+run.analysis <- function(conf, start.date, end.date) {
+  project.id <- conf$pid
 
   ## Get ownership relationships
-  owner.df <- query.max.owner(con, start.date, end.date)
+  owner.df <- query.max.owner(conf$con, start.date, end.date)
   owner.edgelist <- subset(owner.df, select = c(name, entity))
   owner.list <- unique(owner.df$name)
   entity.owner.dic <-split(owner.df$name, owner.df$entity)
@@ -67,7 +67,7 @@ run.analysis <- function(project.id, start.date, end.date) {
   ## Get frequent item set relationships
   learning.span <- ddays(365)
   learning.start.date <- start.date - learning.span
-  freq.items <- get.frequent.item.sets(con, project.id, learning.start.date, end.date)
+  freq.items <- get.frequent.item.sets(conf$con, project.id, learning.start.date, end.date)
   freq.items.edgelist <- compute.item.sets.edgelist(freq.items)
 
   ## Remove edges that don't have evolutionary link
@@ -114,12 +114,15 @@ run.analysis <- function(project.id, start.date, end.date) {
   space <- 3
   #l <- layout.fruchterman.reingold(g, niter=500, area=vcount(g)^space,
   #                                 repulserad=vcount(g)^space)
-  l <- layout.kamada.kawai(g, niter=1000)
-
+  pdf("/tmp/ownership.pdf")
+  plot(g, layout=layout_with_kk, niter=1000)
+  dev.off()
 }
 
-
-start.date <- ymd('2013-01-01')
-end.date <- ymd('2014-01-01')
-
-run.analysis(3, start.date, end.date)
+config.script.run({
+    conf <- config.from.args(positional.args=list("start_date", "end_date"),
+                             require.project=TRUE)
+    start.date <- ymd(conf$start_date)
+    end.date <- ymd(conf$end_date)
+    run.analysis(conf, start.date, end.date)
+})
