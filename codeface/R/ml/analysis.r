@@ -838,8 +838,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
               communication.network=communication.network)
   save(file=file.path(data.path, "vis.data"), res)
 
-  ####### End of actual computation. Generate graphs and store data etc. #######
-  dispatch.plots(conf, data.path, res)
+  ## Store the computed data into the database
   store.data(conf, res, cycle$range.id, ml.id)
 
   return(0) ## Returning a non-NA value signifies success
@@ -941,29 +940,4 @@ store.data <- function(conf, res, range.id, ml.id) {
       store.twomode.graphs(conf, res$twomode.graphs, ml.id, range.id)
   }
   store.communication.graph(conf, res$communication.network, range.id)
-}
-
-create.network.plots <- function(conf, plots.path, res) {
-  ## NOTE: The correlation threshold is quite critical.
-  ## TODO: Find some automatical means based on the maximal number of edges.
-  pdf(file.path(plots.path, "tdm_plot.pdf"))
-  plot(res$doc.matrices$tdm, terms=res$termfreq, corThreshold=0.15, weighting=TRUE)
-  dev.off()
-
-  ## Visualise the correlation between communication network and interests
-  ## (not sure if this is really the most useful piece of information)
-  if (is.null(res$networks.dat)) {
-      return()
-  }
-  g <- ggplot(res$networks.dat$icc, aes(x=centrality, y=dist, colour=type)) +
-    geom_line() +
-      geom_point() + facet_grid(source~.)
-  ggsave(file.path(plots.path, "interest.communication.correlation.pdf"), g)
-}
-
-dispatch.plots <- function(conf, data.path, res) {
-  plots.path <- file.path(data.path, "plots")
-  gen.dir(plots.path)
-
-  create.network.plots(conf, plots.path, res)
 }
