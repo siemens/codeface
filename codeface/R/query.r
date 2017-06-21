@@ -632,9 +632,10 @@ query.contributions.stats.project <- function(con, pid) {
 }
 
 ## Obtain a mapping between local and in-DB mail IDs
-query.mlid.map <- function(con, ml.id) {
+query.mlid.map <- function(con, ml.id, range.id) {
   dat <- dbGetQuery(con, str_c("SELECT id, mailThreadId FROM ",
-                               "mail_thread WHERE mlId=", ml.id))
+                               "mail_thread WHERE mlId=", ml.id,
+                               " AND releaseRangeId=", range.id))
 
   if (!is.null(dat)) {
     colnames(dat) <- c("db.id", "local.id")

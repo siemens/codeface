@@ -809,7 +809,7 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
   ## For each thread, determine the local mail ids of all responses,
   ## find the in-DB IDs for mail and author, and store the information
   ## into the database
-  ml.id.map <- query.mlid.map(conf$con, ml.id)
+  ml.id.map <- query.mlid.map(conf$con, ml.id, cycle$range.id)
 
   dat.replies <- lapply(unique(forest[,"threadID"]), function(thread.id) {
     replies <- lapply(get.followup.emailIDs(thread.id), function(mail.id) {

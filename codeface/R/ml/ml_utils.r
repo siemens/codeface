@@ -428,7 +428,7 @@ gen.agg.smooth.ts <- function(ts, smooth) {
 
 ## Given the result from query.mlid.map, convert local mail thread IDs
 ## to in-db global IDs
-ml.thread.loc.to.glob <- function(ml.id.map, loc.id) {
+ml.thread.loc.to.glob <- function(ml.id.map, loc.id, all.ids=FALSE) {
   global.id <- ml.id.map[ml.id.map$local.id==loc.id,]$db.id
 
   ## gmane.org, for instance, sometimes provides multiple copies
@@ -436,7 +436,9 @@ ml.thread.loc.to.glob <- function(ml.id.map, loc.id) {
   ## in a separate clean-up step; here, just show a warning
   if (length(global.id) > 1) {
     logwarn(str_c("Multiple global IDs for local mail ID ", loc.id, "!"))
-    global.id <- global.id[1]
+    if (!all.ids) {
+        global.id <- global.id[1]
+    }
   }
 
   return(global.id)
