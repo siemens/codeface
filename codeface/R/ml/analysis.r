@@ -14,12 +14,14 @@
 ## Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 ## All Rights Reserved.
 
-suppressPackageStartupMessages(library(zoo))
-suppressPackageStartupMessages(library(xts))
-suppressPackageStartupMessages(library(lubridate))
-suppressPackageStartupMessages(library(tm))
-suppressPackageStartupMessages(library(tm.plugin.mail))
-suppressPackageStartupMessages(library(snatm))
+s <- suppressPackageStartupMessages
+s(library(zoo))
+s(library(xts))
+s(library(lubridate))
+s(library(tm))
+s(library(tm.plugin.mail))
+s(library(snatm))
+s(library(stringr))
 
 source("../db.r", chdir=TRUE)
 source("../utils.r", chdir=TRUE)
@@ -33,6 +35,11 @@ gen.forest <- function(conf, repo.path, resdir, use.mbox=TRUE) {
   ## TODO: Use apt ML specific preprocessing functions, not always the
   ## lkml variant
   corp.file <- file.path(resdir, paste("corp.base", conf$listname, sep="."))
+  mbox.file <- str_c(repo.path, "/", conf$listname, ".mbox")
+  if (!file.exists(mbox.file)) {
+      logerror(str_c("Mailbox file ", mbox.file, " does not exist, aborting analysis"))
+      return(NULL)
+  }
 
   if (use.mbox) {
     corp.base <- gen.corpus(conf$listname, repo.path, suffix=".mbox",
@@ -451,6 +458,9 @@ check.corpus.precon <- function(corp.base) {
 dispatch.all <- function(conf, repo.path, resdir) {
   logdevinfo("Starting mailinglist analysis", logger="ml.analysis")
   corp.base <- gen.forest(conf, repo.path, resdir, use.mbox = !conf$use_corpus)
+  if (is.null(corp.base)) {
+      return()
+  }
   logdevinfo("corp.base finished", logger="ml.analysis")
 
   ## Remove documents in the corpus that do not satisfy the necessary
