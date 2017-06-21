@@ -1,3 +1,25 @@
+## This file is part of Codeface. Codeface is free software: you can
+## redistribute it and/or modify it under the terms of the GNU General Public
+## License as published by the Free Software Foundation, version 2.
+##
+## This program is distributed in the hope that it will be useful, but WITHOUT
+## ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+## FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+## details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+##
+## Copyright 2014 by Siemens AG, Mitchell Joblin <mitchell.joblin@siemens.com>
+## All Rights Reserved.
+
+## Experimental file to use the ideas of code ownership to find owners of functions
+## during a certain revision
+## Coupling between functions is based on evolutionary dependencies. The couplings
+## are then used to identify collaboration challenges by identifying
+## strong coupling between functions with different owners
+
 source("db.r")
 source("config.r")
 source('dependency_analysis.r')
@@ -5,7 +27,6 @@ source('dependency_analysis.r')
 require(igraph)
 
 query.max.owner <- function(con, start.date, end.date) {
-
   query <- str_c('SELECT name, file, entityId, size ',
                  'FROM commit, commit_dependency d1, person ',
                  'WHERE commit.id = d1.commitId ',
