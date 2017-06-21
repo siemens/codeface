@@ -63,15 +63,12 @@ gen.forest <- function(conf, repo.path, resdir, use.mbox=TRUE) {
 
 
 compute.doc.matrices <- function(forest.corp, data.path) {
-  ## TODO: Should we set the minimal wordlength to something larger than 3?
-  ## (see ?termFreq for possible options)
   tdm.file <- file.path(data.path, "tdm")
   dtm.file <- file.path(data.path, "dtm")
 
   doCompute <- !(file.exists(tdm.file)) && !(file.exists(dtm.file))
 
   if (doCompute) {
-    ## TODO: Any arguments against creating dtm as transpose of tdm?
     tdm <- TermDocumentMatrix(forest.corp$corp,
                               list(stemming = FALSE, stopwords = FALSE))
     dtm <- DocumentTermMatrix(forest.corp$corp,
@@ -92,11 +89,9 @@ compute.doc.matrices <- function(forest.corp, data.path) {
 
     save(file=tdm.file, tdm)
     save(file=dtm.file, dtm)
-    ##save(file=file.path(data.path, "diss"), diss)
   } else {
     load(file=tdm.file)
     load(file=dtm.file)
-    ##load(file=file.path(data.path, "diss")
   }
 
   return(list(tdm=tdm, dtm=dtm))
@@ -193,8 +188,6 @@ analyse.networks <- function(forest, interest.networks, communication.network) {
   rm(dat.subj); rm(dat.cont)
 
   ####### Initiation-response (IR) structure for the mailing list ######
-  ## TODO: Determine if any extremal values are outliers
-  ## (this plot seems to be quite informative. Compare for multiple projects)
   dat.subj <- compute.initiate.respond(forest, networks.subj$communication,
                                        networks.subj$centrality)
   dat.cont <- compute.initiate.respond(forest, networks.cont$communication,
@@ -459,10 +452,6 @@ dispatch.all <- function(conf, repo.path, resdir) {
   logdevinfo("Starting mailinglist analysis", logger="ml.analysis")
   corp.base <- gen.forest(conf, repo.path, resdir, use.mbox = !conf$use_corpus)
   logdevinfo("corp.base finished", logger="ml.analysis")
-  ## TODO: When we consider incremental updates, would it make sense
-  ## to just update the corpus, and let all other operations run
-  ## from scratch then? This would likely be the technically easiest
-  ## solution..
 
   ## Remove documents in the corpus that do not satisfy the necessary
   ## preconditions
@@ -745,11 +734,6 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
   MAX.SUBJECTS <- 200
   ## We store at most 200 subjects. This should be plenty for all
   ## reasonable purposes
-  ## TODO: Identical messages appear multiple times in the corpus. This
-  ## needs to be fixed. Grepping in the FS revealed that it seems to
-  ## be a problem of gmane -- identical messages are already present in
-  ## the data source (for instance, 01075 13718 16269 for openssl are identical,
-  ## only the time stamps differ slightly)
   if (nrow(thread.info) > MAX.SUBJECTS) {
     thread.info.cut <- thread.info[1:MAX.SUBJECTS,]
   } else {
@@ -765,11 +749,8 @@ dispatch.steps <- function(conf, repo.path, data.path, forest.corp, cycle,
     stop("Internal error: Could not write freq_subjects into database!")
   }
 
-  ## TODO: Can we classify the messages into content catgories, e.g., technical
-  ## discussions, assistance (helping users), and code submissions?
-
   ## Populate the database. First, create a new entry for each thread
-  ## TODO: Should we store the raw mails as such from the corpus?
+  ## TODO: Store the raw mails in the database for future reference
   ## NOTE: Unique in-DB author IDs are already in forest.corp$forest[,"author"].
   ## These can be used to write data into the DB.
 
