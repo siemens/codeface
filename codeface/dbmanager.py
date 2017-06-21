@@ -73,7 +73,8 @@ class DBManager:
 
     def doExec(self, stmt, args=None):
         with _log_db_error(stmt, args):
-            while True:
+            retryCount = 0
+            while retryCount < 10:
                 try:
                     if isinstance(args, list):
                         res = self.cur.executemany(stmt, args)
@@ -81,17 +82,27 @@ class DBManager:
                         res = self.cur.execute(stmt, args)
                     return res
                 except mdb.OperationalError as dbe:
-                    log.info("DBE args: " + str(dbe.args))
+                    retryCount += 1
+                    log.devinfo("DBE args: " + str(dbe.args))
                     if dbe.args[0] == 1213:  # Deadlock! retry...
-                        log.warning("Recoverable deadlock in MySQL - retrying.")
+                        log.warning("Recoverable deadlock in MySQL - retrying " \
+                                    "(attempt {}).".format(retryCount))
                     elif dbe.args[0] == 2006:  # Server gone away...
-                        log.warning("MySQL Server gone away, trying to reconnect.")
+                        log.warning("MySQL Server gone away, trying to reconnect " \
+                                    "(attempt {}).".format(retryCount))
                         self.con.ping(True)
                     elif dbe.args[0] == 2013:  # Lost connection to MySQL server during query...
-                        log.warning("Lost connection to MySQL server during query, trying to reconnect.")
+                        log.warning("Lost connection to MySQL server during query, " \
+                                    "trying to reconnect (attempt {}).".format(retryCount))
                         self.con.ping(True)
                     else:
                         raise
+
+                    # Give up after too many retry attempts and propagate the
+                    # problem to the caller. Either it's fixed with a different
+                    # query, or the analysis fails
+                    log.error("DB access failed after ten attempts, giving up")
+                    raise
 
     def doFetchAll(self):
         with _log_db_error("fetchall"):
