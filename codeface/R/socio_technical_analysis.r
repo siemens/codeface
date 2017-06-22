@@ -577,7 +577,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
            width=7, height=8)
 
     ## Plot the complete network
-    plot.to.file(g, file.path(networks.dir, "socio_technical_network.pdf"))
+    plot.to.file(g, file.path(range.resdir, "socio_technical_network.pdf"))
 
     do.quality.analysis(conf, vcs.dat, quality.type, artifact.type, defect.filename,
                         start.date, end.date, communication.type, motif.type,
