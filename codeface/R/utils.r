@@ -48,7 +48,8 @@ scale.data <- function(dat, .min=0, .max=1) {
 ## c(1,4,2,5,3,6).
 do.interleave <- function(from, to) {
     if (length(from) != length(to)) {
-        print("Warning: Length is lists to be interleaved differ, recycling will happen.")
+        logwarn(paste("Warning: Length of lists to be interleaved differ,",
+                      "recycling will happen.", logger="utils"))
     }
     return(c(rbind(from, to)))
 }
