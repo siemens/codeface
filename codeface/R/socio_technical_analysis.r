@@ -121,6 +121,9 @@ compute.communication.relations <- function(conf, communication.type,
 
 ## Compute entity-entity relations, that is, couplings between non-person
 ## artefacts (functions with functions, files with files, etc.)
+## Returns a data frame with columns V1 and V2 (for two entities that
+## are connected), and optionally a weight column (if weights for
+## the connections are available)
 compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
                                  dependency.type, artifact.type,
                                  dsm.filename, historical.limit, file.limit) {
@@ -150,7 +153,7 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
                        logger="conway")
             return(data.frame())
         }
-        names(dependency.dat) <- c("V1", "V2")
+        names(dependency.dat) <- c("V1", "V2", "weight")
     } else if (dependency.type == "dsm") {
         dependency.dat <- load.sdsm(dsm.filename)
         if (is.null(dependency.dat)) {
@@ -175,6 +178,8 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
         dependency.dat <- data.frame()
     }
 
+    dependency.dat$V1 <- as.character(dependency.dat$V1)
+    dependency.dat$V2 <- as.character(dependency.dat$V2)
     return(dependency.dat)
 }
 
@@ -474,8 +479,8 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
 
     ## * Second, add entity-entity edges
     if(nrow(dependency.dat) > 0) {
-        dependency.edgelist <- as.character(with(dependency.dat,
-                                                 do.interleave(V1, V2)))
+        dependency.edgelist <- with(dependency.dat,
+                                    do.interleave(V1, V2))
         g <- add.edges(g, dependency.edgelist)
     }
 
