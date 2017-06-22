@@ -145,6 +145,11 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
         freq.item.sets <- compute.frequent.items(commit.df.hist)
         ## Compute an edgelist
         dependency.dat <- compute.item.sets.edgelist(freq.item.sets)
+        if (nrow(dependency.dat) == 0) {
+            logwarning("Could not find any co-change dependencies",
+                       logger="conway")
+            return(data.frame())
+        }
         names(dependency.dat) <- c("V1", "V2")
     } else if (dependency.type == "dsm") {
         dependency.dat <- load.sdsm(dsm.filename)
