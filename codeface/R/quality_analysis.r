@@ -68,17 +68,8 @@ load.defect.data <- function(filename, relevant.files, start.date, end.date) {
 
     defect.dat <- merge(defect.dat.sub, file.loc.max, by="filePath")
 
-    ## "Normalize" filenames to the oddball Titan convention
-    defect.dat$entity <- sapply(defect.dat$file,
-                                function(filename) {
-                                        #filename <- sprintf("src.java.%s_java", filename)
-                                    filename <- gsub("/", ".", filename, fixed=T)
-                                        #filename <- gsub("_", ".", filename, fixed=T)
-                                    return(filename)})
-
-    defect.dat$filePath <- NULL
-    defect.dat <- defect.dat[defect.dat$entity %in% relevant.files, ]
-    colnames(defect.dat) <- c("BugIssueCount", "Churn", "CountLineCode", "entity")
+    defect.dat <- defect.dat[defect.dat$filePath %in% relevant.files, ]
+    colnames(defect.dat) <- c("entity", "BugIssueCount", "Churn", "CountLineCode")
     defect.dat$CountLineCode <- as.integer(defect.dat$CountLineCode)
 
     return(defect.dat)

@@ -36,6 +36,9 @@ load.sdsm <- function(sdsm.filename) {
     ## Since we run Titan on a checked out state of the repository in the
     ## temporary location /tmp/Rtmpxxxxxx/code/, this gives prefixes like
     ## .tmp.RtmpZ11Ycl.code. that need to be eliminated from the filename
+    logerror("Titan support is curently broken because of filename issues, aborting",
+             logger="conway")
+    stop()
     sdsm.filenames$V1 <- gsub("\\.tmp\\.Rtmp\\w\\w\\w\\w\\w\\w\\.code\\.", "",
                               sdsm.filenames$V1, perl=TRUE)
 

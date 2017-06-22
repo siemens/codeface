@@ -307,12 +307,6 @@ do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defe
     compare.motifs[is.na(compare.motifs)] <- 0
     names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
 
-    ## For whatever braindead reason, the names of all file ressources
-    ## in compare.motifs contain "." instead of "/". Perform the same
-    ## transformation on quality.dat (in case it comes from the database; otherwise,
-    ## there won't be slashes in the name anyway)
-    quality.dat$entity <- gsub("/", ".", quality.dat$entity, fixed=TRUE)
-
     artifacts.dat <- merge(quality.dat, compare.motifs, by="entity")
     artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
 
@@ -418,9 +412,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     ## Compute developer-artifact relationships that are obtained
     ## from the revision control system
     vcs.dat <- query.dependency(conf$con, project.id, artifact.type, file.limit,
-                                start.date, end.date, impl=FALSE, rmv.dups=FALSE)
-    vcs.dat$entity <- sapply(vcs.dat$entity,
-                             function(filename) filename <- gsub("/", ".", filename, fixed=TRUE))
+                                start.date, end.date)
     vcs.dat$author <- as.character(vcs.dat$author)
 
     ## Determine which functions (node.function) and people (node.dev) contribute
