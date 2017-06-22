@@ -123,7 +123,7 @@ compute.communication.relations <- function(conf, communication.type,
 ## artefacts (functions with functions, files with files, etc.)
 compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
                                  dependency.type, artifact.type,
-                                 dsm.filename, historical.limit) {
+                                 dsm.filename, historical.limit, file.limit) {
     ensure.supported.dependency.type(dependency.type)
     ensure.supported.artifact.type(artifact.type)
 
@@ -435,7 +435,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     }
     dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date,
                                            dependency.type, artifact.type,
-                                           dsm.filename, historical.limit)
+                                           dsm.filename, historical.limit, file.limit)
 
     ## Generate a bipartite network that describes the socio-technical structure
     ## of a development project. This data structure is the core of the Conway
