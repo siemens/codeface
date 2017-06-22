@@ -420,10 +420,10 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
                                 start.date, end.date)
     vcs.dat$author <- as.character(vcs.dat$author)
 
-    ## Determine which functions (node.function) and people (node.dev) contribute
-    ## to the developer-artifact relationships
-    node.function <- unique(vcs.dat$entity)
-    node.dev <- unique(c(vcs.dat$author))
+    ## Determine which function/file artifacts (node.artifact) and developers
+    ## (node.dev) contribute to the developer-artifact relationships
+    nodes.artifact <- unique(vcs.dat$entity)
+    nodes.dev <- unique(c(vcs.dat$author))
 
     ## Compute various other relationships between contributors and/or entities
     comm.dat <- compute.communication.relations(conf, communication.type,
@@ -444,28 +444,32 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     ## analysis, and to make statements about relations between the technical
     ## and the social structure of a project.
 
-    ## g.nodes is the basis for the graph it contains all relevant nodes,
-    ## persons (developers) and artefacts. g.nodes has no edges.
+    ## g.nodes is the basis for the constructed graph. It contains all
+    ## relevant nodes, persons (developers) and artefacts, but has
+    ## no edges.
     g.nodes <- graph.empty(directed=FALSE)
-    g.nodes <- add.vertices(g.nodes, nv=length(node.dev),
-                            attr=list(name=node.dev, kind=person.role,
+    g.nodes <- add.vertices(g.nodes, nv=length(nodes.dev),
+                            attr=list(name=nodes.dev, kind=person.role,
                                       type=TRUE))
-    g.nodes  <- add.vertices(g.nodes, nv=length(node.function),
-                             attr=list(name=node.function, kind=artifact.type,
+    g.nodes  <- add.vertices(g.nodes, nv=length(nodes.artifact),
+                             attr=list(name=nodes.artifact, kind=artifact.type,
                                        type=FALSE))
 
-    ## Graph g.bipartite based on g.nodes that contains developer-entity edges
+    ## Graph g.bipartite based on g.nodes that contains developer-artifact edges
+    ## (#00ff00 is green)
     vcs.edgelist <- with(vcs.dat, do.interleave(author, entity))
     g.bipartite <- add.edges(g.nodes, vcs.edgelist, attr=list(color="#00FF001A"))
 
     ## Create a graph g that is based on g.bipartite and that additionally
     ## captures developer-developer communication
 
-    ## * First, remove persons that don't appear in VCS data, and transfer
-    ## to remaining edges of g.bipartite into g
+    ## * First, remove persons that don't appear in VCS data (if they
+    ##   didn't perform a technical contribution, there is nothing
+    ##   socio-technical to be inferred about them), and transfer the
+    ##   remaining edges of g.bipartite into g
     g <- graph.empty(directed=FALSE)
-    comm.inter.dat <- comm.dat[comm.dat$V1 %in% node.dev &
-                               comm.dat$V2 %in% node.dev,]
+    comm.inter.dat <- comm.dat[comm.dat$V1 %in% nodes.dev &
+                                   comm.dat$V2 %in% nodes.dev,]
 
     if (nrow(comm.inter.dat) == 0) {
         loginfo("No overlap between VCS and communication data, exiting analysis early!",
@@ -475,6 +479,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
 
     comm.edgelist <- as.character(with(comm.inter.dat,
                                        do.interleave(V1, V2)))
+    ## (#ff0000 is red)
     g <- add.edges(g.bipartite, comm.edgelist, attr=list(color="#FF00001A"))
 
     ## * Second, add entity-entity edges
@@ -497,6 +502,11 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
 
     ## * Last, save the resulting graph for external processing
     ## (TODO: This should go into the database)
+    ## The graph has the following node attributes:
+    ## * name (person ID (integer) or artifact name (string))
+    ## * kind (string: developer, function, or file)
+    ## * type (boolean: true for person, false for artifact)
+    ## * color (colour as hex value)
     write.graph(g, file.path(range.resdir, "network_data.graphml"), format="graphml")
 
     
@@ -545,7 +555,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     }
 
     logdevinfo("Computing null model stats", logger="conway")
-    stats <- list(num.devs=length(node.dev), num.functions=length(node.function),
+    stats <- list(num.devs=length(nodes.dev), num.functions=length(nodes.artifact),
                   num.motifs=motif.count, num.motifs.anti=motif.anti.count,
                   start.date=start.date, end.date=end.date, project=conf$project)
 
@@ -555,6 +565,11 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     dir.create(networks.dir, recursive=TRUE, showWarnings=TRUE)
 
     logdevinfo("Writing null model data", logger="conway")
+    ## The file contains the following columns:
+    ## * count.type: string (positive, negative, ratio)
+    ## * count: integer (the count or ratio obtained from the
+    ##                   various rewired grapsh)
+    ## * empirical.count: integer (count or ratio for the observed data)
     write.table(null.model.dat, file=file.path(networks.dir, "raw_motif_results.txt"))
 
     ## Visualise the null model
