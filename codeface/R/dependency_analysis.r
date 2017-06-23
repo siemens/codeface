@@ -40,32 +40,27 @@ closure <- 'closure'
 ## Define the list of experiments to perform
 experiments <- c(navigation)#, prevention, closure)
 
-query.dependency <- function(con, project.id, type, limit, start.date, end.date,
+query.dependency <- function(conf, limit, start.date, end.date,
                              impl=FALSE, rmv.dups=FALSE) {
     ## Query for dependencies between entities edited by a common commit
 
-    ## Type: Type of dependency of which 'File' or 'Function' are possible.
-    ## Limit: Integer to specify the maximum number of files edited by
+    ## limit: Integer to specify the maximum number of files edited by
     ##        a single commit. Often one would want to eliminate commits
     ##        that touch a very large number of files because the nature
     ##        of them is unique (e.g., change licence information)
-    type <- tolower(type)
-    valid.types <- c("function", "file", "feature")
-    if (!type %in% valid.types) {
-        logerror("Incorrect type function parameter")
-        stop()
-    }
+    type <- tolower(conf$artifactType)
+    ensure.supported.artifact.type(type)
 
     select.str <- "SELECT DISTINCT author, commitDate, commit.id, file, entityId,
                  entityType, size "
 
     ## Add entity implementation column
-    if(impl) {
+    if (impl) {
         select.str <- paste(select.str, ", impl ", sep="")
     }
 
     ## Remove duplicates in file and entity id columns
-    if(rmv.dups) {
+    if (rmv.dups) {
         group.str <- "GROUP BY file, entityId"
     }
     else {
@@ -82,15 +77,14 @@ query.dependency <- function(con, project.id, type, limit, start.date, end.date,
     query <- str_c(select.str,
                    "FROM commit_dependency INNER JOIN commit ",
                    "ON commit.id = commit_dependency.commitId ",
-                   "WHERE commit.projectId=", project.id, " ",
+                   "WHERE commit.projectId=", conf$pid, " ",
                    "AND commit_dependency.entityType=", sq(type.db), " ",
                    "AND commit.ChangedFiles <= ", limit, " ",
                    "AND commit.commitDate >=", sq(start.date), " ",
                    "AND commit.commitDate <", sq(end.date), " ",
                    group.str, " ",
                    "ORDER BY commit.id ASC")
-
-    dat <- dbGetQuery(con, query)
+    dat <- dbGetQuery(conf$con, query)
 
     cols <- c('file', 'entityId')
 
@@ -503,10 +497,10 @@ remove.extraneous.commits <- function(training.df, evaluation.df) {
 }
 
 
-get.frequent.item.sets <- function(con, project.id, start.date, end.date) {
+get.frequent.item.sets <- function(conf, start.date, end.date) {
   ## Get commits for time period
   commit.file.edit.limit <- 30
-  commit.depends.df <- query.dependency(con, project.id, 'Function', commit.file.edit.limit,
+  commit.depends.df <- query.dependency(conf, commit.file.edit.limit,
                                         start.date, end.date)
 
   item.sets.list <- compute.frequent.items(commit.depends.df)
@@ -559,9 +553,8 @@ compute.item.sets.edgelist <- function(item.sets) {
 }
 
 
-get.co.change.edgelist <- function(con, project.id, start.date, end.date) {
-    freq.items <- get.frequent.item.sets(con, project.id, start.date,
-                                         end.date)
+get.co.change.edgelist <- function(conf, start.date, end.date) {
+    freq.items <- get.frequent.item.sets(conf, start.date, end.date)
     freq.items.edgelist <- compute.item.sets.edgelist(freq.items)
 
     return(freq.items.edgelist)

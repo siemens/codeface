@@ -93,9 +93,10 @@ preprocess.graph <- function(g, person.role) {
 }
 
 ## Compute communication relations between contributors
-compute.communication.relations <- function(conf, communication.type,
-                                            jira.filename, start.date, end.date) {
-    ensure.supported.communication.type(communication.type)
+compute.communication.relations <- function(conf, jira.filename,
+                                            start.date, end.date) {
+    communication.type <- conf$communicationType
+
     if (communication.type=="mail") {
         comm.dat <- query.mail.edgelist(conf$con, conf$pid, start.date, end.date)
 
@@ -125,8 +126,9 @@ compute.communication.relations <- function(conf, communication.type,
 ## are connected), and optionally a weight column (if weights for
 ## the connections are available)
 compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
-                                 dependency.type, artifact.type,
-                                 dsm.filename, historical.limit, file.limit) {
+                                 dsm.filename, params) {
+    dependency.type <- conf$dependencyType
+    artifact.type <- conf$artifactType
     ensure.supported.dependency.type(dependency.type)
     ensure.supported.artifact.type(artifact.type)
 
@@ -134,12 +136,11 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
     ## range)
     relevant.entity.list <- unique(vcs.dat$entity)
     if (dependency.type == "co-change") {
-        start.date.hist <- as.Date(start.date) - historical.limit
+        start.date.hist <- as.Date(start.date) - params$historical.limit
         end.date.hist <- start.date
 
-        commit.df.hist <- query.dependency(conf$con, conf$pid, artifact.type,
-                                           file.limit, start.date.hist,
-                                           end.date.hist)
+        commit.df.hist <- query.dependency(conf, params$file.limit,
+                                           start.date.hist, end.date.hist)
 
         commit.df.hist <- commit.df.hist[commit.df.hist$entity %in%
                                          relevant.entity.list,]
@@ -279,14 +280,18 @@ gen.plot.info <- function(stats) {
                  " A-M: ", stats$num.motifs.anti, sep=""))
 }
 
-do.quality.analysis <- function(conf, vcs.dat, quality.type, artifact.type, defect.filename,
-                                start.date, end.date, communication.type, motif.type,
-                                motif.subgraphs, motif.anti.subgraphs, df, stats, range.resdir) {
+do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.date,
+                                motif.type, motif.subgraphs, motif.anti.subgraphs,
+                                df, stats, range.resdir) {
     ## Perform quality analysis
     if (length(motif.subgraphs) == 0 || length(motif.anti.subgraphs) == 0) {
         loginfo("Quality analysis lacks motifs or anti-motifs, exiting early")
         return(NULL)
     }
+
+    artifact.type <- conf$artifactType
+    quality.type <- conf$qualityType
+    communication.type <- conf$communicationType
 
     relevant.entity.list <- unique(vcs.dat$entity)
     if (quality.type=="defect") {
@@ -390,34 +395,28 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     project.id <- conf$pid
 
     dsm.filename <- file.path(titandir, "sdsm", "project.sdsm")
-    feature.call.filename <- "/home/mitchell/Documents/Feature_data_from_claus/feature-dependencies/cg_nw_f_1_18_0.net"
+    ## TODO: How can this file be constructed?
+    feature.call.filename <- file.path(global.resdir,
+                                       "feature-dependencies/cg_nw_f_1_18_0.net")
     jira.filename <- file.path(global.resdir, "jira_issue_comments.csv")
     defect.filename <- file.path(range.resdir, "changes_and_issues_per_file.csv")
 
-    ## motif.type defines the collaboration pattern that is searched for in the graph
-    motif.type <- list("triangle", "square")[[1]]
-
-    ## Possible artefacts: function file feature
+    ## The configuration object contains several variables that describe
+    ## the "flavour" of the Conway analysis:
+    ## artifactType: Which artefact to consider (function, file, feature)
+    ## dependencyType: Mechanism to generate dependencies between files or functions
+    ##                 (co-change, dsm, feature_call, none)
+    ## qualityType: corrective or defect
+    ## communicationType: Data source to capture developer communication (mail, jira)
     artifact.type <- conf$artifactType
 
-    ## Possible dependency types: co-change, dsm, feature_call, none
-    dependency.type <- conf$dependencyType
-
-    ## Possible quality types: corrective, defect
-    quality.type <- conf$qualityType
-
-    ## Possible communication types: mail, jira
-    communication.type <- conf$communicationType
-
-    ## Constants
-    person.role <- "developer"
-    file.limit <- 30
-    historical.limit <- ddays(365)
+    ## Constant parameters
+    params <- list(person.role="developer", file.limit=30,
+                   historical.limit <- ddays(365))
 
     ## Compute developer-artifact relationships that are obtained
     ## from the revision control system
-    vcs.dat <- query.dependency(conf$con, project.id, artifact.type, file.limit,
-                                start.date, end.date)
+    vcs.dat <- query.dependency(conf, params$file.limit, start.date, end.date)
     vcs.dat$author <- as.character(vcs.dat$author)
 
     ## Determine which function/file artifacts (node.artifact) and developers
@@ -426,18 +425,17 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     nodes.dev <- unique(c(vcs.dat$author))
 
     ## Compute various other relationships between contributors and/or entities
-    comm.dat <- compute.communication.relations(conf, communication.type,
-                                                jira.filename, start.date, end.date)
+    comm.dat <- compute.communication.relations(conf, jira.filename,
+                                                start.date, end.date)
 
     if (is.null(comm.dat)) {
         loginfo(str_c("Conway analysis: No usable communication relationships available ",
-                "for time interval ", start.date, "--", end.date, ", exiting early", sep=""),
-                startlogger="conway")
+                      "for time interval ", start.date, "--", end.date, ", exiting early",
+                      sep=""), startlogger="conway")
         return(NULL)
     }
     dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date,
-                                           dependency.type, artifact.type,
-                                           dsm.filename, historical.limit, file.limit)
+                                           dsm.filename, params)
 
     ## Generate a bipartite network that describes the socio-technical structure
     ## of a development project. This data structure is the core of the Conway
@@ -449,7 +447,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     ## no edges.
     g.nodes <- graph.empty(directed=FALSE)
     g.nodes <- add.vertices(g.nodes, nv=length(nodes.dev),
-                            attr=list(name=nodes.dev, kind=person.role,
+                            attr=list(name=nodes.dev, kind=params$person.role,
                                       type=TRUE))
     g.nodes  <- add.vertices(g.nodes, nv=length(nodes.artifact),
                              attr=list(name=nodes.artifact, kind=artifact.type,
@@ -491,12 +489,12 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
 
     ## * Third, remove some undesired outlier contributions of the graph
     ##   that complicate further processing.
-    g <- preprocess.graph(g, person.role)
+    g <- preprocess.graph(g, params$person.role)
 
     ## * Fourth, define a numeric encoding scheme for vertices, and color
     ##   the different vertices
     vertex.coding <- c()
-    vertex.coding[person.role] <- 1
+    vertex.coding[params$person.role] <- 1
     vertex.coding[artifact.type] <- 2
     V(g)$color <- vertex.coding[V(g)$kind]
 
@@ -512,9 +510,9 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     
     ################# Analyse the socio-technical graph ##############
     ## Generate motif and anti-motif that we want to find in the data
-    motif <- motif.generator(motif.type, person.role, artifact.type,
+    motif <- motif.generator(motif.type, params$person.role, artifact.type,
                              vertex.coding)
-    motif.anti <- motif.generator(motif.type, person.role, artifact.type,
+    motif.anti <- motif.generator(motif.type, params$person.role, artifact.type,
                                   vertex.coding, anti=TRUE)
 
     ## Find motif and anti-motifs in the collaboration graph
@@ -526,11 +524,11 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     motif.anti.count <- length(motif.anti.subgraphs)
 
     ## Compute a null model
-    niter <- 100
+    NITER <- 100
 
     logdevinfo("Computing null models", logger="conway")
-    motif.count.null <- lapply(seq(niter), function(i) {
-        do.null.model(g.bipartite, g.nodes, person.role, dependency.dat,
+    motif.count.null <- lapply(seq(NITER), function(i) {
+        do.null.model(g.bipartite, g.nodes, params$person.role, dependency.dat,
                       dependency.edgelist, comm.inter.dat, vertex.coding,
                       motif, motif.anti)
     })
@@ -561,7 +559,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
 
     ## Visualise the results in some graphs
     networks.dir <- file.path(range.resdir, "motif_analysis", motif.type,
-                              communication.type)
+                              conf$communicationType)
     dir.create(networks.dir, recursive=TRUE, showWarnings=TRUE)
 
     logdevinfo("Writing null model data", logger="conway")
@@ -599,9 +597,9 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     ## Plot the complete network
     plot.to.file(g, file.path(range.resdir, "socio_technical_network.pdf"))
 
-    do.quality.analysis(conf, vcs.dat, quality.type, artifact.type, defect.filename,
-                        start.date, end.date, communication.type, motif.type,
-                        motif.subgraphs, motif.anti.subgraphs, df, stats, range.resdir)
+    do.quality.analysis(conf, vcs.dat, defect.filename, start.date, end.date,
+                        motif.type, motif.subgraphs, motif.anti.subgraphs, df,
+                        stats, range.resdir)
 }
 
 ######################### Dispatcher ###################################
