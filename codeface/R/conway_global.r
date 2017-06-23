@@ -93,10 +93,10 @@ dispatch.all <- function(conf, resdir) {
     })
 
     corr.dat <- do.call(rbind, res)
-    if (is.null(res)) {
+    if (is.null(corr.dat)) {
         logerror(str_c("No conway results available, exitting early ",
                        "(did no range contain communication relations?)", sep=""), logger="conway")
-        stop()
+        return()
     }
 
     plot.file <- file.path(resdir, str_c("correlations_ts_", motif.type, "_",
