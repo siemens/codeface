@@ -159,7 +159,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
 
     plot.file <- file.path(resdir, str_c("abs_ts_", motif.type, "_",
                                          conf$communicationType, ".pdf"))
-    labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs", motif.ratio="Motifs/Anti-Motifs")
+    labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs", motif.ratio="Ratio")
     dat <- res[,c("motif.count", "motif.anti.count", "motif.ratio", "dev.count", "date", "range")]
     dat.molten <- melt(dat, measure.vars=c("motif.count", "motif.anti.count", "motif.ratio"))
 
