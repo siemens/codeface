@@ -281,10 +281,10 @@ gen.plot.info <- function(stats) {
 }
 
 do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.date,
-                                motif.type, motif.subgraphs, motif.anti.subgraphs,
-                                df, stats, range.resdir) {
+                                motif.type, motif.dat, df, stats, range.resdir) {
     ## Perform quality analysis
-    if (length(motif.subgraphs) == 0 || length(motif.anti.subgraphs) == 0) {
+    if (length(motif.dat$motif.subgraphs) == 0 ||
+        length(motif.dat$motif.anti.subgraphs) == 0) {
         loginfo("Quality analysis lacks motifs or anti-motifs, exiting early")
         return(NULL)
     }
@@ -302,9 +302,9 @@ do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.
                                             end.date, artifact.type)
     }
 
-    artifacts <- count(data.frame(entity=unlist(lapply(motif.subgraphs,
+    artifacts <- count(data.frame(entity=unlist(lapply(motif.dat$motif.subgraphs,
                                                        function(i) i[[3]]$name))))
-    anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.anti.subgraphs,
+    anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.dat$motif.anti.subgraphs,
                                                             function(i) i[[3]]$name))))
 
     ## Get file developer count
@@ -388,6 +388,81 @@ do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.
     write.csv(artifacts.dat, file.path(corr.plot.path, "quality_data.csv"))
 }
 
+search.motifs <- function(graphs, motif.type, params, dependency.dat,
+                          dependency.edgelist, comm.inter.dat,
+                          artifact.type, vertex.coding) {
+    ## Generate motif and anti-motif that we want to find in the data
+    motif <- motif.generator(motif.type, params$person.role, artifact.type,
+                             vertex.coding)
+    motif.anti <- motif.generator(motif.type, params$person.role, artifact.type,
+                                  vertex.coding, anti=TRUE)
+
+    ## Find motif and anti-motifs in the collaboration graph
+    logdevinfo("Searching for motif and anti-motif", logger="conway")
+    motif.subgraphs <- do.motif.search(motif, graphs$g, count.only=FALSE)
+    motif.count <- length(motif.subgraphs)
+
+    motif.anti.subgraphs <- do.motif.search(motif.anti, graphs$g, count.only=FALSE)
+    motif.anti.count <- length(motif.anti.subgraphs)
+
+    ## Compute a null model
+    NITER <- 100
+
+    logdevinfo("Computing null models", logger="conway")
+    motif.count.null <- lapply(seq(NITER), function(i) {
+        do.null.model(graphs$g.bipartite, graphs$g.nodes, params$person.role,
+                      dependency.dat, dependency.edgelist, comm.inter.dat,
+                      vertex.coding, motif, motif.anti)
+    })
+
+    null.model.dat <- do.call(rbind, motif.count.null)
+    null.model.dat[null.model.dat$count.type=="positive", "empirical.count"] <-
+        motif.count
+    null.model.dat[null.model.dat$count.type=="negative", "empirical.count"] <-
+        motif.anti.count
+    null.model.dat[null.model.dat$count.type=="ratio", "empirical.count"] <-
+        motif.count/(motif.count+motif.anti.count)
+
+    logdevinfo("Cleaning up null models", logger="conway")
+    ## When we did neither find motifs nor anti-motifs, set the fraction
+    ## M/(M+A-M) to one (instead of NaN), since there are exactly as many motifs as
+    ## anti-motifs. NaNs would also break the plotting code below.
+    if (any(is.nan(null.model.dat$count))) {
+        null.model.dat[is.nan(null.model.dat$count),]$count <- 1
+    }
+    if (any(is.nan(null.model.dat$empirical.count))) {
+        null.model.dat[is.nan(null.model.dat$empirical.count),]$empirical.count <- 1
+    }
+
+    return(list(null.model.dat=null.model.dat, motif.subgraphs=motif.subgraphs,
+                motif.anti.subgraphs=motif.anti.subgraphs))
+}
+
+do.motif.plots <- function(motif.dat, comm.dat, stats, networks.dir) {
+    ## Visualise the null model
+    labels <- c(negative = "Anti-Motif", positive = "Motif", ratio = "Ratio")
+    p.null <- ggplot(data=motif.dat$null.model.dat, aes(x=count)) +
+        geom_histogram(aes(y=..density..), colour="black", fill="white", bins=30) +
+        geom_point(aes(x=empirical.count), y=0, color="red", size=5) +
+        geom_density(alpha=.2, fill="#AAD4FF") +
+        facet_wrap(~count.type, scales="free", labeller=labeller(count.type=labels)) +
+        xlab("Count") + ylab("Density [a.u.]") + ggtitle(gen.plot.info(stats))
+
+    ggsave(plot=p.null,
+           filename=file.path(networks.dir, "motif_null_model.pdf"),
+           width=8, height=4)
+
+    ## Compute the communication degree distribution
+    p.comm <- ggplot(data=data.frame(degree=degree(graph.data.frame(comm.dat))),
+                     aes(x=degree)) +
+        geom_histogram(aes(y=..density..), colour="black", fill="white", bins=30) +
+        geom_density(alpha=.2, fill="#AAD4FF") + xlab("Node degree") +
+        ylab("Density [a.u.]") + ggtitle(gen.plot.info(stats))
+
+    ggsave(plot=p.comm,
+           filename=file.path(networks.dir, "communication_degree_dist.pdf"),
+           width=7, height=8)
+}
 
 do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, end.date,
                                titandir) {
@@ -507,99 +582,53 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     ## * color (colour as hex value)
     write.graph(g, file.path(range.resdir, "network_data.graphml"), format="graphml")
 
-    
-    ################# Analyse the socio-technical graph ##############
-    ## Generate motif and anti-motif that we want to find in the data
-    motif <- motif.generator(motif.type, params$person.role, artifact.type,
-                             vertex.coding)
-    motif.anti <- motif.generator(motif.type, params$person.role, artifact.type,
-                                  vertex.coding, anti=TRUE)
-
-    ## Find motif and anti-motifs in the collaboration graph
-    logdevinfo("Searching for motif and anti-motif", logger="conway")
-    motif.subgraphs <- do.motif.search(motif, g, count.only=FALSE)
-    motif.count <- length(motif.subgraphs)
-
-    motif.anti.subgraphs <- do.motif.search(motif.anti, g, count.only=FALSE)
-    motif.anti.count <- length(motif.anti.subgraphs)
-
-    ## Compute a null model
-    NITER <- 100
-
-    logdevinfo("Computing null models", logger="conway")
-    motif.count.null <- lapply(seq(NITER), function(i) {
-        do.null.model(g.bipartite, g.nodes, params$person.role, dependency.dat,
-                      dependency.edgelist, comm.inter.dat, vertex.coding,
-                      motif, motif.anti)
-    })
-
-    null.model.dat <- do.call(rbind, motif.count.null)
-    null.model.dat[null.model.dat$count.type=="positive", "empirical.count"] <-
-        motif.count
-    null.model.dat[null.model.dat$count.type=="negative", "empirical.count"] <-
-        motif.anti.count
-    null.model.dat[null.model.dat$count.type=="ratio", "empirical.count"] <-
-        motif.count/(motif.count+motif.anti.count)
-
-    logdevinfo("Cleaning up null models", logger="conway")
-    ## When we did neither find motifs nor anti-motifs, set the fraction
-    ## M/(M+A-M) to one (instead of NaN), since there are exactly as many motifs as
-    ## anti-motifs. NaNs would also break the plotting code below.
-    if (any(is.nan(null.model.dat$count))) {
-        null.model.dat[is.nan(null.model.dat$count),]$count <- 1
-    }
-    if (any(is.nan(null.model.dat$empirical.count))) {
-        null.model.dat[is.nan(null.model.dat$empirical.count),]$empirical.count <- 1
-    }
-
-    logdevinfo("Computing null model stats", logger="conway")
-    stats <- list(num.devs=length(nodes.dev), num.functions=length(nodes.artifact),
-                  num.motifs=motif.count, num.motifs.anti=motif.anti.count,
-                  start.date=start.date, end.date=end.date, project=conf$project)
-
-    ## Visualise the results in some graphs
-    networks.dir <- file.path(range.resdir, "motif_analysis", motif.type,
-                              conf$communicationType)
-    dir.create(networks.dir, recursive=TRUE, showWarnings=TRUE)
-
-    logdevinfo("Writing null model data", logger="conway")
-    ## The file contains the following columns:
-    ## * count.type: string (positive, negative, ratio)
-    ## * count: integer (the count or ratio obtained from the
-    ##                   various rewired grapsh)
-    ## * empirical.count: integer (count or ratio for the observed data)
-    write.table(null.model.dat, file=file.path(networks.dir, "raw_motif_results.txt"))
-
-    ## Visualise the null model
-    labels <- c(negative = "Anti-Motif", positive = "Motif", ratio = "Ratio")
-    p.null <- ggplot(data=null.model.dat, aes(x=count)) +
-        geom_histogram(aes(y=..density..), colour="black", fill="white", bins=30) +
-        geom_point(aes(x=empirical.count), y=0, color="red", size=5) +
-        geom_density(alpha=.2, fill="#AAD4FF") +
-        facet_wrap(~count.type, scales="free", labeller=labeller(count.type=labels)) +
-        xlab("Count") + ylab("Density [a.u.]") + ggtitle(gen.plot.info(stats))
-
-    ggsave(plot=p.null,
-           filename=file.path(networks.dir, "motif_null_model.pdf"),
-           width=8, height=4)
-
-    ## Compute the communication degree distribution
-    p.comm <- ggplot(data=data.frame(degree=degree(graph.data.frame(comm.dat))),
-                     aes(x=degree)) +
-        geom_histogram(aes(y=..density..), colour="black", fill="white", bins=30) +
-        geom_density(alpha=.2, fill="#AAD4FF") + xlab("Node degree") + ylab("Density [a.u.]") +
-        ggtitle(gen.plot.info(stats))
-
-    ggsave(plot=p.comm,
-           filename=file.path(networks.dir, "communication_degree_dist.pdf"),
-           width=7, height=8)
-
     ## Plot the complete network
     plot.to.file(g, file.path(range.resdir, "socio_technical_network.pdf"))
 
-    do.quality.analysis(conf, vcs.dat, defect.filename, start.date, end.date,
-                        motif.type, motif.subgraphs, motif.anti.subgraphs, df,
-                        stats, range.resdir)
+    ## ############### Analyse the socio-technical graph ##############
+    ## ############### (motif specific computations) ##################
+    graphs <- list(g=g, g.bipartite=g.bipartite, g.nodes=g.nodes)
+
+    motif.types <- c("triangle", "square")
+    if (conf$dependencyType == "none") {
+        ## When no dependencies between artefacts are available,
+        ## the square motif cannot be found
+        motif.types <- c("triangle")
+    }
+                                       
+    for (motif.type in motif.types) {
+        loginfo(str_c("Performing ", motif.type, " motif calculations"),
+                      logger="conway")
+        motif.dat <- search.motifs(graphs, motif.type, params, dependency.dat,
+                                   dependency.edgelist, comm.inter.dat,
+                                   artifact.type, vertex.coding)
+
+        logdevinfo("Computing null model stats", logger="conway")
+        stats <- list(num.devs=length(nodes.dev), num.functions=length(nodes.artifact),
+                      num.motifs=length(motif.dat$motif.subgraphs),
+                      num.motifs.anti=length(motif.dat$motif.anti.subgraphs),
+                      start.date=start.date, end.date=end.date, project=conf$project)
+
+        ## Visualise the results in some graphs
+        logdevinfo("Writing null model data", logger="conway")
+        networks.dir <- file.path(range.resdir, "motif_analysis", motif.type,
+                                  conf$communicationType)
+        dir.create(networks.dir, recursive=TRUE, showWarnings=TRUE)
+
+        ## The file contains the following columns:
+        ## * count.type: string (positive, negative, ratio)
+        ## * count: integer (the count or ratio obtained from the
+        ##                   various rewired grapsh)
+        ## * empirical.count: integer (count or ratio for the observed data)
+        write.table(motif.dat$null.model.dat,
+                    file=file.path(networks.dir, "raw_motif_results.txt"))
+
+        do.motif.plots(motif.dat, comm.dat, stats, networks.dir)
+
+        ## Finally, statistically analyse the quality of the results
+        do.quality.analysis(conf, vcs.dat, defect.filename, start.date, end.date,
+                            motif.type, motif.dat, df, stats, range.resdir)
+    }
 }
 
 ######################### Dispatcher ###################################

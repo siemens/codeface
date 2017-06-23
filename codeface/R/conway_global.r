@@ -74,8 +74,7 @@ make.title <- function(conf, motif.type) {
                  motif.type, ", comm: ", conf$communicationType, ")"))
 }
 
-dispatch.all <- function(conf, resdir) {
-    motif.type <- list("triangle", "square")[[1]]
+dispatch.all <- function(conf, resdir, motif.type) {
     cycles <- get.cycles(conf)
 
     if (is.null(conf$windowSize)) {
@@ -305,5 +304,7 @@ dispatch.all <- function(conf, resdir) {
 
 config.script.run({
     conf <- config.from.args(positional.args=list("resdir"), require.project=TRUE)
-    dispatch.all(conf, conf$resdir)
+    for (motif.type in c("triangle", "square")) {
+        dispatch.all(conf, conf$resdir, motif.type)
+    }
 })
