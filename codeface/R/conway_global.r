@@ -27,47 +27,7 @@ source("utils.r")
 source("config.r")
 source("dependency_analysis.r")
 source("quality_analysis.r")
-
-get.correlation.data <- function(cycles, i, quality.file, quality.type, do.subset=TRUE) {
-    if (!file.exists(quality.file)) {
-        return(NULL)
-    }
-    artifacts.dat <- read.csv(quality.file)
-
-    if (do.subset) {
-        corr.elements <- gen.correlation.columns(quality.type)
-        artifacts.dat <- artifacts.dat[, corr.elements$names]
-        colnames(artifacts.dat) <- corr.elements$labels
-    }
-
-    if (nrow(artifacts.dat) == 0) {
-        return(NULL)
-    }
-
-    return(artifacts.dat)
-}
-
-compute.correlation.data <- function(conf, i, cycles, quality.file, quality.type) {
-    artifacts.subset <- get.correlation.data(cycles, i, quality.file, quality.type)
-    if (is.null(artifacts.subset)) {
-        return(NULL)
-    }
-
-    cycle <- cycles[i, ]
-    corr.mat <- cor(artifacts.subset, use="pairwise.complete.obs",
-                    method="spearman")
-    corr.test <- cor.mtest(artifacts.subset) ## Note: can be NULL
-
-    ## Compute labels for the correlated quantities (A:B to indicate correlation
-    ## between A and B)
-    corr.combinations <- expand.grid(colnames(corr.mat), rownames(corr.mat))
-    corr.combinations <- str_c(corr.combinations$Var1, ":", corr.combinations$Var2)
-    corr.combinations <- matrix(corr.combinations, nrow=nrow(corr.mat), ncol=ncol(corr.mat))
-
-    return(data.frame(date=cycle$date.end, range=i,
-                      combination=corr.combinations[upper.tri(corr.combinations)],
-                      value=corr.mat[upper.tri(corr.combinations)]))
-}
+source("conway_data.r")
 
 make.title <- function(conf, motif.type) {
     return(str_c(conf$description, " (window: ", conf$windowSize, " months, motif: ",
@@ -82,16 +42,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
     }
 
     ## Compute correlation values time series and plot the result
-    res <- lapply(1:nrow(cycles), function(i) {
-        range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
-        quality.file <- file.path(range.resdir, "quality_analysis", motif.type,
-                                  conf$communicationType, "quality_data.csv")
-
-        logdevinfo(str_c("Analysing quality file ", quality.file), logger="conway")
-        res <- compute.correlation.data(conf, i, cycles, quality.file, conf$qualityType)
-    })
-
-    corr.dat <- do.call(rbind, res)
+    corr.dat <- get.correlations.ts(conf, resdir, motif.type)
     if (is.null(corr.dat)) {
         logerror(str_c("No conway results available, exitting early ",
                        "(did no range contain communication relations?)", sep=""), logger="conway")
@@ -102,7 +53,6 @@ dispatch.all <- function(conf, resdir, motif.type) {
                                         conf$communicationType, ".pdf"))
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
 
-    corr.dat$date <- as.Date(corr.dat$date)
     corr.label <- "Correlation"
     ## To avoid plotting too many lines into a single graph, split
     ## the available correlation data in chunks of 6 lines per panel.
@@ -138,32 +88,16 @@ dispatch.all <- function(conf, resdir, motif.type) {
     ggsave(plot.file, g, width=7, height=3*num.panels)
 
     ## ###############################################################
-    ## Compute a time series with absolute data counts for the previous correlation computations
-    res <- lapply(1:nrow(cycles), function(i) {
-        range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
-        quality.file <- file.path(range.resdir, "quality_analysis", motif.type,
-                                  conf$communicationType, "quality_data.csv")
-
-        logdevinfo(str_c("Analysing quality file ", quality.file), logger="conway")
-        res <- get.correlation.data(cycles, i, quality.file, conf$qualityType, do.subset=FALSE)
-        if (is.null(res)) {
-            return(NULL)
-        }
-
-        res$date <- cycles[i,]$date.end
-        res$range <- i
-        return(res)
-    })
-    res <- do.call(rbind, res)
-    res$date <- as.Date(res$date)
+    ## Compute a time series with absolute data counts
+    res <- get.correlation.data.ts(conf, resdir, motif.type)
 
     plot.file <- file.path(resdir, str_c("abs_ts_", motif.type, "_",
                                          conf$communicationType, ".pdf"))
-    labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs", motif.ratio="Ratio")
-    dat <- res[,c("motif.count", "motif.anti.count", "motif.ratio", "dev.count", "date", "range")]
-    dat.molten <- melt(dat, measure.vars=c("motif.count", "motif.anti.count", "motif.ratio"))
+    labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs",
+                motif.ratio="Motif Ratio")
+    dat <- prepare.abs.ts(res)
 
-    g <- ggplot(dat.molten, aes(x=dev.count, y=value)) + geom_point(size=0.5) +
+    g <- ggplot(dat, aes(x=dev.count, y=value)) + geom_point(size=0.5) +
         facet_grid(variable~date, labeller=labeller(variable=labels), scale="free_y") +
             scale_x_sqrt("# Devs contributing to artifact [sqrt]") +
     scale_y_sqrt("Count or Ratio [sqrt]") + geom_smooth(method=lm) + theme_bw() +
@@ -176,18 +110,15 @@ dispatch.all <- function(conf, resdir, motif.type) {
     ## Plot time series with absolute data counts for the previous correlation computations
     if (conf$communicationType == "jira") {
         labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs",
-                    motif.ratio="Motifs/Anti-Motifs")
-        dat <- res[,c("motif.count", "motif.anti.count", "motif.ratio",
-                      "Churn", "BugIssueCount", "date", "range")]
-        dat.molten <- melt(dat, measure.vars=c("motif.count", "motif.anti.count",
-                                    "motif.ratio"))
+                    motif.ratio="Motif Ratio")
+        dat <- prepare.abs.bug.ts(res)
 
         plot.file <- file.path(resdir, str_c("abs_bug_ts1_", motif.type, "_",
                                              conf$communicationType, ".pdf"))
-        g <- ggplot(dat.molten, aes(x=Churn, y=value)) + geom_point(size=0.5) +
+        g <- ggplot(dat, aes(x=Churn, y=value)) + geom_point(size=0.5) +
             facet_grid(variable~date, labeller=labeller(variable=labels), scale="free_y") +
-                scale_x_log10("Churn [log]") +
-        scale_y_continuous("Count or Ratio") + geom_smooth(method=lm) + theme_bw() +
+            scale_x_log10("Churn [log]") + scale_y_continuous("Count or Ratio") +
+            geom_smooth(method=lm) + theme_bw() +
             ggtitle(make.title(conf, motif.type))
         logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
         ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5, limitsize=FALSE)
@@ -195,11 +126,10 @@ dispatch.all <- function(conf, resdir, motif.type) {
         ## #################################################################
         plot.file <- file.path(resdir, str_c("abs_bug_ts2_", motif.type, "_",
                                              conf$communicationType, ".pdf"))
-        g <- ggplot(dat.molten, aes(x=BugIssueCount, y=value)) + geom_point(size=0.5) +
+        g <- ggplot(dat, aes(x=BugIssueCount, y=value)) + geom_point(size=0.5) +
             facet_grid(variable~date, labeller=labeller(variable=labels), scale="free_y") +
-                scale_x_continuous("Bug Issue Count") +
-        scale_y_continuous("Count or Ratio") + geom_smooth(method=lm) + theme_bw() +
-            ggtitle(make.title(conf, motif.type))
+            scale_x_continuous("Bug Issue Count") + scale_y_continuous("Count or Ratio") +
+            geom_smooth(method=lm) + theme_bw() + ggtitle(make.title(conf, motif.type))
         logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
         ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5, limitsize=FALSE)
 
@@ -229,7 +159,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
     plot.file <- file.path(resdir, str_c("norm_ts_", motif.type, "_",
                                          conf$communicationType, ".pdf"))
     labels.norm <- c(motif.count.norm = "Motifs", motif.anti.count.norm = "Anti-Motifs",
-                     motif.ratio="Motifs/Anti-Motifs")
+                     motif.ratio="Motif Ratio")
     dat <- res[,c("motif.count.norm", "motif.anti.count.norm", "motif.ratio",
                   "dev.count", "date", "range")]
     dat.molten <- melt(dat, measure.vars=c("motif.count.norm", "motif.anti.count.norm",
@@ -251,7 +181,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
 
     g <- ggplot(dat, aes(x=motif.count, y=motif.anti.count)) +
         geom_point(size=0.75) + facet_grid(~date) + scale_x_continuous("# Motifs") +
-    scale_y_continuous("# Anti-Motifs") + geom_smooth(method=lm) + theme_bw() +
+        scale_y_continuous("# Anti-Motifs") + geom_smooth(method=lm) + theme_bw() +
         ggtitle(make.title(conf, motif.type))
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
     ggsave(plot.file, g, width=2*length(unique(dat$date)), height=4, limitsize=FALSE)
@@ -259,28 +189,14 @@ dispatch.all <- function(conf, resdir, motif.type) {
 
     ## ###########################################################
     ## Prepare a global "timeseries" plot of the null model tests
-    res <- do.call(rbind, lapply(1:nrow(cycles), function(i) {
-        range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
-        motif.file <- file.path(range.resdir, "motif_analysis", motif.type,
-                                conf$communicationType, "raw_motif_results.txt")
+    res <- read.motif.results(conf, resdir, motif.type)
 
-        logdevinfo(str_c("Analysing motif file ", motif.file), logger="conway")
-        if (!file.exists(motif.file)) {
-            return(NULL)
-        }
-        null.model.dat <- read.table(motif.file, header=TRUE)
-        null.model.dat$date <- cycles[i,]$date.end
-        null.model.dat$range <- i
-
-        return(null.model.dat)
-    }))
-
-    res$date <- as.Date(res$date)
     labels <- c(negative = "Anti-Motif", positive = "Motif", ratio = "Ratio")
     g <- ggplot(data=res, aes(x=count)) +
         geom_point(aes(x=empirical.count), y=0, color="red", size=2.5) +
         geom_density(aes(x=count, y=..scaled..), alpha=.2, fill="#AAD4FF") +
-        facet_wrap(count.type~date, nrow=3, scales="free_x", labeller=labeller(count.type=labels)) +
+        facet_wrap(count.type~date, nrow=3, scales="free_x",
+                   labeller=labeller(count.type=labels)) +
         xlab("Count or Ratio") + ylab("Density [a.u.]") +
         ggtitle(make.title(conf, motif.type)) + theme_bw()
 
