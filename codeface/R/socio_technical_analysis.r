@@ -281,7 +281,7 @@ gen.plot.info <- function(stats) {
 }
 
 do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.date,
-                                motif.type, motif.dat, df, stats, range.resdir) {
+                                motif.type, motif.dat, stats, range.resdir) {
     ## Perform quality analysis
     if (length(motif.dat$motif.subgraphs) == 0 ||
         length(motif.dat$motif.anti.subgraphs) == 0) {
@@ -627,7 +627,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
 
         ## Finally, statistically analyse the quality of the results
         do.quality.analysis(conf, vcs.dat, defect.filename, start.date, end.date,
-                            motif.type, motif.dat, df, stats, range.resdir)
+                            motif.type, motif.dat, stats, range.resdir)
     }
 }
 
