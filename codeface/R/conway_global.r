@@ -44,7 +44,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
     ## Compute correlation values time series and plot the result
     corr.dat <- get.correlations.ts(conf, resdir, motif.type)
     if (is.null(corr.dat)) {
-        logerror(str_c("No conway results available, exitting early ",
+        logerror(str_c("No conway results available for ", motif.type, " motifs -- exitting early ",
                        "(did no range contain communication relations?)", sep=""), logger="conway")
         return()
     }
