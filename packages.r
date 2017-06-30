@@ -70,7 +70,7 @@ p <- filter.installed.packages(c("statnet", "tm", "optparse", "arules", "data.ta
                                  "scales", "gridExtra", "scales", "RMySQL", "svglite",
                                  "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
                                  "corrgram", "logging", "png", "rjson", "lsa", "RJSONIO",
-                                 "GGally", "corrplot", "psych", "markovchain"))
+                                 "GGally", "corrplot", "psych", "markovchain", "hashmap"))
 if(length(p) > 0) {
     install.packages(p, dependencies=T, verbose=F, quiet=T, Ncpus=num.cores)
 }

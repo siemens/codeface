@@ -3,6 +3,7 @@ s <- suppressPackageStartupMessages
 s(library(stringr))
 s(library(plyr))
 s(library(lubridate))
+s(library(hashmap))
 
 get.corrective.count <- function(con, project.id, start.date, end.date,
                                  entity.type) {
@@ -75,20 +76,35 @@ load.defect.data <- function(filename, relevant.files, start.date, end.date) {
     return(defect.dat)
 }
 
-gen.correlation.columns <- function(quality.type) {
-    ## Generate correlation plot (omitted correlation quantities: BugIsseChurn,
-    ## IssueCommits,  motif.count.norm, motif.anti.count.norm, motif.ratio, motif.percent.diff
-    corr.cols <- c("motif.ratio", "motif.percent.diff", "dev.count")
-    corr.cols.labels <- c("M/A-M", "MDiff", "Devs")
+gen.correlation.columns <- function(quality.type, prune=FALSE) {
+    ## Generate a list of quantities of interest to compute correlations between
+    ## (including a human readable label column)
 
+    ## Map internal names to human-readable labels. Both lists must be in identical order,
+    ## of course.
+    labels.map <- hashmap(c("motif.ratio", "motif.percent.diff", "motif.percent.diff.sign", "dev.count",
+                            "correct", "bug.density", "BugIssueCount", "Churn", "CountLineCode"),
+                          c("M/A-M", "MDiff", "MDiff (sign)", "Devs",
+                            "Corrective", "BugDens", "Bugs", "Churn", "LoC"))
+
+    ## Standard quantities that are available for all analysis types
+    corr.cols <- c("motif.ratio", "motif.percent.diff", "motif.percent.diff.sign", "dev.count")
+
+    ## quality type "defect" produces some additional covariables
     if (quality.type=="defect") {
         corr.cols <- c(corr.cols, c("bug.density", "BugIssueCount", "Churn", "CountLineCode"))
-        corr.cols.labels <- c(corr.cols.labels, c("BugDens", "Bugs", "Churn", "LoC"))
     } else {
         corr.cols <- c(corr.cols, "corrective")
-        corr.cols.labels <- c(corr.cols.labels, "Correct")
     }
-    return(list(names=corr.cols, labels=corr.cols.labels))
+
+    ## Prune the entries if a simpler (and easier to plot) selection of covariables
+    ## is desired
+    if (prune) {
+        rm.cols <- c("motif.percent.diff", "BugIssueCount", "CountLineCode")
+        corr.cols <- corr.cols[!(corr.cols %in% rm.cols)]
+    }
+
+    return(list(names=corr.cols, labels=labels.map$find(corr.cols)))
 }
 
 cor.mtest <- function(mat, conf.level = 0.95) {
