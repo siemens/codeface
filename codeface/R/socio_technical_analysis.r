@@ -323,7 +323,10 @@ do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.
     ## Add features
     artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count -
                                                 artifacts.dat$motif.count) /
-        (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
+                    (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
+    artifacts.dat$motif.percent.diff.sign <- 2 * (artifacts.dat$motif.anti.count -
+                                                 artifacts.dat$motif.count) /
+                    (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
     artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count /
         (artifacts.dat$motif.count + artifacts.dat$motif.anti.count)
     artifacts.dat$motif.count.norm <- artifacts.dat$motif.count /
