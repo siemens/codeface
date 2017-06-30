@@ -162,7 +162,12 @@ prepare.abs.bug.ts <- function(res) {
 }
 
 ## Given the artifact data, compute some derived quantites like ratios, percentages
-## and so on.
+## and so on. The data are augmented wiht the following covariables:
+## motif.percent.diff -- 2|A-M|/(A+M)
+## motif.ratio -- M/(A+M)
+## motif.count.norm -- # of anti-motifs per developer
+## motif.anti.count.norm -- # of anti-motifs per developer
+## bug.density (only for jira data) -- number of jira ug issues per LoC (protected against singularities)
 augment.artifact.data <- function(artifacts.dat, quality.type) {
     artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count -
                                                 artifacts.dat$motif.count) /

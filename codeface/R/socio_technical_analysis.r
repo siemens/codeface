@@ -371,6 +371,14 @@ do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.
         dev.off()
     }
 
+    ## quality_data.csv contains the following columns:
+    ## entity -- analysed entity (filename)
+    ## BugIssueCount (only for jira data)
+    ## Churn (only for jira data)
+    ## CountLineCode -- LoC of the entity at the time of the snapshot
+    ## motif.count -- number of motifs detected in the entity
+    ## motif.anti.count -- number of anti-motifs detected in the entity
+    ## dev.count -- developers participating in the development of the entity
     write.csv(artifacts.dat, file.path(corr.plot.path, "quality_data.csv"))
 }
 
