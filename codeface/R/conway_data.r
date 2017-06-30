@@ -160,3 +160,27 @@ prepare.abs.bug.ts <- function(res) {
                                 "motif.ratio"))
     return(dat.molten)
 }
+
+## Given the artifact data, compute some derived quantites like ratios, percentages
+## and so on.
+augment.artifact.data <- function(artifacts.dat, quality.type) {
+    artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count -
+                                                artifacts.dat$motif.count) /
+                    (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
+    artifacts.dat$motif.percent.diff.sign <- 2 * (artifacts.dat$motif.anti.count -
+                                                 artifacts.dat$motif.count) /
+                    (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
+    artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count /
+        (artifacts.dat$motif.count + artifacts.dat$motif.anti.count)
+    artifacts.dat$motif.count.norm <- artifacts.dat$motif.count /
+        artifacts.dat$dev.count
+    artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count /
+        artifacts.dat$dev.count
+
+    if (quality.type=="defect") {
+        artifacts.dat$bug.density <- artifacts.dat$BugIssueCount /
+            (artifacts.dat$CountLineCode+1)
+    }
+
+    return(artifacts.dat)
+}

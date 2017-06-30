@@ -32,6 +32,7 @@ source("dependency_analysis.r")
 source("process_dsm.r")
 source("process_jira.r")
 source("quality_analysis.r")
+source("conway_data.r")
 source("ml/ml_utils.r", chdir=T)
 source("id_manager.r")
 
@@ -317,39 +318,21 @@ do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.
     compare.motifs[is.na(compare.motifs)] <- 0
     names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
 
+    ## Combine the previously created data sets, and compute derived quantities
     artifacts.dat <- merge(quality.dat, compare.motifs, by="entity")
     artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
-
-    ## Add features
-    artifacts.dat$motif.percent.diff <- 2 * abs(artifacts.dat$motif.anti.count -
-                                                artifacts.dat$motif.count) /
-                    (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
-    artifacts.dat$motif.percent.diff.sign <- 2 * (artifacts.dat$motif.anti.count -
-                                                 artifacts.dat$motif.count) /
-                    (artifacts.dat$motif.anti.count + artifacts.dat$motif.count)
-    artifacts.dat$motif.ratio <- artifacts.dat$motif.anti.count /
-        (artifacts.dat$motif.count + artifacts.dat$motif.anti.count)
-    artifacts.dat$motif.count.norm <- artifacts.dat$motif.count /
-        artifacts.dat$dev.count
-    artifacts.dat$motif.anti.count.norm <- artifacts.dat$motif.anti.count /
-        artifacts.dat$dev.count
-
-    if (quality.type=="defect") {
-        artifacts.dat$bug.density <- artifacts.dat$BugIssueCount /
-            (artifacts.dat$CountLineCode+1)
-    }
-
-    corr.elements <- gen.correlation.columns(quality.type)
+    artifacts.dat.aug <- augment.artifact.data(artifacts.dat, quality.type)
 
     ## Do not plot correlations for all quantities, but only for combinations
     ## that are of particular interest.
-    artifacts.subset <- artifacts.dat[, corr.elements$names]
+    corr.elements <- gen.correlation.columns(quality.type)
+    artifacts.subset <- artifacts.dat.aug[, corr.elements$names]
     colnames(artifacts.subset) <- corr.elements$labels
 
     ## NOTE: We deliberately use artifacts.dat and then subset the columns because
     ## working directly with artifacts.subset does not work -- the column names
     ## are not in a suitable format for ggpairs()
-    correlation.plot <- ggpairs(artifacts.dat,
+    correlation.plot <- ggpairs(artifacts.dat.aug,
                                 columns=corr.elements$names,
                                 lower=list(continuous=wrap("points",
                                                alpha=0.33, size=0.5)),
