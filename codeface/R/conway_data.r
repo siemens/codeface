@@ -29,7 +29,7 @@ get.correlation.data.ts <- function(conf, resdir, motif.type) {
 
         logdevinfo(str_c("Analysing quality file ", quality.file), logger="conway")
         res <- query.correlation.data(conf, i, quality.file, conf$qualityType,
-                                    do.subset=FALSE)
+                                      prune=FALSE)
         if (is.null(res)) {
             return(NULL)
         }
@@ -50,7 +50,7 @@ get.correlation.data.ts <- function(conf, resdir, motif.type) {
 ## In contrast to get.correlation.data.ts, this function does not
 ## provide the raw data, but computes correlations from the data
 ## TODO: Document data format
-get.correlations.ts <- function(conf, resdir, motif.type) {
+get.correlations.ts <- function(conf, resdir, motif.type, prune=TRUE) {
     cycles <- get.cycles(conf)
     res <- lapply(1:nrow(cycles), function(i) {
         range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
@@ -58,7 +58,7 @@ get.correlations.ts <- function(conf, resdir, motif.type) {
                                   conf$communicationType, "quality_data.csv")
 
         logdevinfo(str_c("Analysing quality file ", quality.file), logger="conway")
-        res <- compute.correlations.cycle(conf, i, quality.file, conf$qualityType)
+        res <- compute.correlations.cycle(conf, i, quality.file, conf$qualityType, prune)
     })
 
     corr.dat <- do.call(rbind, res)
@@ -69,18 +69,16 @@ get.correlations.ts <- function(conf, resdir, motif.type) {
     return(corr.dat)
 }
 
-query.correlation.data <- function(conf, i, quality.file, quality.type, do.subset=TRUE) {
+query.correlation.data <- function(conf, i, quality.file, quality.type, prune) {
     cycles <- get.cycles(conf)
     if (!file.exists(quality.file)) {
         return(NULL)
     }
     artifacts.dat <- read.csv(quality.file)
 
-    if (do.subset) {
-        corr.elements <- gen.correlation.columns(quality.type)
-        artifacts.dat <- artifacts.dat[, corr.elements$names]
-        colnames(artifacts.dat) <- corr.elements$labels
-    }
+    corr.elements <- gen.correlation.columns(quality.type, prune)
+    artifacts.dat <- artifacts.dat[, corr.elements$names]
+    colnames(artifacts.dat) <- corr.elements$labels
 
     if (nrow(artifacts.dat) == 0) {
         return(NULL)
@@ -89,9 +87,9 @@ query.correlation.data <- function(conf, i, quality.file, quality.type, do.subse
     return(artifacts.dat)
 }
 
-compute.correlations.cycle <- function(conf, i, quality.file, quality.type) {
+compute.correlations.cycle <- function(conf, i, quality.file, quality.type, prune) {
     cycles <- get.cycles(conf)
-    artifacts.subset <- query.correlation.data(conf, i, quality.file, quality.type)
+    artifacts.subset <- query.correlation.data(conf, i, quality.file, quality.type, prune)
     if (is.null(artifacts.subset)) {
         return(NULL)
     }
