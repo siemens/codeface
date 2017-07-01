@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Copyright Roger Meier <roger@bufferoverflow.ch>
 # SPDX-License-Identifier:	Apache-2.0 BSD-2-Clause GPL-2.0+ MIT WTFPL
 
@@ -28,8 +28,9 @@ if [ "${version}" = "16.04" ]; then
     sudo ln -s /tmp/mysql.sock /var/run/mysqld/mysqld.sock
 fi
 
-## Make sure that the nodejs binary exists.
-## HACK: Make a symlink from the node binary.
-if ! type "nodejs" &> /dev/null; then
+## Make sure that the nodejs binary exists (older distributions
+## might name the binary just node), and create an appropriate
+## symbolic link if required
+if [ ! -f /usr/bin/nodejs ]; then
     sudo ln -s /usr/bin/node /usr/bin/nodejs
 fi
