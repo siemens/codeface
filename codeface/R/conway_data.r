@@ -16,11 +16,13 @@
 
 ## Helper functions to read and process result data from the Conway analysis
 ## TODO: Once the conway data are available in the data base, reading
-## the data needs to be replaces with appropriate DB queries.
+## the data needs to be replaced with appropriate DB queries.
 
 ## Provide time-resolved raw data from the quality analysis
+source("quality_analysis.r")
+
 ## TODO: Document return result
-get.correlation.data.ts <- function(conf, resdir, motif.type) {
+get.conway.artifact.data.ts <- function(conf, resdir, motif.type, keep.list=NULL) {
     cycles <- get.cycles(conf)
     res <- lapply(1:nrow(cycles), function(i) {
         range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
@@ -28,8 +30,8 @@ get.correlation.data.ts <- function(conf, resdir, motif.type) {
                                   conf$communicationType, "quality_data.csv")
 
         logdevinfo(str_c("Analysing quality file ", quality.file), logger="conway")
-        res <- query.correlation.data(conf, i, quality.file, conf$qualityType,
-                                      prune=FALSE)
+        res <- query.conway.artifact.data(conf, i, quality.file, conf$qualityType,
+                                          keep.list, replace.labels=FALSE)
         if (is.null(res)) {
             return(NULL)
         }
@@ -47,10 +49,10 @@ get.correlation.data.ts <- function(conf, resdir, motif.type) {
 }
 
 ## Obtain time-resolved correlation data for the whole analysis range.
-## In contrast to get.correlation.data.ts, this function does not
+## In contrast to get.conway.artifact.data.ts, this function does not
 ## provide the raw data, but computes correlations from the data
 ## TODO: Document data format
-get.correlations.ts <- function(conf, resdir, motif.type, prune=TRUE) {
+get.correlations.ts <- function(conf, resdir, motif.type, keep.list=NULL) {
     cycles <- get.cycles(conf)
     res <- lapply(1:nrow(cycles), function(i) {
         range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
@@ -58,7 +60,7 @@ get.correlations.ts <- function(conf, resdir, motif.type, prune=TRUE) {
                                   conf$communicationType, "quality_data.csv")
 
         logdevinfo(str_c("Analysing quality file ", quality.file), logger="conway")
-        res <- compute.correlations.cycle(conf, i, quality.file, conf$qualityType, prune)
+        res <- compute.correlations.cycle(conf, i, quality.file, conf$qualityType, keep.list)
     })
 
     corr.dat <- do.call(rbind, res)
@@ -69,16 +71,23 @@ get.correlations.ts <- function(conf, resdir, motif.type, prune=TRUE) {
     return(corr.dat)
 }
 
-query.correlation.data <- function(conf, i, quality.file, quality.type, prune) {
+## TODO: Documentation
+## If replace.labels is set to TRUE, systematic column names are replaced with human
+## readable alternatives
+query.conway.artifact.data <- function(conf, i, quality.file, quality.type, keep.list,
+                                       replace.labels=TRUE) {
     cycles <- get.cycles(conf)
     if (!file.exists(quality.file)) {
         return(NULL)
     }
     artifacts.dat <- read.csv(quality.file)
+    artifacts.dat <- augment.artifact.data(artifacts.dat, quality.type)
 
-    corr.elements <- gen.correlation.columns(quality.type, prune)
+    corr.elements <- gen.conway.artifact.columns(quality.type, keep.list)
     artifacts.dat <- artifacts.dat[, corr.elements$names]
-    colnames(artifacts.dat) <- corr.elements$labels
+    if (replace.labels) {
+        colnames(artifacts.dat) <- corr.elements$labels
+    }
 
     if (nrow(artifacts.dat) == 0) {
         return(NULL)
@@ -87,9 +96,17 @@ query.correlation.data <- function(conf, i, quality.file, quality.type, prune) {
     return(artifacts.dat)
 }
 
-compute.correlations.cycle <- function(conf, i, quality.file, quality.type, prune) {
+compute.correlations.cycle <- function(conf, i, quality.file, quality.type, keep.list) {
     cycles <- get.cycles(conf)
-    artifacts.subset <- query.correlation.data(conf, i, quality.file, quality.type, prune)
+
+    ## Always remove motif count and anti-motif count (and the
+    ## normalised counts) because these quantities are represented
+    ## equally well by motif ratio and percent difference as far
+    ## as correlations are concerned
+    keep.list <- keep.list[!(keep.list %in% c("motif.count", "motif.anti.count",
+                                              "motif.count.norm", "motif.anti.count.norm"))]
+
+    artifacts.subset <- query.conway.artifact.data(conf, i, quality.file, quality.type, keep.list)
     if (is.null(artifacts.subset)) {
         return(NULL)
     }
@@ -137,7 +154,7 @@ read.motif.results <- function(conf, resdir, motif.type) {
 }
 
 
-## Given data from get.correlation.data.ts, select the covariables relevant
+## Given data from get.conway.artifact.data.ts, select the covariables relevant
 ## for reasoning about motifs and developers, and prepare them for time series
 ## analysis/plotting.
 ## TODO: Document output format
@@ -148,7 +165,7 @@ prepare.abs.ts <- function(res) {
     return(dat.molten)
 }
 
-## Given data from get.correlation.data.ts, select the covariables relevant
+## Given data from get.conway.artifact.data.ts, select the covariables relevant
 ## for reasoning about bugs, and prepare them for time series analysis/plotting.
 ## TODO: Document output format
 prepare.abs.bug.ts <- function(res) {

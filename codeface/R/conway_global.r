@@ -89,7 +89,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
 
     ## ###############################################################
     ## Compute a time series with absolute data counts
-    res <- get.correlation.data.ts(conf, resdir, motif.type)
+    res <- get.conway.artifact.data.ts(conf, resdir, motif.type)
 
     plot.file <- file.path(resdir, str_c("abs_ts_", motif.type, "_",
                                          conf$communicationType, ".pdf"))

@@ -323,9 +323,7 @@ do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.
     artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
     artifacts.dat.aug <- augment.artifact.data(artifacts.dat, quality.type)
 
-    ## Do not plot correlations for all quantities, but only for combinations
-    ## that are of particular interest.
-    corr.elements <- gen.correlation.columns(quality.type)
+    corr.elements <- gen.conway.artifact.columns(quality.type)
     artifacts.subset <- artifacts.dat.aug[, corr.elements$names]
     colnames(artifacts.subset) <- corr.elements$labels
 
