@@ -25,12 +25,8 @@ source("quality_analysis.r")
 get.conway.artifact.data.ts <- function(conf, resdir, motif.type, keep.list=NULL) {
     cycles <- get.cycles(conf)
     res <- lapply(1:nrow(cycles), function(i) {
-        range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
-        quality.file <- file.path(range.resdir, "quality_analysis", motif.type,
-                                  conf$communicationType, "quality_data.csv")
-
-        logdevinfo(str_c("Analysing quality file ", quality.file), logger="conway")
-        res <- query.conway.artifact.data(conf, i, quality.file, conf$qualityType,
+        logdevinfo(str_c("Analysing quality cycle ", i), logger="conway")
+        res <- query.conway.artifact.data(conf, i, resdir, conf$qualityType, motif.type,
                                           keep.list, replace.labels=FALSE)
         if (is.null(res)) {
             return(NULL)
@@ -55,12 +51,8 @@ get.conway.artifact.data.ts <- function(conf, resdir, motif.type, keep.list=NULL
 get.correlations.ts <- function(conf, resdir, motif.type, keep.list=NULL) {
     cycles <- get.cycles(conf)
     res <- lapply(1:nrow(cycles), function(i) {
-        range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
-        quality.file <- file.path(range.resdir, "quality_analysis", motif.type,
-                                  conf$communicationType, "quality_data.csv")
-
-        logdevinfo(str_c("Analysing quality file ", quality.file), logger="conway")
-        res <- compute.correlations.cycle(conf, i, quality.file, conf$qualityType, keep.list)
+        logdevinfo(str_c("Analysing quality file for cycle ", i), logger="conway")
+        res <- compute.correlations.cycle(conf, i, resdir, conf$qualityType, motif.type, keep.list)
     })
 
     corr.dat <- do.call(rbind, res)
@@ -74,9 +66,13 @@ get.correlations.ts <- function(conf, resdir, motif.type, keep.list=NULL) {
 ## TODO: Documentation
 ## If replace.labels is set to TRUE, systematic column names are replaced with human
 ## readable alternatives
-query.conway.artifact.data <- function(conf, i, quality.file, quality.type, keep.list,
+query.conway.artifact.data <- function(conf, i, resdir, quality.type, motif.type, keep.list,
                                        replace.labels=TRUE) {
     cycles <- get.cycles(conf)
+    range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
+    quality.file <- file.path(range.resdir, "quality_analysis", motif.type,
+                              conf$communicationType, "quality_data.csv")
+
     if (!file.exists(quality.file)) {
         return(NULL)
     }
@@ -96,7 +92,7 @@ query.conway.artifact.data <- function(conf, i, quality.file, quality.type, keep
     return(artifacts.dat)
 }
 
-compute.correlations.cycle <- function(conf, i, quality.file, quality.type, keep.list) {
+compute.correlations.cycle <- function(conf, i, resdir, quality.type, motif.type, keep.list) {
     cycles <- get.cycles(conf)
 
     ## Always remove motif count and anti-motif count (and the
@@ -106,7 +102,7 @@ compute.correlations.cycle <- function(conf, i, quality.file, quality.type, keep
     keep.list <- keep.list[!(keep.list %in% c("motif.count", "motif.anti.count",
                                               "motif.count.norm", "motif.anti.count.norm"))]
 
-    artifacts.subset <- query.conway.artifact.data(conf, i, quality.file, quality.type, keep.list)
+    artifacts.subset <- query.conway.artifact.data(conf, i, resdir, quality.type, motif.type, keep.list)
     if (is.null(artifacts.subset)) {
         return(NULL)
     }
