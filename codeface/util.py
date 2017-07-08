@@ -329,7 +329,7 @@ def layout_graph(filename):
     cmd.append("-Gcharset=utf-8")
     cmd.append("-o{0}.pdf".format(os.path.splitext(filename)[0]))
     cmd.append(out.name)
-    execute_command(cmd)
+    execute_command(cmd, ignore_errors=True)
     # Manually remove the temporary file
     os.unlink(out.name)
 
