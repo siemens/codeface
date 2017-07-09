@@ -48,11 +48,13 @@ get.conway.artifact.data.ts <- function(conf, resdir, motif.type, keep.list=NULL
 ## In contrast to get.conway.artifact.data.ts, this function does not
 ## provide the raw data, but computes correlations from the data
 ## TODO: Document data format
-get.correlations.ts <- function(conf, resdir, motif.type, keep.list=NULL) {
+get.correlations.ts <- function(conf, resdir, motif.type, keep.list=NULL,
+                                temporal.type="isochronous") {
     cycles <- get.cycles(conf)
     res <- lapply(1:nrow(cycles), function(i) {
         logdevinfo(str_c("Analysing quality file for cycle ", i), logger="conway")
-        res <- compute.correlations.cycle(conf, i, resdir, conf$qualityType, motif.type, keep.list)
+        res <- compute.correlations.cycle(conf, i, resdir, conf$qualityType,
+                                          motif.type, keep.list, temporal.type=temporal.type)
     })
 
     corr.dat <- do.call(rbind, res)
@@ -67,11 +69,16 @@ get.correlations.ts <- function(conf, resdir, motif.type, keep.list=NULL) {
 ## If replace.labels is set to TRUE, systematic column names are replaced with human
 ## readable alternatives
 query.conway.artifact.data <- function(conf, i, resdir, quality.type, motif.type, keep.list,
-                                       replace.labels=TRUE) {
+                                       replace.labels=TRUE, temporal.type="isochronous") {
+    if (!(temporal.type %in% c("isochronous", "advanced", "retarded"))) {
+        stop("Internal error: Unsupported temporal type in query.conway.artifact.data")
+    }
+
     cycles <- get.cycles(conf)
     range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
     quality.file <- file.path(range.resdir, "quality_analysis", motif.type,
-                              conf$communicationType, "quality_data.csv")
+                              conf$communicationType,
+                              str_c("quality_data_", temporal.type, ".csv"))
 
     if (!file.exists(quality.file)) {
         return(NULL)
@@ -92,7 +99,8 @@ query.conway.artifact.data <- function(conf, i, resdir, quality.type, motif.type
     return(artifacts.dat)
 }
 
-compute.correlations.cycle <- function(conf, i, resdir, quality.type, motif.type, keep.list) {
+compute.correlations.cycle <- function(conf, i, resdir, quality.type, motif.type,
+                                       keep.list, temporal.type="isochronous") {
     cycles <- get.cycles(conf)
 
     ## Always remove motif count and anti-motif count (and the
@@ -102,7 +110,9 @@ compute.correlations.cycle <- function(conf, i, resdir, quality.type, motif.type
     keep.list <- keep.list[!(keep.list %in% c("motif.count", "motif.anti.count",
                                               "motif.count.norm", "motif.anti.count.norm"))]
 
-    artifacts.subset <- query.conway.artifact.data(conf, i, resdir, quality.type, motif.type, keep.list)
+    artifacts.subset <- query.conway.artifact.data(conf, i, resdir, quality.type,
+                                                   motif.type, keep.list,
+                                                   temporal.type=temporal.type)
     if (is.null(artifacts.subset)) {
         return(NULL)
     }
