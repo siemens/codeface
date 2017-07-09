@@ -287,57 +287,87 @@ gen.plot.info <- function(stats) {
 
 ## Merge VCS and quality data, and save the results as a side effect
 merge.conway.data <- function(conf, vcs.dat, cycles, i, motif.type, communication.type,
-                              quality.type, motif.dat, stats, range.resdir) {
-    start.date <- cycles[i,]$date.start
-    end.date <- cycles[i,]$date.end
-    defect.filename <- file.path(range.resdir, "changes_and_issues_per_file.csv")
+                              quality.type, motif.dat, stats, global.resdir) {
+    cycle <- cycles[i, ]
+    start.date <- cycle$date.start
+    end.date <- cycle$date.end
+    range.resdir <- file.path(global.resdir, gen.range.path(i, cycle$cycle))
     corr.path <- file.path(range.resdir, "quality_analysis", motif.type,
                            communication.type)
 
-    relevant.entity.list <- unique(vcs.dat$entity)
-    if (quality.type=="defect") {
-        quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
-                                        start.date, end.date)
-    } else {
-        quality.dat <- get.corrective.count(conf$con, conf$pid, start.date,
-                                            end.date, artifact.type)
-    }
-
+    ## Prepare a list of motif and anti-motif counts for each artefact
     artifacts <- count(data.frame(entity=unlist(lapply(motif.dat$motif.subgraphs,
                                                        function(i) i[[3]]$name))))
     anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.dat$motif.anti.subgraphs,
                                                             function(i) i[[3]]$name))))
 
-    ## Get file developer count
+    compare.motifs <- merge(artifacts, anti.artifacts, by='entity', all=TRUE)
+    compare.motifs[is.na(compare.motifs)] <- 0
+    names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
+
+    ## Get amount of developers per entity
     file.dev.count.df <- ddply(vcs.dat, .(entity),
                                function(df) data.frame(entity=unique(df$entity),
                                                        dev.count=length(unique(df$id))))
 
-    compare.motifs <- merge(artifacts, anti.artifacts, by='entity', all=TRUE)
+    ## Finally, load data about defects/corrective changes.
+    ## We consider three types of relationships between social
+    ## interactions/communication and bugs/corrections: isochronous
+    ## (bugs from the same temporal interval as the communication are
+    ## considered), advanced (bugs that appeared in the temporal
+    ## interval before the communication are considered), and
+    ## retarded (bugs follow communication by one interval)
+    relevant.entity.list <- unique(vcs.dat$entity)
 
-    compare.motifs[is.na(compare.motifs)] <- 0
-    names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
+    ## We cannot compute advanced or retarded combinations if we're considering
+    ## the first or last analysis cycle. Prepare a list of combinations without
+    ## these corner cases.
+    i <- as.numeric(i)
+    variants <- data.frame(cycle=c(i-1, i, i+1),
+                           label=c("advanced", "isochronous", "retarded"))
+    variants <- variants[variants$cycle <= nrow(cycles) & variants$cycle>0,]
 
-    ## Combine the previously created data sets and save the result
-    artifacts.dat <- merge(quality.dat, compare.motifs, by="entity")
-    artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
+    res <- lapply(1:nrow(variants), function(j) {
+        idx <- variants$cycle[j]
+        defect.filename <- file.path(global.resdir, gen.range.path(idx, cycles[idx, ]$cycle),
+                                     "changes_and_issues_per_file.csv")
+        start.date <- cycles[idx, ]$date.start
+        end.date <- cycles[idx, ]$date.end
 
-    ## quality_data.csv contains the following columns:
-    ## entity -- analysed entity (filename)
-    ## BugIssueCount (only for jira data)
-    ## Churn (only for jira data)
-    ## CountLineCode -- LoC of the entity at the time of the snapshot
-    ## motif.count -- number of motifs detected in the entity
-    ## motif.anti.count -- number of anti-motifs detected in the entity
-    ## dev.count -- developers participating in the development of the entity
-    write.csv(artifacts.dat, file.path(corr.path, "quality_data.csv"))
+        if (quality.type=="defect") {
+            quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
+                                            start.date, end.date)
+        } else {
+            quality.dat <- get.corrective.count(conf$con, conf$pid, start.date,
+                                                end.date, artifact.type)
+        }
 
-    return(artifacts.dat)
+
+        ## #####################################################################
+        ## Combine the previously created data sets and save the result
+        artifacts.dat <- merge(quality.dat, compare.motifs, by="entity")
+        artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
+
+        ## quality_data.csv contains the following columns:
+        ## entity -- analysed entity (filename)
+        ## BugIssueCount (only for jira data)
+        ## Churn (only for jira data)
+        ## CountLineCode -- LoC of the entity at the time of the snapshot
+        ## motif.count -- number of motifs detected in the entity
+        ## motif.anti.count -- number of anti-motifs detected in the entity
+        ## dev.count -- developers participating in the development of the entity
+        write.csv(artifacts.dat, file.path(corr.path, str_c("quality_data_",
+                                                            variants$label[j], ".csv")))
+        return(artifacts.dat)
+    })
+
+    names(res) <- variants$label
+    return(res)
 }
 
 ## Visualise the multi-source conway data, and compute statistical correlations and
-## thei significance
-create.conway.plots <- function(artifacts.dat, quality.type, range.resdir, motif.type,
+## their significance
+create.conway.plots <- function(artifacts.dat, quality.type, corr.plot.path, motif.type,
                                 communication.type, stats) {
     artifacts.dat.aug <- augment.artifact.data(artifacts.dat, quality.type)
 
@@ -370,14 +400,14 @@ create.conway.plots <- function(artifacts.dat, quality.type, range.resdir, motif
     corr.test <- cor.mtest(artifacts.subset)
 
     ## Write correlations and raw data to file
-    corr.plot.path <- file.path(range.resdir, "quality_analysis", motif.type,
-                                communication.type)
-    pdf(file.path(corr.plot.path, "correlation_plot.pdf"), width=10, height=10)
+    pdf(file.path(corr.plot.path, str_c("correlation_plot_", stats$type, ".pdf")),
+        width=10, height=10)
     print(correlation.plot)
     dev.off()
 
     if (!is.null(corr.test)) {
-        pdf(file.path(corr.plot.path, "correlation_plot_color.pdf"),
+        pdf(file.path(corr.plot.path, str_c("correlation_plot_color_",
+                                            stats$type, ".pdf")),
             width=7, height=7)
         corrplot(corr.mat, p.mat=corr.test[[1]],
                  insig = "p-value", sig.level=0.05, method="pie", type="lower")
@@ -386,14 +416,8 @@ create.conway.plots <- function(artifacts.dat, quality.type, range.resdir, motif
     }
 }
 
-## TODO: Infer start and end data from the release range so that advanced
-## and retarded correlations can be computed by combining motif information
-## with bugs from ranges i-1 and i+1 (in addition to comparing with range i,
-## which is already done now)
-## The output data are always written to range.resdir, but input quality data
-## can be read from other range directories
-do.quality.analysis <- function(conf, vcs.dat, cycles, i,
-                                motif.type, motif.dat, stats, range.resdir) {
+do.quality.analysis <- function(conf, vcs.dat, cycles, i, motif.type, motif.dat, stats,
+                                global.resdir) {
     ## Combine quality (defect, corrections) information with motif/anti-motif counts
     ## and data obtained from the VCS analysis
     if (length(motif.dat$motif.subgraphs) == 0 ||
@@ -405,14 +429,18 @@ do.quality.analysis <- function(conf, vcs.dat, cycles, i,
     artifact.type <- conf$artifactType
     quality.type <- conf$qualityType
     communication.type <- conf$communicationType
+    corr.plot.path <- file.path(global.resdir, gen.range.path(i, cycles[i,]$cycle),
+                                "quality_analysis", motif.type, communication.type)
+    dir.create(corr.plot.path, recursive=T, showWarnings=T)
 
-    ## TODO: Distinguish here between advanced, retarded and equitemporal analysis
-    ## (for each case, merge.conway.data uses different bug data and returns a list of
-    ## artifacts.dat instances that ar ethen individually fed to create.conway.plots)
-    artifacts.dat <- merge.conway.data(conf, vcs.dat, cycles, i, motif.type, communication.type,
-                                       quality.type, motif.dat, stats, range.resdir)
-    create.conway.plots(artifacts.dat, quality.type, range.resdir, motif.type,
-                        communication.type, stats)
+    artifacts.dat.list <- merge.conway.data(conf, vcs.dat, cycles, i, motif.type,
+                                            communication.type, quality.type, motif.dat,
+                                            stats, global.resdir)
+    null <- lapply(1:length(artifacts.dat.list), function(j) {
+        stats$type <- names(artifacts.dat.list)[j]
+        create.conway.plots(artifacts.dat.list[[j]], quality.type, corr.plot.path, motif.type,
+                            communication.type, stats)
+    })
 }
 
 search.motifs <- function(graphs, motif.type, params, dependency.dat,
@@ -663,7 +691,7 @@ do.conway.analysis <- function(conf, global.resdir, i) {
 
         ## Finally, statistically analyse the quality of the results
         do.quality.analysis(conf, vcs.dat, cycles, i, motif.type, motif.dat,
-                            stats, range.resdir)
+                            stats, global.resdir)
     }
 }
 
