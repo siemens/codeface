@@ -165,6 +165,6 @@ ensure.supported.communication.type <- function(communication.type) {
 ## and the first 6 characters of start and end revision.
 gen.range.path <- function(i, cycle) {
     revs <- strsplit(cycle, "-")[[1]]
-    return(str_c(formatC(i, width=3, flag="0"), "--", substr(revs[1], 0, 6), "-",
-          substr(revs[2], 0, 6)))
+    return(str_c(str_pad(i, width=3, side="left", pad="0"), "--",
+                 substr(revs[1], 0, 6), "-", substr(revs[2], 0, 6), sep=""))
 }
