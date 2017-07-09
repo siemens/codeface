@@ -379,9 +379,7 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
         cmd.extend(("-c", codeface_conf))
         cmd.extend(("-p", project_conf))
         cmd.append(project_resdir)
-        cmd.append(range_resdir)
-        cmd.append(start_date)
-        cmd.append(end_date)
+        cmd.append(str(i+1))
         if "dependencyType" in conf.keys() and conf["dependencyType"] == "dsm":
             deps=[s3]
         else:

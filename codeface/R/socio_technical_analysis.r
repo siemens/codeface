@@ -285,19 +285,11 @@ gen.plot.info <- function(stats) {
                  " A-M: ", stats$num.motifs.anti, sep=""))
 }
 
-do.quality.analysis <- function(conf, vcs.dat, start.date, end.date,
-                                motif.type, motif.dat, stats, range.resdir) {
-    ## Combine quality (defect, corrections) information with motif/anti-motif counts
-    ## and data obtained from the VCS analysis
-    if (length(motif.dat$motif.subgraphs) == 0 ||
-        length(motif.dat$motif.anti.subgraphs) == 0) {
-        loginfo("Quality analysis lacks motifs or anti-motifs, exiting early")
-        return(NULL)
-    }
-
-    artifact.type <- conf$artifactType
-    quality.type <- conf$qualityType
-    communication.type <- conf$communicationType
+## Merge VCS and quality data, and save the results as a side effect
+merge.conway.data <- function(conf, vcs.dat, cycles, i, motif.type, communication.type,
+                              quality.type, motif.dat, stats, range.resdir) {
+    start.date <- cycles[i,]$date.start
+    end.date <- cycles[i,]$date.end
     defect.filename <- file.path(range.resdir, "changes_and_issues_per_file.csv")
     corr.path <- file.path(range.resdir, "quality_analysis", motif.type,
                            communication.type)
@@ -340,9 +332,13 @@ do.quality.analysis <- function(conf, vcs.dat, start.date, end.date,
     ## dev.count -- developers participating in the development of the entity
     write.csv(artifacts.dat, file.path(corr.path, "quality_data.csv"))
 
+    return(artifacts.dat)
+}
 
-    ## ############################### Data analysis ####################################
-    ## Compute derived quantites (e.g., rations between values) and visualise the results
+## Visualise the multi-source conway data, and compute statistical correlations and
+## thei significance
+create.conway.plots <- function(artifacts.dat, quality.type, range.resdir, motif.type,
+                                communication.type, stats) {
     artifacts.dat.aug <- augment.artifact.data(artifacts.dat, quality.type)
 
     corr.elements <- gen.conway.artifact.columns(quality.type)
@@ -365,8 +361,7 @@ do.quality.analysis <- function(conf, vcs.dat, start.date, end.date,
     corr.mat <- cor(artifacts.subset, use="pairwise.complete.obs",
                     method="spearman")
     if (nrow(artifacts.subset) == 0) {
-        loginfo(str_c("Conway analysis: No correlation data for time interval ",
-                      start.date, "--", end.date, ", exiting early", sep=""),
+        loginfo(str_c("Conway analysis: No correlation data available, exiting early", sep=""),
                 startlogger="conway")
         return()
     }
@@ -410,14 +405,11 @@ do.quality.analysis <- function(conf, vcs.dat, cycles, i,
     artifact.type <- conf$artifactType
     quality.type <- conf$qualityType
     communication.type <- conf$communicationType
-    corr.plot.path <- file.path(range.resdir, "quality_analysis", motif.type,
-                                communication.type)
-    dir.create(corr.plot.path, recursive=T, showWarnings=T)
 
     ## TODO: Distinguish here between advanced, retarded and equitemporal analysis
     ## (for each case, merge.conway.data uses different bug data and returns a list of
     ## artifacts.dat instances that ar ethen individually fed to create.conway.plots)
-    artifacts.dat <- merge.conway.data(conf, vcs.dat, cycles, i, motif.type,
+    artifacts.dat <- merge.conway.data(conf, vcs.dat, cycles, i, motif.type, communication.type,
                                        quality.type, motif.dat, stats, range.resdir)
     create.conway.plots(artifacts.dat, quality.type, range.resdir, motif.type,
                         communication.type, stats)
@@ -499,7 +491,10 @@ do.motif.plots <- function(motif.dat, comm.dat, stats, networks.dir) {
            width=7, height=8)
 }
 
-do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, end.date) {
+## Conway analysis first combines social and technical data derived in earlier steps,
+## and then performs some statistical and visual analyses
+## i is the release range under consideration
+do.conway.analysis <- function(conf, global.resdir, i) {
     project.name <- conf$project
     project.id <- conf$pid
 
@@ -507,6 +502,16 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
     feature.call.filename <- file.path(global.resdir,
                                        "feature-dependencies/cg_nw_f_1_18_0.net")
     jira.filename <- file.path(global.resdir, "jira_issue_comments.csv")
+
+    cycles <- get.cycles(conf)
+    cycle <- cycles[i,]
+    range.resdir <- file.path(global.resdir, gen.range.path(i, cycle$cycle))
+    logdevinfo(paste("Directory for storing conway results is", range.resdir),
+               logger="conway")
+    dir.create(range.resdir, showWarnings=FALSE, recursive=TRUE)
+
+    start.date <- cycle$date.start
+    end.date <- cycle$date.end
 
     ## The configuration object contains several variables that describe
     ## the "flavour" of the Conway analysis:
@@ -657,25 +662,19 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
         do.motif.plots(motif.dat, comm.dat, stats, networks.dir)
 
         ## Finally, statistically analyse the quality of the results
-        do.quality.analysis(conf, vcs.dat, start.date, end.date,
-                            motif.type, motif.dat, stats, range.resdir)
+        do.quality.analysis(conf, vcs.dat, cycles, i, motif.type, motif.dat,
+                            stats, range.resdir)
     }
 }
 
 ######################### Dispatcher ###################################
 config.script.run({
-    conf <- config.from.args(positional.args=list("project_resdir", "range_resdir",
-                                                  "start_date", "end_date"),
+    conf <- config.from.args(positional.args=list("project_resdir", "release_range"),
                              require.project=TRUE)
     global.resdir <- conf$project_resdir
-    range.resdir <- conf$range_resdir
-    start.date <- conf$start_date
-    end.date <- conf$end_date
+    i <- conf$release_range
 
-    logdevinfo(paste("Directory for storing conway results is", range.resdir),
-               logger="conway")
     dir.create(global.resdir, showWarnings=FALSE, recursive=TRUE)
-    dir.create(range.resdir, showWarnings=FALSE, recursive=TRUE)
 
     if (conf$profile) {
         ## R cannot store line number profiling information before version 3.
@@ -686,5 +685,5 @@ config.script.run({
         }
     }
 
-    do.conway.analysis(conf, global.resdir, range.resdir, start.date, end.date)
+    do.conway.analysis(conf, global.resdir, i)
 })
