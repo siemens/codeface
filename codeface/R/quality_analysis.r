@@ -45,8 +45,13 @@ load.defect.data <- function(filename, relevant.files, start.date, end.date) {
     defect.dat <- read.csv(filename, header=TRUE, stringsAsFactors=FALSE)
 
     defect.dat$commitDate <- ymd_hms(defect.dat$commitDate)
-    start.date <- ymd(start.date)
-    end.date <- ymd(end.date)
+    start.date <- as.Date(start.date)
+    end.date <- as.Date(end.date)
+    if (is.na(start.date) || is.na(end.date)) {
+        logerror("Internal error: Cannot parse date format in load.defect.data",
+                 logger="conway")
+        stop()
+    }
 
     defect.dat <- defect.dat[defect.dat$commitDate >= start.date & defect.dat$commitDate < end.date,]
 
