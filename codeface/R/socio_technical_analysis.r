@@ -127,7 +127,7 @@ compute.communication.relations <- function(conf, jira.filename,
 ## are connected), and optionally a weight column (if weights for
 ## the connections are available)
 compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
-                                 dsm.filename, params) {
+                                 range.resdir, params) {
     dependency.type <- conf$dependencyType
     artifact.type <- conf$artifactType
     ensure.supported.dependency.type(dependency.type)
@@ -157,6 +157,8 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
         }
         names(dependency.dat) <- c("V1", "V2", "weight")
     } else if (dependency.type == "dsm") {
+        dsm.filename <- file.path(range.resdir, "titan", "sdsm", "project.sdsm")
+
         dependency.dat <- load.sdsm(dsm.filename)
         if (is.null(dependency.dat)) {
             logwarning(str_c("Could not obtain any dependencies from the SDSM! ",
@@ -281,7 +283,7 @@ gen.plot.info <- function(stats) {
                  " A-M: ", stats$num.motifs.anti, sep=""))
 }
 
-do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.date,
+do.quality.analysis <- function(conf, vcs.dat, start.date, end.date,
                                 motif.type, motif.dat, stats, range.resdir) {
     ## Perform quality analysis
     if (length(motif.dat$motif.subgraphs) == 0 ||
@@ -293,6 +295,7 @@ do.quality.analysis <- function(conf, vcs.dat, defect.filename, start.date, end.
     artifact.type <- conf$artifactType
     quality.type <- conf$qualityType
     communication.type <- conf$communicationType
+    defect.filename <- file.path(range.resdir, "changes_and_issues_per_file.csv")
 
     relevant.entity.list <- unique(vcs.dat$entity)
     if (quality.type=="defect") {
@@ -456,17 +459,14 @@ do.motif.plots <- function(motif.dat, comm.dat, stats, networks.dir) {
            width=7, height=8)
 }
 
-do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, end.date,
-                               titandir) {
+do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, end.date) {
     project.name <- conf$project
     project.id <- conf$pid
 
-    dsm.filename <- file.path(titandir, "sdsm", "project.sdsm")
     ## TODO: How can this file be constructed?
     feature.call.filename <- file.path(global.resdir,
                                        "feature-dependencies/cg_nw_f_1_18_0.net")
     jira.filename <- file.path(global.resdir, "jira_issue_comments.csv")
-    defect.filename <- file.path(range.resdir, "changes_and_issues_per_file.csv")
 
     ## The configuration object contains several variables that describe
     ## the "flavour" of the Conway analysis:
@@ -501,8 +501,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
                       sep=""), startlogger="conway")
         return(NULL)
     }
-    dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date,
-                                           dsm.filename, params)
+    dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date, range.resdir, params)
 
     ## Generate a bipartite network that describes the socio-technical structure
     ## of a development project. This data structure is the core of the Conway
@@ -618,7 +617,7 @@ do.conway.analysis <- function(conf, global.resdir, range.resdir, start.date, en
         do.motif.plots(motif.dat, comm.dat, stats, networks.dir)
 
         ## Finally, statistically analyse the quality of the results
-        do.quality.analysis(conf, vcs.dat, defect.filename, start.date, end.date,
+        do.quality.analysis(conf, vcs.dat, start.date, end.date,
                             motif.type, motif.dat, stats, range.resdir)
     }
 }
@@ -632,7 +631,6 @@ config.script.run({
     range.resdir <- conf$range_resdir
     start.date <- conf$start_date
     end.date <- conf$end_date
-    titandir <- file.path(range.resdir, "titan")
 
     logdevinfo(paste("Directory for storing conway results is", range.resdir),
                logger="conway")
@@ -648,6 +646,5 @@ config.script.run({
         }
     }
 
-    do.conway.analysis(conf, global.resdir, range.resdir,
-                       start.date, end.date, titandir)
+    do.conway.analysis(conf, global.resdir, range.resdir, start.date, end.date)
 })
