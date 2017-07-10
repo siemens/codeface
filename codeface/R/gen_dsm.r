@@ -31,6 +31,11 @@ do.titan.analysis <- function(conf) {
     code.dir <- tempdir()
     archive.file <- tempfile()
 
+    ## NOTE: We deliberately don't store the understand db file in resdir
+    ## because it may contain slashes, which leads to understand not adding
+    ## any files to the database...
+    db.file <- tempfile()
+
     ## Check out the repository at the final commit state of the revision
     ## range under consideration
     logdevinfo(str_c("Checking out revision ", conf$revhash, " into ",
@@ -41,15 +46,12 @@ do.titan.analysis <- function(conf) {
     resdir <- conf$resdir
     dir.create(resdir, showWarnings=FALSE, recursive=TRUE)
 
-    languages <- "java c++"
-
-    db.file <- file.path(resdir, "project.udb")
     csv.file <- file.path(resdir, "static_file_dependencies.csv")
 
-    cmd <- str_c("und create -db", db.file, "-languages", languages, sep=" ")
+    cmd <- str_c("und create -db", db.file, sep=" ")
     dummy <- do.system.raw(cmd)
     
-    cmd <- str_c("und -db ", db.file, "add", code.dir, sep=" ")
+    cmd <- str_c("und -db ", db.file, "add", file.path(code.dir, "code"), sep=" ")
     dummy <- do.system.raw(cmd)
     
     cmd <- str_c("und settings -MetricMetrics all ", db.file)
@@ -64,14 +66,12 @@ do.titan.analysis <- function(conf) {
     cmd <- str_c("und export -dependencies file csv", csv.file, db.file, sep=" ")
     dummy <- do.system.raw(cmd)
     
-    str_c("und metrics ", db.file)
-    dummy <- do.system.raw(cmd)
-
     ## The temporary files that have been created are all located
     ## in the temporary directory and are therefore implicitely removed
     ## by the unlink call.
     unlink(code.dir, recursive=TRUE)
     unlink(archive.file, recursive=TRUE)
+    unlink(db.file, recursive=TRUE)
 }
 
 
