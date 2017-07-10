@@ -15,7 +15,8 @@
 ## Copyright 2016, Wolfgang Mauerer <wolfgang.mauerer@oth-regensburg.de>
 ## All Rights Reserved.
 
-## Analysis pass that uses the Titan toolchain to obtain architectural information
+## Analysis pass that uses understand to obtain architectural information
+## in the form of static dependencies
 
 suppressPackageStartupMessages(library(stringr))
 source("config.r")
@@ -32,26 +33,18 @@ do.titan.analysis <- function(conf) {
 
     ## Check out the repository at the final commit state of the revision
     ## range under consideration
-    ## TODO: logdevinfo
     logdevinfo(str_c("Checking out revision ", conf$revhash, " into ",
                      code.dir, "\n"), logger="titan")
     perform.git.checkout(conf$repodir, conf$revhash, code.dir, archive.file)
 
-    ## Understand output goes into conf$resdir/titan (and various subdirectories)
-    resdir <- file.path(conf$resdir, "titan")
+    ## Understand output and the inferred CSV file to into the range specific directory
+    resdir <- conf$resdir
     dir.create(resdir, showWarnings=FALSE, recursive=TRUE)
 
-    ## TODO: Do we actually need all these directories?
-    lapply(c("revisionlog", "xml", "metrics", "sdsm", "hdsm", "clsx",
-             "fileage", "buglist", "bugchurn", "changelist", "changechurn",
-             "archissue", "archissue-csv", "report"), function(subdir) {
-                 dir.create(file.path(resdir, subdir), showWarnings=FALSE, recursive=TRUE)
-    })
-    
     languages <- "java c++"
 
-    db.file <- file.path(resdir, "metrics", "project.udb")
-    xml.file <- file.path(resdir, "xml", "project.xml")
+    db.file <- file.path(resdir, "project.udb")
+    csv.file <- file.path(resdir, "static_file_dependencies.csv")
 
     cmd <- str_c("und create -db", db.file, "-languages", languages, sep=" ")
     dummy <- do.system.raw(cmd)
@@ -68,7 +61,7 @@ do.titan.analysis <- function(conf) {
     cmd <- str_c("und analyze ", db.file)
     dummy <- do.system.raw(cmd)
     
-    cmd <- str_c("und export -dependencies file cytoscape", xml.file, db.file, sep=" ")
+    cmd <- str_c("und export -dependencies file csv", csv.file, db.file, sep=" ")
     dummy <- do.system.raw(cmd)
     
     str_c("und metrics ", db.file)
@@ -79,28 +72,12 @@ do.titan.analysis <- function(conf) {
     ## by the unlink call.
     unlink(code.dir, recursive=TRUE)
     unlink(archive.file, recursive=TRUE)
-
-    ################################################################################
-    ## With the understand results in place, we can run the Titan toolchain
-    sdsm.file <- file.path(resdir, "sdsm", "project.sdsm")
-    cmd <- str_c("java -jar", file.path(conf$titandir, "genSdsm-cmd-jdk1.6.jar"),
-                                        "-cytospace -f", xml.file, "-o", sdsm.file,
-                 sep=" ")
-    dummy <- do.system.raw(cmd)
-    
-    cmd <- str_c("java -jar ", file.path(conf$titandir,
-                                         "replaceLastOccurence-2016-q.jar"),
-                 "-point ", sdsm.file, sep=" ")
-    dummy <- do.system.raw(cmd)
-
-    dummy <- file.rename(str_c(sdsm.file, "bak", sep="."), sdsm.file)
 }
 
 
 ## ################# Dispatcher ######################
 config.script.run({
-  conf <- config.from.args(positional.args=list("repodir", "resdir",
-                                                "titandir", "revhash"),
+  conf <- config.from.args(positional.args=list("repodir", "resdir", "revhash"),
                            require.project=TRUE)
 
   do.titan.analysis(conf)

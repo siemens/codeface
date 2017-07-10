@@ -12,43 +12,33 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ##
 ## Copyright 2016, Siemens AG, Mitchell Joblin <mitchell.joblin.ext@siemens.com>
+## Copyright 2017, Wolfgang Mauerer <wolfgang.mauerer@oth-regensburg.de>
 ## All Rights Reserved.
 
-## Support routines for handling DSMs produced by the Titan toolset
+## Support routines for handling DSMs produced by understand
 
 s <- suppressPackageStartupMessages
 s(library(igraph))
 
-load.sdsm <- function(sdsm.filename) {
-    sdsm.size <- NULL
-    tryCatch({
-        sdsm.size <- read.table(sdsm.filename, skip=1, nrows=1)[[1]]
-    }, error=function(e) {
-        ## If the file only has content "null", then Titan did not
-        ## produce valid data
-        sdsm.size <<- NULL
-    })
-    if (is.null(sdsm.size)) { return(NULL) }
+load.dsm <- function(dsm.filename) {
+    if (is.na(file.info(dsm.filename)$size) || file.info(dsm.filename)$size==0) {
+        return(NULL)
+    }
 
-    sdsm.filenames <- read.table(sdsm.filename, skip=2+sdsm.size)
+    dat <- read.csv(dsm.filename)
 
-    ## Titan stores absolute filenames, and also replaces slashes (/) with dots (.).
-    ## Since we run Titan on a checked out state of the repository in the
-    ## temporary location /tmp/Rtmpxxxxxx/code/, this gives prefixes like
-    ## .tmp.RtmpZ11Ycl.code. that need to be eliminated from the filename
-    logerror("Titan support is curently broken because of filename issues, aborting",
-             logger="conway")
-    stop()
-    sdsm.filenames$V1 <- gsub("\\.tmp\\.Rtmp\\w\\w\\w\\w\\w\\w\\.code\\.", "",
-                              sdsm.filenames$V1, perl=TRUE)
+    ## The code is checked out into a temporary directory, and understand
+    ## stores absolute filenames. Make these relative to the project root.
+    dat$From.File <- gsub("/tmp/Rtmp\\w\\w\\w\\w\\w\\w/code/", "",
+                          dat$From.File, perl=TRUE)
+    dat$To.File <- gsub("/tmp/Rtmp\\w\\w\\w\\w\\w\\w/code/", "",
+                        dat$To.File, perl=TRUE)
 
-    sdsm.binary <- read.table(sdsm.filename, skip=2, nrows=sdsm.size)
-    sdsm.binary[sdsm.binary > 0] <- 1
-    sdsm.binary <- as.matrix(sdsm.binary)
-    colnames(sdsm.binary) <- as.vector(sdsm.filenames)[[1]]
-    rownames(sdsm.binary) <- as.vector(sdsm.filenames)[[1]]
-    sdsm.graph <- graph.adjacency(sdsm.binary, mode="directed")
-    sdsm.edgelist <- as.data.frame(get.edgelist(sdsm.graph))
+    ## All dependency data frames use the same format: V1 and V2 for
+    ## source and destination, and weight for edge weights. In our case.
+    ## From.File, To.File and References fulfil these roles for us.
+    dat <- dat[,c("From.File", "To.File", "References")]
+    colnames(dat) <- c("V1", "V2", "weight")
 
-    return(sdsm.edgelist)
+    return(dat)
 }

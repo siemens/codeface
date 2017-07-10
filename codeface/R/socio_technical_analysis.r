@@ -159,9 +159,9 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
         }
         names(dependency.dat) <- c("V1", "V2", "weight")
     } else if (dependency.type == "dsm") {
-        dsm.filename <- file.path(range.resdir, "titan", "sdsm", "project.sdsm")
+        dsm.filename <- file.path(range.resdir, "static_file_dependencies.csv")
 
-        dependency.dat <- load.sdsm(dsm.filename)
+        dependency.dat <- load.dsm(dsm.filename)
         if (is.null(dependency.dat)) {
             logwarning(str_c("Could not obtain any dependencies from the SDSM! ",
                              "Trying to continue without dependencies.\n",

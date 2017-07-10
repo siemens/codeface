@@ -342,9 +342,9 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
 
 
         #######
-        # STAGE 3: Obtain SDSM using Titan
+        # STAGE 3: Obtain DSM using understand
         if "dependencyType" in conf.keys() and conf["dependencyType"] == "dsm":
-            exe = abspath(resource_filename(__name__, "R/titan.r"))
+            exe = abspath(resource_filename(__name__, "R/gen_dsm.r"))
             cwd, _ = pathsplit(exe)
             cmd = []
             cmd.append(exe)
@@ -355,7 +355,6 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
             cmd.extend(("-p", project_conf))
             cmd.append(repo)
             cmd.append(range_resdir)
-            cmd.append(titandir)
             cmd.append(end_rev)
 
             s3 = pool.add(
@@ -363,8 +362,8 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
                 (cmd,),
                 {"direct_io":True, "cwd":cwd},
                 deps=[],
-                startmsg=prefix + "Inferring architectural metrics with Titan...",
-                endmsg=prefix + "Titan run done."
+                startmsg=prefix + "Inferring architectural metrics with understand...",
+                endmsg=prefix + "understand run done."
                 )
 
         #########
