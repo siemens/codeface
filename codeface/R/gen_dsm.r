@@ -31,10 +31,10 @@ do.titan.analysis <- function(conf) {
     code.dir <- tempdir()
     archive.file <- tempfile()
 
-    ## NOTE: We deliberately don't store the understand db file in resdir
-    ## because it may contain slashes, which leads to understand not adding
-    ## any files to the database...
-    db.file <- tempfile()
+    ## NOTE: We deliberately don't store the understand db file in resdir,
+    ## and deliberately use only a file name in hierarchy depth 1 because
+    ## understand is known to cause issues otherwise...
+    db.file <- file.path("/tmp/", str_c(conf$revhash, ".udb"))
 
     ## Check out the repository at the final commit state of the revision
     ## range under consideration
