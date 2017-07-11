@@ -140,7 +140,7 @@ ensure.supported.artifact.type <- function(artifact.type) {
 }
 
 ensure.supported.dependency.type <- function(dependency.type) {
-    if(!(dependency.type %in% c("co-change", "dsm", "feature_call", "none"))) {
+    if(!(dependency.type %in% c("co-change", "dsm", "feature_call", "semantic", "none"))) {
         stop(str_c("Internal error: Dependency type ", dependency.type,
                    " is unsupported!"))
     }

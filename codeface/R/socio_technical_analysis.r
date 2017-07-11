@@ -29,6 +29,7 @@ source("query.r")
 source("utils.r")
 source("config.r")
 source("dependency_analysis.r")
+source("semantic_dependency.r")
 source("process_dsm.r")
 source("process_jira.r")
 source("quality_analysis.r")
@@ -180,6 +181,25 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
             dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
                            dependency.dat[, 2] %in% relevant.entity.list,]
         names(dependency.dat) <- c("V1", "V2")
+    } else if (dependency.type == "semantic") {
+        commit.df <- query.dependency(conf, params$file.limit, start.date, end.date,
+                                      impl=TRUE)
+
+        ## Compute the semantic coupling between entities in the commit.df
+        semantic.rel <- computeSemanticCoupling(commit.df, threshold=0.7)
+
+        ## Verify that the vertex index is congruent with the row index
+        vertex.data <- semantic.rel$vertex.data
+        if(!all(1:length(vertex.data$name) == vertex.data$name)) {
+            logerror("Internal error: Row index mismatch in semantic coupling calculation",
+                     logger="network_stream")
+            stop()
+        }
+
+        ## Map vertex id to an entity name
+        V1 <- vertex.data[semantic.rel$edgelist$X1, "id"]
+        V2 <- vertex.data[semantic.rel$edgelist$X2, "id"]
+        dependency.dat <- data.frame(V1=V1, V2=V2, stringsAsFactors=F)
     } else {
         dependency.dat <- data.frame()
     }
