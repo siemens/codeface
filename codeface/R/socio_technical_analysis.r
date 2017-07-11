@@ -300,7 +300,7 @@ do.null.model <- function(g.bipartite, g.nodes, person.role, dependency.dat,
 gen.plot.info <- function(stats) {
     return(str_c(stats$project, " (", stats$start.date, "--", stats$end.date,
                  ")\n", "Devs: ", stats$num.devs,
-                 " Funs: ", stats$num.functions,
+                 " Art: ", stats$num.artefacts,
                  " M: ", stats$num.motifs,
                  " A-M: ", stats$num.motifs.anti, sep=""))
 }
@@ -688,7 +688,7 @@ do.conway.analysis <- function(conf, global.resdir, i) {
                                    artifact.type, vertex.coding)
 
         logdevinfo("Computing null model stats", logger="conway")
-        stats <- list(num.devs=length(nodes.dev), num.functions=length(nodes.artifact),
+        stats <- list(num.devs=length(nodes.dev), num.artefacts=length(nodes.artifact),
                       num.motifs=length(motif.dat$motif.subgraphs),
                       num.motifs.anti=length(motif.dat$motif.anti.subgraphs),
                       start.date=start.date, end.date=end.date, project=conf$project)
