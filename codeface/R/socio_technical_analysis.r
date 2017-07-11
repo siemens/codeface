@@ -306,8 +306,8 @@ gen.plot.info <- function(stats) {
 }
 
 ## Merge VCS and quality data, and save the results as a side effect
-merge.conway.data <- function(conf, vcs.dat, cycles, i, motif.type, communication.type,
-                              quality.type, motif.dat, stats, global.resdir) {
+merge.conway.data <- function(conf, cycles, i, motif.type, communication.type,
+                              quality.type, global.resdir, networks.dir) {
     cycle <- cycles[i, ]
     start.date <- cycle$date.start
     end.date <- cycle$date.end
@@ -315,17 +315,12 @@ merge.conway.data <- function(conf, vcs.dat, cycles, i, motif.type, communicatio
     corr.path <- file.path(range.resdir, "quality_analysis", motif.type,
                            communication.type)
 
-    ## Prepare a list of motif and anti-motif counts for each artefact
-    artifacts <- count(data.frame(entity=unlist(lapply(motif.dat$motif.subgraphs,
-                                                       function(i) i[[3]]$name))))
-    anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.dat$motif.anti.subgraphs,
-                                                            function(i) i[[3]]$name))))
+    ## Query required base data
+    compare.motifs <- read.table(file.path(networks.dir, "entity_motifs.txt"))
 
-    compare.motifs <- merge(artifacts, anti.artifacts, by='entity', all=TRUE)
-    compare.motifs[is.na(compare.motifs)] <- 0
-    names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
-
-    ## Get amount of developers per entity
+    ## Query developer-artifact relationships and determine amout of developers per entity
+    vcs.dat <- query.dependency(conf, params$file.limit, start.date, end.date)
+    vcs.dat$author <- as.character(vcs.dat$author)
     file.dev.count.df <- ddply(vcs.dat, .(entity),
                                function(df) data.frame(entity=unique(df$entity),
                                                        dev.count=length(unique(df$id))))
@@ -453,9 +448,9 @@ do.quality.analysis <- function(conf, vcs.dat, cycles, i, motif.type, motif.dat,
                                 "quality_analysis", motif.type, communication.type)
     dir.create(corr.plot.path, recursive=T, showWarnings=T)
 
-    artifacts.dat.list <- merge.conway.data(conf, vcs.dat, cycles, i, motif.type,
-                                            communication.type, quality.type, motif.dat,
-                                            stats, global.resdir)
+    artifacts.dat.list <- merge.conway.data(conf, cycles, i, motif.type,
+                                            communication.type, quality.type,
+                                            global.resdir, networks.dir)
     null <- lapply(1:length(artifacts.dat.list), function(j) {
         stats$type <- names(artifacts.dat.list)[j]
         create.conway.plots(artifacts.dat.list[[j]], quality.type, corr.plot.path, motif.type,
@@ -594,7 +589,8 @@ do.conway.analysis <- function(conf, global.resdir, i) {
                       sep=""), startlogger="conway")
         return(NULL)
     }
-    dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date, range.resdir, params)
+    dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date,
+                                           range.resdir, params)
 
     ## Generate a bipartite network that describes the socio-technical structure
     ## of a development project. This data structure is the core of the Conway
@@ -706,6 +702,24 @@ do.conway.analysis <- function(conf, global.resdir, i) {
         ## * empirical.count: integer (count or ratio for the observed data)
         write.table(motif.dat$null.model.dat,
                     file=file.path(networks.dir, "raw_motif_results.txt"))
+
+        ## Prepare a list of motif and anti-motif counts for each artefact
+        ## and save the result for later use
+        ## The file contains the following columns:
+        ## * entity: Name of the artefact
+        ## * motif.count: (empirical) number of motifs
+        ## * motif.anti.count: (empirical) number of anti-motifs
+        artifacts <- count(data.frame(entity=unlist(lapply(motif.dat$motif.subgraphs,
+                                          function(i) i[[3]]$name))))
+        anti.artifacts <- count(data.frame(entity=unlist(lapply(motif.dat$motif.anti.subgraphs,
+                                               function(i) i[[3]]$name))))
+
+        compare.motifs <- merge(artifacts, anti.artifacts, by='entity', all=TRUE)
+        compare.motifs[is.na(compare.motifs)] <- 0
+        names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
+        write.table(motif.dat$null.model.dat,
+                    file=file.path(networks.dir, "entity_motifs.txt"))
+
 
         do.motif.plots(motif.dat, comm.dat, stats, networks.dir)
 
