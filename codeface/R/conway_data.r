@@ -21,6 +21,13 @@
 ## Provide time-resolved raw data from the quality analysis
 source("quality_analysis.r")
 
+## Collect any constant analysis parameters here
+get.conway.params <- function() {
+    return(list(person.role="developer", file.limit=30,
+                historical.limit <- ddays(365)))
+}
+
+
 ## TODO: Document return result
 get.conway.artifact.data.ts <- function(conf, resdir, motif.type, keep.list=NULL) {
     cycles <- get.cycles(conf)
@@ -209,4 +216,92 @@ augment.artifact.data <- function(artifacts.dat, quality.type) {
     }
 
     return(artifacts.dat)
+}
+
+
+## Combine quality (defect, corrections) information with motif/anti-motif counts
+## and data obtained from the VCS analysis
+merge.conway.data <- function(conf, cycles, i, motif.type, communication.type,
+                              quality.type, global.resdir, networks.dir, do.variants=FALSE) {
+    cycle <- cycles[i, ]
+    start.date <- cycle$date.start
+    end.date <- cycle$date.end
+    params <- get.conway.params()
+    range.resdir <- file.path(global.resdir, gen.range.path(i, cycle$cycle))
+    corr.path <- file.path(range.resdir, "quality_analysis", motif.type,
+                           communication.type)
+
+    ## Query required base data
+    motif.file <- file.path(networks.dir, "entity_motifs.txt")
+    if (!file.exists(motif.file)) {
+        loginfo(str_c("Neither motifs nor anti-motifs in cycle ", i, ", exiting early"))
+        return()
+    }
+    compare.motifs <- read.table(motif.file)
+
+    ## Query developer-artifact relationships and determine amout of developers per entity
+    vcs.dat <- query.dependency(conf, params$file.limit, start.date, end.date)
+    vcs.dat$author <- as.character(vcs.dat$author)
+    file.dev.count.df <- ddply(vcs.dat, .(entity),
+                               function(df) data.frame(entity=unique(df$entity),
+                                                       dev.count=length(unique(df$id))))
+
+    ## Finally, load data about defects/corrective changes.
+    ## We consider three types of relationships between social
+    ## interactions/communication and bugs/corrections: isochronous
+    ## (bugs from the same temporal interval as the communication are
+    ## considered), advanced (bugs that appeared in the temporal
+    ## interval before the communication are considered), and
+    ## retarded (bugs follow communication by one interval)
+    relevant.entity.list <- unique(vcs.dat$entity)
+
+    i <- as.numeric(i)
+    if (do.variants) {
+        ## We cannot compute advanced/retarded combinations if we're considering
+        ## the first/last analysis cycle. Prepare a list of combinations without
+        ## these corner cases.
+        variants <- data.frame(cycle=c(i-1, i, i+1),
+                               label=c("advanced", "isochronous", "retarded"))
+        variants <- variants[variants$cycle <= nrow(cycles) & variants$cycle>0,]
+    } else {
+        ## Only consider the current cycle
+        variants <- data.frame(cycle=c(i), label=c("isochronous"))
+    }
+
+    res <- lapply(1:nrow(variants), function(j) {
+        idx <- variants$cycle[j]
+        defect.filename <- file.path(global.resdir, gen.range.path(idx, cycles[idx, ]$cycle),
+                                     "changes_and_issues_per_file.csv")
+        start.date <- cycles[idx, ]$date.start
+        end.date <- cycles[idx, ]$date.end
+
+        if (quality.type=="defect") {
+            quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
+                                            start.date, end.date)
+        } else {
+            quality.dat <- get.corrective.count(conf$con, conf$pid, start.date,
+                                                end.date, artifact.type)
+        }
+
+
+        ## #####################################################################
+        ## Combine the previously created data sets and save the result
+        artifacts.dat <- merge(quality.dat, compare.motifs, by="entity")
+        artifacts.dat <- merge(artifacts.dat, file.dev.count.df, by="entity")
+
+        ## quality_data.csv contains the following columns:
+        ## entity -- analysed entity (filename)
+        ## BugIssueCount (only for jira data)
+        ## Churn (only for jira data)
+        ## CountLineCode -- LoC of the entity at the time of the snapshot
+        ## motif.count -- number of motifs detected in the entity
+        ## motif.anti.count -- number of anti-motifs detected in the entity
+        ## dev.count -- developers participating in the development of the entity
+        write.csv(artifacts.dat, file.path(corr.path, str_c("quality_data_",
+                                                            variants$label[j], ".csv")))
+        return(artifacts.dat)
+    })
+
+    names(res) <- variants$label
+    return(res)
 }

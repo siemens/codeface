@@ -21,6 +21,8 @@ s(library(ggplot2))
 s(library(lubridate))
 s(library(dplyr))
 s(library(gtable))
+s(library(GGally))
+s(library(corrplot))
 
 source("query.r")
 source("utils.r")
@@ -34,11 +36,98 @@ make.title <- function(conf, motif.type) {
                  motif.type, ", comm: ", conf$communicationType, ")"))
 }
 
+## Visualise the multi-source conway data, and compute statistical correlations and
+## their significance
+create.conway.correlation.plots <- function(artifacts.dat, quality.type, corr.plot.path,
+                                            motif.type, communication.type, lag.type) {
+    artifacts.dat.aug <- augment.artifact.data(artifacts.dat, quality.type)
+
+    corr.elements <- gen.conway.artifact.columns(quality.type)
+    artifacts.subset <- artifacts.dat.aug[, corr.elements$names]
+    colnames(artifacts.subset) <- corr.elements$labels
+
+    ## NOTE: We deliberately use artifacts.dat.aug and then subset the columns because
+    ## working directly with artifacts.subset does not work -- the column names
+    ## are not in a suitable format for ggpairs()
+    correlation.plot <- ggpairs(artifacts.dat.aug,
+                                columns=corr.elements$names,
+                                lower=list(continuous=wrap("points",
+                                               alpha=0.33, size=0.5)),
+                                upper=list(continuous=wrap('cor',
+                                               method='spearman'))) +
+                                theme_bw() +
+                  theme(axis.title.x = element_text(angle = 90, vjust = 1,
+                            color = "black"))
+
+    corr.mat <- cor(artifacts.subset, use="pairwise.complete.obs",
+                    method="spearman")
+    if (nrow(artifacts.subset) == 0) {
+        loginfo(str_c("Conway analysis: No correlation data available, exiting early", sep=""),
+                startlogger="conway")
+        return()
+    }
+
+    ## Compute the p values for each correlation tests
+    corr.test <- cor.mtest(artifacts.subset)
+
+    ## Provide plots to visualise the data
+    pdf(file.path(corr.plot.path, str_c("correlation_plot_", lag.type, ".pdf")),
+        width=10, height=10)
+    print(correlation.plot)
+    dev.off()
+
+    if (!is.null(corr.test)) {
+        pdf(file.path(corr.plot.path, str_c("correlation_plot_color_",
+                                            lag.type, ".pdf")),
+            width=7, height=7)
+        corrplot(corr.mat, p.mat=corr.test[[1]],
+                 insig = "p-value", sig.level=0.05, method="pie", type="lower")
+        dev.off()
+    }
+}
+
+do.quality.analysis <- function(conf, cycles, i, motif.type, global.resdir) {
+    ## Combine quality (defect, corrections) information with motif/anti-motif counts
+    ## and data obtained from the VCS analysis
+    artifact.type <- conf$artifactType
+    quality.type <- conf$qualityType
+    communication.type <- conf$communicationType
+    range.resdir <- file.path(global.resdir, gen.range.path(i, cycles[i,]$cycle))
+    corr.path <- file.path(range.resdir, "quality_analysis", motif.type,
+                           communication.type)
+    networks.dir <- file.path(range.resdir, "motif_analysis", motif.type,
+                              conf$communicationType)
+    
+    ## If the isochronous quality file for the cycle is not available
+    ## (because of missing data), retarded and advanced correlations cannot
+    ## be computed
+    if (!file.exists(file.path(corr.path, "quality_data_isochronous.csv"))) {
+        loginfo(str_c("Isochronous quality data for range ", i, " unavailable, exitting early"),
+                logger="conway")
+        return()
+    }
+
+    artifacts.dat.list <- merge.conway.data(conf, cycles, i, motif.type,
+                                        communication.type, quality.type,
+                                        global.resdir, networks.dir, do.variants=TRUE)
+
+    null <- lapply(1:length(artifacts.dat.list), function(j) {
+        lag.type <- names(artifacts.dat.list)[j]
+        create.conway.correlation.plots(artifacts.dat.list[[j]], quality.type,
+                                        corr.path, motif.type,
+                                        communication.type, lag.type)
+    })
+}
+
 dispatch.all <- function(conf, resdir, motif.type) {
     cycles <- get.cycles(conf)
 
     if (is.null(conf$windowSize)) {
         conf$windowSize <- 3
+    }
+
+    for (i in 1:nrow(cycles)) {
+        do.quality.analysis(conf, cycles, i, motif.type, resdir)
     }
 
     ## Compute correlation values time series and plot the result
