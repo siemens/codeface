@@ -112,6 +112,23 @@ compute.communication.relations <- function(conf, jira.filename,
     } else if (communication.type=="jira") {
         ## If there are no jira data, load.jira.edgelist will return NULL
         comm.dat <- load.jira.edgelist(conf, jira.filename, start.date, end.date)
+    } else if (communication.type=="mail+jira") {
+        ## Combine both communication types
+        comm.dat.mail <- query.mail.edgelist(conf$con, conf$pid, start.date, end.date)
+        if (nrow(comm.dat.mail) == 0) {
+            comm.dat.mail <- NULL
+        } else {
+            colnames(comm.dat.mail) <- c("V1", "V2", "weight")
+        }
+        comm.dat.jira <- load.jira.edgelist(conf, jira.filename, start.date, end.date)
+
+        if (is.null(comm.dat.mail) || is.null(comm.dat.jira)) {
+            return(NULL)
+        }
+
+        comm.dat <- merge(comm.dat.mail, comm.dat.jira, by=c("V1", "V2"))
+        comm.dat$weight <- comm.dat$weight.x + comm.dat$weight.y
+        comm.dat <- comm.dat[,c("V1", "V2", "weight")]
     }
 
     if (is.null(comm.dat)) {
@@ -437,7 +454,7 @@ do.conway.analysis <- function(conf, global.resdir, i) {
     nodes.artifact <- unique(vcs.dat$entity)
     nodes.dev <- unique(c(vcs.dat$author))
 
-    ## Compute various other relationships between contributors and/or entities
+    ## Determine communication relations between contributors
     comm.dat <- compute.communication.relations(conf, jira.filename,
                                                 start.date, end.date)
 
@@ -447,6 +464,8 @@ do.conway.analysis <- function(conf, global.resdir, i) {
                       sep=""), startlogger="conway")
         return(NULL)
     }
+
+    ## Determine connections between entities (aka artefacts)
     dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date,
                                            range.resdir, params)
 

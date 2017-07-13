@@ -268,10 +268,10 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
         conf["communicationType"] = "mail"
         log.info("Conway analysis: No communication type given, defaulting to 'mail'")
 
-    if conf["communicationType"] == "jira" and \
+    if (conf["communicationType"] == "jira" or conf["communicationType"] == "mail+jira") and \
         (("issueTrackerType" in conf.keys() and conf["issueTrackerType"] != "jira") or \
         not("issueTrackerType" in conf.keys())):
-        log.info("Conway analysis configuration requires jira bugtracking information, exiting")
+        log.info("Conway analysis only supports jira for bugtracking information, exiting")
         return
 
     # When revisions are not provided by the configuration file
@@ -290,7 +290,7 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
     project_conf = conf.get_conf_file_loc()
 
     # Global stage: Download and process JIRA issues
-    if conf["communicationType"] == "jira":
+    if conf["communicationType"] == "jira" or conf["communicationType"] == "mail+jira":
         log.info("=> Downloading and processing JIRA issues")
         dispatch_jira_processing(project_resdir, titandir, conf)
 
@@ -318,7 +318,8 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
 
         #########
         # STAGE 2: Connect commits and jira issues
-        if "communicationType" in conf.keys() and conf["communicationType"] == "jira":
+        if "communicationType" in conf.keys() and \
+            (conf["communicationType"] == "jira" or conf["communicationType"] == "mail+jira"):
             exe = abspath(resource_filename(__name__, "R/conway_metrics.r"))
             cwd, _ = pathsplit(exe)
             cmd = []

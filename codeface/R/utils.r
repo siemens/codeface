@@ -154,7 +154,7 @@ ensure.supported.quality.type <- function(quality.type) {
 }
 
 ensure.supported.communication.type <- function(communication.type) {
-    if(!(communication.type %in% c("mail", "jira"))) {
+    if(!(communication.type %in% c("mail", "jira", "mail+jira"))) {
         stop(str_c("Internal error: Communication type ", communication.type,
                    " is unsupported!"))
     }
