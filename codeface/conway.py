@@ -307,19 +307,3 @@ def parseCommitLoC(conf, dbm, project_id, range_id, start_rev, end_rev, outdir, 
     # The file is created for each release range
     parseGitLogOutput(change_blocks, hash_description, repo,
                       os.path.join(outdir, "file_metrics.csv"))
-
-if __name__ == "__main__":
-    # NOTE: When the script is executed manually via command line, we
-    # assume that the issues are already present as XML files.
-    # We just perform the postprocessing step in this case
-    if len(sys.argv) < 5:
-        sys.exit("Usage: %s jira-bug-xml-dir jira-user jira-password " \
-                 "jira_url output-dir" % sys.argv[0])
-
-    xml_dir = sys.argv[1]
-    jira_user = sys.argv[2]
-    jira_password = sys.argv[3]
-    jira_url = sys.argv[4]
-    output_dir = sys.argv[5]
-
-    parse_jira_issues(xml_dir, output_dir, jira_url, jira_user, jira_password)
