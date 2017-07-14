@@ -27,6 +27,7 @@ s(library(corrplot))
 source("query.r")
 source("utils.r")
 source("config.r")
+source("system.r")
 source("dependency_analysis.r")
 source("quality_analysis.r")
 source("conway_data.r")
@@ -107,6 +108,32 @@ do.quality.analysis <- function(conf, cycles, i, types, global.resdir) {
         create.conway.correlation.plots(artifacts.dat.list[[j]], types,
                                         range.dir, lag.type)
     })
+}
+
+## Compute the decoupling level from the DSM
+compute.dl <- function(conf, xml.file, dsm.file) {
+    cmd <- str_c("java -jar ", file.path(conf$titandir, "genSdsm-cmd-jdk1.6.jar"), "-cytoscape -f ",
+                 xml.file, "-o ", dsm.file, sep=" ")
+    dummy <- do.system.raw(cmd)
+
+    cmd <- str_c("java -jar ", file.path(conf$titandir, "DLCalculator.jar"), dsm.file, sep=" ")
+    res <- do.system.raw(cmd)
+    return(as.numeric(res))
+}
+
+compute.dl.ts <- function(conf) {
+    cycles <- get.cycles(conf)
+
+    dl.ts <- do.call(rbind, lapply(1:nrow(cycles), function(i) {
+        range.resdir <- file.path(conf$resdir, gen.range.path(i, cycles[i,]$cycle))
+        dsm.file <- file.path(range.resdir, "static_file_dependencies.dsm")
+        xml.file <- file.path(range.resdir, "static_file_dependencies.xml")
+
+        dl <- compute.dl(conf, xml.file, dsm.file)
+        return(data.frame(cycle=i, date=cycles[i,]$date.end, dl=dl))
+    }))
+
+    write.table(dl.ts, file=file.path(conf$resdir, "dl_ts.csv"))
 }
 
 dispatch.all <- function(conf, resdir, motif.type) {
@@ -301,8 +328,14 @@ dispatch.all <- function(conf, resdir, motif.type) {
 }
 
 config.script.run({
-    conf <- config.from.args(positional.args=list("resdir"), require.project=TRUE)
+    conf <- config.from.args(positional.args=list("resdir", "titandir"), require.project=TRUE)
     for (motif.type in c("triangle", "square")) {
         dispatch.all(conf, conf$resdir, motif.type)
+    }
+
+    ## Compute the decoupling level for each release range, and create a time
+    ## series from the sequence of scalars
+    if (conf$dependencyType=="dsm") {
+        compute.dl.ts(conf)
     }
 })

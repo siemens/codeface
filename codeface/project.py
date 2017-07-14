@@ -410,6 +410,7 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
     cmd.extend(("-p", project_conf))
     cmd.extend(("-j", str(n_jobs)))
     cmd.append(project_resdir)
+    cmd.append(titandir)
     execute_command(cmd, direct_io=True, cwd=cwd)
 
     log.info("=> Codeface conway analysis complete!")
