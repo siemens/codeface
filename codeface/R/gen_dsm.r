@@ -25,11 +25,11 @@ source("query.r")
 source("system.r")
 source("utils.r")
 
-do.titan.analysis <- function(conf) {
+generate.dsm <- function(conf) {
     ## Create a temporary directory to check out the state of the repository
     ## at the give commit
     code.dir <- tempdir()
-    archive.file <- tempfile()
+    archive.file <- file.path("/tmp/", str_c(conf$revhash, ".tar"))
 
     ## NOTE: We deliberately don't store the understand db file in resdir,
     ## and deliberately use only a file name in hierarchy depth 1 because
@@ -47,23 +47,20 @@ do.titan.analysis <- function(conf) {
     dir.create(resdir, showWarnings=FALSE, recursive=TRUE)
 
     csv.file <- file.path(resdir, "static_file_dependencies.csv")
+    xml.file <- file.path(resdir, "static_file_dependencies.xml")
 
-    cmd <- str_c("und create -db", db.file, sep=" ")
+    cmd <- str_c("und create -db", db.file,
+                 "-languages Ada COBOL C# Java Pascal Python Web C++ Fortran Jovial Plm VHDL Web",
+                 "add", file.path(code.dir, "code"),
+                 "settings -MetricMetrics all",
+                 "settings -MetricFileNameDisplayMode FullPath",
+                 "analyze", sep=" ")
     dummy <- do.system.raw(cmd)
-    
-    cmd <- str_c("und -db ", db.file, "add", file.path(code.dir, "code"), sep=" ")
-    dummy <- do.system.raw(cmd)
-    
-    cmd <- str_c("und settings -MetricMetrics all ", db.file)
-    dummy <- do.system.raw(cmd)
-    
-    cmd <- str_c("und settings -MetricFileNameDisplayMode FullPath ", db.file)
-    dummy <- do.system.raw(cmd)
-    
-    cmd <- str_c("und analyze ", db.file)
-    dummy <- do.system.raw(cmd)
-    
+
     cmd <- str_c("und export -dependencies file csv", csv.file, db.file, sep=" ")
+    dummy <- do.system.raw(cmd)
+
+    cmd <- str_c("und export -dependencies file cytoscape ", xml.file, db.file, sep=" ")
     dummy <- do.system.raw(cmd)
     
     ## The temporary files that have been created are all located
@@ -80,5 +77,5 @@ config.script.run({
   conf <- config.from.args(positional.args=list("repodir", "resdir", "revhash"),
                            require.project=TRUE)
 
-  do.titan.analysis(conf)
+  generate.dsm(conf)
 })
