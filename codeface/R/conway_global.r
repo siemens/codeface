@@ -146,11 +146,20 @@ dispatch.all <- function(conf, resdir, motif.type) {
     types <- types.from.conf(conf)
     types$motif <- motif.type
 
-    for (i in 1:nrow(cycles)) {
+    ## Compute advanced and retarded correlations now that the isochronous
+    ## data are available
+    lapply(1:nrow(cycles), function(i) {
+        logdevinfo(str_c("Computing lagged correlations for cycle ", i),
+                   logger="conway")
         do.quality.analysis(conf, cycles, i, types, resdir)
-    }
+    })
 
     ## Compute correlation values time series and plot the result
+    ## (note the path convention: same hierarchy as for the revision range specific
+    ## results, but in the global result directory)
+    plot.dir <- file.path(resdir, gen.conway.path(types))
+    dir.create(plot.dir, recursive=TRUE, showWarnings=FALSE)
+
     corr.dat <- get.correlations.ts(conf, resdir, types)
     if (is.null(corr.dat)) {
         logerror(str_c("No conway results available for ", motif.type, " motifs -- exitting early ",
@@ -158,8 +167,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
         return()
     }
 
-    plot.file <- file.path(resdir, str_c("correlations_ts_", motif.type, "_",
-                                        conf$communicationType, ".pdf"))
+    plot.file <- file.path(plot.dir, "correlations_ts.pdf")
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
 
     corr.label <- "Correlation"
@@ -193,15 +201,14 @@ dispatch.all <- function(conf, resdir, motif.type) {
 
     ## Combine all plots into a column panel with some ggplot2 and gtable magic
     grobs <- lapply(plots, ggplotGrob)
-    g <- gtable_col("plots",grobs, unit(7, "in"), unit(rep(3, num.panels), c("in")))
+    g <- gtable_col("plots", grobs, unit(7, "in"), unit(rep(3, num.panels), c("in")))
     ggsave(plot.file, g, width=7, height=3*num.panels)
 
     ## ###############################################################
     ## Compute a time series with absolute data counts
     res <- get.conway.artifact.data.ts(conf, resdir, types)
 
-    plot.file <- file.path(resdir, str_c("abs_ts_", motif.type, "_",
-                                         conf$communicationType, ".pdf"))
+    plot.file <- file.path(plot.dir, "abs_ts.pdf")
     labels <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs",
                 motif.ratio="Motif Ratio")
     dat <- prepare.abs.ts(res)
@@ -222,8 +229,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
                     motif.ratio="Motif Ratio")
         dat <- prepare.abs.bug.ts(res)
 
-        plot.file <- file.path(resdir, str_c("abs_bug_ts1_", motif.type, "_",
-                                             conf$communicationType, ".pdf"))
+        plot.file <- file.path(plot.dir, "abs_bug_ts1.pdf")
         g <- ggplot(dat, aes(x=Churn, y=value)) + geom_point(size=0.5) +
             facet_grid(variable~date, labeller=labeller(variable=labels), scale="free_y") +
             scale_x_log10("Churn [log]") + scale_y_continuous("Count or Ratio") +
@@ -233,8 +239,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
         ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5, limitsize=FALSE)
 
         ## #################################################################
-        plot.file <- file.path(resdir, str_c("abs_bug_ts2_", motif.type, "_",
-                                             conf$communicationType, ".pdf"))
+        plot.file <- file.path(plot.dir, "abs_bug_2.pdf")
         g <- ggplot(dat, aes(x=BugIssueCount, y=value)) + geom_point(size=0.5) +
             facet_grid(variable~date, labeller=labeller(variable=labels), scale="free_y") +
             scale_x_continuous("Bug Issue Count") + scale_y_continuous("Count or Ratio") +
@@ -244,8 +249,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
 
 
         ## #################################################################
-        plot.file <- file.path(resdir, str_c("jira_ts_abs_", motif.type, "_",
-                                             conf$communicationType, ".pdf"))
+        plot.file <- file.path(plot.dir, "jira_ts_abs.pdf")
         dat <- res[,c("CountLineCode", "bug.density", "Churn",
                       "BugIssueCount", "date", "range")]
         dat$Churn <- log(dat$Churn+1)
@@ -265,8 +269,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
 
     ## ############
 
-    plot.file <- file.path(resdir, str_c("norm_ts_", motif.type, "_",
-                                         conf$communicationType, ".pdf"))
+    plot.file <- file.path(plot.dir, "norm_ts.pdf")
     labels.norm <- c(motif.count.norm = "Motifs", motif.anti.count.norm = "Anti-Motifs",
                      motif.ratio="Motif Ratio")
     dat <- res[,c("motif.count.norm", "motif.anti.count.norm", "motif.ratio",
@@ -283,8 +286,7 @@ dispatch.all <- function(conf, resdir, motif.type) {
     ggsave(plot.file, g, width=2*length(unique(dat$date)), height=5, limitsize=FALSE)
 
 
-    plot.file <- file.path(resdir, str_c("motif_count_ts_", motif.type, "_",
-                                         conf$communicationType, ".pdf"))
+    plot.file <- file.path(plot.dir, "motif_count_ts.pdf")
     labels.norm <- c(motif.count = "Motifs", motif.anti.count = "Anti-Motifs")
     dat <- res[,c("motif.count", "motif.anti.count", "dev.count", "date", "range")]
 
@@ -309,15 +311,13 @@ dispatch.all <- function(conf, resdir, motif.type) {
         xlab("Count or Ratio") + ylab("Density [a.u.]") +
         ggtitle(make.title(conf, motif.type)) + theme_bw()
 
-    plot.file <- file.path(resdir, str_c("motif_null_model_ts_", motif.type, "_",
-                                         conf$communicationType, ".pdf"))
+    plot.file <- file.path(plot.dir, "motif_null_model_ts.pdf")
     logdevinfo(str_c("Saving plot to ", plot.file), logger="conway")
     ggsave(plot.file, g, width=2*length(unique(dat$date)), height=6, limitsize=FALSE)
 
     ## #####################################################
     ## Plot a time series with absolute empirical motif counts
-    plot.file <- file.path(resdir, str_c("motif_ts_abs_", motif.type, "_",
-                                         conf$communicationType, ".pdf"))
+    plot.file <- file.path(plot.dir, "motif_ts_abs.pdf")
     g <- ggplot(res, aes(x=as.Date(date), y=empirical.count)) + geom_point() + geom_line() +
         facet_grid(count.type~., scales="free_y", labeller=labeller(count.type=labels)) +
         scale_x_date("Date", date_labels="%m-%Y") + expand_limits(y=0) +
