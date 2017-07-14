@@ -27,13 +27,44 @@ get.conway.params <- function() {
                 historical.limit <- ddays(365)))
 }
 
+## Given a set of type specifications (communication, motif etc.), construct
+## a path component like triangle/jira/xyz/... that uniquely identifies
+## the type combination.
+## This will not be required any more once the data are properly stored in the
+## database (appropriate table elements can be used in this case)
+gen.conway.path <- function(types, omit.motif=FALSE) {
+    dir <- file.path(types$artifact, types$dependency,
+                      types$communication, types$quality)
+    if (!omit.motif) {
+        if (is.null(types$motif)) {
+            logwarning("No motif specified in gen.conway.path despite omit.motif=FALSE!",
+                       logger="conway_data")
+        } else {
+            dir <- file.path(dir, types$motif)
+        }
+    }
+
+    return(dir)
+}
+
+types.from.conf <- function(conf) {
+    types <- list()
+    types$artifact <- conf$artifactType
+    types$quality <- conf$qualityType
+    types$communication <- conf$communicationType
+    types$artifact <- conf$artifactType
+    types$dependency <- conf$dependencyType
+
+    return(types)
+}
+
 
 ## TODO: Document return result
-get.conway.artifact.data.ts <- function(conf, resdir, motif.type, keep.list=NULL) {
+get.conway.artifact.data.ts <- function(conf, resdir, types, keep.list=NULL) {
     cycles <- get.cycles(conf)
     res <- lapply(1:nrow(cycles), function(i) {
         logdevinfo(str_c("Analysing quality cycle ", i), logger="conway")
-        res <- query.conway.artifact.data(conf, i, resdir, conf$qualityType, motif.type,
+        res <- query.conway.artifact.data(conf, i, resdir, types,
                                           keep.list, replace.labels=FALSE)
         if (is.null(res)) {
             return(NULL)
@@ -55,13 +86,13 @@ get.conway.artifact.data.ts <- function(conf, resdir, motif.type, keep.list=NULL
 ## In contrast to get.conway.artifact.data.ts, this function does not
 ## provide the raw data, but computes correlations from the data
 ## TODO: Document data format
-get.correlations.ts <- function(conf, resdir, motif.type, keep.list=NULL,
+get.correlations.ts <- function(conf, resdir, types, keep.list=NULL,
                                 temporal.type="isochronous") {
     cycles <- get.cycles(conf)
     res <- lapply(1:nrow(cycles), function(i) {
         logdevinfo(str_c("Analysing quality file for cycle ", i), logger="conway")
-        res <- compute.correlations.cycle(conf, i, resdir, conf$qualityType,
-                                          motif.type, keep.list, temporal.type=temporal.type)
+        res <- compute.correlations.cycle(conf, i, resdir, types, keep.list,
+                                          temporal.type=temporal.type)
     })
 
     corr.dat <- do.call(rbind, res)
@@ -75,7 +106,7 @@ get.correlations.ts <- function(conf, resdir, motif.type, keep.list=NULL,
 ## TODO: Documentation
 ## If replace.labels is set to TRUE, systematic column names are replaced with human
 ## readable alternatives
-query.conway.artifact.data <- function(conf, i, resdir, quality.type, motif.type, keep.list,
+query.conway.artifact.data <- function(conf, i, resdir, types, keep.list,
                                        replace.labels=TRUE, temporal.type="isochronous") {
     if (!(temporal.type %in% c("isochronous", "advanced", "retarded"))) {
         stop("Internal error: Unsupported temporal type in query.conway.artifact.data")
@@ -83,17 +114,16 @@ query.conway.artifact.data <- function(conf, i, resdir, quality.type, motif.type
 
     cycles <- get.cycles(conf)
     range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
-    quality.file <- file.path(range.resdir, "quality_analysis", motif.type,
-                              conf$communicationType,
+    quality.file <- file.path(range.resdir, gen.conway.path(types),
                               str_c("quality_data_", temporal.type, ".csv"))
 
     if (!file.exists(quality.file)) {
         return(NULL)
     }
     artifacts.dat <- read.csv(quality.file)
-    artifacts.dat <- augment.artifact.data(artifacts.dat, quality.type)
+    artifacts.dat <- augment.artifact.data(artifacts.dat, types$quality)
 
-    corr.elements <- gen.conway.artifact.columns(quality.type, keep.list)
+    corr.elements <- gen.conway.artifact.columns(types$quality, keep.list)
     artifacts.dat <- artifacts.dat[, corr.elements$names]
     if (replace.labels) {
         colnames(artifacts.dat) <- corr.elements$labels
@@ -106,8 +136,8 @@ query.conway.artifact.data <- function(conf, i, resdir, quality.type, motif.type
     return(artifacts.dat)
 }
 
-compute.correlations.cycle <- function(conf, i, resdir, quality.type, motif.type,
-                                       keep.list, temporal.type="isochronous") {
+compute.correlations.cycle <- function(conf, i, resdir, types, keep.list,
+                                       temporal.type="isochronous") {
     cycles <- get.cycles(conf)
 
     ## Always remove motif count and anti-motif count (and the
@@ -117,8 +147,7 @@ compute.correlations.cycle <- function(conf, i, resdir, quality.type, motif.type
     keep.list <- keep.list[!(keep.list %in% c("motif.count", "motif.anti.count",
                                               "motif.count.norm", "motif.anti.count.norm"))]
 
-    artifacts.subset <- query.conway.artifact.data(conf, i, resdir, quality.type,
-                                                   motif.type, keep.list,
+    artifacts.subset <- query.conway.artifact.data(conf, i, resdir, types, keep.list,
                                                    temporal.type=temporal.type)
     if (is.null(artifacts.subset)) {
         return(NULL)
@@ -144,12 +173,11 @@ compute.correlations.cycle <- function(conf, i, resdir, quality.type, motif.type
 
 ## Combine all per-range raw motif analysis data
 ## TODO: Document output result
-read.motif.results <- function(conf, resdir, motif.type) {
+read.motif.results <- function(conf, resdir, types) {
     cycles <- get.cycles(conf)
     res <- do.call(rbind, lapply(1:nrow(cycles), function(i) {
-        range.resdir <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle))
-        motif.file <- file.path(range.resdir, "motif_analysis", motif.type,
-                                conf$communicationType, "raw_motif_results.txt")
+        motif.file <- file.path(resdir, gen.range.path(i, cycles[i,]$cycle),
+                                gen.conway.path(types), "raw_motif_results.txt")
 
         logdevinfo(str_c("Analysing motif file ", motif.file), logger="conway")
         if (!file.exists(motif.file)) {
@@ -221,18 +249,17 @@ augment.artifact.data <- function(artifacts.dat, quality.type) {
 
 ## Combine quality (defect, corrections) information with motif/anti-motif counts
 ## and data obtained from the VCS analysis
-merge.conway.data <- function(conf, cycles, i, motif.type, communication.type,
-                              quality.type, global.resdir, networks.dir, do.variants=FALSE) {
+merge.conway.data <- function(conf, cycles, i, types, global.resdir,
+                              do.variants=FALSE) {
     cycle <- cycles[i, ]
     start.date <- cycle$date.start
     end.date <- cycle$date.end
     params <- get.conway.params()
-    range.resdir <- file.path(global.resdir, gen.range.path(i, cycle$cycle))
-    corr.path <- file.path(range.resdir, "quality_analysis", motif.type,
-                           communication.type)
 
+    motif.dir <- file.path(global.resdir, gen.range.path(i, cycles[i,]$cycle),
+                           gen.conway.path(types))
     ## Query required base data
-    motif.file <- file.path(networks.dir, "entity_motifs.txt")
+    motif.file <- file.path(motif.dir, "entity_motifs.txt")
     if (!file.exists(motif.file)) {
         loginfo(str_c("Neither motifs nor anti-motifs in cycle ", i, ", exiting early"))
         return()
@@ -275,12 +302,12 @@ merge.conway.data <- function(conf, cycles, i, motif.type, communication.type,
         start.date <- cycles[idx, ]$date.start
         end.date <- cycles[idx, ]$date.end
 
-        if (quality.type=="defect") {
+        if (types$quality=="defect") {
             quality.dat <- load.defect.data(defect.filename, relevant.entity.list,
                                             start.date, end.date)
         } else {
             quality.dat <- get.corrective.count(conf$con, conf$pid, start.date,
-                                                end.date, artifact.type)
+                                                end.date, types$artifact)
         }
 
 
@@ -297,7 +324,7 @@ merge.conway.data <- function(conf, cycles, i, motif.type, communication.type,
         ## motif.count -- number of motifs detected in the entity
         ## motif.anti.count -- number of anti-motifs detected in the entity
         ## dev.count -- developers participating in the development of the entity
-        write.csv(artifacts.dat, file.path(corr.path, str_c("quality_data_",
+        write.csv(artifacts.dat, file.path(motif.dir, str_c("quality_data_",
                                                             variants$label[j], ".csv")))
         return(artifacts.dat)
     })

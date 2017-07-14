@@ -145,18 +145,13 @@ compute.communication.relations <- function(conf, jira.filename,
 ## are connected), and optionally a weight column (if weights for
 ## the connections are available)
 compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
-                                 range.resdir, params) {
-    dependency.type <- conf$dependencyType
-    artifact.type <- conf$artifactType
-    ensure.supported.dependency.type(dependency.type)
-    ensure.supported.artifact.type(artifact.type)
-
+                                 range.resdir, params, types) {
     ## Compute a list of relevant files (i.e., all files touched in the release
     ## range)
     relevant.entity.list <- unique(vcs.dat$entity)
 
     ## Then, compute the the actual dependencies with the chosen mechanism
-    if (dependency.type == "co-change") {
+    if (types$dependency == "co-change") {
         start.date.hist <- as.Date(start.date) - params$historical.limit
         end.date.hist <- start.date
 
@@ -166,17 +161,18 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
         commit.df.hist <- commit.df.hist[commit.df.hist$entity %in%
                                          relevant.entity.list,]
 
-        ## Compute co-change relationship
+        ## Compute co-change relationships, and transfer the results
+        ## into an edgelist that connects co-changing artifacts
         freq.item.sets <- compute.frequent.items(commit.df.hist)
-        ## Compute an edgelist
         dependency.dat <- compute.item.sets.edgelist(freq.item.sets)
+
         if (nrow(dependency.dat) == 0) {
             logwarning("Could not find any co-change dependencies",
                        logger="conway")
             return(data.frame())
         }
         names(dependency.dat) <- c("V1", "V2", "weight")
-    } else if (dependency.type == "dsm") {
+    } else if (types$dependency == "dsm") {
         dsm.filename <- file.path(range.resdir, "static_file_dependencies.csv")
 
         dependency.dat <- load.dsm(dsm.filename)
@@ -190,7 +186,7 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
         dependency.dat <-
             dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
                            dependency.dat[, 2] %in% relevant.entity.list,]
-    } else if (dependency.type == "feature_call") {
+    } else if (types$dependency == "feature_call") {
         graph.dat <- read.graph(feature.call.filename, format="pajek")
         V(graph.dat)$name <- V(graph.dat)$id
         dependency.dat <- get.data.frame(graph.dat)
@@ -198,7 +194,7 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
             dependency.dat[dependency.dat[, 1] %in% relevant.entity.list &
                            dependency.dat[, 2] %in% relevant.entity.list,]
         names(dependency.dat) <- c("V1", "V2")
-    } else if (dependency.type == "semantic") {
+    } else if (types$dependency == "semantic") {
         commit.df <- query.dependency(conf, params$file.limit, start.date, end.date,
                                       impl=TRUE)
 
@@ -322,20 +318,6 @@ gen.plot.info <- function(stats) {
                  " A-M: ", stats$num.motifs.anti, sep=""))
 }
 
-do.merge.conway.data <- function(conf, vcs.dat, cycles, i, motif.type, motif.dat, stats,
-                                 global.resdir, networks.dir) {
-    artifact.type <- conf$artifactType
-    quality.type <- conf$qualityType
-    communication.type <- conf$communicationType
-    corr.plot.path <- file.path(global.resdir, gen.range.path(i, cycles[i,]$cycle),
-                                "quality_analysis", motif.type, communication.type)
-    dir.create(corr.plot.path, recursive=T, showWarnings=T)
-
-    merge.conway.data(conf, cycles, i, motif.type,
-                      communication.type, quality.type,
-                      global.resdir, networks.dir)
-}
-
 search.motifs <- function(graphs, motif.type, params, dependency.dat,
                           dependency.edgelist, comm.inter.dat,
                           artifact.type, vertex.coding) {
@@ -441,8 +423,11 @@ do.conway.analysis <- function(conf, global.resdir, i) {
     ##                 (co-change, dsm, feature_call, none)
     ## qualityType: corrective or defect
     ## communicationType: Data source to capture developer communication (mail, jira)
-    artifact.type <- conf$artifactType
+    types <- types.from.conf(conf)
     params <- get.conway.params()
+    output.dir.graphs <- file.path(range.resdir,
+                                   gen.conway.path(types, omit.motif=TRUE))
+    dir.create(output.dir.graphs, showWarnings=FALSE, recursive=TRUE)
 
     ## Compute developer-artifact relationships that are obtained
     ## from the revision control system
@@ -462,12 +447,12 @@ do.conway.analysis <- function(conf, global.resdir, i) {
         loginfo(str_c("Conway analysis: No usable communication relationships available ",
                       "for time interval ", start.date, "--", end.date, ", exiting early",
                       sep=""), startlogger="conway")
-        return(NULL)
+        return()
     }
 
     ## Determine connections between entities (aka artefacts)
     dependency.dat <- compute.ee.relations(conf, vcs.dat, start.date, end.date,
-                                           range.resdir, params)
+                                           range.resdir, params, types)
 
     ## Generate a bipartite network that describes the socio-technical structure
     ## of a development project. This data structure is the core of the Conway
@@ -482,7 +467,7 @@ do.conway.analysis <- function(conf, global.resdir, i) {
                             attr=list(name=nodes.dev, kind=params$person.role,
                                       type=TRUE))
     g.nodes  <- add.vertices(g.nodes, nv=length(nodes.artifact),
-                             attr=list(name=nodes.artifact, kind=artifact.type,
+                             attr=list(name=nodes.artifact, kind=types$artifact,
                                        type=FALSE))
 
     ## Graph g.bipartite based on g.nodes that contains developer-artifact edges
@@ -504,7 +489,7 @@ do.conway.analysis <- function(conf, global.resdir, i) {
     if (nrow(comm.inter.dat) == 0) {
         loginfo("No overlap between VCS and communication data, exiting analysis early!",
                 logger="conway")
-        return(NULL)
+        return()
     }
 
     comm.edgelist <- as.character(with(comm.inter.dat,
@@ -527,7 +512,7 @@ do.conway.analysis <- function(conf, global.resdir, i) {
     ##   the different vertices
     vertex.coding <- c()
     vertex.coding[params$person.role] <- 1
-    vertex.coding[artifact.type] <- 2
+    vertex.coding[types$artifact] <- 2
     V(g)$color <- vertex.coding[V(g)$kind]
 
     ## * Last, save the resulting graph for external processing
@@ -537,10 +522,10 @@ do.conway.analysis <- function(conf, global.resdir, i) {
     ## * kind (string: developer, function, or file)
     ## * type (boolean: true for person, false for artifact)
     ## * color (colour as hex value)
-    write.graph(g, file.path(range.resdir, "network_data.graphml"), format="graphml")
+    write.graph(g, file.path(output.dir.graphs, "network_data.graphml"), format="graphml")
 
     ## Plot the complete network
-    plot.to.file(g, file.path(range.resdir, "socio_technical_network.pdf"))
+    plot.to.file(g, file.path(output.dir.graphs, "socio_technical_network.pdf"))
 
     ## ############### Analyse the socio-technical graph ##############
     ## ############### (motif specific computations) ##################
@@ -556,9 +541,14 @@ do.conway.analysis <- function(conf, global.resdir, i) {
     for (motif.type in motif.types) {
         loginfo(str_c("Performing ", motif.type, " motif calculations"),
                       logger="conway")
+
+        types$motif <- motif.type
+        output.dir <- file.path(range.resdir, gen.conway.path(types))
+        dir.create(output.dir, recursive=TRUE, showWarnings=TRUE)
+
         motif.dat <- search.motifs(graphs, motif.type, params, dependency.dat,
                                    dependency.edgelist, comm.inter.dat,
-                                   artifact.type, vertex.coding)
+                                   types$artifact, vertex.coding)
 
         logdevinfo("Computing null model stats", logger="conway")
         stats <- list(num.devs=length(nodes.dev), num.artefacts=length(nodes.artifact),
@@ -568,9 +558,6 @@ do.conway.analysis <- function(conf, global.resdir, i) {
 
         ## Visualise the results in some graphs
         logdevinfo("Writing null model data", logger="conway")
-        networks.dir <- file.path(range.resdir, "motif_analysis", motif.type,
-                                  conf$communicationType)
-        dir.create(networks.dir, recursive=TRUE, showWarnings=TRUE)
 
         ## The file contains the following columns:
         ## * count.type: string (positive, negative, ratio)
@@ -578,7 +565,7 @@ do.conway.analysis <- function(conf, global.resdir, i) {
         ##                   various rewired grapsh)
         ## * empirical.count: integer (count or ratio for the observed data)
         write.table(motif.dat$null.model.dat,
-                    file=file.path(networks.dir, "raw_motif_results.txt"))
+                    file=file.path(output.dir, "raw_motif_results.txt"))
 
 
         ## Combine the previously computed data sets if motifs and anti-motifs
@@ -603,12 +590,11 @@ do.conway.analysis <- function(conf, global.resdir, i) {
         compare.motifs[is.na(compare.motifs)] <- 0
         names(compare.motifs) <- c("entity", "motif.count", "motif.anti.count")
 
-        do.motif.plots(motif.dat, comm.dat, stats, networks.dir)
+        do.motif.plots(motif.dat, comm.dat, stats, output.dir)
 
         write.table(compare.motifs,
-                    file=file.path(networks.dir, "entity_motifs.txt"))
-        do.merge.conway.data(conf, vcs.dat, cycles, i, motif.type, motif.dat,
-                            stats, global.resdir, networks.dir)
+                    file=file.path(output.dir, "entity_motifs.txt"))
+        merge.conway.data(conf, cycles, i, types, global.resdir)
     }
 }
 
