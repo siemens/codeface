@@ -52,7 +52,6 @@ types.from.conf <- function(conf) {
     types$artifact <- conf$artifactType
     types$quality <- conf$qualityType
     types$communication <- conf$communicationType
-    types$artifact <- conf$artifactType
     types$dependency <- conf$dependencyType
 
     return(types)
