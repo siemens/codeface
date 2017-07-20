@@ -13,7 +13,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Copyright 2016 by Wolfgang Mauerer <wolfgang.mauerer@oth-regensburg.de>
+# Copyright 2016, 2017 by Wolfgang Mauerer <wolfgang.mauerer@oth-regensburg.de>
 # Copyright 2016 by Carlos Andrade <carlos.andrade@acm.org>
 # All Rights Reserved.
 
@@ -33,13 +33,11 @@ from progressbar import ProgressBar, Percentage, Bar, ETA
 from .VCS import gitVCS
 from .dbmanager import DBManager
 from .util import execute_command
-from jira import JIRA
 from os import listdir
 
 import xml.etree.cElementTree as ET
-import jira as jr
-import pandas as pd
-import numpy as np
+import jira
+import csv
 
 # Given a user id and a jira instance, determine the email address associated with the
 # user id.
@@ -55,8 +53,8 @@ def get_email_from_jira(userid, jira):
                 email[i] = '@'
         email = ''.join(email)
         return email
-    user = jira.user(id=userid,expand=["name","emailAddress"])
-    user_data = (user.name,fix_email_format(user.emailAddress))
+    user = jira.user(id=userid, expand=["name","emailAddress"])
+    user_data = (user.name, fix_email_format(user.emailAddress))
     return user_data
 
 
@@ -65,7 +63,8 @@ def parse_jira_issues(xmldir, resdir, jira_url, jira_user, jira_password):
 
     # Iterate over all Jira XML issue files as obtained by Titan, and obtain
     # author information for each issue
-    issue_list=[]
+    issue_list = []
+    author_ids = {} # Used to collect distinct author IDs
     for file_name in file_names:
         try:
             tree = ET.ElementTree(file=os.path.join(xmldir, file_name))
@@ -83,61 +82,72 @@ def parse_jira_issues(xmldir, resdir, jira_url, jira_user, jira_password):
                             issue_key = issue.text
                         if issue.tag == "type":
                             issue_type = issue.text
+                        if issue.tag == "reporter":
+                            issue_reporter = issue.get('username').encode('utf-8')
+                            author_ids[issue_reporter] = 1
+                        if issue.tag == "created":
+                            row = {'IssueID': issue_key, 'IssueType': issue_type,
+                                   'AuthorID': issue_reporter,
+                                   'CommentTimestamp': issue.text }
+                            issue_list.append(row)
                         if issue.tag  == "comments":
                              for comment in issue:
                                  issue_comment_author = None
                                  issue_comment_author = comment.get('author').encode('utf-8')
+                                 author_ids[issue_comment_author] = 1
                                  issue_comment_timestamp = comment.get('created')
-                                 issue={'IssueID': issue_key, 'IssueType': issue_type,
-                                       'AuthorID': issue_comment_author,
-                                       'CommentTimestamp': issue_comment_timestamp }
-                                 issue_list.append(issue)
+                                 row = {'IssueID': issue_key, 'IssueType': issue_type,
+                                        'AuthorID': issue_comment_author,
+                                        'CommentTimestamp': issue_comment_timestamp }
+                                 issue_list.append(row)
 
-    comment_authors_df = pd.DataFrame(issue_list,
-                                      columns=("IssueID", "IssueType",
-                                               "AuthorID", "CommentTimestamp"))
-    user_ids = comment_authors_df['AuthorID'].unique()
-    jira = JIRA(server=jira_url, basic_auth=(jira_user, jira_password))
+    user_ids = author_ids.keys()
+    jira_instance = jira.JIRA(server=jira_url, basic_auth=(jira_user, jira_password))
 
     total = len(user_ids)
 
     widgets = ['Parsing jira issues: ', Percentage(), ' ', Bar(), ' ', ETA()]
     pbar = ProgressBar(widgets=widgets, maxval=total).start()
-    email_list = []
+    emails = {} # Map ids to emails
 
     for i, userid in enumerate(user_ids):
-        requested_tuple = None
+        res = None
         try:
-            requested_tuple = get_email_from_jira(userid, jira)
-        except jr.exceptions.JIRAError:
+            res = get_email_from_jira(userid, jira_instance)
+        except jira.exceptions.JIRAError:
             log.devinfo('User ID {} not found'.format(userid))
         except UnicodeDecodeError:
             log.devinfo('Unicode Decoding problem, most likely due to faulty encoding. ' +
                   'Ignoring user ID {}.'.format(userid))
-        if requested_tuple == None:
+        if res == None:
             pass
         else:
-            email_list.append(np.array(requested_tuple))
+            emails[res[0]] = res[1]
 
         pbar.update(i)
 
-    # Add a new column with the inferred email addresses to the data frame
-    email_df = pd.DataFrame(email_list, columns=('AuthorID', 'userEmail'))
-    merged = pd.merge(comment_authors_df, email_df, on='AuthorID')
-
-    # ... and store the results as CSV file (TODO: Place this in the codeface DB)
+    # Store the results as CSV file (TODO: Place this in the codeface DB)
     # Contains the columns
     # IssueID (e.g., HIVE-1937)
     # IssueType (e.g., Bug, New Feature, ...)
     # AuthorID (alphanumeric jira id, e.g., cwstein)
     # CommentTimestamp (format: Tue, 1 Feb 2011 01:47:11 +0000)
     # userEmail (pure address without name, e.g., abc@apache.org)
-    merged.to_csv(os.path.join(resdir, "jira_issue_comments.csv"), index=False)
+    with open(os.path.join(resdir, "jira_issue_comments.csv"), 'w') as out:
+        fieldnames = ['IssueID', 'IssueType', 'AuthorID', 'CommentTimestamp', 'userEmail']
+        writer = csv.DictWriter(out, fieldnames=fieldnames)
 
+        writer.writeheader()
+        for row in issue_list:
+            try:
+                row["userEmail"] = emails[row["AuthorID"]]
+                writer.writerow(row)
+            except KeyError:
+                # Skip the entry if the email address of the user could not be resolved
+                log.warn('Could not resolve user ID {}, skipping entry'.format(userid))
 
 def dispatch_jira_processing(resdir, titandir, conf):
     xmldir = os.path.join(resdir, "issues_xml")
-    dbm = DBManager(conf)
 
     dbm = DBManager(conf)
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
