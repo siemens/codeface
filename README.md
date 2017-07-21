@@ -18,7 +18,7 @@ your system. To get shell access on the machine in each case, use
 	vagrant ssh
 
 If vagrant is not yet installed on your system, please consult
-the corresponding [wiki page] (https://github.com/siemens/codeface/wiki/Runnning-codeface-with-Vagrant).
+the corresponding [wiki page](https://github.com/siemens/codeface/wiki/Running-codeface-with-Vagrant).
 
 ## Analysing Projects
 ### Concept
