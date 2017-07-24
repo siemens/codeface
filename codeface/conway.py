@@ -38,6 +38,8 @@ from os import listdir
 import xml.etree.cElementTree as ET
 import jira
 import csv
+import urllib3
+urllib3.disable_warnings()
 
 # Given a user id and a jira instance, determine the email address associated with the
 # user id.
