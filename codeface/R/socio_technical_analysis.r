@@ -432,6 +432,12 @@ do.conway.analysis <- function(conf, global.resdir, i) {
     ## Compute developer-artifact relationships that are obtained
     ## from the revision control system
     vcs.dat <- query.dependency(conf, params$file.limit, start.date, end.date)
+    if (is.null(vcs.dat) || nrow(vcs.dat) == 0) {
+        loginfo(str_c("Conway analysis: No usable VCS relationships available ",
+                      "for time interval ", start.date, "--", end.date, ", exiting early",
+                      sep=""), startlogger="conway")
+        return()
+    }
     vcs.dat$author <- as.character(vcs.dat$author)
 
     ## Determine which function/file artifacts (node.artifact) and developers
@@ -572,7 +578,8 @@ do.conway.analysis <- function(conf, global.resdir, i) {
         ## were detected in the network
         if (length(motif.dat$motif.subgraphs) == 0 ||
             length(motif.dat$motif.anti.subgraphs) == 0) {
-            loginfo(str_c("No motifs or anti-motifs found for cycle ", i, ", exiting early"))
+            loginfo(str_c("No ", motif.type, " motifs or anti-motifs found for cycle ", i,
+                          ", exiting early"))
             return()
         }
 
