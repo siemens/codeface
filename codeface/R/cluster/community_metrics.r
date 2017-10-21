@@ -757,6 +757,7 @@ compute.project.graph.trends <-
       revision.data[sapply(revision.data, is.null)] <- NULL
 
       ## Create igraph object and select communities which are of a minimum size 4
+      loginfo("Compute communities")
       revision.data <-
         mclapply(revision.data, mc.cores=n.cores,
                  function(rev) {
@@ -781,6 +782,7 @@ compute.project.graph.trends <-
       revision.data[sapply(revision.data, is.null)] <- NULL
 
       ## Compute network metrics
+      loginfo("Compute network metrics")
       revision.df.list <-
         mclapply(revision.data, mc.cores=n.cores,
                  function(rev) {
@@ -874,6 +876,8 @@ build.filenames <- function(outdir, project.name, type.name, analysis.method) {
 }
 
 plot.box <- function(project.df, feature, outdir) {
+  loginfo("Plotting box plot for feature %s", feature)
+
   ## Select all rows for the feature
   keep.row <- project.df$metric == feature
   project.df <- project.df[keep.row,]
@@ -927,6 +931,8 @@ plot.box <- function(project.df, feature, outdir) {
 }
 
 plot.series <- function(project.df, feature, outdir) {
+  loginfo("Plot time series for feature %s", feature)
+
   ## Select all rows for the feature
   keep.row <- project.df$metric %in% feature
   project.df <- project.df[keep.row,]
@@ -1032,15 +1038,17 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
                       'num.power.law',
                       'edge.vert.ratio')
 
-
   ## Generate and save box plots for each project
+  loginfo("Saving box plots")
   dlply(trends, .(p.id), function(df) sapply(metrics.box, function(m)
         plot.box(df, m, outdir)))
 
   ## Generate and save series plots
+  loginfo("Saving time series")
   dlply(trends, .(p.id), function(df) plot.series(df, metrics.series, outdir))
 
   ## Gernerate scatter plots
+  loginfo("Saving scatter plots")
   dlply(trends, .(p.id), function(df) plot.scatter(df, "v.degree",
         "cluster.coefficient", outdir))
 
@@ -1051,6 +1059,7 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
   dir.create(file.dir, recursive=T)
 
   ## Save markov chain plot
+  loginfo("Saving Markov chains")
   if(!is.null(markov.chains)) {
     chain.types <- names(markov.chains)
     for (type in chain.types) {
@@ -1068,6 +1077,7 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
   }
 
   ## Save data to file
+  loginfo("Save data files")
   data <- list(trends=trends,markov.chains=markov.chains,
                developer.classifications= developer.classifications,
                class.edge.probs=class.edge.probs,

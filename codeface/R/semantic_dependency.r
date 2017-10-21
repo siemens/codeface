@@ -184,9 +184,11 @@ computeSemanticCoupling <- function(depend.df, threshold=0.5) {
   tdm <- processTermDocMat(corp)
 
   ## Compute document similarity using latent semantic analysis
+  loginfo("Computing document similarity")
   dist.mat <- computeDocSimilarity(tdm)
 
   ## Remove documents that have low similarity
+  loginfo("Remove dissimilar documents")
   edgelist <- cmpfun(getSimDocIds)(dist.mat, threshold)
 
   ## Mapping of document ids to document names
@@ -195,6 +197,8 @@ computeSemanticCoupling <- function(depend.df, threshold=0.5) {
                             stringsAsFactors=FALSE)
 
   res <- list(edgelist=edgelist, vertex.data=vertex.data)
+
+  loginfo("Finished semantic similarity computation")
 
   return(res)
 }
