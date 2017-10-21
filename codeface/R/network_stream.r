@@ -112,6 +112,8 @@ build.dev.net.stream <- function(con, project.id, type, dates.df,
 
 
 construct.edgelist <- function(commit.list, add.co.change.rel, add.semantic.rel) {
+  if(length(commit.list$commit.df) == 0) return(list())
+
   ## Compute relation for developer contribution to common entity
   entity.groups <- aggregate.on.common.entity(commit.list$commit.df)
 
