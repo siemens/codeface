@@ -1356,16 +1356,3 @@ test.community.quality.modularity <- function() {
   quality <- community.metric(g, g.clust, "modularization")
 
 }
-
-#########################################################################
-##     					 Executed Statements
-#########################################################################
-##----------------------------
-## Parse commandline arguments
-##----------------------------
-
-config.script.run({
-  conf <- config.from.args(positional.args=list("resdir", "range.id"),
-                           require.project=TRUE)
-  performAnalysis(conf$resdir, conf)
-})

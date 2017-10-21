@@ -114,7 +114,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
 
         #########
         # STAGE 2: Cluster analysis
-        exe = abspath(resource_filename(__name__, "R/cluster/persons.r"))
+        exe = abspath(resource_filename(__name__, "R/cluster/run_analysis.r"))
         cwd, _ = pathsplit(exe)
         cmd = []
         cmd.append(exe)
