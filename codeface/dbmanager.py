@@ -64,7 +64,7 @@ class DBManager:
             raise
         self.cur = self.con.cursor()
 
-        max_packet_size = 1024 * 1024 * 256
+        max_packet_size = 1024 * 1024 * 512
         self.doExec("SET GLOBAL max_allowed_packet=%s", (max_packet_size,))
 
     def __del__(self):
@@ -85,7 +85,9 @@ class DBManager:
                     if dbe.args[0] == 1213:  # Deadlock! retry...
                         log.warning("Recoverable deadlock in MySQL - retrying.")
                     elif dbe.args[0] == 2006:  # Server gone away...
-                        log.warning("MySQL Server gone away, trying to reconnect.")
+                        log.warning("MySQL Server gone away, trying to "
+                                    "reconnect. If warning persists, try "
+                                    "increasing the max_allowed_packet size.")
                         self.con.ping(True)
                     elif dbe.args[0] == 2013:  # Lost connection to MySQL server during query...
                         log.warning("Lost connection to MySQL server during query, trying to reconnect.")
