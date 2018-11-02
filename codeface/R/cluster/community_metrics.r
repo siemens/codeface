@@ -21,7 +21,7 @@ suppressMessages(library(BiRewire))
 suppressMessages(library(parallel))
 suppressMessages(library(robustbase))
 suppressMessages(library(ineq))
-suppressMessages(library(markovchain))
+##suppressMessages(library(markovchain))
 suppressMessages(library(scales))
 suppressMessages(library(xts))
 
