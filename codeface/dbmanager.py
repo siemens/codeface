@@ -98,11 +98,11 @@ class DBManager:
                     else:
                         raise
 
-                    # Give up after too many retry attempts and propagate the
-                    # problem to the caller. Either it's fixed with a different
-                    # query, or the analysis fails
-                    log.error("DB access failed after ten attempts, giving up")
-                    raise
+            # Give up after ten retry attempts and propagate the
+            # problem to the caller. Callers can either fix the problem with
+            # a different query, or the analysis fails
+            log.error("DB access failed after ten attempts, giving up")
+            raise
 
     def doFetchAll(self):
         with _log_db_error("fetchall"):
