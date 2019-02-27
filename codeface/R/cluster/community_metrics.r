@@ -757,6 +757,7 @@ compute.project.graph.trends <-
       revision.data[sapply(revision.data, is.null)] <- NULL
 
       ## Create igraph object and select communities which are of a minimum size 4
+      loginfo("Compute communities")
       revision.data <-
         mclapply(revision.data, mc.cores=n.cores,
                  function(rev) {
@@ -781,6 +782,7 @@ compute.project.graph.trends <-
       revision.data[sapply(revision.data, is.null)] <- NULL
 
       ## Compute network metrics
+      loginfo("Compute network metrics")
       revision.df.list <-
         mclapply(revision.data, mc.cores=n.cores,
                  function(rev) {
@@ -848,8 +850,34 @@ plot.influence.ts <- function(project.stats) {
   return(plot1)
 }
 
+build.filenames <- function(outdir, project.name, type.name, analysis.method) {
+  plot.organization <- c("project", "plot_type")
+
+  filenames <- sapply(plot.organization,
+                      function(p.org) {
+                        if(p.org == "project") {
+                          folder.name <- paste(project.name, "_",
+                                               analysis.method, sep="")
+                          plot.name <- paste(type.name, ".png", sep="")
+                        }
+                        else if (p.org == "plot_type") {
+                          folder.name <- paste(type.name, "_",
+                                               analysis.method, sep="")
+                          plot.name <- paste(project.name, ".png", sep="")
+                        }
+                        output.path <- file.path(outdir, p.org,
+                                                 folder.name)
+                        dir.create(output.path, recursive=T)
+                        filename <- file.path(output.path, plot.name)
+                        return(filename)
+                      })
+
+  return(filenames)
+}
 
 plot.box <- function(project.df, feature, outdir) {
+  loginfo("Plotting box plot for feature %s", feature)
+
   ## Select all rows for the feature
   keep.row <- project.df$metric == feature
   project.df <- project.df[keep.row,]
@@ -871,13 +899,17 @@ plot.box <- function(project.df, feature, outdir) {
     ylim1[1] <- 0
     p1 = p0 + coord_cartesian(ylim = ylim1*1.05)
 
-    file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
-    dir.create(file.dir, recursive=T)
-    file.name <- paste(file.dir, "/", feature, ".png",sep="")
-    ggsave(file.name, p1, height=8, width=20)
+    file.names <- build.filenames(outdir, project.name, feature,
+                                  analysis.method)
+
+    sapply(file.names,
+           function(filename) ggsave(filename, p1, height=8,
+                                     width=20))
 
     ## Adjusted box plots for skewed data
-    file.name <- paste(file.dir, "/", feature, "_adjusted.pdf", sep="")
+    file.names <- build.filenames(outdir, project.name,
+                                  paste(feature, "_adjusted.pdf", sep=""),
+                                  analysis.method)
 
     pdf(file.name)
 
@@ -889,16 +921,18 @@ plot.box <- function(project.df, feature, outdir) {
     dev.off()
 
     if(feature %in% c('page.rank','v.degree')) {
-      file.name <- paste(file.dir, '/', feature, "_distribution.pdf", sep="")
       p2 <- ggplot(project.df, aes(x=value)) +
             geom_histogram(aes(y=..density..),colour="black", fill="white") +
             geom_density(alpha=.2, fill="#FF6666")
-      ggsave(file.name, p2, height=8, width=20)
+      sapply(file.names,
+             function(file.name) ggsave(file.name, p2, height=8, width=20))
     }
   }
 }
 
 plot.series <- function(project.df, feature, outdir) {
+  loginfo("Plot time series for feature %s", feature)
+
   ## Select all rows for the feature
   keep.row <- project.df$metric %in% feature
   project.df <- project.df[keep.row,]
@@ -925,10 +959,10 @@ plot.series <- function(project.df, feature, outdir) {
                       strip.text.x = element_text(size=15))
   }
 
-  file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
-  dir.create(file.dir, recursive=T)
-  file.name <- paste(file.dir, "/time_series_metrics.png",sep="")
-  ggsave(file.name, p, height=41, width=20)
+  file.names <- build.filenames(outdir, project.name, "time_series",
+                                  analysis.method)
+  sapply(file.names,
+         function(file.name) ggsave(file.name, p, height=41, width=20))
 }
 
 
@@ -956,10 +990,12 @@ plot.scatter <- function(project.df, feature1, feature2, outdir) {
         facet_wrap( ~ cycle) +
         geom_smooth(method="lm")
 
-    file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
-    dir.create(file.dir, recursive=T)
-    file.name <- paste(file.dir, "/", feature1, "_vs_", feature2, ".png",sep="")
-    ggsave(file.name, p, height=40, width=40)
+    feature <- paste(feature1, "_vs_", feature2, sep="")
+    file.names <- build.filenames(outdir, project.name, feature,
+                                  analysis.method)
+
+    sapply(file.names,
+           function(file.name) ggsave(file.name, p, height=40, width=40))
   }
 }
 
@@ -1002,15 +1038,17 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
                       'num.power.law',
                       'edge.vert.ratio')
 
-
   ## Generate and save box plots for each project
+  loginfo("Saving box plots")
   dlply(trends, .(p.id), function(df) sapply(metrics.box, function(m)
         plot.box(df, m, outdir)))
 
   ## Generate and save series plots
+  loginfo("Saving time series")
   dlply(trends, .(p.id), function(df) plot.series(df, metrics.series, outdir))
 
   ## Gernerate scatter plots
+  loginfo("Saving scatter plots")
   dlply(trends, .(p.id), function(df) plot.scatter(df, "v.degree",
         "cluster.coefficient", outdir))
 
@@ -1018,8 +1056,10 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
   analysis.method <- unique(trends$analysis.method)
 
   file.dir <- paste(outdir, "/", project.name, "_", analysis.method, sep="")
+  dir.create(file.dir, recursive=T)
 
   ## Save markov chain plot
+  loginfo("Saving Markov chains")
   if(!is.null(markov.chains)) {
     chain.types <- names(markov.chains)
     for (type in chain.types) {
@@ -1037,6 +1077,7 @@ write.plots.trends <- function(trends, markov.chains, developer.classifications,
   }
 
   ## Save data to file
+  loginfo("Save data files")
   data <- list(trends=trends,markov.chains=markov.chains,
                developer.classifications= developer.classifications,
                class.edge.probs=class.edge.probs,
