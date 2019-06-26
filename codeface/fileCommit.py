@@ -116,12 +116,15 @@ class FileCommit:
         # Function Implementation
         self.functionImpl = {}
 
-        # doxygen flag
-        self.doxygen_analysis = False
+        # True if start/end boundaries of artefacts are available (otherwise,
+        # only the start of an artefact is known
+        self.artefact_line_range = False
 
         # source code element list
         # stores all source code elements of interest and
         # meta data
+        # NOTE: This does never ever seem to be used. Discuss with
+        # Mitchell what this was all about
         self._src_elem_list = []
 
         # dictionaries with key = line number, value = feature list|feature expression
@@ -171,7 +174,7 @@ class FileCommit:
         # returns the identifier of a function given a line number
         func_id = 'File_Level'
         line_num = int(line_num)
-        if self.doxygen_analysis == True:
+        if self.artefact_line_range == True:
             if line_num in self.functionIds:
                 func_id = self.functionIds[line_num]
         else:
