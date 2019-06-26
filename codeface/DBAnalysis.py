@@ -50,7 +50,7 @@ class DBAnalysis:
         # TODO - what to do about encoding errors?
         for i in range(1, length(src_file)):
             line = src_file[i]
-            logging.debug("LINE " + str(i) + ": " + line)
+            log.debug("LINE " + str(i) + ": " + line)
 
             # TODO - ignore multi-line comments
             # TODO: Why do we do use startswith here -- whitespace before drop?
@@ -60,7 +60,7 @@ class DBAnalysis:
                     # We just ignore the previous artefact and this one...
 
                     # TODO - count these problems and report them in threats to validity section.
-                    logging.warning("LINE " + str(lcounter) + ": " + line + " previous artefact not closed? Recovering...")        
+                    log.warning("LINE " + str(lcounter) + ": " + line + " previous artefact not closed? Recovering...")        
                     in_artefact = False
                     kind = action = None
                     start = end = 0      
@@ -84,7 +84,7 @@ class DBAnalysis:
                     # We just ignore the previous artefact and this one...
 
                     # TODO - count these problems and report them in threats to validity section.
-                    logging.error("LINE " + str(lcounter) + ": " + line.rstrip("\n") + " previous artefact not closed? Recovering...")
+                    log.error("LINE " + str(lcounter) + ": " + line.rstrip("\n") + " previous artefact not closed? Recovering...")
                     in_artefact = False
                     kind = action = None
                     start = end = 0      
@@ -112,7 +112,7 @@ class DBAnalysis:
                 # in tikiwiki_schemas/Rev_24_tiki.sql 
                 elif line == "CREATE\n":
                     in_artefact = False
-                    logging.error("LINE " + str(lcounter) + ": " + line.rstrip("\n") + " -- incomplete statement? Recovering...")
+                    log.error("LINE " + str(lcounter) + ": " + line.rstrip("\n") + " -- incomplete statement? Recovering...")
       
                 else:
                     raise Exception("Unknown CREATE <kind> at line " + str(lcounter) + ", line " + line)
@@ -138,7 +138,7 @@ class DBAnalysis:
                 # Parsing out the artefact name may have been unsuccessful,
                 # e.g. because of syntax errors. In this case, the name is None and we continue.
                 if name == None:
-                    logging.debug("Reached ';', but there was some error parsing the statement in line " + str(lcounter))
+                    log.debug("Reached ';', but there was some error parsing the statement in line " + str(lcounter))
                 else:      
                     end = lcounter
                     assert(kind != None)
