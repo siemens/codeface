@@ -1330,6 +1330,12 @@ class gitVCS (VCS):
             log.warning("doxygen analysis error '{0}' - returning empty result".format(e))
             return {}, []
 
+        # Doxygen results:
+        # src_elem_list: List of hash tables with bodystart, bodyend, name, mem_kind
+        # comp_kind, comp_name (latter two: ??? refers to some compound)
+        # func_lines: list of hashes line_num: artefact name for _every_ line that
+        # covers an artefact (not just ranges)
+
         # Delete tmp directory storing doxygen files
         shutil.rmtree(tmp_outdir)
 
@@ -1344,6 +1350,22 @@ class gitVCS (VCS):
             func_lines.update(f_lines)
 
         return func_lines, file_analysis.src_elem_list
+
+    def _parseSrcFileDB(self, src_file):
+        log.debug("Running DB analysis")
+
+        res = DBAnalysis(src_file)
+        # Get src element bounds
+        func_lines = {}
+        for elem in res:
+            # Source indices in DB analysis start at 1, convert to zero based values
+            start = int(elem['start']) - 1
+            end = int(elem['end']) - 1
+            name = elem['name']
+            f_lines = {line_num:name  for line_num in range(start, end+1)}
+            func_lines.update(f_lines)
+
+        return func_lines
 
     def _parseSrcFileCtags(self, src_file):
         # temporary file where we write transient data needed for ctags
@@ -1436,11 +1458,15 @@ class gitVCS (VCS):
                         '.cpp', '.cxx', '.c', '.cc']):
             func_lines, src_elems = self._parseSrcFileDoxygen(srcFile.name)
             file_commit.setSrcElems(src_elems)
-            file_commit.doxygen_analysis = True
+            file_commit.artefact_line_range = True
+        elif (fileExt in ['sql'])
+            # TODO: Should we use more file extensions?
+            func_lines, src_elems = self._parseSrcFileDB(srcFile.name)
+            file_commit.artefact_line_range = True
 
         if not func_lines: # for everything else use Ctags
             func_lines = self._parseSrcFileCtags(srcFile.name)
-            file_commit.doxygen_analysis = False
+            file_commit.artefact_line_range = False
 
         # clean up src temp file
         srcFile.close()
