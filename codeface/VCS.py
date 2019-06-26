@@ -1459,9 +1459,9 @@ class gitVCS (VCS):
             func_lines, src_elems = self._parseSrcFileDoxygen(srcFile.name)
             file_commit.setSrcElems(src_elems)
             file_commit.artefact_line_range = True
-        elif (fileExt in ['sql'])
+        elif (fileExt in ['sql']):
             # TODO: Should we use more file extensions?
-            func_lines, src_elems = self._parseSrcFileDB(srcFile.name)
+            func_lines = self._parseSrcFileDB(srcFile.name)
             file_commit.artefact_line_range = True
 
         if not func_lines: # for everything else use Ctags
