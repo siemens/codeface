@@ -1538,7 +1538,7 @@ class gitVCS (VCS):
         fileExt = (".c", ".cc", ".cpp", ".cxx", ".cs", ".asmx", ".m", ".mm",
                    ".js", ".java", ".j", ".jav", ".php",".py", ".sh", ".rb",
                    '.d', '.php4', '.php5', '.inc', '.phtml', '.m', '.mm',
-                   '.f', '.for', '.f90', '.idl', '.ddl', '.odl', '.tcl')
+                   '.f', '.for', '.f90', '.idl', '.ddl', '.odl', '.tcl', ".sql')
 
         fileNames = [fileName for fileName in all_files if
                      fileName.lower().endswith(fileExt)]
