@@ -129,6 +129,12 @@ perform.git.checkout <- function(repodir, commit.hash, code.dir, archive.file) {
   do.system("tar", args)
 }
 
+## Return the content of a file at a given revision
+show.git.file <- function(repodir, commit.hash, file) {
+  args <- str_c(" --git-dir=", repodir, " show ", commit.hash, ":", file, sep="")
+  return(do.system("git", args))
+}
+
 ## Some helper functions to ensure that functions (and the
 ## configuration parser) receive correct parameter values in the
 ## conway analysis
