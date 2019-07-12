@@ -18,17 +18,13 @@ suppressPackageStartupMessages(library(data.table))
 source("dependency_analysis.r")
 source("semantic_dependency.r")
 
-build.dev.net <- function(con, project.id, type, start.date, end.date) {
+build.dev.net <- function(conf, start.date, end.date) {
   ## Generate a graph from common contribution to a given entity type
 
-  ## con: DB connection
-  ## project.id: unique identifier for the project
-  ## type: code entity, eg. function, file, class on which the common
-  ## contribution indicates a collaborative link
+  ## conf: DB connection (must include type)
   limit <- 50
 
-  commit.df <- query.dependency(con, project.id, type, limit, start.date,
-                                end.date)
+  commit.df <- query.dependency(conf, limit, start.date, end.date)
 
   edgelist <- commits.to.edgelist(commit.df)
 
@@ -50,7 +46,7 @@ entity.group.to.edgelist <- function(entity.groups, cycle) {
 }
 
 
-build.dev.net.stream <- function(con, project.id, type, dates.df,
+build.dev.net.stream <- function(conf, dates.df,
                                  add.co.change.rel=FALSE,
                                  add.semantic.rel=FALSE) {
   ## Build a graph stream from a data frame of start and end dates,
@@ -70,7 +66,7 @@ build.dev.net.stream <- function(con, project.id, type, dates.df,
         commit.lists <- apply(df, 1, function(r) {
         start.date <- r['start.date']
         end.date <- r['end.date']
-        commit.df <- query.dependency(con, project.id, type, limit,
+        commit.df <- query.dependency(conf, limit,
                                       start.date, end.date, impl=add.semantic.rel)
 
         ## Co-change relationship needs a longer history of commits
@@ -81,7 +77,7 @@ build.dev.net.stream <- function(con, project.id, type, dates.df,
           historical.limit <- ddays(365)
           start.date.hist <- as.Date(start.date) - historical.limit
           end.date.hist <- start.date
-          commit.df.hist <- query.dependency(con, project.id, type, limit,
+          commit.df.hist <- query.dependency(conf, type, limit,
                                              start.date.hist, end.date.hist)
 
           ## Add commit.df because that is relavent also but no point in querying
@@ -105,6 +101,10 @@ build.dev.net.stream <- function(con, project.id, type, dates.df,
       })
 
   network.stream <- unlist(network.stream, recursive=FALSE, use.names=FALSE)
+
+  ## Remove failed ranges
+  runs.failed <- sapply(network.stream, class) == "try-error"
+  network.stream[runs.failed] <- NULL
   names(network.stream) <- sapply(network.stream, function(net) net$cycle)
 
   return(network.stream)
