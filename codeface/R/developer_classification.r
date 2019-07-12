@@ -219,13 +219,13 @@ compute.edge.probs <- function(developer.class.list, edgelist, vertex.ids) {
 
 
 ## Compute markov chain for developer class transitions
-compute.class.markov.chain <- function(developer.class.list) {
+compute.markov.chain <- function(developer.class.list, type="class") {
   index <- names(developer.class.list)
   turnover <-
       lapply(index,
           function(t) {
             class.state.t <- developer.class.list[[t]]
-            res <- class.state.t[, c("author", "class")]
+            res <- class.state.t[, c("author", type)]
             state.t <- paste("state.", t, sep="")
             colnames(res) <- c("id", state.t)
             return(res)
@@ -234,6 +234,10 @@ compute.class.markov.chain <- function(developer.class.list) {
   turnover.all[is.na(turnover.all)] <- "absent"
   markov.chain <- markovchainFit(data=turnover.all[, -1], method="mle")$estimate
   return(markov.chain)
+}
+
+compute.class.markov.chain <- function(developer.class.list) {
+    return(compute.markov.chain(developer.class.list, "class"))
 }
 
 ## Centrality metric wrappers to generate named vectors
