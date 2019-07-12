@@ -813,15 +813,9 @@ compute.project.graph.trends <-
 
   res <- list(metrics=metrics.df, markov.chains=markov.chains,
               developer.classifications=developer.classifications,
-              class.edge.probs=e$developer.edge.probs)
+              class.edge.probs=e$developer.edge.probs,
+              developer.class.list=e$developer.classes[["4"]])
 
-  degree.df <- subset(metrics.df, metric=="v.degree")
-  dev.degree.df <- split(degree.df, degree.df$g.id)
-  t <- lapply(dev.degree.df,
-              function(dev.df) {
-                ts <- xts(dev.df$value, as.Date(dev.df$cycle))
-                ts <- 1 + ts
-                mean(ts/lag(ts, +1) -1, na.rm=T)})
   return(res)
 }
 
@@ -876,17 +870,17 @@ plot.box <- function(project.df, feature, outdir) {
     file.name <- paste(file.dir, "/", feature, ".png",sep="")
     ggsave(file.name, p1, height=8, width=20)
 
-    ## Adjusted box plots for skewed data
-    file.name <- paste(file.dir, "/", feature, "_adjusted.pdf", sep="")
+    ## ## Adjusted box plots for skewed data
+    ## file.name <- paste(file.dir, "/", feature, "_adjusted.pdf", sep="")
 
-    pdf(file.name)
+    ## pdf(file.name)
 
-    adjbox(value ~ cycle, data=project.df, outline=FALSE)
+    ## adjbox(value ~ cycle, data=project.df, outline=FALSE)
 
-    ## x axis with ticks but without labels
-    axis(1, labels = FALSE)
+    ## ## x axis with ticks but without labels
+    ## axis(1, labels = FALSE)
 
-    dev.off()
+    ## dev.off()
 
     if(feature %in% c('page.rank','v.degree')) {
       file.name <- paste(file.dir, '/', feature, "_distribution.pdf", sep="")
