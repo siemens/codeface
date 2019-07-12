@@ -614,12 +614,12 @@ compute.all.project.trends <- function(con, type, outdir) {
 
 
 compute.project.graph.trends <-
-  function(con, p.id, type, window.size=90, step.size=14) {
+  function(conf, type, window.size=90, step.size=14) {
   project.data <- list()
-  project.data$p.id <- p.id
-  project.data$name <- query.project.name(con, p.id)
-  project.data$analysis.method <- query.project.analysis.method(con, p.id)
-  range.data <- get.cycles.con(con, p.id)
+  project.data$p.id <- conf$pid
+  project.data$name <- query.project.name(conf$con, conf$pid)
+  project.data$analysis.method <- query.project.analysis.method(conf$con, conf$pid)
+  range.data <- get.cycles.con(conf$con, conf$pid)
   start.date <- min(range.data$date.start)
   end.date <- max(range.data$date.end)
 
@@ -652,10 +652,11 @@ compute.project.graph.trends <-
       p.ranges.chunk <- p.ranges[chunk,]
       ## Get graph and additional data for each revision
       if(type == "developer") {
-        edgelist.stream <- build.dev.net.stream(con, p.id, "Function", p.ranges.chunk)
+          conf$type <- "function"
+          edgelist.stream <- build.dev.net.stream(conf, p.ranges.chunk)
       }
 
-      revision.data <-
+        revision.data <-
         apply(p.ranges.chunk, 1,
               function(r) {
                 res <- list()
@@ -678,9 +679,7 @@ compute.project.graph.trends <-
                 }
                 else if (type == "co-change") {
                   window.start <- ymd(start.date) - ddays(180)
-                  edgelist <- get.co.change.edgelist(con, p.id,
-                                                     window.start,
-                                                     end.date)
+                  edgelist <- get.co.change.edgelist(conf, window.start, end.date)
                   if (!empty(edgelist)) {
                     v.id <- unique(unlist(as.list(edgelist[, c("X1", "X2")])))
                     res$v.global.ids <- v.id
@@ -755,7 +754,7 @@ compute.project.graph.trends <-
 
                 return(res)})
 
-      revision.data[sapply(revision.data, is.null)] <- NULL
+        revision.data[sapply(revision.data, is.null)] <- NULL
 
       ## Create igraph object and select communities which are of a minimum size 4
       revision.data <-
