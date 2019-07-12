@@ -25,10 +25,10 @@ suppressMessages(library(markovchain))
 suppressMessages(library(scales))
 suppressMessages(library(xts))
 
-source("dependency_analysis.r", chdir=TRUE)
-source("network_stream.r", chdir=TRUE)
-source("developer_classification.r", chdir=TRUE)
-source("cluster/community_helpers.r")
+source("../dependency_analysis.r", chdir=TRUE)
+source("../network_stream.r", chdir=TRUE)
+source("../developer_classification.r", chdir=TRUE)
+source("community_helpers.r", chdir=TRUE)
 
 edge.weight.to.multi <- function(g) {
   ## Converters an edge weight to multiple edges between the connected nodes
