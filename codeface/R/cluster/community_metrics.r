@@ -21,13 +21,14 @@ suppressMessages(library(BiRewire))
 suppressMessages(library(parallel))
 suppressMessages(library(robustbase))
 suppressMessages(library(ineq))
-##suppressMessages(library(markovchain))
+suppressMessages(library(markovchain))
 suppressMessages(library(scales))
 suppressMessages(library(xts))
 
-source("../dependency_analysis.r", chdir=TRUE)
-source("../network_stream.r", chdir=TRUE)
-source("../developer_classification.r", chdir=TRUE)
+source("dependency_analysis.r", chdir=TRUE)
+source("network_stream.r", chdir=TRUE)
+source("developer_classification.r", chdir=TRUE)
+source("cluster/community_helpers.r")
 
 edge.weight.to.multi <- function(g) {
   ## Converters an edge weight to multiple edges between the connected nodes
