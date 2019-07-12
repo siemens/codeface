@@ -15,7 +15,7 @@
 ## All Rights Reserved.
     
 suppressMessages(library(igraph))
-##suppressMessages(library(markovchain))
+suppressMessages(library(markovchain))
 suppressMessages(library(psych))
 
 source("db.r")
