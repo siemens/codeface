@@ -105,15 +105,8 @@ compute.ee.relations <- function(conf, vcs.dat, start.date, end.date,
         ## Compute the semantic coupling between entities in the commit.df
         semantic.rel <- computeSemanticCoupling(commit.df, threshold=0.7)
 
-        ## Verify that the vertex index is congruent with the row index
-        vertex.data <- semantic.rel$vertex.data
-        if(!all(1:length(vertex.data$name) == vertex.data$name)) {
-            logerror("Internal error: Row index mismatch in semantic coupling calculation",
-                     logger="network_stream")
-            stop()
-        }
-
         ## Map vertex id to an entity name
+        vertex.data <- semantic.rel$vertex.data
         V1 <- vertex.data[semantic.rel$edgelist$X1, "id"]
         V2 <- vertex.data[semantic.rel$edgelist$X2, "id"]
         dependency.dat <- data.frame(V1=V1, V2=V2, stringsAsFactors=F)
