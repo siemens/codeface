@@ -20,7 +20,6 @@ s(library(lsa))
 s(library(compiler))
 
 genArtifactCorpus <- function(depend.df) {
-    rmv_char = '.{}();:\[\]\n\r'
     depend.df$impl <- str_replace_all(depend.df$impl,
                                       "(\\.|\\{|\\}|\\(|\\)|;|:|\\[|\\]|\n|\r)", " ")
 
