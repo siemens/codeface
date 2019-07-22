@@ -1476,7 +1476,7 @@ class gitVCS (VCS):
 
         # save the implementation for each function
         for line_num, src_line in enumerate(file_layout_src):
-            file_commit.addFuncImplLine(line_num, src_line_rmv)
+            file_commit.addFuncImplLine(line_num, src_line)
 
 
     def cmtHash2CmtObj(self, cmtHash):
