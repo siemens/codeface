@@ -20,10 +20,12 @@ s(library(lsa))
 s(library(compiler))
 
 genArtifactCorpus <- function(depend.df) {
-  myReader <- readTabular(mapping=list(content="impl", heading="entity"))
-  corp <- VCorpus(DataframeSource(depend.df), readerControl=list(reader=myReader))
+    colnames(depend.df) <- str_replace(colnames(depend.df), "^impl$", "text")
+    colnames(depend.df) <- str_replace(colnames(depend.df), "^entity$", "doc_id")
 
-  return(corp)
+    corp <- VCorpus(DataframeSource(depend.df))
+
+    return(corp)
 }
 
 
@@ -191,7 +193,7 @@ computeSemanticCoupling <- function(depend.df, threshold=0.5) {
 
   ## Mapping of document ids to document names
   vertex.data <- data.frame(name=unlist(meta(corp, tag="id")),
-                            id=unlist(meta(corp, tag="heading")),
+                            id=unlist(names(corp)),
                             stringsAsFactors=FALSE)
 
   res <- list(edgelist=edgelist, vertex.data=vertex.data)
