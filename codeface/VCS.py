@@ -1534,7 +1534,7 @@ class gitVCS (VCS):
 
         #filter results to only get implementation files
         fileExt = (".c", ".cc", ".cpp", ".cxx", ".cs", ".asmx", ".m", ".mm",
-                   ".js", ".java", ".j", ".jav", ".php",".py", ".sh", ".rb",
+                   ".js", ".coffee", ".java", ".j", ".jav", ".php",".py", ".sh", ".rb",
                    '.d', '.php4', '.php5', '.inc', '.phtml', '.m', '.mm',
                    '.f', '.for', '.f90', '.idl', '.ddl', '.odl', '.tcl', 'sql')
 
