@@ -362,7 +362,7 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
                 execute_command,
                 (cmd,),
                 {"direct_io":True, "cwd":cwd},
-                deps=[],
+                deps=[s2],
                 startmsg=prefix + "Inferring architectural metrics with understand...",
                 endmsg=prefix + "understand run done."
                 )
@@ -383,7 +383,7 @@ def conway_analyse(resdir, gitdir, titandir, codeface_conf, project_conf,
         if "dependencyType" in conf.keys() and conf["dependencyType"] == "dsm":
             deps=[s3]
         else:
-            deps=[]
+            deps=[s2]
 
         s4 = pool.add(
                 execute_command,
